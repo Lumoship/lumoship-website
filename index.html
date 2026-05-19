@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumoship — Marine Structural Engineering Software</title>
+    <meta name="description" content="A comprehensive software suite for marine structural engineering — from concept design to class-compliant analysis.">
+    
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAe0lEQVR42mOU1/X6zzCAgIlhgMGoA0YdMOAOYCFG0a0zGxjY2Fhxysdn1jEcPHqWLAcwklIOnD+0gkFQgBfOD4wpZjh/6cZoGhh1wKgDRh0w6oDB54DM5FCGuxc2j0YB7avj9Ut6cer5++8f9avj0Vww6oBRB4w6gBYAAM8fG8ImXm0TAAAAAElFTkSuQmCC">
+    
+    <meta property="og:title" content="Lumoship — Marine Structural Engineering Software">
+    <meta property="og:description" content="A comprehensive software suite for marine structural engineering.">
+    <meta property="og:type" content="website">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            /* Colors - more refined */
+            --bg-primary:    #0a0e17;
+            --bg-secondary:  #0f141f;
+            --bg-tertiary:   #161c2a;
+            --bg-card:       #0d1220;
+            --bg-elevated:   #131927;
+            
+            --accent:        #3b82f6;
+            --accent-hover:  #60a5fa;
+            --accent-bright: #60a5fa;
+            --accent-glow:   rgba(59, 130, 246, 0.12);
+            --accent-subtle: rgba(59, 130, 246, 0.06);
+            
+            --text-primary:  #f8fafc;
+            --text-secondary:#94a3b8;
+            --text-muted:    #64748b;
+            --text-dim:      #475569;
+            
+            --success:       #10b981;
+            --warning:       #f59e0b;
+            
+            --border:        #1e2536;
+            --border-light:  #252d40;
+            --border-accent: rgba(59, 130, 246, 0.25);
+            
+            --font-display:  'JetBrains Mono', 'Fira Code', monospace;
+            --font-body:     'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-mono:     'JetBrains Mono', monospace;
+            
+            /* Fluid spacing tokens */
+            --space-xs:  clamp(0.5rem, 1vw, 0.75rem);
+            --space-sm:  clamp(0.75rem, 1.5vw, 1rem);
+            --space-md:  clamp(1rem, 2vw, 1.5rem);
+            --space-lg:  clamp(1.5rem, 3vw, 2.5rem);
+            --space-xl:  clamp(2rem, 5vw, 4rem);
+            --space-2xl: clamp(3rem, 8vw, 6rem);
+            --space-3xl: clamp(4rem, 10vw, 8rem);
+            
+            /* Fluid container */
+            --container-max: 1400px;
+            --container-content: 1100px;
+            
+            /* Transitions */
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: 200ms var(--ease);
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+        
+        @media (min-width: 1600px) {
+            html { font-size: 17px; }
+        }
+        
+        @media (min-width: 2000px) {
+            html { font-size: 18px; }
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        /* Background grid - more subtle */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+            background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
+            mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* ============ NAVIGATION ============ */
+        .nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding: clamp(0.875rem, 1.5vw, 1.125rem) clamp(1.25rem, 4vw, 3rem);
+        }
+        
+        .nav-inner {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity var(--transition);
+        }
+        
+        .nav-logo:hover {
+            opacity: 0.85;
+        }
+        
+        .nav-logo-mark {
+            width: clamp(24px, 2.5vw, 28px);
+            height: clamp(24px, 2.5vw, 28px);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(0.85rem, 1vw, 0.95rem);
+            color: white;
+            letter-spacing: -0.02em;
+        }
+        
+        .nav-logo-text {
+            font-family: var(--font-body);
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.06em;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: clamp(1rem, 2.5vw, 2.25rem);
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            transition: color var(--transition);
+            padding: 0.5rem 0;
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+        
+        .nav-link.active {
+            color: var(--text-primary);
+        }
+        
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1.5px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        
+        /* ============ MAIN ============ */
+        main {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: var(--container-content);
+            margin: 0 auto;
+            padding: 0 clamp(1.25rem, 4vw, 2rem);
+        }
+        
+        .container-wide {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 0 clamp(1.25rem, 4vw, 2rem);
+        }
+        
+        /* ============ PAGE HEADER ============ */
+        .page-header {
+            padding: clamp(4rem, 10vw, 8rem) clamp(1.25rem, 4vw, 2rem) clamp(2rem, 5vw, 4rem);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .page-label {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.75vw, 0.75rem);
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.25rem);
+        }
+        
+        .page-title {
+            font-family: var(--font-body);
+            font-size: clamp(2rem, 5vw, 3.25rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.035em;
+            line-height: 1.05;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.25rem);
+        }
+        
+        .page-subtitle {
+            font-size: clamp(1rem, 1.25vw, 1.125rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+        
+        /* ============ FOOTER ============ */
+        .footer {
+            padding: clamp(2.5rem, 5vw, 4rem) clamp(1.25rem, 4vw, 3rem) clamp(1.5rem, 3vw, 2rem);
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+            position: relative;
+            z-index: 1;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+            gap: clamp(1.5rem, 3vw, 2.5rem);
+            margin-bottom: clamp(2rem, 4vw, 3rem);
+        }
+        
+        .footer-brand-section {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.75rem, 1.5vw, 1rem);
+            max-width: 320px;
+        }
+        
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .footer-brand-mark {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: white;
+        }
+        
+        .footer-brand-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.05em;
+            font-size: clamp(0.9rem, 1vw, 0.95rem);
+        }
+        
+        .footer-description {
+            font-size: clamp(0.8rem, 0.85vw, 0.85rem);
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+        
+        .footer-column-title {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.125rem);
+        }
+        
+        .footer-link {
+            display: block;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: clamp(0.8rem, 0.85vw, 0.875rem);
+            padding: 0.3rem 0;
+            transition: color var(--transition);
+        }
+        
+        .footer-link:hover {
+            color: var(--accent-bright);
+        }
+        
+        .footer-bottom {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding-top: clamp(1.5rem, 3vw, 2rem);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        
+        .footer-bottom-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        
+        /* HERO */
+        .hero {
+            min-height: clamp(60vh, 75vh, 680px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: clamp(4rem, 10vw, 8rem) clamp(1.5rem, 4vw, 3rem) clamp(3rem, 6vw, 5rem);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-eyebrow {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.8vw, 0.8rem);
+            color: var(--accent);
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            margin-bottom: clamp(1rem, 2vw, 1.75rem);
+        }
+        
+        .hero-title {
+            font-family: var(--font-body);
+            font-size: clamp(2rem, 5.5vw, 3.75rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+            margin-bottom: clamp(1rem, 2vw, 1.75rem);
+            max-width: 900px;
+        }
+        
+        .hero-title .accent {
+            color: var(--accent-bright);
+            font-weight: 500;
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+            color: var(--text-secondary);
+            max-width: clamp(280px, 50vw, 620px);
+            margin: 0 auto;
+            line-height: 1.65;
+        }
+        
+        /* CATEGORIES SECTION */
+        .categories {
+            padding: clamp(3rem, 7vw, 6rem) clamp(1.25rem, 4vw, 2rem);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .section-label {
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.125rem);
+        }
+        
+        .section-title {
+            font-family: var(--font-body);
+            font-size: clamp(1.5rem, 3vw, 2.25rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
+            line-height: 1.65;
+        }
+        
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+            gap: clamp(1rem, 1.5vw, 1.25rem);
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        .category-card {
+            padding: clamp(1.5rem, 2.5vw, 2rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            min-height: 280px;
+        }
+        
+        .category-card:hover {
+            border-color: var(--border-accent);
+            background: var(--bg-elevated);
+            transform: translateY(-1px);
+        }
+        
+        .category-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: clamp(0.625rem, 1vw, 0.75rem);
+        }
+        
+        .category-title {
+            font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.015em;
+        }
+        
+        .category-tagline {
+            font-size: clamp(0.825rem, 0.95vw, 0.9rem);
+            color: var(--accent-bright);
+            font-style: italic;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.125rem);
+            font-weight: 400;
+        }
+        
+        .category-description {
+            font-size: clamp(0.85rem, 0.95vw, 0.9rem);
+            color: var(--text-secondary);
+            line-height: 1.65;
+            margin-bottom: clamp(1rem, 2vw, 1.25rem);
+            flex: 1;
+        }
+        
+        .category-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-top: clamp(0.75rem, 1.5vw, 1rem);
+            border-top: 1px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+        }
+        
+        .category-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .category-status-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+        }
+        
+        .category-status-dot.development {
+            background: var(--warning);
+            box-shadow: 0 0 6px var(--warning);
+        }
+        
+        .category-status-dot.planned {
+            background: var(--text-muted);
+        }
+        
+        .feedback-note {
+            text-align: center;
+            margin-top: clamp(2.5rem, 4vw, 3rem);
+            font-family: var(--font-mono);
+            font-size: clamp(0.75rem, 0.85vw, 0.825rem);
+            color: var(--text-muted);
+            max-width: 580px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+        }
+        
+        .view-all-wrapper {
+            text-align: center;
+            margin-top: clamp(1.5rem, 3vw, 2rem);
+        }
+        
+        .view-all-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-bright);
+            text-decoration: none;
+            font-size: clamp(0.85rem, 0.95vw, 0.9rem);
+            font-weight: 500;
+            transition: gap var(--transition), color var(--transition);
+        }
+        
+        .view-all-link:hover {
+            gap: 0.75rem;
+            color: #93c5fd;
+        }
+        
+        /* TRUST */
+        .trust {
+            padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 4vw, 2rem);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .trust-label {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: var(--text-muted);
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            margin-bottom: clamp(1.5rem, 3vw, 2rem);
+        }
+        
+        .trust-items {
+            display: flex;
+            justify-content: center;
+            gap: clamp(1.5rem, 4vw, 3.5rem);
+            flex-wrap: wrap;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: clamp(0.8rem, 0.95vw, 0.95rem);
+            letter-spacing: 0.04em;
+        }
+        
+        .trust-divider {
+            color: var(--border-light);
+        }
+        
+        /* CTA */
+        .cta-section {
+            padding: clamp(4rem, 8vw, 6rem) clamp(1.5rem, 4vw, 2rem);
+            text-align: center;
+            background: linear-gradient(180deg, transparent 0%, var(--bg-secondary) 100%);
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .cta-title {
+            font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+            letter-spacing: -0.025em;
+        }
+        
+        .cta-subtitle {
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            color: var(--text-secondary);
+            margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+        
+        .cta-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: clamp(0.7rem, 1.2vw, 0.875rem) clamp(1.25rem, 2vw, 1.75rem);
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: clamp(0.85rem, 0.95vw, 0.95rem);
+            font-weight: 500;
+            transition: all var(--transition);
+            box-shadow: 0 1px 0 0 rgba(255,255,255,0.05) inset, 0 0 0 1px rgba(59, 130, 246, 0.5), 0 4px 14px rgba(59, 130, 246, 0.2);
+        }
+        
+        .cta-link:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 1px 0 0 rgba(255,255,255,0.08) inset, 0 0 0 1px rgba(59, 130, 246, 0.7), 0 6px 20px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+    
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-mark">L</div>
+                <span class="nav-logo-text">LUMOSHIP</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link active">Home</a>
+                <a href="/products.html" class="nav-link">Products</a>
+                <a href="/pricing.html" class="nav-link">Pricing</a>
+                <a href="/about.html" class="nav-link">About</a>
+                <a href="/contact.html" class="nav-link">Contact</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main>
+        <section class="hero">
+            <p class="hero-eyebrow">Marine Structural Engineering</p>
+            <h1 class="hero-title">
+                Engineering software<br>
+                <span class="accent">built for modern teams.</span>
+            </h1>
+            <p class="hero-subtitle">
+                A comprehensive software suite for marine structural engineering — from concept design to class-compliant analysis.
+            </p>
+        </section>
+        
+        <section class="categories">
+            <p class="section-label">What we're building</p>
+            <h2 class="section-title">Three pillars of structural engineering software</h2>
+            <p class="section-subtitle">
+                Some tools are live today, others are in active development. We're building toward a complete workflow, one capability at a time.
+            </p>
+            
+            <div class="categories-grid">
+                
+                <div class="category-card">
+                    <div class="category-card-header">
+                        <h3 class="category-title">Structural Analysis</h3>
+                    </div>
+                    <p class="category-tagline">Beam-based analysis for ship structures.</p>
+                    <p class="category-description">
+                        Grillage solver for hatch covers, decks, bulkheads, and stiffened panels. Built on classical Timoshenko beam theory with marine-grade materials and multi-load case support.
+                    </p>
+                    <div class="category-status">
+                        <span class="category-status-dot development"></span>
+                        <span>In active development · Beta Q2 2026</span>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="category-card-header">
+                        <h3 class="category-title">Rule-Based Design</h3>
+                    </div>
+                    <p class="category-tagline">Class society compliance and scantling calculations.</p>
+                    <p class="category-description">
+                        Midship section design tools, scantling check modules, and rule-based calculations for DNV, LR, BV, and RINA. Plus a library of supporting utilities for everyday engineering work.
+                    </p>
+                    <div class="category-status">
+                        <span class="category-status-dot active"></span>
+                        <span>First tools live · Suite expanding through 2026</span>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="category-card-header">
+                        <h3 class="category-title">Parametric Modeling</h3>
+                    </div>
+                    <p class="category-tagline">Rapid structural modeling, integrated with CAD.</p>
+                    <p class="category-description">
+                        A Rhino-integrated plugin for parametric hull and structural modeling — generate analysis-ready models in minutes, not days. The bridge between geometry and analysis.
+                    </p>
+                    <div class="category-status">
+                        <span class="category-status-dot planned"></span>
+                        <span>Planned · 2026 roadmap</span>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <p class="feedback-note">
+                Driven by feedback from naval architects, design offices, and shipyards.<br>
+                Tool priorities reflect real industry demand.
+            </p>
+            
+            <div class="view-all-wrapper">
+                <a href="/products.html" class="view-all-link">
+                    Explore our products
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+        
+        <section class="trust">
+            <p class="trust-label">Built with multi-class experience</p>
+            <div class="trust-items">
+                <span>DNV</span>
+                <span class="trust-divider">·</span>
+                <span>Lloyd's Register</span>
+                <span class="trust-divider">·</span>
+                <span>Bureau Veritas</span>
+                <span class="trust-divider">·</span>
+                <span>RINA</span>
+            </div>
+        </section>
+        
+        <section class="cta-section">
+            <h2 class="cta-title">Questions or feedback?</h2>
+            <p class="cta-subtitle">Reach out for general inquiries, partnerships, or early access requests. We respond within 24 hours.</p>
+            <a href="/contact.html" class="cta-link">
+                Get in touch
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </section>
+    </main>
+    
+    
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand-section">
+                <div class="footer-brand">
+                    <div class="footer-brand-mark">L</div>
+                    <span class="footer-brand-text">LUMOSHIP</span>
+                </div>
+                <p class="footer-description">
+                    A comprehensive software suite for marine structural engineering — from concept design to class-compliant analysis.
+                </p>
+            </div>
+            
+            <div>
+                <div class="footer-column-title">What we build</div>
+                <a href="/products.html#structural-analysis" class="footer-link">Structural Analysis</a>
+                <a href="/products.html#rule-based-design" class="footer-link">Rule-Based Design</a>
+                <a href="/products.html#parametric-modeling" class="footer-link">Parametric Modeling</a>
+            </div>
+            
+            <div>
+                <div class="footer-column-title">Company</div>
+                <a href="/about.html" class="footer-link">About</a>
+                <a href="/contact.html" class="footer-link">Contact</a>
+                <a href="https://www.linkedin.com/company/lumos-ship-design/" class="footer-link" target="_blank" rel="noopener">LinkedIn</a>
+            </div>
+            
+            <div>
+                <div class="footer-column-title">Connect</div>
+                <a href="mailto:contact@lumoship.org" class="footer-link">contact@lumoship.org</a>
+                <a href="https://www.linkedin.com/company/lumos-ship-design/" class="footer-link" target="_blank" rel="noopener">LinkedIn ↗</a>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div>© 2026 Lumoship · All rights reserved</div>
+            <div class="footer-bottom-links">
+                <span>Istanbul · Turkey</span>
+            </div>
+        </div>
+    </footer>
+
+    
+</body>
+</html>
