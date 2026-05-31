@@ -901,7 +901,7 @@
                     <div class="tool-card" onclick="openModal('beamcore-modal')">
                         <div class="tool-card-header">
                             <h3 class="tool-card-name">BeamCore</h3>
-                            <span class="tool-card-status live">Live · v1.0</span>
+                            <span class="tool-card-status live">Live</span>
                         </div>
                         <p class="tool-card-tagline">Beam structural analysis — Direct Stiffness Method.</p>
                         <div class="tool-card-footer">
@@ -1087,55 +1087,57 @@
     </div>
     
     <!-- BEAMCORE MODAL -->
-    <div class="modal-overlay" id="beamcore-modal" onclick="closeModal('beamcore-modal', event)">
+    <div class="modal-overlay" id="beamcore-modal" onclick="closeModal(event)">
         <div class="modal" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="closeModal('beamcore-modal')">×</button>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <span class="modal-eyebrow">Structural Analysis</span>
+            <div class="modal-header">
+                <div class="modal-header-content">
+                    <span class="modal-status live">● Live</span>
                     <h2 class="modal-title">BeamCore</h2>
-                    <p class="modal-subtitle">Beam Structural Analysis Tool</p>
+                    <p class="modal-tagline">Beam structural analysis using Direct Stiffness Method.</p>
                 </div>
-                
+                <button class="modal-close" onclick="closeModalById('beamcore-modal')" aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
                 <div class="modal-section">
-                    <h3 class="modal-section-title">Overview</h3>
-                    <p class="modal-description">
-                        BeamCore is a browser-based beam structural analysis tool using the Direct Stiffness Method. Solve simply supported beams, cantilevers, continuous beams, and multi-span structures with point loads, distributed loads, and moments. Built for naval architects, marine engineers, and structural designers.
+                    <p class="modal-section-label">Overview</p>
+                    <p class="modal-section-text">
+                        BeamCore is a browser-based beam structural analysis tool using the Direct Stiffness Method. Solve simply supported beams, cantilevers, continuous beams, and multi-span structures with point loads, distributed loads, and applied moments. Built for naval architects, marine engineers, and structural designers.
                     </p>
                 </div>
-                
                 <div class="modal-section">
-                    <h3 class="modal-section-title">Capabilities</h3>
-                    <ul class="modal-feature-list">
-                        <li>Direct Stiffness Method (Euler-Bernoulli beam theory)</li>
-                        <li>Multiple support types: pinned, fixed, roller</li>
-                        <li>Mixed load types: point, distributed (UDL), moment</li>
-                        <li>Multi-span continuous beams</li>
-                        <li>Built-in profile library: FB, L, T, HP (EN 10067)</li>
-                        <li>Steel grades: A, AH32, AH36</li>
-                        <li>Real-time calculation via Lumoship backend</li>
-                        <li>Shear, moment, and deflection diagrams</li>
-                        <li>Stress and utilization checks</li>
-                        <li>PDF report export with project details</li>
-                    </ul>
-                </div>
-                
-                <div class="modal-section">
-                    <h3 class="modal-section-title">Technical</h3>
-                    <div class="modal-tech-tags">
-                        <span class="modal-tech-tag">Direct Stiffness Method</span>
-                        <span class="modal-tech-tag">Euler-Bernoulli</span>
-                        <span class="modal-tech-tag">EN 10067</span>
-                        <span class="modal-tech-tag">Server-side compute</span>
-                        <span class="modal-tech-tag">Python · NumPy</span>
+                    <p class="modal-section-label">Features</p>
+                    <div class="modal-feature-list">
+                        <div class="modal-feature-item">Direct Stiffness Method (Euler-Bernoulli)</div>
+                        <div class="modal-feature-item">Pinned, fixed, roller supports</div>
+                        <div class="modal-feature-item">Point, UDL, and moment loads</div>
+                        <div class="modal-feature-item">Multi-span continuous beams</div>
+                        <div class="modal-feature-item">FB, L, T, HP profile library</div>
+                        <div class="modal-feature-item">A, AH32, AH36 steel grades</div>
+                        <div class="modal-feature-item">Shear, moment, deflection diagrams</div>
+                        <div class="modal-feature-item">Stress and utilization checks</div>
+                        <div class="modal-feature-item">PDF report export</div>
+                        <div class="modal-feature-item">Server-side computation</div>
                     </div>
                 </div>
-                
-                <div class="modal-footer">
-                    <a href="https://beam.lumoship.org" target="_blank" class="modal-btn modal-btn-primary">
+                <div class="modal-section">
+                    <p class="modal-section-label">Technology</p>
+                    <div class="modal-tech-stack">
+                        <span class="modal-tech-badge">Direct Stiffness</span>
+                        <span class="modal-tech-badge">Euler-Bernoulli</span>
+                        <span class="modal-tech-badge">EN 10067</span>
+                        <span class="modal-tech-badge">Python · NumPy</span>
+                    </div>
+                </div>
+                <div class="modal-cta-row">
+                    <a href="https://beam.lumoship.org" class="modal-btn modal-btn-primary" target="_blank" rel="noopener">
                         Open BeamCore
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M7 17L17 7M7 7h10v10"/>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
                     </a>
                 </div>
