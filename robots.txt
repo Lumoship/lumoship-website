@@ -1,0 +1,11 @@
+# robots.txt for Lumoship
+# https://lumoship.org
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://lumoship.org/sitemap.xml
+
+# Crawl-delay for polite crawlers
+Crawl-delay: 1
