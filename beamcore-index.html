@@ -1,0 +1,2312 @@
+<!--
+    EA Engineering Tools — BeamCore v1.0.0
+    Created by Ebubekir Akarsu — Structural Engineer
+    Beam Structural Analysis Calculator
+    3-Page Layout: Setup → Input → Results
+    Solver: Direct Stiffness Method (Euler-Bernoulli, 2-DOF/node)
+    Handles statically determinate AND indeterminate beams.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='50' y='72' font-family='JetBrains Mono, monospace' font-weight='700' font-size='66' text-anchor='middle' fill='white'%3EL%3C/text%3E%3C/svg%3E">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Online Marine Beam Calculator | BeamCore by Lumoship</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg-primary:#0a0e17;--bg-secondary:#111827;--bg-tertiary:#1a2236;--bg-input:#0d1321;
+            --accent:#3b82f6;--accent-hover:#2563eb;--accent-glow:rgba(59,130,246,0.15);--accent-subtle:rgba(59,130,246,0.08);
+            --text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#64748b;
+            --success:#22c55e;--warning:#f59e0b;--error:#ef4444;--border:#1e293b;
+            --font-display:'JetBrains Mono',monospace;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
+            --fs-xs:0.75rem;--fs-sm:0.8125rem;--fs-base:0.875rem;--fs-md:1rem;--fs-lg:1.25rem;--fs-xl:1.5rem;
+            --spacing-xs:0.25rem;--spacing-sm:0.5rem;--spacing-md:1rem;--spacing-lg:1.5rem;--spacing-xl:2rem;
+            --radius-sm:4px;--radius-md:6px;--radius-lg:8px;--radius-xl:12px;
+        }
+        html{scroll-behavior:smooth;font-size:clamp(13px,0.55vw + 10px,17px)}
+        body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-primary);background:var(--bg-primary);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+        body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+        /* HEADER */
+        .ea-header{position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(17,24,39,0.98),rgba(10,14,23,0.98));backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+        .ea-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.5}
+        .ea-header-inner{max-width:min(1700px,94vw);margin:0 auto;padding:var(--spacing-md) var(--spacing-xl)}
+        .ea-header-top{display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-lg);margin-bottom:var(--spacing-md)}
+        .ea-header-left{display:flex;align-items:center;gap:var(--spacing-lg)}
+        .ea-brand{display:flex;align-items:center;gap:var(--spacing-md)}
+        .ea-logo{width:40px;height:40px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--accent),#1d4ed8);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:var(--fs-md);color:white;box-shadow:0 0 20px rgba(59,130,246,0.2)}
+        .ea-title-group h1{font-family:var(--font-display);font-size:var(--fs-xl);font-weight:700;color:var(--text-primary);line-height:1.2}
+        .ea-title-group p{font-size:var(--fs-xs);color:var(--text-muted)}
+        .ea-project-bar{display:flex;align-items:center;gap:var(--spacing-md);padding:var(--spacing-sm) var(--spacing-md);background:var(--bg-input);border-radius:var(--radius-md);border:1px solid var(--border)}
+        .ea-project-item{display:flex;align-items:center;gap:var(--spacing-xs);font-size:var(--fs-xs);color:var(--text-secondary)}
+        .ea-project-item strong{color:var(--text-primary);font-family:var(--font-mono)}
+        .ea-project-divider{width:1px;height:16px;background:var(--border)}
+        .ea-header-actions{display:flex;align-items:center;gap:var(--spacing-sm)}
+        .ea-header-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-tertiary);color:var(--text-secondary);font-size:var(--fs-xs);font-family:var(--font-display);cursor:pointer;transition:all 0.2s}
+        .ea-header-btn:hover{border-color:var(--text-muted);color:var(--text-primary)}
+        .ea-header-btn.primary{background:var(--accent);border-color:var(--accent);color:white}
+        .ea-header-btn.primary:hover{background:var(--accent-hover)}
+        .ea-header-btn svg{width:14px;height:14px}
+        .ea-header-badge{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted);background:var(--bg-tertiary);padding:4px 10px;border-radius:20px;border:1px solid var(--border)}
+
+        /* WIZARD NAV */
+        .ea-wizard{display:flex;align-items:center;justify-content:center;gap:0}
+        .ea-wizard-step{display:flex;align-items:center;gap:var(--spacing-sm);padding:10px 20px;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-display);font-size:var(--fs-sm);font-weight:500;cursor:pointer;transition:all 0.2s}
+        .ea-wizard-step:hover{color:var(--text-secondary)}
+        .ea-wizard-step.active{color:var(--accent)}
+        .ea-wizard-step.completed{color:var(--success)}
+        .ea-wizard-num{width:24px;height:24px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);font-weight:700}
+        .ea-wizard-step.active .ea-wizard-num{background:var(--accent);border-color:var(--accent);color:white}
+        .ea-wizard-step.completed .ea-wizard-num{background:var(--success);border-color:var(--success);color:white}
+        .ea-wizard-line{width:60px;height:2px;background:var(--border);margin:0 var(--spacing-xs)}
+        .ea-wizard-line.completed{background:var(--success)}
+
+        /* PAGES */
+        .ea-page{display:none;position:relative;z-index:1}
+        .ea-page.active{display:block}
+        .ea-main{max-width:min(1700px,94vw);width:100%;margin:0 auto;padding:var(--spacing-xl)}
+        .ea-setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-xl);max-width:900px;margin:0 auto}
+        .ea-input-layout{display:flex;flex-direction:column;gap:var(--spacing-lg)}
+        .ea-input-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-lg);align-items:start}
+        .ea-input-3col{display:grid;grid-template-columns:minmax(280px,1fr) minmax(380px,1.6fr) minmax(300px,1fr);gap:var(--spacing-lg);align-items:stretch}
+        .ea-input-3col .ea-col{display:flex;flex-direction:column;gap:var(--spacing-lg)}
+        /* last panel in each column grows to fill so all three column bottoms align */
+        .ea-input-3col .ea-col>.ea-panel:last-child{flex:1 1 auto;display:flex;flex-direction:column}
+        .ea-input-3col .ea-col>.ea-panel:last-child>.ea-panel-body{flex:1 1 auto;display:flex;flex-direction:column}
+        .ea-results-layout{display:flex;flex-direction:column;gap:var(--spacing-xl)}
+
+        /* PANELS */
+        .ea-panel{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden}
+        .ea-panel-header{padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:var(--spacing-sm)}
+        .ea-panel-icon{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent-glow)}
+        .ea-panel-icon.success{background:var(--success)}.ea-panel-icon.warning{background:var(--warning)}
+        .ea-panel-title{font-family:var(--font-display);font-size:var(--fs-sm);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px}
+        .ea-panel-body{padding:var(--spacing-lg)}
+
+        /* FORMS */
+        .ea-section-title{font-family:var(--font-display);font-size:var(--fs-xs);font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:var(--spacing-md);padding-bottom:var(--spacing-sm);border-bottom:1px solid var(--border)}
+        .ea-field{margin-bottom:var(--spacing-md)}.ea-field:last-child{margin-bottom:0}
+        .ea-label{display:block;font-size:var(--fs-xs);font-weight:500;color:var(--text-secondary);margin-bottom:var(--spacing-xs);text-transform:uppercase;letter-spacing:0.5px}
+        .ea-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:10px 14px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--fs-base);transition:border-color 0.2s}
+        .ea-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-glow)}
+        .ea-input::placeholder{color:var(--text-muted)}
+        /* remove number input spinner arrows (manual entry only) */
+        input[type=number]{-moz-appearance:textfield;appearance:textfield}
+        input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+        .ea-input.readonly{background:rgba(59,130,246,0.08);color:var(--accent)}
+        .ea-select{appearance:none;background:var(--bg-input) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid var(--border);color:var(--text-primary);padding:10px 36px 10px 14px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--fs-base);cursor:pointer;width:100%}
+        .ea-select:focus{border-color:var(--accent);outline:none}
+        .ea-form-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-md)}
+        .ea-form-row.three{grid-template-columns:1fr 1fr 1fr}
+        .ea-form-row .ea-field{margin-bottom:0}
+        .ea-calc-box{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--spacing-md);margin-top:var(--spacing-sm)}
+        .ea-calc-row{display:flex;justify-content:space-between;padding:6px 0;font-size:var(--fs-sm);border-bottom:1px solid var(--border)}
+        .ea-calc-row:last-child{border-bottom:none}
+        .ea-calc-row .lbl{color:var(--text-secondary)}.ea-calc-row .val{color:var(--accent);font-family:var(--font-mono);font-weight:600}
+
+        /* TABLE */
+        .ea-table-wrap{overflow-x:auto;border-radius:var(--radius-lg);border:1px solid var(--border)}
+        .ea-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+        .ea-table th{background:var(--bg-tertiary);padding:10px 12px;text-align:center;font-weight:600;color:var(--text-secondary);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+        .ea-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--font-mono);color:var(--text-primary);text-align:center}
+        .ea-table tr:last-child td{border-bottom:none}
+        .ea-table tr:hover td{background:var(--accent-subtle)}
+        .ea-table .highlight td{background:rgba(239,68,68,0.08)!important}
+        .ea-table input,.ea-table select{width:100%;padding:6px 8px;text-align:center;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-mono);font-size:var(--fs-xs)}
+        .ea-table input:focus,.ea-table select:focus{border-color:var(--accent);outline:none}
+        /* Loads table: fixed layout so inputs get real width and align */
+        .ea-table.loads{table-layout:fixed}
+        .ea-table.loads col.c-num{width:34px}
+        .ea-table.loads col.c-type{width:84px}
+        .ea-table.loads col.c-mag{width:auto}
+        .ea-table.loads col.c-start{width:74px}
+        .ea-table.loads col.c-end{width:74px}
+        .ea-table.loads col.c-del{width:36px}
+        /* Supports table columns: narrow position, wide type */
+        .ea-table.supports{table-layout:fixed}
+        .ea-table.supports col.s-num{width:30px}
+        .ea-table.supports col.s-pos{width:90px}
+        .ea-table.supports col.s-type{width:auto}
+        .ea-table.supports col.s-del{width:38px}
+        .ea-table.loads th,.ea-table.loads td{padding:8px 6px;height:48px}
+        .ea-table.loads td{vertical-align:middle;text-align:center}
+        .ea-table.loads .cell-input{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px;height:100%}
+        .ea-table.loads .cell-input input{min-width:0;width:58px;flex:0 0 auto}
+        .ea-table.loads .cell-type{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;height:100%}
+        .ea-table.loads .cell-type .cell-unit{font-size:9px;color:var(--text-muted);line-height:1}
+        .ea-table.loads .cell-unit{font-size:9px;color:var(--text-muted);white-space:nowrap;line-height:1;flex:0 0 auto}
+        .ea-table.loads .cell-dash{color:var(--text-muted)}
+
+        /* PROFILE INPUT */
+        .ea-input-row-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-sm)}
+        .lbl-unit{font-size:9px;color:var(--text-muted);font-weight:400;letter-spacing:0;text-transform:none;font-family:var(--font-mono)}
+        /* Custom HP dropdown (opens downward, scrolls, ~5 visible) */
+        .ea-combo{position:relative;width:100%}
+        .ea-combo-btn{width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:10px 14px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--fs-base);cursor:pointer}
+        .ea-combo-btn:hover{border-color:var(--accent)}
+        .ea-combo-btn svg{flex-shrink:0;color:var(--text-muted);transition:transform 0.15s}
+        .ea-combo.open .ea-combo-btn svg{transform:rotate(180deg)}
+        .ea-combo-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+        .ea-combo.open .ea-combo-list{display:block}
+        .ea-combo-opt{padding:9px 14px;font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+        .ea-combo-opt:hover{background:var(--accent-subtle);color:var(--text-primary)}
+        .ea-combo-opt.selected{background:var(--accent);color:#fff}
+        .ea-combo-list::-webkit-scrollbar{width:8px}
+        .ea-combo-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+        /* SAVED CASES */
+        .ea-case-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--spacing-sm)}
+        .ea-case{display:flex;align-items:center;gap:var(--spacing-sm);padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-md);transition:border-color 0.15s}
+        .ea-case:hover{border-color:var(--accent)}
+        .ea-case.active{border-color:var(--accent);background:var(--accent-subtle)}
+        .ea-case-info{flex:1;min-width:0;cursor:pointer}
+        .ea-case-name{font-family:var(--font-display);font-size:var(--fs-sm);font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ea-case-meta{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px}
+        .ea-case-load{background:var(--accent);border:none;color:#fff;border-radius:var(--radius-sm);font-family:var(--font-display);font-size:9px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap}
+        .ea-case-load:hover{background:var(--accent-hover)}
+        .profile-section{display:none}.profile-section.active{display:block}
+        .profile-input-area{min-height:188px}
+        .ea-checkbox-row{display:flex;align-items:center;gap:var(--spacing-sm);margin-bottom:var(--spacing-md);font-size:var(--fs-sm);color:var(--text-secondary)}
+        .ea-checkbox-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+        .ea-divider{height:1px;background:var(--border);margin:var(--spacing-md) 0}
+        .ea-section-subtitle{font-family:var(--font-display);font-size:var(--fs-xs);font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:var(--spacing-sm)}
+        .ea-prop-readout{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--spacing-md);margin-top:var(--spacing-sm)}
+        .ea-prop-row{display:flex;justify-content:space-between;padding:5px 0;font-size:var(--fs-sm);border-bottom:1px solid var(--border)}
+        .ea-prop-row:last-child{border-bottom:none}
+        .ea-prop-row .lbl{color:var(--text-secondary)}
+        .ea-prop-row .val{color:var(--accent);font-family:var(--font-mono);font-weight:600}
+
+        /* SUMMARY */
+        .ea-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--spacing-md)}
+        .ea-summary-card{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--spacing-lg);text-align:center}
+        .ea-summary-card.pass{border-color:var(--success)}.ea-summary-card.pass .ea-summary-value{color:var(--success)}
+        .ea-summary-card.fail{border-color:var(--error)}.ea-summary-card.fail .ea-summary-value{color:var(--error)}
+        .ea-summary-card.warn{border-color:var(--warning)}.ea-summary-card.warn .ea-summary-value{color:var(--warning)}
+        .ea-summary-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--spacing-xs)}
+        .ea-summary-value{font-family:var(--font-mono);font-size:var(--fs-xl);font-weight:700;color:var(--accent);line-height:1.3}
+        .ea-summary-sub{font-size:var(--fs-xs);color:var(--text-muted);margin-top:var(--spacing-xs)}
+
+        /* BUTTONS */
+        .ea-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--spacing-sm);padding:11px 24px;border:none;border-radius:var(--radius-md);font-family:var(--font-display);font-size:var(--fs-base);font-weight:600;cursor:pointer;transition:all 0.2s}
+        .ea-btn svg{width:16px;height:16px}
+        .ea-btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:white;box-shadow:0 2px 8px rgba(59,130,246,0.3)}
+        .ea-btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(59,130,246,0.4)}
+        .ea-btn-secondary{background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border)}
+        .ea-btn-secondary:hover{color:var(--text-primary);border-color:var(--text-muted)}
+        .ea-btn-sm{padding:8px 14px;font-size:var(--fs-xs)}
+        .ea-btn-group{display:flex;gap:var(--spacing-sm);flex-wrap:wrap}
+        .ea-btn-delete{background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:var(--radius-sm)}
+        .ea-btn-delete:hover{color:var(--error);background:rgba(239,68,68,0.1)}
+        .ea-page-actions{display:flex;justify-content:center;gap:var(--spacing-md);padding:var(--spacing-xl) 0}
+
+        /* TABS */
+        .ea-tabs{display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-lg)}
+        .ea-tab{padding:8px 18px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-secondary);font-family:var(--font-display);font-size:var(--fs-xs);font-weight:600;cursor:pointer;text-transform:uppercase}
+        .ea-tab:hover{border-color:var(--text-muted);color:var(--text-primary)}
+        .ea-tab.active{background:var(--accent-subtle);border-color:var(--accent);color:var(--accent)}
+        .ea-tab-content{display:none}.ea-tab-content.active{display:block}
+
+        /* DIAGRAMS */
+        .ea-diagram-wrap{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--spacing-md)}
+        .ea-diagram-wrap canvas{width:100%;display:block}
+        /* ZOOM CONTROLS */
+        .ea-zoom-controls{display:flex;align-items:center;gap:4px}
+        .ea-zoom-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);font-family:var(--font-mono);font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;padding:0}
+        .ea-zoom-btn:hover{border-color:var(--accent);color:var(--accent)}
+        .ea-zoom-level{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted);min-width:38px;text-align:center}
+        /* FULLSCREEN MODAL */
+        .ea-modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(5,8,15,0.9);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:var(--spacing-xl)}
+        .ea-modal-overlay.active{display:flex}
+        .ea-modal-box{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);width:min(1200px,95vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+        .ea-modal-head{display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border)}
+        .ea-modal-head .ea-panel-title{font-family:var(--font-display);font-size:var(--fs-sm);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px}
+        .ea-modal-close{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:22px;line-height:1;padding:4px 8px;border-radius:var(--radius-sm)}
+        .ea-modal-close:hover{color:var(--error);background:rgba(239,68,68,0.1)}
+        .ea-modal-body{padding:var(--spacing-lg);overflow:hidden;display:flex;flex-direction:column;gap:var(--spacing-md)}
+        .ea-modal-viewport{flex:1;overflow:hidden;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;min-height:300px}
+        .ea-diagram-title{font-family:var(--font-display);font-size:var(--fs-xs);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:var(--spacing-sm)}
+        .ea-diagram-stat{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted)}
+        .ea-diagram-stat strong{color:var(--accent)}
+
+        /* LOGO UPLOAD */
+        .ea-logo-preview{width:140px;height:70px;border:2px dashed var(--border);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}
+        .ea-logo-preview:hover{border-color:var(--accent)}
+        .ea-logo-preview img{max-width:100%;max-height:100%;object-fit:contain}
+        .ea-logo-preview span{font-size:var(--fs-xs);color:var(--text-muted)}
+
+        /* FOOTER */
+        .ea-footer{position:relative;z-index:10;padding:var(--spacing-md) var(--spacing-xl);border-top:1px solid var(--border);background:var(--bg-secondary);margin-top:auto}
+        .ea-footer::before{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.3}
+        .ea-footer-inner{max-width:min(1700px,94vw);margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+        .ea-footer-signature{font-size:var(--fs-xs);color:var(--text-muted)}
+        .ea-footer-signature strong{color:var(--text-secondary)}
+        .ea-footer-meta{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted)}
+
+        /* UTILITIES */
+        .mt-sm{margin-top:var(--spacing-sm)}.mt-md{margin-top:var(--spacing-md)}.mt-lg{margin-top:var(--spacing-lg)}
+        .mb-lg{margin-bottom:var(--spacing-lg)}
+        .ok{color:var(--success)}.warn{color:var(--warning)}.fail{color:var(--error)}
+        .hidden-input{display:none}
+        .ea-info-text{font-size:var(--fs-xs);color:var(--text-muted);margin-top:var(--spacing-sm);font-style:italic}
+        .ea-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:var(--fs-xs);font-family:var(--font-mono);font-weight:600}
+        .ea-badge.pass{background:rgba(34,197,94,0.15);color:var(--success)}
+        .ea-badge.fail{background:rgba(239,68,68,0.15);color:var(--error)}
+
+        /* RESPONSIVE */
+        @media(max-width:1200px){.ea-summary-grid{grid-template-columns:repeat(2,1fr)}.ea-input-3col{grid-template-columns:1fr 1fr}.ea-input-3col .ea-col.center{grid-column:1 / -1;order:-1}}
+        @media(max-width:900px){.ea-main{padding:var(--spacing-md)}.ea-setup-grid,.ea-form-row,.ea-form-row.three,.ea-input-row,.ea-input-3col{grid-template-columns:1fr}.ea-summary-grid{grid-template-columns:repeat(2,1fr)}.ea-header-top{flex-wrap:wrap}.ea-project-bar{display:none}.ea-wizard-line{width:30px}}
+    
+        /* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
+        .lumoship-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid #1e2536;
+            z-index: 10000;
+            padding: 0.875rem 1.5rem;
+        }
+        .lumoship-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lumoship-nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity 200ms;
+        }
+        .lumoship-nav-logo:hover { opacity: 0.85; }
+        .lumoship-nav-logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .lumoship-nav-logo-text {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+            letter-spacing: 0.06em;
+        }
+        .lumoship-nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .lumoship-nav-link {
+            color: #94a3b8;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 200ms;
+        }
+        .lumoship-nav-link:hover { color: #f8fafc; }
+        .lumoship-breadcrumb {
+            background: #0f141f;
+            border-bottom: 1px solid #1e2536;
+            padding: 0.75rem 1.5rem;
+        }
+        .lumoship-breadcrumb-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .breadcrumb-link {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 200ms;
+        }
+        .breadcrumb-link:hover { color: #60a5fa; }
+        .breadcrumb-separator { color: #475569; }
+        .breadcrumb-current {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .lumoship-nav-links { gap: 0.75rem; }
+            .lumoship-nav-link { font-size: 0.75rem; }
+        }
+
+    
+        /* ============ SEO CONTENT STYLES ============ */
+        .seo-hero {
+            background: linear-gradient(180deg, #0f141f 0%, #0a0e17 100%);
+            padding: 4rem 1.5rem 3rem;
+            border-bottom: 1px solid #1e2536;
+        }
+        .seo-hero-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .seo-hero-title {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: clamp(1.75rem, 4vw, 2.75rem);
+            font-weight: 700;
+            color: #f8fafc;
+            margin: 0 0 1rem;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+        }
+        .seo-hero-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.95rem, 1.3vw, 1.125rem);
+            color: #94a3b8;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+        .seo-hero-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .seo-feature-pill {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.825rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+        .seo-hero-cta {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            color: white;
+            text-decoration: none;
+            padding: 0.9rem 2rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: transform 200ms, box-shadow 200ms;
+        }
+        .seo-hero-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        }
+        
+        .seo-content {
+            background: #0a0e17;
+            padding: 4rem 1.5rem;
+            border-top: 1px solid #1e2536;
+        }
+        .seo-content-inner {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .seo-article {
+            margin-bottom: 3rem;
+        }
+        .seo-article h2 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin: 0 0 1.25rem;
+            letter-spacing: -0.01em;
+        }
+        .seo-article h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #f8fafc;
+            margin: 0 0 0.5rem;
+        }
+        .seo-article p {
+            color: #cbd5e1;
+            font-size: 1rem;
+            line-height: 1.7;
+            margin: 0 0 1rem;
+        }
+        .seo-article ul {
+            color: #cbd5e1;
+            font-size: 1rem;
+            line-height: 1.8;
+            padding-left: 1.25rem;
+            margin: 0 0 1rem;
+        }
+        .seo-article strong {
+            color: #f8fafc;
+        }
+        
+        .seo-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        .seo-step {
+            display: flex;
+            gap: 1.25rem;
+            padding: 1.25rem;
+            background: #0f141f;
+            border: 1px solid #1e2536;
+            border-radius: 8px;
+        }
+        .seo-step-number {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .seo-step-content p {
+            margin-bottom: 0;
+        }
+        
+        .seo-scenarios {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .seo-scenario {
+            background: #0f141f;
+            border: 1px solid #1e2536;
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        .seo-scenario h3 {
+            color: #60a5fa;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .seo-scenario p {
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+        
+        .seo-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .seo-comparison-item {
+            background: #0f141f;
+            border: 1px solid #1e2536;
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        .seo-comparison-item h3 {
+            color: #f8fafc;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .seo-comparison-item p {
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+        
+        .seo-faq {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+        .seo-faq-item {
+            background: #0f141f;
+            border: 1px solid #1e2536;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            transition: background 200ms;
+        }
+        .seo-faq-item[open] {
+            background: #131a2a;
+        }
+        .seo-faq-item summary {
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: #f8fafc;
+            font-size: 1rem;
+            list-style: none;
+            position: relative;
+            padding-right: 2rem;
+        }
+        .seo-faq-item summary::after {
+            content: '+';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #60a5fa;
+            font-size: 1.5rem;
+            font-weight: 300;
+            transition: transform 200ms;
+        }
+        .seo-faq-item[open] summary::after {
+            transform: translateY(-50%) rotate(45deg);
+        }
+        .seo-faq-item p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin: 1rem 0 0;
+        }
+        
+        .seo-article-cta {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 3rem 1.5rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(14, 165, 233, 0.05));
+            border: 1px solid #1e2536;
+            border-radius: 12px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
+    <nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <a href="https://lumoship.org" class="lumoship-nav-logo">
+                <div class="lumoship-nav-logo-mark">L</div>
+                <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+            </a>
+            <div class="lumoship-nav-links">
+                <a href="https://lumoship.org" class="lumoship-nav-link">Home</a>
+                <a href="https://lumoship.org/products.html" class="lumoship-nav-link">Products</a>
+                <a href="https://lumoship.org/pricing.html" class="lumoship-nav-link">Pricing</a>
+                <a href="https://lumoship.org/about.html" class="lumoship-nav-link">About</a>
+                <a href="https://lumoship.org/contact.html" class="lumoship-nav-link">Contact</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Breadcrumb -->
+    <div class="lumoship-breadcrumb">
+        <div class="lumoship-breadcrumb-inner">
+            <a href="https://lumoship.org" class="breadcrumb-link">Lumoship</a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="https://lumoship.org/products.html" class="breadcrumb-link">Products</a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="https://lumoship.org/products.html#structural-analysis" class="breadcrumb-link">Structural Analysis</a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-current">BeamCore</span>
+        </div>
+    </div>
+
+
+<!-- HEADER -->
+<header class="ea-header">
+    <div class="ea-header-inner">
+        <div class="ea-header-top">
+            <div class="ea-header-left">
+                <div class="ea-brand">
+                    <div class="ea-logo">B</div>
+                    <div class="ea-title-group">
+                        <h1>BeamCore</h1>
+                        <p>Beam Structural Analysis — Direct Stiffness Method</p>
+                    </div>
+                </div>
+            </div>
+            <div class="ea-header-actions">
+                <button class="ea-header-btn" onclick="saveJSON()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
+                <button class="ea-header-btn" onclick="document.getElementById('jsonInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Load</button>
+                <input type="file" id="jsonInput" class="hidden-input" accept=".json" onchange="loadJSON(event)">
+                <button class="ea-header-btn primary" onclick="exportPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</button>
+                <div class="ea-header-badge">v1.0</div>
+            </div>
+        </div>
+        <nav class="ea-wizard">
+            <button class="ea-wizard-step active" id="wizStep1" onclick="goToPage(1)"><span class="ea-wizard-num">1</span>Setup</button>
+            <div class="ea-wizard-line" id="wizardLine1"></div>
+            <button class="ea-wizard-step" id="wizStep2" onclick="goToPage(2)"><span class="ea-wizard-num">2</span>Input</button>
+            <div class="ea-wizard-line" id="wizardLine2"></div>
+            <button class="ea-wizard-step" id="wizStep3" onclick="goToPage(3)"><span class="ea-wizard-num">3</span>Results</button>
+        </nav>
+    </div>
+</header>
+
+<!-- PAGE 1: SETUP -->
+<div class="ea-page active" id="page-1">
+    <main class="ea-main">
+        <div class="ea-setup-grid">
+            <div class="ea-panel">
+                <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Project Information</span></div>
+                <div class="ea-panel-body">
+                    <div class="ea-field"><label class="ea-label">Project Title</label><input type="text" class="ea-input" id="projectTitle" placeholder="e.g., Main Deck Beam Check"></div>
+                    <div class="ea-form-row">
+                        <div class="ea-field"><label class="ea-label">Project Number</label><input type="text" class="ea-input" id="projectNumber" placeholder="PRJ-2026-001"></div>
+                        <div class="ea-field"><label class="ea-label">Analysis Date</label><input type="date" class="ea-input" id="analysisDate"></div>
+                    </div>
+                    <div class="ea-form-row">
+                        <div class="ea-field"><label class="ea-label">Designer</label><input type="text" class="ea-input" id="designer" placeholder="Name"></div>
+                        <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="ea-panel">
+                <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Report Assets</span></div>
+                <div class="ea-panel-body">
+                    <div class="ea-field"><label class="ea-label">Company Name</label><input type="text" class="ea-input" id="companyName" placeholder="Company Ltd."></div>
+                    <div class="ea-field"><label class="ea-label">Company Logo</label><div class="ea-logo-preview" onclick="document.getElementById('logoInput').click()"><span id="logoPlaceholder">Click to upload</span><img id="logoPreview" style="display:none;"></div><input type="file" id="logoInput" class="hidden-input" accept="image/*" onchange="handleLogoUpload(event)"></div>
+                    <p class="ea-info-text">Logo, designer name and project details appear on the exported PDF calculation sheet.</p>
+                </div>
+            </div>
+        </div>
+        <div class="ea-page-actions"><button class="ea-btn ea-btn-primary" onclick="goToPage(2)">Continue to Input <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+    </main>
+</div>
+
+<!-- PAGE 2: INPUT -->
+<div class="ea-page" id="page-2">
+    <main class="ea-main">
+        <div class="ea-input-layout">
+            <div class="ea-input-3col">
+                <!-- LEFT COLUMN: Span & Section -->
+                <div class="ea-col">
+                    <div class="ea-panel">
+                        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Span &amp; Section</span></div>
+                        <div class="ea-panel-body">
+                            <div class="ea-field"><label class="ea-label">Beam Length L <span class="lbl-unit">m</span></label><input type="number" class="ea-input" id="beamLength" value="6" step="0.1" oninput="rebuildSupportsOnLength()"></div>
+
+                            <div class="ea-section-subtitle mt-md">Profile Type</div>
+                            <div class="ea-tabs">
+                                <div class="ea-tab" onclick="selectProfile('L',this)">L</div>
+                                <div class="ea-tab active" onclick="selectProfile('T',this)">T</div>
+                                <div class="ea-tab" onclick="selectProfile('FB',this)">FB</div>
+                                <div class="ea-tab" onclick="selectProfile('HP',this)">HP</div>
+                            </div>
+
+                            <!-- L -->
+                            <div class="profile-input-area">
+                            <div id="L-section" class="profile-section">
+                                <div class="ea-checkbox-row"><input type="checkbox" id="L-equal" checked onchange="toggleLEqual()"><label for="L-equal">Equal Legs</label></div>
+                                <div class="ea-input-row-2">
+                                    <div class="ea-field"><label class="ea-label">a (Leg 1) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="L-a" value="100" oninput="syncLDimensions();updateSection()"></div>
+                                    <div class="ea-field"><label class="ea-label">b (Leg 2) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="L-b" value="100" disabled oninput="updateSection()"></div>
+                                </div>
+                                <div class="ea-field"><label class="ea-label">t (Thickness) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="L-t" value="10" oninput="updateSection()"></div>
+                            </div>
+                            <!-- T -->
+                            <div id="T-section" class="profile-section active">
+                                <div class="ea-input-row-2">
+                                    <div class="ea-field"><label class="ea-label">h (Web H) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="T-h" value="300" oninput="updateSection()"></div>
+                                    <div class="ea-field"><label class="ea-label">tw (Web t) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="T-tw" value="10" oninput="updateSection()"></div>
+                                </div>
+                                <div class="ea-input-row-2">
+                                    <div class="ea-field"><label class="ea-label">bf (Flange W) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="T-bf" value="150" oninput="updateSection()"></div>
+                                    <div class="ea-field"><label class="ea-label">tf (Flange t) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="T-tf" value="12" oninput="updateSection()"></div>
+                                </div>
+                            </div>
+                            <!-- FB -->
+                            <div id="FB-section" class="profile-section">
+                                <div class="ea-input-row-2">
+                                    <div class="ea-field"><label class="ea-label">h (Height) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="FB-h" value="200" oninput="updateSection()"></div>
+                                    <div class="ea-field"><label class="ea-label">t (Thick.) <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="FB-t" value="12" oninput="updateSection()"></div>
+                                </div>
+                            </div>
+                            <!-- HP -->
+                            <div id="HP-section" class="profile-section">
+                                <div class="ea-field"><label class="ea-label">HP Profile (Holland / bulb flat)</label>
+                                    <div class="ea-combo" id="hpCombo">
+                                        <button type="button" class="ea-combo-btn" id="hpComboBtn" onclick="toggleHPDropdown(event)">
+                                            <span id="hpComboLabel">HP 200x10</span>
+                                            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M8 11L3 6h10l-5 5z"/></svg>
+                                        </button>
+                                        <div class="ea-combo-list" id="hpComboList"></div>
+                                    </div>
+                                    <input type="hidden" id="HP-catalog" value="HP 200x10">
+                                </div>
+                                <div class="ea-prop-readout" style="margin-top:var(--spacing-md);">
+                                    <div class="ea-prop-row"><span class="lbl">Height × t</span><span class="val" id="hpDim">—</span></div>
+                                    <div class="ea-prop-row"><span class="lbl">Area A</span><span class="val" id="hpArea">—</span></div>
+                                    <div class="ea-prop-row"><span class="lbl">Inertia I</span><span class="val" id="hpIxx">—</span></div>
+                                </div>
+                            </div>
+                            </div><!-- /profile-input-area -->
+
+                            <div class="ea-divider"></div>
+
+                            <!-- Attached Plate (MANUAL) -->
+                            <div class="ea-section-subtitle">Attached Plate</div>
+                            <div class="ea-checkbox-row"><input type="checkbox" id="plate-enabled" onchange="updateSection()"><label for="plate-enabled">Include Plate</label></div>
+                            <div class="ea-input-row-2">
+                                <div class="ea-field"><label class="ea-label">Plate Width <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="plate-width" value="300" oninput="updateSection()"></div>
+                                <div class="ea-field"><label class="ea-label">Plate Thick. <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="plate-thickness" value="12" oninput="updateSection()"></div>
+                            </div>
+                            <!-- hidden computed values consumed by solver -->
+                            <input type="hidden" id="reH" value="235">
+                            <input type="hidden" id="modE" value="206">
+                            <input type="hidden" id="safetyFactorValue" value="0.67">
+                            <input type="hidden" id="sigmaAll" value="157.5">
+                            <input type="hidden" id="momI" value="8356">
+                            <input type="hidden" id="sectionW" value="557">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CENTER COLUMN: Beam Preview -->
+                <div class="ea-col center">
+                    <div class="ea-panel">
+                        <div class="ea-panel-header" style="justify-content:space-between;">
+                            <div style="display:flex;align-items:center;gap:var(--spacing-sm);"><div class="ea-panel-icon"></div><span class="ea-panel-title">Beam Viewer</span></div>
+                            <div class="ea-zoom-controls">
+                                <button class="ea-zoom-btn" onclick="previewZoom(-1)" title="Zoom out">−</button>
+                                <span class="ea-zoom-level" id="previewZoomLevel">100%</span>
+                                <button class="ea-zoom-btn" onclick="previewZoom(1)" title="Zoom in">+</button>
+                                <button class="ea-zoom-btn" onclick="previewZoom(0)" title="Reset">⟲</button>
+                                <button class="ea-zoom-btn" onclick="openBeamFullscreen()" title="Expand (or double-click view)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="ea-panel-body">
+                            <div class="ea-diagram-wrap" id="previewViewport" style="overflow:hidden;position:relative;" ondblclick="openBeamFullscreen()">
+                                <div id="previewPanZoom" style="transform-origin:center center;transition:transform 0.1s;display:flex;justify-content:center;">
+                                    <canvas id="canvasPreview" height="260" style="max-width:100%;"></canvas>
+                                </div>
+                            </div>
+                            <p class="ea-info-text" style="text-align:center;">Live schematic — updates automatically as you edit span, supports and loads.</p>
+                        </div>
+                    </div>
+
+                    <!-- MATERIAL -->
+                    <div class="ea-panel">
+                        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Material</span></div>
+                        <div class="ea-panel-body">
+                            <div class="ea-form-row">
+                                <div class="ea-field"><label class="ea-label">Steel Grade</label>
+                                    <select class="ea-select" id="steelGrade" onchange="applyGrade()">
+                                        <option value="A" selected>Grade A</option>
+                                        <option value="AH32">AH32</option>
+                                        <option value="AH36">AH36</option>
+                                    </select>
+                                </div>
+                                <div class="ea-field"><label class="ea-label">Safety Factor</label>
+                                    <select class="ea-select" id="safetyFactor" onchange="onSafetyFactorChange()">
+                                        <option value="1.0">1.00</option>
+                                        <option value="0.9">0.90</option>
+                                        <option value="0.67" selected>0.67</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="ea-prop-readout">
+                                <div class="ea-prop-row"><span class="lbl">ReH (yield)</span><span class="val" id="reHReadout">235 N/mm²</span></div>
+                                <div class="ea-prop-row"><span class="lbl">σ_all = ReH × Factor</span><span class="val" id="sigmaReadout">157.5 N/mm²</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT COLUMN: Supports + Applied Loads -->
+                <div class="ea-col">
+                    <div class="ea-panel">
+                        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Supports</span></div>
+                        <div class="ea-panel-body">
+                            <div class="ea-table-wrap"><table class="ea-table supports"><colgroup><col class="s-num"><col class="s-pos"><col class="s-type"><col class="s-del"></colgroup><thead><tr><th>#</th><th>Pos [m]</th><th>Type</th><th></th></tr></thead><tbody id="supportTableBody"></tbody></table></div>
+                            <div class="ea-btn-group mt-md"><button class="ea-btn ea-btn-secondary ea-btn-sm" onclick="addSupport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Support</button></div>
+                            <p class="ea-info-text">Pinned = vertical restraint. Fixed = vertical + rotation.</p>
+                        </div>
+                    </div>
+                    <div class="ea-panel">
+                        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Applied Loads</span></div>
+                        <div class="ea-panel-body">
+                            <div class="ea-table-wrap"><table class="ea-table loads"><colgroup><col class="c-num"><col class="c-type"><col class="c-mag"><col class="c-start"><col class="c-end"><col class="c-del"></colgroup><thead><tr>
+                                <th>#</th><th>Type</th><th>Mag.</th><th>Start</th><th>End</th><th></th>
+                            </tr></thead><tbody id="loadTableBody"></tbody></table></div>
+                            <div class="ea-btn-group mt-md">
+                                <button class="ea-btn ea-btn-secondary ea-btn-sm" onclick="addLoad('point')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/></svg> Point [kN]</button>
+                                <button class="ea-btn ea-btn-secondary ea-btn-sm" onclick="addLoad('udl')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg> UDL [kN/m]</button>
+                                <button class="ea-btn ea-btn-secondary ea-btn-sm" onclick="addLoad('moment')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 3 3 8 8 8"/></svg> Moment</button>
+                            </div>
+                            <p class="ea-info-text">Downward forces positive. UDL: fill Start &amp; End. Point/Moment: use Start as location.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SAVED CASES (full width, below all columns) -->
+            <div class="ea-panel">
+                <div class="ea-panel-header" style="justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:var(--spacing-sm);"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Saved Cases</span></div>
+                    <span class="ea-header-badge" id="caseCountBadge">0</span>
+                </div>
+                <div class="ea-panel-body">
+                    <div style="display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-md);max-width:600px;">
+                        <input type="text" class="ea-input" id="caseName" placeholder="Case name (e.g. LC1 — Full UDL)" style="flex:1;">
+                        <button class="ea-btn ea-btn-primary ea-btn-sm" onclick="saveCase()" style="white-space:nowrap;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save</button>
+                    </div>
+                    <div id="caseList" class="ea-case-grid"></div>
+                    <p class="ea-info-text" id="caseEmptyHint">No saved cases yet. Build a model, name it, and click Save to keep it for this session.</p>
+                </div>
+            </div>
+        </div>
+        <div class="ea-page-actions">
+            <button class="ea-btn ea-btn-secondary" onclick="goToPage(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back</button>
+            <button class="ea-btn ea-btn-primary" onclick="goToPage(3)">Run Analysis <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+    </main>
+</div>
+
+<!-- PAGE 3: RESULTS -->
+<div class="ea-page" id="page-3">
+    <main class="ea-main">
+        <div class="ea-results-layout">
+            <div class="ea-summary-grid">
+                <div class="ea-summary-card" id="cardMmax"><div class="ea-summary-label">Max Moment</div><div class="ea-summary-value" id="sumMmax">—</div><div class="ea-summary-sub">kN·m</div></div>
+                <div class="ea-summary-card" id="cardVmax"><div class="ea-summary-label">Max Shear</div><div class="ea-summary-value" id="sumVmax">—</div><div class="ea-summary-sub">kN</div></div>
+                <div class="ea-summary-card" id="cardDefl"><div class="ea-summary-label">Max Deflection</div><div class="ea-summary-value" id="sumDefl">—</div><div class="ea-summary-sub">mm</div></div>
+                <div class="ea-summary-card" id="cardStatus"><div class="ea-summary-label">Overall</div><div class="ea-summary-value" id="sumStatus">—</div><div class="ea-summary-sub">Status</div></div>
+            </div>
+
+            <!-- Check summary -->
+            <div class="ea-panel">
+                <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Design Checks</span></div>
+                <div class="ea-panel-body">
+                    <div class="ea-table-wrap"><table class="ea-table"><thead><tr><th>Check</th><th>Actual</th><th>Allowable</th><th>Utilization</th><th>Status</th></tr></thead><tbody id="checkBody"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- Reactions -->
+            <div class="ea-panel">
+                <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Support Reactions</span></div>
+                <div class="ea-panel-body">
+                    <div class="ea-table-wrap"><table class="ea-table"><thead><tr><th>Support</th><th>Position [m]</th><th>Type</th><th>Reaction R [kN]</th><th>Moment M [kN·m]</th></tr></thead><tbody id="reactionBody"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- Diagrams -->
+            <div class="ea-panel">
+                <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Analysis Diagrams</span></div>
+                <div class="ea-panel-body">
+                    <div class="ea-diagram-wrap mb-lg">
+                        <div class="ea-diagram-title">Free Body — Loading &amp; Supports</div>
+                        <canvas id="canvasModel" height="210"></canvas>
+                    </div>
+                    <div class="ea-diagram-wrap mb-lg">
+                        <div class="ea-diagram-title">Shear Force Diagram — V [kN]</div>
+                        <canvas id="canvasShear" height="220"></canvas>
+                        <div class="ea-diagram-stat mt-sm" id="shearStat"></div>
+                    </div>
+                    <div class="ea-diagram-wrap mb-lg">
+                        <div class="ea-diagram-title">Bending Moment Diagram — M [kN·m]</div>
+                        <canvas id="canvasMoment" height="220"></canvas>
+                        <div class="ea-diagram-stat mt-sm" id="momentStat"></div>
+                    </div>
+                    <div class="ea-diagram-wrap">
+                        <div class="ea-diagram-title">Deflection — δ [mm]</div>
+                        <canvas id="canvasDefl" height="220"></canvas>
+                        <div class="ea-diagram-stat mt-sm" id="deflStat"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ea-page-actions">
+            <button class="ea-btn ea-btn-secondary" onclick="goToPage(2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back</button>
+            <button class="ea-btn ea-btn-primary" onclick="exportPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export PDF</button>
+        </div>
+    </main>
+</div>
+
+<!-- FULLSCREEN BEAM VIEWER MODAL -->
+<div class="ea-modal-overlay" id="beamModal" onclick="if(event.target===this)closeBeamFullscreen()">
+    <div class="ea-modal-box">
+        <div class="ea-modal-head">
+            <span class="ea-panel-title">Beam Viewer — Expanded</span>
+            <div class="ea-zoom-controls">
+                <button class="ea-zoom-btn" onclick="modalZoom(-1)" title="Zoom out">−</button>
+                <span class="ea-zoom-level" id="modalZoomLevel">100%</span>
+                <button class="ea-zoom-btn" onclick="modalZoom(1)" title="Zoom in">+</button>
+                <button class="ea-zoom-btn" onclick="modalZoom(0)" title="Reset">⟲</button>
+                <button class="ea-modal-close" onclick="closeBeamFullscreen()" title="Close">×</button>
+            </div>
+        </div>
+        <div class="ea-modal-body">
+            <div class="ea-modal-viewport" id="modalViewport">
+                <div id="modalPanZoom" style="transform-origin:center center;transition:transform 0.1s;">
+                    <canvas id="canvasModal2" height="420"></canvas>
+                </div>
+            </div>
+            <p class="ea-info-text" style="text-align:center;margin:0;">Scroll to zoom · drag to pan · double-click background to close</p>
+        </div>
+    </div>
+</div>
+
+
+    <!-- ============ SEO CONTENT ============ -->
+    <section class="seo-content">
+        <div class="seo-content-inner">
+            
+            <article class="seo-article">
+                <h2>The Marine Beam Calculator Built for Naval Architects</h2>
+                <p>
+                    BeamCore is part of <strong>Lumoship</strong>, a modern marine structural engineering 
+                    software suite designed for naval architects, ship designers, and marine structural 
+                    engineers. While general-purpose beam calculators exist, BeamCore is purpose-built 
+                    for the unique requirements of marine and shipbuilding applications.
+                </p>
+                <p>
+                    Every feature, profile library, and material grade in BeamCore reflects the practical 
+                    needs of marine engineering practice — from the EN 10067 Holland Profile (HP) catalog 
+                    commonly used in stiffener design, to shipbuilding steel grades AH32 and AH36 specified 
+                    by classification societies including DNV, Lloyd's Register, Bureau Veritas, and RINA.
+                </p>
+            </article>
+
+            <article class="seo-article">
+                <h2>How to Use BeamCore</h2>
+                <p>The workflow is designed to mirror engineering practice:</p>
+                
+                <div class="seo-steps">
+                    <div class="seo-step">
+                        <div class="seo-step-number">1</div>
+                        <div class="seo-step-content">
+                            <h3>Setup</h3>
+                            <p>Enter project information, designer name, and analysis date. These details 
+                            appear on the exported PDF calculation sheet for documentation.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="seo-step">
+                        <div class="seo-step-number">2</div>
+                        <div class="seo-step-content">
+                            <h3>Define Geometry</h3>
+                            <p>Set the beam length and select your profile. Choose from Flat Bar (FB), 
+                            L-Profile, T-Profile, or pick from the complete HP catalog per EN 10067. 
+                            Add an attached plate if modeling a stiffened panel.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="seo-step">
+                        <div class="seo-step-number">3</div>
+                        <div class="seo-step-content">
+                            <h3>Material & Safety</h3>
+                            <p>Select steel grade (A, AH32, AH36) and a safety factor. Allowable stress 
+                            is calculated automatically based on the yield strength and chosen factor.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="seo-step">
+                        <div class="seo-step-number">4</div>
+                        <div class="seo-step-content">
+                            <h3>Supports</h3>
+                            <p>Add any number of supports at any position. Choose between pinned 
+                            (vertical restraint), fixed (vertical + rotation), or roller. BeamCore handles 
+                            statically determinate and indeterminate structures.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="seo-step">
+                        <div class="seo-step-number">5</div>
+                        <div class="seo-step-content">
+                            <h3>Loads</h3>
+                            <p>Apply point loads, uniformly distributed loads (UDL), or applied moments. 
+                            Mix and match load types. Define location for point loads and start/end 
+                            positions for UDLs.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="seo-step">
+                        <div class="seo-step-number">6</div>
+                        <div class="seo-step-content">
+                            <h3>Analyze</h3>
+                            <p>Click "Run Analysis". BeamCore computes reactions, shear forces, bending 
+                            moments, and deflections using the Direct Stiffness Method. Results appear 
+                            as numerical values and diagrams within seconds.</p>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="seo-article">
+                <h2>Common Analysis Scenarios</h2>
+                
+                <div class="seo-scenarios">
+                    <div class="seo-scenario">
+                        <h3>Simply Supported Beam — UDL</h3>
+                        <p>Classic deck beam or stiffener under uniform pressure. Two pinned/roller 
+                        supports at the ends, UDL across the span. BeamCore returns the well-known 
+                        wL²/8 maximum moment at midspan.</p>
+                    </div>
+                    
+                    <div class="seo-scenario">
+                        <h3>Cantilever — Point Load</h3>
+                        <p>Bracket structure or overhanging member. One fixed support, point load at 
+                        the free end. Maximum moment occurs at the fixed support (PL).</p>
+                    </div>
+                    
+                    <div class="seo-scenario">
+                        <h3>Continuous Beam — Multi-Span</h3>
+                        <p>Continuous deck longitudinal over multiple frames. Add three or more 
+                        supports, apply UDL. Hyperstatic — BeamCore solves automatically.</p>
+                    </div>
+                    
+                    <div class="seo-scenario">
+                        <h3>Propped Cantilever</h3>
+                        <p>One end fixed (e.g., welded to a bulkhead), other end on a support. Combines 
+                        fixed-end characteristics with simple span behavior. Single solver step.</p>
+                    </div>
+                    
+                    <div class="seo-scenario">
+                        <h3>Beam with Mixed Loads</h3>
+                        <p>Real-world combinations — equipment as point loads, hydrostatic pressure as 
+                        UDL, plus applied moments at hatch corners. BeamCore superposes them all.</p>
+                    </div>
+                </div>
+            </article>
+
+            <article class="seo-article">
+                <h2>Why BeamCore vs. Generic Beam Calculators?</h2>
+                
+                <div class="seo-comparison">
+                    <div class="seo-comparison-item">
+                        <h3>Marine-First Profile Library</h3>
+                        <p>Built around the EN 10067 HP (Holland Profile) catalog — the standard 
+                        bulb-flat stiffener used in shipbuilding worldwide. Generic calculators don't 
+                        include these.</p>
+                    </div>
+                    
+                    <div class="seo-comparison-item">
+                        <h3>Shipbuilding Steel Grades</h3>
+                        <p>AH32 and AH36 grades pre-loaded with their correct ReH yield values. 
+                        Standard structural engineering tools use civil grades (S235, S355).</p>
+                    </div>
+                    
+                    <div class="seo-comparison-item">
+                        <h3>Class Society Awareness</h3>
+                        <p>The profile catalog and grade selections reflect classification society 
+                        requirements (DNV, Lloyd's Register, Bureau Veritas, RINA, Türk Loydu).</p>
+                    </div>
+                    
+                    <div class="seo-comparison-item">
+                        <h3>Attached Plate Modeling</h3>
+                        <p>Quickly model stiffened panels by attaching an effective plate width to the 
+                        profile. Critical for ship deck and bottom structure analysis.</p>
+                    </div>
+                    
+                    <div class="seo-comparison-item">
+                        <h3>Free for 2026</h3>
+                        <p>No sign-up, no credit card, no usage limits. Lumoship is in early access 
+                        throughout 2026, building real value before charging.</p>
+                    </div>
+                    
+                    <div class="seo-comparison-item">
+                        <h3>Modern, Browser-Based</h3>
+                        <p>Nothing to install. Works on any device with a browser. Results computed 
+                        server-side using Python/NumPy for accuracy and reliability.</p>
+                    </div>
+                </div>
+            </article>
+
+            <article class="seo-article">
+                <h2>About Lumoship</h2>
+                <p>
+                    <strong>BeamCore is one of multiple tools in the Lumoship suite</strong> — a software 
+                    platform built specifically for marine structural engineering. The vision is a 
+                    comprehensive, modern toolkit covering everything from concept design to 
+                    class-compliant scantling analysis.
+                </p>
+                <p>Currently available:</p>
+                <ul>
+                    <li><strong>BeamCore</strong> — Beam structural analysis (this tool)</li>
+                    <li><strong>SectionPro</strong> — Section properties calculator for marine profiles</li>
+                </ul>
+                <p>In development for 2026:</p>
+                <ul>
+                    <li><strong>NODAL</strong> — Beam-based grillage solver for hatch covers, decks, 
+                    bulkheads, and stiffened panels</li>
+                    <li><strong>Lumoship Midship</strong> — Multi-class scantling tool with full rule 
+                    check support for DNV, Lloyd's Register, Bureau Veritas, and RINA</li>
+                </ul>
+                <p>
+                    Lumoship is founded by <strong>Ebubekir Akarsu</strong>, a structural-focused naval 
+                    architect with 7+ years of experience across European and Turkish marine engineering 
+                    firms. The platform reflects real practitioner needs — built by an engineer, for engineers.
+                </p>
+                <p>
+                    Learn more at <a href="https://lumoship.org" style="color: var(--accent-bright);">lumoship.org</a>.
+                </p>
+            </article>
+
+            <article class="seo-article">
+                <h2>Frequently Asked Questions</h2>
+                
+                <div class="seo-faq">
+                    <details class="seo-faq-item">
+                        <summary>Is BeamCore really free?</summary>
+                        <p>Yes, BeamCore is completely free during 2026. No sign-up required, no usage 
+                        limits, no hidden charges. Starting 2027, paid plans will become available for 
+                        advanced features, but the core calculator will remain accessible.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>What calculation method does BeamCore use?</summary>
+                        <p>BeamCore implements the <strong>Direct Stiffness Method</strong> based on 
+                        Euler-Bernoulli beam theory. Calculations are performed server-side using Python 
+                        and NumPy for numerical accuracy. Each beam is meshed into multiple elements 
+                        (typically L/40 maximum element length) for high-resolution results.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>Can I analyze multi-span continuous beams?</summary>
+                        <p>Yes. BeamCore handles any number of supports at any position along the beam. 
+                        Two-span, three-span, or more continuous beams are supported. The solver 
+                        automatically handles statically indeterminate structures.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>Which profile types are supported?</summary>
+                        <p>BeamCore supports four profile types: Flat Bar (FB), L-Profile (angle), 
+                        T-Profile, and Holland Profile (HP) per the EN 10067 catalog. The complete HP 
+                        range from HP 60×4 to HP 400×16 is available with tabulated section properties.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>What steel grades are available?</summary>
+                        <p>Three shipbuilding steel grades are pre-loaded with their correct yield 
+                        strengths (ReH) per classification society requirements: Grade A (ReH = 235 N/mm²), 
+                        AH32 (315 N/mm²), and AH36 (355 N/mm²). The elastic modulus is set to 206 GPa 
+                        (per IACS standards).</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>Can I export results as PDF?</summary>
+                        <p>Yes. BeamCore generates a complete PDF calculation sheet including project 
+                        information, geometry, loads, supports, analysis results, and diagrams. The PDF 
+                        is suitable for design submittals and project records.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>How accurate are the results?</summary>
+                        <p>BeamCore uses high-precision numerical methods. Results match analytical 
+                        solutions to within machine precision for standard cases (simply supported, 
+                        cantilever, etc.). The solver has been validated against textbook examples 
+                        and finite element references.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>Does BeamCore work offline?</summary>
+                        <p>No. BeamCore is a browser-based tool that computes results server-side. 
+                        An internet connection is required. The server is hosted on Railway with 99.9% 
+                        uptime. Results are returned within seconds for typical beam problems.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>Can I save and load my projects?</summary>
+                        <p>Within a single session, you can save and load beam cases using the "Saved 
+                        Cases" feature. Browser refresh clears these. Future versions will support 
+                        persistent project storage with user accounts.</p>
+                    </details>
+                    
+                    <details class="seo-faq-item">
+                        <summary>Who is BeamCore for?</summary>
+                        <p>BeamCore is designed for <strong>naval architects, marine structural 
+                        engineers, ship designers, and shipbuilding draftsmen</strong>. It's also 
+                        useful for academic purposes — marine engineering students learning beam 
+                        analysis on real-world ship profiles.</p>
+                    </details>
+                </div>
+            </article>
+
+            <article class="seo-article seo-article-cta">
+                <h2>Ready to Start?</h2>
+                <p>
+                    Use BeamCore for your next ship structural analysis project. No sign-up, no install, 
+                    no cost during 2026.
+                </p>
+                <a href="#tool-start" class="seo-hero-cta">Start Calculating ↑</a>
+                <p style="margin-top: 2rem; opacity: 0.7; font-size: 0.875rem;">
+                    Have questions or feedback? Email <a href="mailto:contact@lumoship.org" style="color: var(--accent-bright);">contact@lumoship.org</a>
+                </p>
+            </article>
+        </div>
+    </section>
+
+
+<footer class="ea-footer"><div class="ea-footer-inner"><div class="ea-footer-signature">Created by <strong>Ebubekir Akarsu</strong> — Structural Engineer</div><div class="ea-footer-meta">© 2025-2026 All rights reserved</div></div></footer>
+
+<script>
+// ============================================================
+//  BeamCore — state
+// ============================================================
+let logoData=null;
+let currentProfile='T';
+let supports=[{pos:0,type:'pinned'},{pos:6,type:'pinned'}];
+let loads=[{type:'udl',mag:10,start:0,end:6}];
+let lastResults=null;
+
+// ============================================================
+//  Navigation
+// ============================================================
+function goToPage(n){
+    if(n===3){
+        // compute first (no drawing); if invalid, stay
+        if(!computeResults()) return;
+    }
+    document.querySelectorAll('.ea-page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+n).classList.add('active');
+    for(let i=1;i<=3;i++){
+        const s=document.getElementById('wizStep'+i);
+        s.classList.remove('active','completed');
+        if(i<n) s.classList.add('completed');
+        if(i===n) s.classList.add('active');
+    }
+    document.getElementById('wizardLine1').classList.toggle('completed',n>1);
+    document.getElementById('wizardLine2').classList.toggle('completed',n>2);
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(n===2) requestAnimationFrame(()=>requestAnimationFrame(drawPreview));
+    // page is now visible & laid out — draw diagrams on next frame so clientWidth is correct
+    if(n===3) requestAnimationFrame(()=>requestAnimationFrame(drawAllDiagrams));
+}
+
+// ============================================================
+//  Section property calculators (mm in, cm-based out)
+//  Returns { A[cm2], Ixx[cm4], height[cm], centroidY[cm] }
+//  centroidY measured from BOTTOM of the profile drawing reference.
+// ============================================================
+function pv(id,def){ const e=document.getElementById(id); return e?(parseFloat(e.value)||def):def; }
+function _calcL(a,b,t){
+    const aC=a/10,bC=b/10,tC=t/10;
+    const area=(aC+bC-tC)*tC;
+    const A1=aC*tC,A2=(bC-tC)*tC;
+    const y1=aC/2,y2=tC/2;
+    const cy=(A1*y1+A2*y2)/area;
+    const Ixx=(tC*aC**3)/12+A1*(y1-cy)**2+((bC-tC)*tC**3)/12+A2*(y2-cy)**2;
+    // shear: vertical leg (thickness tC) is the web; Q of area above NA
+    const aboveH=aC-cy; const Qmax=tC*aboveH*(aboveH/2);
+    return {type:'L',area,Ixx,height:aC,centroidY:cy,tWeb:tC,Qmax};
+}
+function _calcT(h,tw,bf,tf){
+    const hC=h/10,twC=tw/10,bfC=bf/10,tfC=tf/10;
+    const webA=(hC-tfC)*twC,flA=bfC*tfC,area=webA+flA;
+    // reference: flange at bottom (y=0), web on top
+    const webCY=tfC+(hC-tfC)/2,flCY=tfC/2;
+    const cy=(webA*webCY+flA*flCY)/area;
+    const Ixx=(twC*(hC-tfC)**3)/12+webA*(webCY-cy)**2+(bfC*tfC**3)/12+flA*(flCY-cy)**2;
+    // shear: Q of area above NA. NA usually in web (cy>=tfC) for flange-bottom T
+    let Qmax,tWeb;
+    if(cy>=tfC){ const aboveH=hC-cy; Qmax=twC*aboveH*(aboveH/2); tWeb=twC; }
+    else { const flAbove=bfC*(tfC-cy); Qmax=webA*(webCY-cy)+flAbove*((tfC-cy)/2); tWeb=bfC; }
+    return {type:'T',area,Ixx,height:hC,centroidY:cy,tWeb,Qmax};
+}
+function _calcFB(h,t){
+    const hC=h/10,tC=t/10,area=hC*tC;
+    // rectangle: Qmax = t*h^2/8 (gives tau_max = 1.5 V/A)
+    return {type:'FB',area,Ixx:(tC*hC**3)/12,height:hC,centroidY:hC/2,tWeb:tC,Qmax:tC*hC*hC/8};
+}
+// HP (Holland / bulb-flat) catalog per EN 10067.
+// A [cm2], Ixx [cm4], dx [cm] = neutral-axis distance from flat (back) face. height b in mm.
+const HP_CATALOG=[
+ {name:"HP 60x4",b:60,t:4,A:3.08,dx:3.24,Ixx:8.82},{name:"HP 60x5",b:60,t:5,A:3.79,dx:3.32,Ixx:10.6},{name:"HP 60x6",b:60,t:6,A:4.49,dx:3.40,Ixx:12.2},
+ {name:"HP 80x5",b:80,t:5,A:5.09,dx:4.33,Ixx:26.3},{name:"HP 80x6",b:80,t:6,A:6.03,dx:4.43,Ixx:30.4},{name:"HP 80x7",b:80,t:7,A:6.95,dx:4.52,Ixx:34.2},{name:"HP 80x8",b:80,t:8,A:7.86,dx:4.61,Ixx:37.7},
+ {name:"HP 100x6",b:100,t:6,A:7.64,dx:5.40,Ixx:61.7},{name:"HP 100x7",b:100,t:7,A:8.82,dx:5.51,Ixx:69.7},{name:"HP 100x8",b:100,t:8,A:9.98,dx:5.61,Ixx:77.2},
+ {name:"HP 120x6",b:120,t:6,A:9.24,dx:6.48,Ixx:112},{name:"HP 120x7",b:120,t:7,A:10.7,dx:6.60,Ixx:127},{name:"HP 120x8",b:120,t:8,A:11.72,dx:6.96,Ixx:165},
+ {name:"HP 140x7",b:140,t:7,A:12.6,dx:7.68,Ixx:208},{name:"HP 140x8",b:140,t:8,A:14.3,dx:7.81,Ixx:232},{name:"HP 140x9",b:140,t:9,A:15.9,dx:7.93,Ixx:254},
+ {name:"HP 160x7",b:160,t:7,A:14.5,dx:8.83,Ixx:322},{name:"HP 160x8",b:160,t:8,A:16.4,dx:8.97,Ixx:359},{name:"HP 160x9",b:160,t:9,A:18.3,dx:9.10,Ixx:394},
+ {name:"HP 180x8",b:180,t:8,A:18.6,dx:10.10,Ixx:526},{name:"HP 180x9",b:180,t:9,A:20.8,dx:10.25,Ixx:579},{name:"HP 180x10",b:180,t:10,A:22.9,dx:10.39,Ixx:629},{name:"HP 180x11",b:180,t:11,A:25.0,dx:10.52,Ixx:677},
+ {name:"HP 200x9",b:200,t:9,A:23.3,dx:11.38,Ixx:814},{name:"HP 200x10",b:200,t:10,A:25.7,dx:11.54,Ixx:886},{name:"HP 200x11",b:200,t:11,A:28.1,dx:11.69,Ixx:955},{name:"HP 200x12",b:200,t:12,A:30.4,dx:11.83,Ixx:1020},
+ {name:"HP 220x10",b:220,t:10,A:28.6,dx:12.68,Ixx:1210},{name:"HP 220x11",b:220,t:11,A:31.2,dx:12.84,Ixx:1300},{name:"HP 220x12",b:220,t:12,A:33.8,dx:12.99,Ixx:1400},
+ {name:"HP 240x10",b:240,t:10,A:31.4,dx:13.82,Ixx:1610},{name:"HP 240x11",b:240,t:11,A:34.4,dx:13.99,Ixx:1740},{name:"HP 240x12",b:240,t:12,A:37.3,dx:14.15,Ixx:1870},
+ {name:"HP 260x10",b:260,t:10,A:34.3,dx:14.96,Ixx:2100},{name:"HP 260x11",b:260,t:11,A:37.5,dx:15.14,Ixx:2270},{name:"HP 260x12",b:260,t:12,A:40.7,dx:15.31,Ixx:2440},
+ {name:"HP 280x11",b:280,t:11,A:40.7,dx:16.28,Ixx:2900},{name:"HP 280x12",b:280,t:12,A:44.2,dx:16.46,Ixx:3120},{name:"HP 280x13",b:280,t:13,A:47.6,dx:16.63,Ixx:3330},
+ {name:"HP 300x11",b:300,t:11,A:43.8,dx:17.42,Ixx:3640},{name:"HP 300x12",b:300,t:12,A:47.6,dx:17.61,Ixx:3920},{name:"HP 300x13",b:300,t:13,A:51.3,dx:17.79,Ixx:4190},
+ {name:"HP 320x12",b:320,t:12,A:51.0,dx:18.75,Ixx:4840},{name:"HP 320x13",b:320,t:13,A:55.0,dx:18.94,Ixx:5180},{name:"HP 320x14",b:320,t:14,A:59.0,dx:19.12,Ixx:5510},
+ {name:"HP 340x12",b:340,t:12,A:54.4,dx:19.89,Ixx:5900},{name:"HP 340x13",b:340,t:13,A:58.7,dx:20.09,Ixx:6310},{name:"HP 340x14",b:340,t:14,A:62.9,dx:20.28,Ixx:6710},
+ {name:"HP 370x13",b:370,t:13,A:64.1,dx:21.73,Ixx:8230},{name:"HP 370x14",b:370,t:14,A:68.7,dx:21.94,Ixx:8760},{name:"HP 370x15",b:370,t:15,A:73.3,dx:22.14,Ixx:9270},
+ {name:"HP 400x14",b:400,t:14,A:74.6,dx:23.59,Ixx:11200},{name:"HP 400x15",b:400,t:15,A:79.6,dx:23.81,Ixx:11900},{name:"HP 400x16",b:400,t:16,A:84.6,dx:24.02,Ixx:12500},
+ {name:"HP 430x15",b:430,t:15,A:85.9,dx:25.55,Ixx:14900},{name:"HP 430x17",b:430,t:17,A:96.5,dx:25.99,Ixx:16500},{name:"HP 430x19",b:430,t:19,A:107,dx:26.41,Ixx:18000},{name:"HP 430x20",b:430,t:20,A:112,dx:26.61,Ixx:18700}
+];
+function _calcHP(){
+    const sel=document.getElementById('HP-catalog');
+    const hp=HP_CATALOG.find(x=>x.name===(sel&&sel.value))||HP_CATALOG.find(x=>x.name==="HP 200x10");
+    // catalog: A [cm2], Ixx [cm4], dx [cm] from flat face; height = b/10 [cm]
+    const hC=hp.b/10, tC=hp.t/10;
+    // HP web shear (conservative, ship practice): tau = V/(t_web * height).
+    // Express as Qmax so tau = V*Qmax/(Ixx*tWeb) = V/(tWeb*hC)  ->  Qmax = Ixx/hC
+    const Qmax=hp.Ixx/hC;
+    return {type:'HP',area:hp.A,Ixx:hp.Ixx,height:hC,centroidY:hp.dx,tWeb:tC,Qmax,_hp:hp};
+}
+function getProfile(){
+    switch(currentProfile){
+        case 'L': return _calcL(pv('L-a',100),pv('L-b',100),pv('L-t',10));
+        case 'T': return _calcT(pv('T-h',300),pv('T-tw',10),pv('T-bf',150),pv('T-tf',12));
+        case 'FB': return _calcFB(pv('FB-h',200),pv('FB-t',12));
+        case 'HP': return _calcHP();
+    }
+    return _calcT(300,10,150,12);
+}
+function populateHPCatalog(){
+    const list=document.getElementById('hpComboList'); if(!list||list.children.length) return;
+    HP_CATALOG.forEach(hp=>{
+        const o=document.createElement('div');
+        o.className='ea-combo-opt'+(hp.name==='HP 200x10'?' selected':'');
+        o.textContent=hp.name; o.dataset.value=hp.name;
+        o.onclick=()=>selectHP(hp.name);
+        list.appendChild(o);
+    });
+    setHPValue('HP 200x10');
+}
+function setHPValue(name){
+    document.getElementById('HP-catalog').value=name;
+    document.getElementById('hpComboLabel').textContent=name;
+    document.querySelectorAll('#hpComboList .ea-combo-opt').forEach(o=>o.classList.toggle('selected',o.dataset.value===name));
+}
+function selectHP(name){
+    setHPValue(name);
+    closeHPDropdown();
+    updateSection();
+}
+function toggleHPDropdown(e){
+    e.stopPropagation();
+    const combo=document.getElementById('hpCombo');
+    const wasOpen=combo.classList.contains('open');
+    combo.classList.toggle('open',!wasOpen);
+    if(!wasOpen){
+        // scroll selected option into view
+        const sel=document.querySelector('#hpComboList .ea-combo-opt.selected');
+        if(sel) sel.scrollIntoView({block:'nearest'});
+    }
+}
+function closeHPDropdown(){ const c=document.getElementById('hpCombo'); if(c) c.classList.remove('open'); }
+document.addEventListener('click',e=>{ const c=document.getElementById('hpCombo'); if(c&&!c.contains(e.target)) c.classList.remove('open'); });
+// Combine profile with optional MANUAL attached plate (parallel axis)
+function computeSectionProps(){
+    const p=getProfile();
+    const plateOn=document.getElementById('plate-enabled') && document.getElementById('plate-enabled').checked;
+    const pw=pv('plate-width',300)/10, pt=pv('plate-thickness',12)/10; // cm
+    let A,Ixx,yTop,yBot,tWeb,Qmax;
+    if(plateOn){
+        const pA=pw*pt;
+        const totalA=p.area+pA;
+        // plate sits at bottom: plate centroid at pt/2, profile shifted up by pt
+        const plateCY=pt/2;
+        const profCY=pt+p.centroidY;
+        const cy=(pA*plateCY+p.area*profCY)/totalA;
+        const totalH=pt+p.height;
+        const pIxx=(pw*pt**3)/12;
+        Ixx=p.Ixx+p.area*(profCY-cy)**2+pIxx+pA*(plateCY-cy)**2;
+        A=totalA; yTop=totalH-cy; yBot=cy;
+        // shear at combined NA: take the web of the profile carrying shear.
+        // Q of all material above NA = profile area*(profCY-cy) approx, conservative use profile tWeb
+        tWeb=p.tWeb||(p.area/p.height);
+        const aboveArm=profCY-cy; // distance profile centroid above NA
+        Qmax=Math.max(p.Qmax||0, p.area*Math.max(aboveArm,0));
+    } else {
+        A=p.area; Ixx=p.Ixx; yTop=p.height-p.centroidY; yBot=p.centroidY;
+        tWeb=p.tWeb||(p.area/p.height); Qmax=p.Qmax||(Ixx/p.height);
+    }
+    const Wmin=Ixx/Math.max(yTop,yBot); // cm3 (extreme fibre)
+    return {A,Ixx,W:Wmin,tWeb,Qmax};
+}
+function updateSection(){
+    const s=computeSectionProps();
+    document.getElementById('momI').value=s.Ixx.toFixed(2);
+    document.getElementById('sectionW').value=s.W.toFixed(2);
+    // HP catalog readout
+    if(currentProfile==='HP'){
+        const hp=_calcHP()._hp;
+        const d=document.getElementById('hpDim'); if(d) d.textContent=hp.b+' × '+hp.t+' mm';
+        const a=document.getElementById('hpArea'); if(a) a.textContent=hp.A.toFixed(1)+' cm²';
+        const i=document.getElementById('hpIxx'); if(i) i.textContent=hp.Ixx.toFixed(0)+' cm⁴';
+    }
+}
+// Shipbuilding steel grades (per classification societies / ASTM A131)
+// ReH = min yield [N/mm2], Rm = tensile range, E in GPa
+const STEEL_GRADES={
+    'A':   {ReH:235, E:206, Rm:'400–520'},
+    'AH32':{ReH:315, E:206, Rm:'440–590'},
+    'AH36':{ReH:355, E:206, Rm:'490–620'}
+};
+function getSafetyFactor(){ return parseFloat(document.getElementById('safetyFactorValue').value)||0.67; }
+function recomputeSigmaAll(){
+    const reh=parseFloat(document.getElementById('reH').value)||235;
+    const f=getSafetyFactor();
+    const sig=reh*f;
+    document.getElementById('sigmaAll').value=sig.toFixed(1);
+    const rr=document.getElementById('reHReadout'); if(rr) rr.textContent=reh+' N/mm²';
+    const sr=document.getElementById('sigmaReadout'); if(sr) sr.textContent=sig.toFixed(1)+' N/mm²';
+}
+function applyGrade(){
+    const g=document.getElementById('steelGrade').value;
+    if(STEEL_GRADES[g]){
+        document.getElementById('reH').value=STEEL_GRADES[g].ReH;
+        document.getElementById('modE').value=STEEL_GRADES[g].E;
+        recomputeSigmaAll();
+    }
+}
+function onSafetyFactorChange(){
+    document.getElementById('safetyFactorValue').value=document.getElementById('safetyFactor').value;
+    recomputeSigmaAll();
+}
+function selectProfile(type,btn){
+    currentProfile=type;
+    document.querySelectorAll('#page-2 .ea-tab').forEach(t=>t.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    document.querySelectorAll('.profile-section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(type+'-section').classList.add('active');
+    updateSection();
+}
+function toggleLEqual(){ const eq=document.getElementById('L-equal').checked; const b=document.getElementById('L-b'); b.disabled=eq; if(eq) b.value=document.getElementById('L-a').value; updateSection(); }
+function syncLDimensions(){ if(document.getElementById('L-equal').checked) document.getElementById('L-b').value=document.getElementById('L-a').value; }
+function handleLogoUpload(e){
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{ logoData=ev.target.result; const img=document.getElementById('logoPreview'); img.src=logoData; img.style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; };
+    r.readAsDataURL(f);
+}
+
+// ============================================================
+//  Supports table
+// ============================================================
+function renderSupports(){
+    const tb=document.getElementById('supportTableBody'); tb.innerHTML='';
+    supports.forEach((s,i)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i+1}</td>
+            <td><input type="number" step="0.1" value="${s.pos}" onchange="supports[${i}].pos=parseFloat(this.value)||0;drawPreview()"></td>
+            <td><select onchange="supports[${i}].type=this.value;drawPreview()">
+                <option value="pinned" ${s.type==='pinned'?'selected':''}>Pinned</option>
+                <option value="fixed" ${s.type==='fixed'?'selected':''}>Fixed</option>
+                <option value="roller" ${s.type==='roller'?'selected':''}>Roller</option>
+            </select></td>
+            <td><button class="ea-btn-delete" onclick="removeSupport(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></td>`;
+        tb.appendChild(tr);
+    });
+    drawPreview();
+}
+function addSupport(){ const L=parseFloat(document.getElementById('beamLength').value)||6; supports.push({pos:L/2,type:'pinned'}); renderSupports(); }
+function removeSupport(i){ supports.splice(i,1); renderSupports(); }
+function rebuildSupportsOnLength(){ drawPreview(); }
+
+// ============================================================
+//  Loads table
+// ============================================================
+function renderLoads(){
+    const tb=document.getElementById('loadTableBody'); tb.innerHTML='';
+    loads.forEach((ld,i)=>{
+        const unit=ld.type==='point'?'kN':ld.type==='udl'?'kN/m':'kN·m';
+        const isUdl=ld.type==='udl';
+        const tname=ld.type==='point'?'Point':ld.type==='udl'?'UDL':'Moment';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i+1}</td>
+            <td><div class="cell-type">${tname}<span class="cell-unit">${unit}</span></div></td>
+            <td><div class="cell-input"><input type="number" step="0.1" value="${ld.mag}" onchange="loads[${i}].mag=parseFloat(this.value)||0;drawPreview()"></div></td>
+            <td><div class="cell-input"><input type="number" step="0.1" value="${ld.start}" onchange="loads[${i}].start=parseFloat(this.value)||0;drawPreview()"></div></td>
+            <td><div class="cell-input">${isUdl?`<input type="number" step="0.1" value="${ld.end}" onchange="loads[${i}].end=parseFloat(this.value)||0;drawPreview()">`:'<span class="cell-dash">—</span>'}</div></td>
+            <td><button class="ea-btn-delete" onclick="removeLoad(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></td>`;
+        tb.appendChild(tr);
+    });
+    drawPreview();
+}
+function addLoad(type){
+    const L=parseFloat(document.getElementById('beamLength').value)||6;
+    if(type==='point') loads.push({type:'point',mag:10,start:L/2,end:L/2});
+    else if(type==='udl') loads.push({type:'udl',mag:10,start:0,end:L});
+    else loads.push({type:'moment',mag:10,start:L/2,end:L/2});
+    renderLoads();
+}
+function removeLoad(i){ loads.splice(i,1); renderLoads(); }
+
+// ============================================================
+//  SOLVER — Direct Stiffness Method (Euler-Bernoulli beam)
+//  2 DOF per node: [w (deflection), θ (rotation)]
+//  Builds a node at every support, load point, and a fine mesh.
+// ============================================================
+function linspaceNodes(L){
+    const pts=new Set([0,L]);
+    supports.forEach(s=>{ if(s.pos>=0&&s.pos<=L) pts.add(round(s.pos)); });
+    loads.forEach(ld=>{
+        if(ld.start>=0&&ld.start<=L) pts.add(round(ld.start));
+        if(ld.type==='udl'&&ld.end>=0&&ld.end<=L) pts.add(round(ld.end));
+    });
+    // refine: ensure no element longer than L/40
+    const base=Array.from(pts).sort((a,b)=>a-b);
+    const refined=new Set(base);
+    const maxLen=L/40;
+    for(let i=0;i<base.length-1;i++){
+        const seg=base[i+1]-base[i];
+        const n=Math.ceil(seg/maxLen);
+        for(let k=1;k<n;k++) refined.add(round(base[i]+seg*k/n));
+    }
+    return Array.from(refined).sort((a,b)=>a-b);
+}
+function round(x){ return Math.round(x*1e6)/1e6; }
+
+async function solveBeam(){
+    const L = parseFloat(document.getElementById('beamLength').value);
+    const E = parseFloat(document.getElementById('modE').value);
+    const I = parseFloat(document.getElementById('momI').value);
+    
+    if(!(L>0) || !(E>0) || !(I>0)){
+        console.error('Invalid inputs');
+        return null;
+    }
+    
+    // Convert internal loads/supports format to API format
+    const apiSupports = supports.map(s => ({
+        pos: parseFloat(s.pos),
+        type: s.type
+    }));
+    
+    const apiLoads = loads.map(ld => ({
+        type: ld.type,
+        start: parseFloat(ld.start),
+        end: ld.end !== undefined ? parseFloat(ld.end) : null,
+        mag: parseFloat(ld.mag)
+    }));
+    
+    const requestBody = {
+        L: L,
+        E: E,
+        I: I,
+        supports: apiSupports,
+        loads: apiLoads
+    };
+    
+    try {
+        // Show loading state
+        const solveBtn = document.querySelector('button[onclick*="runAnalysis"]');
+        const originalText = solveBtn ? solveBtn.textContent : null;
+        if(solveBtn) {
+            solveBtn.textContent = 'Calculating...';
+            solveBtn.disabled = true;
+        }
+        
+        const response = await fetch('https://api.lumoship.org/api/beam/solve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if(solveBtn) {
+            solveBtn.textContent = originalText;
+            solveBtn.disabled = false;
+        }
+        
+        if(!response.ok){
+            const err = await response.json();
+            console.error('API Error:', err);
+            alert('Calculation error: ' + (err.detail || 'Unknown error'));
+            return null;
+        }
+        
+        const data = await response.json();
+        
+        if(!data.success){
+            console.error('Calculation failed:', data);
+            return null;
+        }
+        
+        // Return results in format expected by drawAllDiagrams
+        return data.results;
+        
+    } catch(err) {
+        console.error('Network error:', err);
+        alert('Cannot reach Lumoship server. Please check your internet connection.');
+        return null;
+    }
+}
+
+// consistent nodal load vector for UDL w (N/m, downward positive => acts in -w direction)
+function nearestNode(nodes,pos){
+    let bi=0,bd=Infinity;
+    nodes.forEach((n,i)=>{ const d=Math.abs(n-pos); if(d<bd){bd=d;bi=i;} });
+    return bi;
+}
+// Gaussian elimination with partial pivoting
+
+
+// ============================================================
+//  Run analysis + render results
+// ============================================================
+async function runAnalysis(){
+    if(!(await computeResults())) return false;
+    drawAllDiagrams();
+    return true;
+}
+async function computeResults(){
+    if(supports.length<1){ alert('Add at least one support.'); return false; }
+    const Lspan=parseFloat(document.getElementById('beamLength').value)||0;
+    if(!(Lspan>0)){ alert('Beam length must be greater than 0.'); return false; }
+    // --- geometry validation: everything must lie within [0, L] ---
+    const tol=1e-6, problems=[];
+    supports.forEach((s,i)=>{ if(s.pos<-tol||s.pos>Lspan+tol) problems.push(`Support ${i+1} at ${s.pos} m is outside the beam (0–${Lspan} m).`); });
+    loads.forEach((ld,i)=>{
+        if(ld.start<-tol||ld.start>Lspan+tol) problems.push(`Load ${i+1} start ${ld.start} m is outside the beam (0–${Lspan} m).`);
+        if(ld.type==='udl'&&(ld.end<-tol||ld.end>Lspan+tol)) problems.push(`Load ${i+1} end ${ld.end} m is outside the beam (0–${Lspan} m).`);
+        if(ld.type==='udl'&&Math.abs(ld.end-ld.start)<tol) problems.push(`Load ${i+1} is a UDL with zero length (start = end). Set a Start and End span.`);
+    });
+    if(problems.length){ alert('Please fix before running:\n\n• '+problems.join('\n• ')); return false; }
+
+    const res=await solveBeam();
+    if(!res){ alert('Model is unstable or invalid. Check supports — the beam needs enough restraint (e.g. two pinned, or one fixed).'); return false; }
+    lastResults=res;
+
+    const Mmax=maxAbs(res.Ms), Vmax=maxAbs(res.Vs), Dmax=maxAbs(res.Ds);
+    const sp=computeSectionProps();
+    const W=sp.W*1e-6;          // cm3 -> m3
+    const Iv=sp.Ixx*1e-8;       // cm4 -> m4
+    const tWeb=sp.tWeb*1e-2;    // cm -> m
+    const Qmax=sp.Qmax*1e-6;    // cm3 -> m3
+    const sigAll=parseFloat(document.getElementById('sigmaAll').value);  // N/mm2
+    const tauAll=sigAll/Math.sqrt(3); // von Mises shear allowable ≈ 0.577·σ_all
+    const sigmaMPa = W>0 ? (Mmax*1000)/W/1e6 : 0;
+    // tau_max = V*Q/(I*t) ; V in kN -> N
+    const tauMPa = (Iv>0&&tWeb>0) ? (Vmax*1000)*Qmax/(Iv*tWeb)/1e6 : 0;
+
+    document.getElementById('sumMmax').textContent=Mmax.toFixed(2);
+    document.getElementById('sumVmax').textContent=Vmax.toFixed(2);
+    document.getElementById('sumDefl').textContent=Dmax.toFixed(2);
+
+    const ucStress=sigAll>0?sigmaMPa/sigAll:0;
+    const ucShear=tauAll>0?tauMPa/tauAll:0;
+    const ucGov=Math.max(ucStress,ucShear); // governing utilization
+    // status: FAIL if over capacity, REVIEW if highly utilised (>90%), else PASS
+    let statusText, statusCls;
+    if(ucGov>1.0){ statusText='FAIL'; statusCls='fail'; }
+    else if(ucGov>0.9){ statusText='REVIEW'; statusCls='warn'; }
+    else { statusText='PASS'; statusCls='pass'; }
+    document.getElementById('sumStatus').textContent=statusText;
+    const cardStatus=document.getElementById('cardStatus');
+    cardStatus.classList.remove('pass','fail','warn'); cardStatus.classList.add(statusCls);
+
+    const cb=document.getElementById('checkBody'); cb.innerHTML='';
+    cb.appendChild(checkRow('Bending Stress σ',sigmaMPa.toFixed(1)+' N/mm²',sigAll.toFixed(1)+' N/mm²',ucStress));
+    cb.appendChild(checkRow('Shear Stress τ',tauMPa.toFixed(1)+' N/mm²',tauAll.toFixed(1)+' N/mm²',ucShear));
+
+    const rb=document.getElementById('reactionBody'); rb.innerHTML='';
+    let sumR=0;
+    res.reactions.forEach((r,i)=>{
+        sumR+=r.R;
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>S${i+1}</td><td>${r.pos.toFixed(2)}</td><td>${r.type}</td><td>${r.R.toFixed(2)}</td><td>${r.type==='fixed'?r.M.toFixed(2):'—'}</td>`;
+        rb.appendChild(tr);
+    });
+    const trSum=document.createElement('tr');
+    trSum.innerHTML=`<td colspan="3" style="text-align:right;color:var(--text-secondary)">Σ Reactions</td><td style="color:var(--accent)">${sumR.toFixed(2)}</td><td>—</td>`;
+    rb.appendChild(trSum);
+    return true;
+}
+function drawAllDiagrams(){
+    if(!lastResults) return;
+    const res=lastResults;
+    drawModel(res);
+    drawDiagram('canvasShear',res.xs,res.Vs,'#3b82f6','shearStat','V');
+    drawDiagram('canvasMoment',res.xs,res.Ms,'#f59e0b','momentStat','M');
+    drawDiagram('canvasDefl',res.xs,res.Ds,'#22c55e','deflStat','δ');
+}
+function checkRow(name,actual,allow,uc){
+    const pass=uc<=1.0;
+    const tr=document.createElement('tr');
+    if(!pass) tr.classList.add('highlight');
+    tr.innerHTML=`<td style="text-align:left">${name}</td><td>${actual}</td><td>${allow}</td><td>${(uc).toFixed(2)}</td><td><span class="ea-badge ${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</span></td>`;
+    return tr;
+}
+function maxAbs(arr){ return arr.reduce((m,v)=>Math.max(m,Math.abs(v)),0); }
+
+// ============================================================
+//  Canvas drawing
+// ============================================================
+function setupCanvas(id){
+    const c=document.getElementById(id);
+    const pad=parseFloat(getComputedStyle(document.documentElement).fontSize)||16; // ~1rem
+    const w=Math.max(200,c.parentElement.clientWidth-pad*2);
+    const baseH=parseInt(c.getAttribute('height')||200);
+    const hScale=Math.min(1.3,Math.max(0.85,w/760));
+    const H=Math.round(baseH*hScale);
+    const dpr=window.devicePixelRatio||1;
+    c.width=Math.round(w*dpr); c.style.width=w+'px';
+    c.height=Math.round(H*dpr); c.style.height=H+'px';
+    const ctx=c.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0); // absolute transform — never accumulates
+    return {ctx,W:w,H};
+}
+function drawModel(res){
+    const {ctx,W,H}=setupCanvas('canvasModel');
+    ctx.fillStyle=DIA_COL.bg; ctx.fillRect(0,0,W,H);
+    const L=res.L; const padX=Math.max(50,W*0.07); const y0=H*0.46;
+    const sx=v=>padX+(W-2*padX)*(v/L);
+    // dimension line
+    const dimY=y0-58;
+    ctx.strokeStyle=DIA_COL.axis; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(sx(0),dimY); ctx.lineTo(sx(L),dimY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=DIA_COL.text; ctx.font=Math.round(11*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('L = '+L+' m',W/2,dimY-4);
+    [0,L].forEach(p=>{ ctx.strokeStyle=DIA_COL.axis; ctx.beginPath(); ctx.moveTo(sx(p),dimY-4); ctx.lineTo(sx(p),dimY+4); ctx.stroke(); });
+    // beam
+    ctx.strokeStyle=DIA_COL.beam; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(sx(0),y0); ctx.lineTo(sx(L),y0); ctx.stroke(); ctx.lineCap='butt';
+    // supports + reactions
+    res.reactions.forEach((r,i)=>{
+        const x=sx(r.pos); ctx.fillStyle='#22c55e'; ctx.strokeStyle='#22c55e'; ctx.lineWidth=2;
+        if(r.type==='fixed'){ ctx.fillRect(x-5,y0-20,10,40); ctx.strokeStyle='#16a34a'; for(let h=-18;h<=18;h+=6){ ctx.beginPath(); ctx.moveTo(x-5,y0+h); ctx.lineTo(x-12,y0+h-5); ctx.stroke(); } }
+        else if(r.type==='roller'){
+            // roller: triangle + wheels underneath (no ground hatching)
+            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-10,y0+15); ctx.lineTo(x+10,y0+15); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x-6,y0+19,3,0,7); ctx.arc(x+6,y0+19,3,0,7); ctx.fill();
+        }
+        else { // pinned: triangle + ground hatching
+            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-10,y0+16); ctx.lineTo(x+10,y0+16); ctx.closePath(); ctx.stroke();
+            for(let hx=-10;hx<=10;hx+=5){ ctx.beginPath(); ctx.moveTo(x+hx,y0+16); ctx.lineTo(x+hx-5,y0+22); ctx.stroke(); }
+        }
+        // reaction arrow (upward, below beam) + value
+        ctx.strokeStyle='#16a34a'; ctx.fillStyle='#16a34a'; ctx.lineWidth=2;
+        const arrTop=y0+30, arrBot=y0+30+Math.round(20*DIA_FS);
+        fbArrow(ctx, x, arrBot, x, arrTop, 6); // arrowhead pointing up at arrTop
+        ctx.fillStyle=DIA_COL.textDim; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText('S'+(i+1),x,arrBot+3);
+        ctx.fillStyle='#16a34a'; ctx.fillText('R = '+r.R.toFixed(1)+' kN',x,arrBot+3+Math.round(12*DIA_FS));
+    });
+    // loads with collision-aware labels
+    const slots=[]; function lvl(px){ let l=0; while(slots.some(s=>Math.abs(s.x-px)<46&&s.l===l)) l++; slots.push({x:px,l}); return l; }
+    loads.forEach(ld=>{
+        ctx.lineWidth=2;
+        if(ld.type==='udl'){
+            const a=Math.max(0,Math.min(ld.start,ld.end)), b=Math.min(L,Math.max(ld.start,ld.end));
+            const xa=sx(a),xb=sx(b),top=y0-38;
+            ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444';
+            ctx.beginPath(); ctx.moveTo(xa,top); ctx.lineTo(xb,top); ctx.stroke();
+            const n=Math.max(2,Math.round((b-a)/L*12));
+            for(let k=0;k<=n;k++){ const x=xa+(xb-xa)*k/n; fbArrow(ctx,x,top,x,y0-5,6); }
+            const lv=lvl((xa+xb)/2); ctx.fillStyle='#f87171'; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+            ctx.fillText(ld.mag+' kN/m',(xa+xb)/2,top-4-lv*13);
+        } else if(ld.type==='point'){
+            const x=sx(ld.start),top=y0-48; ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444'; fbArrow(ctx,x,top,x,y0-5,7);
+            const lv=lvl(x); ctx.fillStyle='#f87171'; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(ld.mag+' kN',x,top-4-lv*13);
+        } else {
+            const x=sx(ld.start); ctx.strokeStyle='#f59e0b'; ctx.fillStyle='#f59e0b'; const rr=14;
+            ctx.beginPath(); ctx.arc(x,y0-26,rr,0.3,5.2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x+rr-2,y0-22); ctx.lineTo(x+rr-7,y0-30); ctx.lineTo(x+rr+3,y0-31); ctx.closePath(); ctx.fill();
+            const lv=lvl(x); ctx.fillStyle='#fbbf24'; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(ld.mag+' kN·m',x,y0-46-lv*13);
+        }
+    });
+}
+function fbArrow(ctx,x1,y1,x2,y2,h){ h=h||6; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const a=Math.atan2(y2-y1,x2-x1); ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-h*Math.cos(a-0.4),y2-h*Math.sin(a-0.4)); ctx.lineTo(x2-h*Math.cos(a+0.4),y2-h*Math.sin(a+0.4)); ctx.closePath(); ctx.fill(); }
+// ---- Zoom state ----
+let previewScale=1, modalScale=1;
+const ZOOM_STEP=0.25, ZOOM_MIN=0.5, ZOOM_MAX=4;
+
+function previewZoom(dir){
+    if(dir===0) previewScale=1;
+    else previewScale=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,previewScale+dir*ZOOM_STEP));
+    document.getElementById('previewPanZoom').style.transform='scale('+previewScale+')';
+    document.getElementById('previewZoomLevel').textContent=Math.round(previewScale*100)+'%';
+}
+function modalZoom(dir){
+    if(dir===0) modalScale=1;
+    else modalScale=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,modalScale+dir*ZOOM_STEP));
+    document.getElementById('modalPanZoom').style.transform='scale('+modalScale+')';
+    document.getElementById('modalZoomLevel').textContent=Math.round(modalScale*100)+'%';
+}
+function openBeamFullscreen(){
+    document.getElementById('beamModal').classList.add('active');
+    modalScale=1; document.getElementById('modalPanZoom').style.transform='scale(1)';
+    document.getElementById('modalZoomLevel').textContent='100%';
+    setTimeout(()=>{ const vp=document.getElementById('modalViewport'); renderBeam('canvasModal2',vp.clientWidth-40,420); },40);
+}
+function closeBeamFullscreen(){ document.getElementById('beamModal').classList.remove('active'); }
+
+function drawPreview(){
+    const page2=document.getElementById('page-2');
+    if(!page2.classList.contains('active')) return;
+    const c=document.getElementById('canvasPreview');
+    if(!c) return;
+    const cont=(c.parentElement.parentElement.clientWidth)-2;
+    renderBeam('canvasPreview',cont>40?cont:300,260);
+}
+
+// Unified beam renderer used by both preview and fullscreen modal
+function renderBeam(canvasId,w,H){
+    const c=document.getElementById(canvasId);
+    if(!c) return;
+    const L=parseFloat(document.getElementById('beamLength').value)||0;
+    const dpr=window.devicePixelRatio||1;
+    c.width=w*dpr; c.style.width=w+'px';
+    c.height=H*dpr; c.style.height=H+'px';
+    const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,H);
+    if(!(L>0)){ ctx.fillStyle='#64748b'; ctx.font='13px JetBrains Mono'; ctx.textAlign='center'; ctx.fillText('Enter a beam length to preview',w/2,H/2); return; }
+    const scaleF=H/260;                 // scale fonts/offsets for large canvas
+    const fpx=n=>Math.round(n*scaleF);
+    const mx=Math.max(48,w*0.06), y0=H*0.55;
+    const sx=v=>mx+(w-2*mx)*(v/L);
+
+    // dimension line (top)
+    const dimY=y0-fpx(86);
+    ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(sx(0),dimY); ctx.lineTo(sx(L),dimY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#94a3b8'; ctx.font=fpx(11)+'px JetBrains Mono'; ctx.textAlign='center';
+    ctx.fillText('L = '+L+' m',w/2,dimY-fpx(5));
+    [0,L].forEach(p=>{ ctx.strokeStyle='#334155'; ctx.beginPath(); ctx.moveTo(sx(p),dimY-fpx(4)); ctx.lineTo(sx(p),dimY+fpx(4)); ctx.stroke(); });
+
+    // beam
+    ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=Math.max(4,fpx(5)); ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(sx(0),y0); ctx.lineTo(sx(L),y0); ctx.stroke(); ctx.lineCap='butt';
+
+    // supports
+    supports.forEach((s,i)=>{
+        if(s.pos<0||s.pos>L) return;
+        const x=sx(s.pos), sz=fpx(11);
+        ctx.fillStyle='#22c55e'; ctx.strokeStyle='#22c55e'; ctx.lineWidth=2;
+        if(s.type==='fixed'){
+            ctx.fillRect(x-fpx(5),y0-fpx(22),fpx(10),fpx(44));
+            ctx.strokeStyle='#16a34a';
+            for(let h=-fpx(20);h<=fpx(20);h+=fpx(6)){ ctx.beginPath(); ctx.moveTo(x-fpx(5),y0+h); ctx.lineTo(x-fpx(13),y0+h-fpx(5)); ctx.stroke(); }
+        } else if(s.type==='roller'){
+            // roller: triangle + wheels underneath (no ground hatching)
+            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-sz,y0+fpx(18)); ctx.lineTo(x+sz,y0+fpx(18)); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x-fpx(6),y0+fpx(22),fpx(3),0,7); ctx.arc(x+fpx(6),y0+fpx(22),fpx(3),0,7); ctx.fill();
+        } else {
+            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-sz,y0+fpx(18)); ctx.lineTo(x+sz,y0+fpx(18)); ctx.closePath(); ctx.stroke();
+            for(let hx=-sz;hx<=sz;hx+=fpx(5)){ ctx.beginPath(); ctx.moveTo(x+hx,y0+fpx(18)); ctx.lineTo(x+hx-fpx(5),y0+fpx(24)); ctx.stroke(); }
+        }
+        ctx.fillStyle='#64748b'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+        ctx.fillText('S'+(i+1),x,y0+fpx(38));
+        ctx.fillText(s.pos+'m',x,y0+fpx(50));
+    });
+
+    // ---- LOADS with collision-free label stacking ----
+    // group loads by rounded x to detect overlaps
+    const labelSlots=[]; // {x, level} track used label positions
+    function labelLevel(x){
+        let lvl=0;
+        while(labelSlots.some(s=>Math.abs(s.x-x)<fpx(46)&&s.level===lvl)) lvl++;
+        labelSlots.push({x,level:lvl});
+        return lvl;
+    }
+    // separate arrow heights by type so geometry doesn't overlap
+    loads.forEach(ld=>{
+        ctx.lineWidth=2;
+        if(ld.type==='udl'){
+            const a=Math.max(0,Math.min(ld.start,ld.end)), b=Math.min(L,Math.max(ld.start,ld.end));
+            const xa=sx(a),xb=sx(b), topY=y0-fpx(40);
+            ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444';
+            ctx.beginPath(); ctx.moveTo(xa,topY); ctx.lineTo(xb,topY); ctx.stroke();
+            const stepN=Math.max(2,Math.round((b-a)/L*12));
+            for(let k=0;k<=stepN;k++){ const x=xa+(xb-xa)*k/stepN; arrow(ctx,x,topY,x,y0-fpx(6),fpx(6)); }
+            const lvl=labelLevel((xa+xb)/2);
+            ctx.fillStyle='#f87171'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+            ctx.fillText(ld.mag+' kN/m',(xa+xb)/2,topY-fpx(6)-lvl*fpx(13));
+        } else if(ld.type==='point'){
+            const x=sx(ld.start), topY=y0-fpx(50);
+            ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444';
+            arrow(ctx,x,topY,x,y0-fpx(6),fpx(7));
+            const lvl=labelLevel(x);
+            ctx.fillStyle='#f87171'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+            ctx.fillText(ld.mag+' kN',x,topY-fpx(5)-lvl*fpx(13));
+        } else { // moment
+            const x=sx(ld.start);
+            ctx.strokeStyle='#f59e0b'; ctx.fillStyle='#f59e0b';
+            const rr=fpx(15);
+            ctx.beginPath(); ctx.arc(x,y0-fpx(28),rr,0.3,5.2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x+rr-2,y0-fpx(24)); ctx.lineTo(x+rr-fpx(7),y0-fpx(32)); ctx.lineTo(x+rr+fpx(3),y0-fpx(33)); ctx.closePath(); ctx.fill();
+            const lvl=labelLevel(x);
+            ctx.fillStyle='#fbbf24'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+            ctx.fillText(ld.mag+' kN·m',x,y0-fpx(48)-lvl*fpx(13));
+        }
+    });
+}
+function arrow(ctx,x1,y1,x2,y2,head){
+    head=head||6;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    const a=Math.atan2(y2-y1,x2-x1);
+    ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-head*Math.cos(a-0.4),y2-head*Math.sin(a-0.4)); ctx.lineTo(x2-head*Math.cos(a+0.4),y2-head*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
+}
+// ============================================================
+//  Diagram renderer (rewritten from scratch)
+// ============================================================
+let DIA_COL={bg:'#0d1321',grid:'#1e293b',gridMinor:'#161f33',zero:'#64748b',axis:'#334155',text:'#94a3b8',textDim:'#64748b',beam:'#cbd5e1'};
+let DIA_FS=1; // diagram font scale (1 on screen, larger for PDF export)
+const DIA_DARK={bg:'#0d1321',grid:'#1e293b',gridMinor:'#161f33',zero:'#64748b',axis:'#334155',text:'#94a3b8',textDim:'#64748b',beam:'#cbd5e1'};
+const DIA_LIGHT={bg:'#ffffff',grid:'#dbe3ef',gridMinor:'#eef2f8',zero:'#475569',axis:'#94a3b8',text:'#334155',textDim:'#64748b',beam:'#475569'};
+function diaNiceStep(range,target){
+    const raw=range/Math.max(1,target); const mag=Math.pow(10,Math.floor(Math.log10(raw||1)));
+    const n=(raw||1)/mag; let step; if(n<1.5)step=1; else if(n<3)step=2; else if(n<7)step=5; else step=10;
+    return step*mag;
+}
+function diaFmt(v){ if(Math.abs(v)<1e-9)return '0'; const a=Math.abs(v); if(a>=100)return v.toFixed(0); if(a>=10)return v.toFixed(1); return v.toFixed(2); }
+
+function drawDiagram(id,xs,ys,color,statId,sym){
+    const {ctx,W,H}=setupCanvas(id);
+    ctx.fillStyle=DIA_COL.bg; ctx.fillRect(0,0,W,H);
+    if(!xs||!xs.length){ return; }
+    const FS=DIA_FS; // font scale (1 on screen, larger for PDF)
+    const padL=Math.round(50+10*FS),padR=20,padT=20,padB=Math.round(28+8*FS);
+    const pw=W-padL-padR, ph=H-padT-padB;
+    const L=xs[xs.length-1]||1;
+    const vmax=Math.max(...ys), vmin=Math.min(...ys);
+    let hi=Math.max(vmax,0), lo=Math.min(vmin,0);
+    if(hi-lo<1e-9){ hi=1; lo=-1; }
+    const pad=(hi-lo)*0.12; hi+=pad; lo-=pad;
+    const sx=v=>padL+pw*(v/L);
+    const sy=v=>padT+ph*(1-(v-lo)/(hi-lo));
+
+    // value gridlines + labels
+    const step=diaNiceStep(hi-lo,5);
+    ctx.font=Math.round(10*FS)+'px JetBrains Mono'; ctx.textAlign='right'; ctx.textBaseline='middle';
+    const startV=Math.ceil(lo/step)*step;
+    for(let v=startV;v<=hi+1e-9;v+=step){
+        const py=sy(v), isZero=Math.abs(v)<1e-9;
+        ctx.strokeStyle=isZero?DIA_COL.zero:DIA_COL.grid; ctx.lineWidth=isZero?1.4:1;
+        ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(padL+pw,py); ctx.stroke();
+        ctx.fillStyle=isZero?DIA_COL.text:DIA_COL.textDim; ctx.fillText(diaFmt(v),padL-7,py);
+    }
+    // x gridlines + labels
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    const xstep=diaNiceStep(L,Math.min(8,Math.max(4,Math.round(L))));
+    for(let x=0;x<=L+1e-9;x+=xstep){
+        const px=sx(x);
+        ctx.strokeStyle=DIA_COL.gridMinor; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,padT+ph); ctx.stroke();
+        ctx.fillStyle=DIA_COL.textDim; ctx.font=Math.round(9*FS)+'px JetBrains Mono';
+        ctx.fillText(x.toFixed(x%1===0?0:1),px,padT+ph+6);
+    }
+    // x axis caption
+    ctx.fillStyle=DIA_COL.textDim; ctx.textAlign='right'; ctx.font=Math.round(9*FS)+'px JetBrains Mono';
+    ctx.fillText('x [m]',padL+pw,padT+ph+Math.round(10*FS)+8);
+    // frame
+    ctx.strokeStyle=DIA_COL.axis; ctx.lineWidth=1; ctx.strokeRect(padL,padT,pw,ph);
+
+    // filled area to zero
+    const yz=sy(0);
+    ctx.beginPath(); ctx.moveTo(sx(xs[0]),yz);
+    xs.forEach((x,i)=>ctx.lineTo(sx(x),sy(ys[i])));
+    ctx.lineTo(sx(xs[xs.length-1]),yz); ctx.closePath();
+    const grad=ctx.createLinearGradient(0,padT,0,padT+ph);
+    grad.addColorStop(0,color+'40'); grad.addColorStop(1,color+'08');
+    ctx.fillStyle=grad; ctx.fill();
+    // curve
+    ctx.beginPath(); xs.forEach((x,i)=>{ const px=sx(x),py=sy(ys[i]); i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+    ctx.strokeStyle=color; ctx.lineWidth=FS>1?2.6:2; ctx.lineJoin='round'; ctx.stroke();
+
+    // max & min markers with value tags
+    let maxi=0,mini=0; ys.forEach((v,i)=>{ if(v>ys[maxi])maxi=i; if(v<ys[mini])mini=i; });
+    [maxi,mini].forEach(idx=>{
+        if(Math.abs(ys[idx])<1e-6) return;
+        const px=sx(xs[idx]), py=sy(ys[idx]);
+        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(px,py,FS>1?5:3.5,0,7); ctx.fill();
+        const tag=ys[idx].toFixed(1); ctx.font='bold '+Math.round(10*FS)+'px JetBrains Mono';
+        const tw=ctx.measureText(tag).width+8;
+        const th=Math.round(16*FS);
+        const above=ys[idx]>=0; const ty=above?py-Math.round(13*FS):py+Math.round(13*FS);
+        let tx=px; if(tx-tw/2<padL+2)tx=padL+2+tw/2; if(tx+tw/2>padL+pw-2)tx=padL+pw-2-tw/2;
+        ctx.fillStyle=color;
+        const rx=tx-tw/2,ry=ty-th/2,rw=tw,rh=th,r=4;
+        ctx.beginPath(); ctx.moveTo(rx+r,ry); ctx.arcTo(rx+rw,ry,rx+rw,ry+rh,r); ctx.arcTo(rx+rw,ry+rh,rx,ry+rh,r); ctx.arcTo(rx,ry+rh,rx,ry,r); ctx.arcTo(rx,ry,rx+rw,ry,r); ctx.closePath(); ctx.fill();
+        ctx.fillStyle=DIA_COL.bg; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(tag,tx,ty);
+    });
+
+    const st=document.getElementById(statId);
+    if(st){ const ai=Math.abs(ys[maxi])>=Math.abs(ys[mini])?maxi:mini; st.innerHTML=`Max |${sym}| = <strong>${Math.abs(ys[ai]).toFixed(2)}</strong> at x = ${xs[ai].toFixed(2)} m`; }
+}
+
+// ============================================================
+//  Save / Load JSON
+// ============================================================
+function collectModel(){
+    return {
+        project:{
+            title:val('projectTitle'),number:val('projectNumber'),date:val('analysisDate'),
+            designer:val('designer'),revision:val('revision'),company:val('companyName')
+        },
+        section:{L:val('beamLength'),profile:currentProfile,grade:val('steelGrade'),reH:val('reH'),E:val('modE'),sigmaAll:val('sigmaAll'),
+            safetyFactor:val('safetyFactor'),safetyFactorValue:val('safetyFactorValue'),
+            L_a:val('L-a'),L_b:val('L-b'),L_t:val('L-t'),L_equal:document.getElementById('L-equal').checked,
+            T_h:val('T-h'),T_tw:val('T-tw'),T_bf:val('T-bf'),T_tf:val('T-tf'),
+            FB_h:val('FB-h'),FB_t:val('FB-t'),
+            HP_catalog:val('HP-catalog'),
+            plateOn:document.getElementById('plate-enabled').checked,plateW:val('plate-width'),plateT:val('plate-thickness')},
+        supports:JSON.parse(JSON.stringify(supports)),loads:JSON.parse(JSON.stringify(loads)),logoData
+    };
+}
+function val(id){ return document.getElementById(id).value; }
+function saveJSON(){
+    const data=collectModel();
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=(data.project.number||'beam')+'.json'; a.click();
+}
+function applyModelData(d){
+    if(d.project){ setVal('projectTitle',d.project.title);setVal('projectNumber',d.project.number);setVal('analysisDate',d.project.date);setVal('designer',d.project.designer);setVal('revision',d.project.revision);setVal('companyName',d.project.company);}
+    if(d.section){ const s=d.section;
+        setVal('beamLength',s.L);setVal('modE',s.E);setVal('steelGrade',s.grade);setVal('reH',s.reH);
+        { const sf=['1.0','0.9','0.67'].includes(s.safetyFactor)?s.safetyFactor:'0.67'; setVal('safetyFactor',sf); setVal('safetyFactorValue',s.safetyFactorValue||sf); }
+        setVal('L-a',s.L_a);setVal('L-b',s.L_b);setVal('L-t',s.L_t);
+        setVal('T-h',s.T_h);setVal('T-tw',s.T_tw);setVal('T-bf',s.T_bf);setVal('T-tf',s.T_tf);
+        setVal('FB-h',s.FB_h);setVal('FB-t',s.FB_t);
+        if(s.HP_catalog && HP_CATALOG.some(x=>x.name===s.HP_catalog)) setHPValue(s.HP_catalog);
+        setVal('plate-width',s.plateW);setVal('plate-thickness',s.plateT);
+        if(document.getElementById('L-equal')) document.getElementById('L-equal').checked=!!s.L_equal;
+        if(document.getElementById('plate-enabled')) document.getElementById('plate-enabled').checked=!!s.plateOn;
+        if(s.profile){ const btn=Array.from(document.querySelectorAll('#page-2 .ea-tab')).find(t=>t.textContent.trim()===s.profile); selectProfile(s.profile,btn); }
+    }
+    if(d.supports) supports=JSON.parse(JSON.stringify(d.supports));
+    if(d.loads) loads=JSON.parse(JSON.stringify(d.loads));
+    if(d.logoData){ logoData=d.logoData; const img=document.getElementById('logoPreview'); img.src=logoData; img.style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
+    renderSupports(); renderLoads(); updateSection(); recomputeSigmaAll();
+}
+function loadJSON(e){
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+        try{ applyModelData(JSON.parse(ev.target.result)); alert('Model loaded.'); }
+        catch(err){ alert('Invalid file.'); }
+    };
+    r.readAsText(f);
+}
+function setVal(id,v){ if(v!==undefined&&v!==null){ const el=document.getElementById(id); if(el) el.value=v; } }
+
+// ============================================================
+//  Saved cases (session only)
+// ============================================================
+let savedCases=[]; let activeCaseId=null;
+function saveCase(){
+    const nameEl=document.getElementById('caseName');
+    let name=(nameEl.value||'').trim();
+    if(!name){ name='Case '+(savedCases.length+1); }
+    const model=collectModel();
+    // quick summary for the card
+    let summary='—';
+    const res=solveBeam();
+    if(res){ summary=`L=${res.L}m · ${currentProfile} · Mmax=${maxAbs(res.Ms).toFixed(1)} kNm`; }
+    const id='c'+Date.now();
+    savedCases.push({id,name,model,summary});
+    nameEl.value='';
+    activeCaseId=id;
+    renderCases();
+}
+function loadCase(id){
+    const c=savedCases.find(x=>x.id===id); if(!c) return;
+    applyModelData(c.model);
+    activeCaseId=id;
+    renderCases();
+}
+function deleteCase(id,ev){
+    if(ev) ev.stopPropagation();
+    savedCases=savedCases.filter(x=>x.id!==id);
+    if(activeCaseId===id) activeCaseId=null;
+    renderCases();
+}
+function renderCases(){
+    const list=document.getElementById('caseList');
+    const hint=document.getElementById('caseEmptyHint');
+    const badge=document.getElementById('caseCountBadge');
+    badge.textContent=savedCases.length;
+    list.innerHTML='';
+    hint.style.display=savedCases.length?'none':'block';
+    savedCases.forEach(c=>{
+        const div=document.createElement('div');
+        div.className='ea-case'+(c.id===activeCaseId?' active':'');
+        div.innerHTML=`
+            <div class="ea-case-info" onclick="loadCase('${c.id}')">
+                <div class="ea-case-name">${escapeHtml(c.name)}</div>
+                <div class="ea-case-meta">${escapeHtml(c.summary)}</div>
+            </div>
+            <button class="ea-case-load" onclick="loadCase('${c.id}')">Load</button>
+            <button class="ea-btn-delete" onclick="deleteCase('${c.id}',event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>`;
+        list.appendChild(div);
+    });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ============================================================
+//  PDF export
+// ============================================================
+function pdfSectionDesc(){
+    switch(currentProfile){
+        case 'L': return `L-angle ${val('L-a')} x ${val('L-b')} x ${val('L-t')} mm`;
+        case 'T': return `T-section ${val('T-h')} x ${val('T-tw')} web, ${val('T-bf')} x ${val('T-tf')} flange (mm)`;
+        case 'FB': return `Flat bar ${val('FB-h')} x ${val('FB-t')} mm`;
+        case 'HP': { const sel=document.getElementById('HP-catalog'); return `Bulb flat ${sel?sel.value:'HP'}`; }
+    }
+    return currentProfile;
+}
+// Render all diagrams in LIGHT theme with larger fonts, return {id:dataURL}, then restore
+function renderDiagramsLight(){
+    const out={};
+    DIA_COL=DIA_LIGHT; DIA_FS=1.7;
+    try{
+        drawAllDiagrams();
+        ['canvasModel','canvasShear','canvasMoment','canvasDefl'].forEach(id=>{
+            const c=document.getElementById(id);
+            out[id]={url:c.toDataURL('image/png'),ratio:c.height/c.width};
+        });
+    } finally {
+        DIA_COL=DIA_DARK; DIA_FS=1;
+        drawAllDiagrams(); // restore on-screen dark diagrams
+    }
+    return out;
+}
+// ---- Embedded DejaVuSans subset (Unicode: Greek sigma/tau, math symbols) ----
+const DEJAVU_NORMAL_B64="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AAAAAAAAAAAAAP+Q/2v/twAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/3AAAAAD/3AAA/9wAAAAAAAAAAABBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/3AAAAAD/twAAAAAAAAAAAAD/twAAAAAAAP/BAAAAAAAA/7cAAP+3/8EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP9r/5AAAAAm/9wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/BAAAAAAAAAAAAAP9r/7cAAP99/0T/3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/T/9z/0wAA/9wAAAAA/9z/0//cAAAAAAAAAAAAAP/JAAAAAP/TAAAAAAAAAFYAAP/J/2H/kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/9wAAAAA/0T/kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/cAAD/wQAAAAAAAAAAAAD/wQAAAAAAAAAAAAAAAAAAAAAAAP/BAAAAAAAAAAAAAP/c/tz/awAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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";
+const DEJAVU_BOLD_B64="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";
+let _pdfFontReady=false;
+function ensurePDFFont(doc){
+    try{
+        doc.addFileToVFS('DejaVuSans.ttf',DEJAVU_NORMAL_B64);
+        doc.addFont('DejaVuSans.ttf','DejaVu','normal');
+        doc.addFileToVFS('DejaVuSans-Bold.ttf',DEJAVU_BOLD_B64);
+        doc.addFont('DejaVuSans-Bold.ttf','DejaVu','bold');
+        return true;
+    }catch(e){ console.warn('font embed failed',e); return false; }
+}
+function exportPDF(){
+    if(!lastResults){ if(!runAnalysis()) return; }
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF('p','mm','a4');
+    const FONT = ensurePDFFont(doc) ? 'DejaVu' : 'helvetica';
+    const W=210; let y=15;
+    // header
+    if(logoData){ try{ doc.addImage(logoData,'PNG',15,y,30,15); }catch(e){} }
+    doc.setFont(FONT,'bold'); doc.setFontSize(16); doc.setTextColor(30,41,59);
+    doc.text('Beam Analysis Calculation Sheet',W-15,y+6,{align:'right'});
+    doc.setFont(FONT,'normal'); doc.setFontSize(9); doc.setTextColor(100);
+    doc.text('BeamCore — EA Engineering Tools',W-15,y+12,{align:'right'});
+    y+=22; doc.setDrawColor(59,130,246); doc.setLineWidth(0.5); doc.line(15,y,W-15,y); y+=6;
+
+    doc.setFontSize(9); doc.setTextColor(30,41,59);
+    const pj=collectModel().project;
+    const meta=[['Project',pj.title||'-'],['Number',pj.number||'-'],['Designer',pj.designer||'-'],['Company',pj.company||'-'],['Date',pj.date||'-'],['Revision',pj.revision||'-']];
+    meta.forEach((m,i)=>{ const col=i%2, row=Math.floor(i/2); doc.setFont(FONT,'bold'); doc.text(m[0]+':',15+col*95,y+row*6); doc.setFont(FONT,'normal'); doc.text(String(m[1]),38+col*95,y+row*6); });
+    y+=20;
+
+    // model summary
+    const r=lastResults;
+    doc.setFont(FONT,'bold'); doc.setFontSize(11); doc.text('Model & Section',15,y); y+=5;
+    doc.setFont(FONT,'normal'); doc.setFontSize(9);
+    const plateTxt=document.getElementById('plate-enabled').checked?`with attached plate ${val('plate-width')} x ${val('plate-thickness')} mm`:'(no attached plate)';
+    doc.text(`Span L = ${r.L} m     E = ${val('modE')} GPa`,15,y); y+=5;
+    doc.text(`Section: ${pdfSectionDesc()}  ${plateTxt}`,15,y); y+=5;
+    doc.text(`I = ${val('momI')} cm⁴     W = ${val('sectionW')} cm³`,15,y); y+=5;
+    doc.text(`Material: Grade ${val('steelGrade')}  (ReH ${val('reH')} N/mm²)     Safety Factor = ${val('safetyFactorValue')}     σ_all = ${val('sigmaAll')} N/mm²`,15,y); y+=8;
+
+    // supports & loads tables
+    doc.setFont(FONT,'bold'); doc.setFontSize(10); doc.text('Supports',15,y); y+=5;
+    doc.setFont(FONT,'normal'); doc.setFontSize(8.5);
+    doc.text('#',15,y); doc.text('Position [m]',30,y); doc.text('Type',75,y); y+=1.5;
+    doc.setDrawColor(200); doc.line(15,y,120,y); y+=4;
+    supports.forEach((s,i)=>{ doc.text(String(i+1),15,y); doc.text(s.pos.toFixed(2),30,y); doc.text(s.type,75,y); y+=4.5; });
+    y+=3;
+    doc.setFont(FONT,'bold'); doc.setFontSize(10); doc.text('Applied Loads',15,y); y+=5;
+    doc.setFont(FONT,'normal'); doc.setFontSize(8.5);
+    doc.text('#',15,y); doc.text('Type',30,y); doc.text('Magnitude',60,y); doc.text('Start [m]',100,y); doc.text('End [m]',135,y); y+=1.5;
+    doc.line(15,y,165,y); y+=4;
+    loads.forEach((ld,i)=>{
+        const u=ld.type==='point'?'kN':ld.type==='udl'?'kN/m':'kN·m';
+        const tn=ld.type==='point'?'Point':ld.type==='udl'?'UDL':'Moment';
+        doc.text(String(i+1),15,y); doc.text(tn,30,y); doc.text(ld.mag+' '+u,60,y); doc.text(String(ld.start),100,y); doc.text(ld.type==='udl'?String(ld.end):'-',135,y); y+=4.5;
+    });
+    y+=4;
+
+    // results summary
+    const Mmax=maxAbs(r.Ms), Vmax=maxAbs(r.Vs), Dmax=maxAbs(r.Ds);
+    const sp=computeSectionProps();
+    const sig=sp.W>0?(Mmax*1000)/(sp.W*1e-6)/1e6:0;
+    const tau=(sp.Ixx>0&&sp.tWeb>0)?(Vmax*1000)*(sp.Qmax*1e-6)/((sp.Ixx*1e-8)*(sp.tWeb*1e-2))/1e6:0;
+    const sigAll=parseFloat(val('sigmaAll'))||1; const tauAll=sigAll/Math.sqrt(3);
+    const ucS=sig/sigAll, ucT=tau/tauAll, uc=Math.max(ucS,ucT);
+    const status=uc>1?'FAIL':uc>0.9?'REVIEW':'PASS';
+    doc.setFont(FONT,'bold'); doc.setFontSize(10); doc.text('Results Summary',15,y); y+=5;
+    doc.setFont(FONT,'normal'); doc.setFontSize(9);
+    doc.text(`Max Moment = ${Mmax.toFixed(2)} kN·m     Max Shear = ${Vmax.toFixed(2)} kN     Max Deflection = ${Dmax.toFixed(2)} mm`,15,y); y+=5;
+    doc.text(`Bending: σ = ${sig.toFixed(1)} vs σ_all = ${sigAll.toFixed(1)} N/mm²  →  UC = ${ucS.toFixed(2)}`,15,y); y+=5;
+    doc.text(`Shear:   τ = ${tau.toFixed(1)} vs τ_all = ${tauAll.toFixed(1)} N/mm² (σ_all/√3)  →  UC = ${ucT.toFixed(2)}`,15,y); y+=5;
+    doc.setFont(FONT,'bold'); doc.text(`Governing UC = ${uc.toFixed(2)}     Status: ${status}`,15,y); doc.setFont(FONT,'normal'); y+=8;
+
+    // diagrams as images (rendered in LIGHT theme for white A4)
+    const diaImgs=renderDiagramsLight();
+    ['canvasModel','canvasShear','canvasMoment','canvasDefl'].forEach((id,i)=>{
+        const labels=['Loading & Supports','Shear Force V [kN]','Bending Moment M [kN·m]','Deflection [mm]'];
+        const im=diaImgs[id]; if(!im) return;
+        const imgH=180*im.ratio;
+        if(y+imgH+8>285){ doc.addPage(); y=15; }
+        doc.setFont(FONT,'bold'); doc.setFontSize(9); doc.setTextColor(30,41,59); doc.text(labels[i],15,y); y+=3;
+        try{ doc.addImage(im.url,'PNG',15,y,180,imgH); }catch(e){}
+        y+=imgH+6;
+    });
+
+    // reactions table
+    if(y>240){ doc.addPage(); y=15; }
+    doc.setFont(FONT,'bold'); doc.setFontSize(11); doc.setTextColor(30,41,59); doc.text('Support Reactions',15,y); y+=6;
+    doc.setFontSize(8);
+    doc.text('Support',15,y); doc.text('Pos [m]',45,y); doc.text('Type',75,y); doc.text('R [kN]',110,y); doc.text('M [kN·m]',145,y); y+=2;
+    doc.setDrawColor(200); doc.line(15,y,W-15,y); y+=4; doc.setFont(FONT,'normal');
+    r.reactions.forEach((rr,i)=>{ doc.text('S'+(i+1),15,y); doc.text(rr.pos.toFixed(2),45,y); doc.text(rr.type,75,y); doc.text(rr.R.toFixed(2),110,y); doc.text(rr.type==='fixed'?rr.M.toFixed(2):'-',145,y); y+=5; });
+    y+=4;
+
+    // saved cases table
+    if(savedCases.length){
+        if(y>250){ doc.addPage(); y=15; }
+        doc.setFont(FONT,'bold'); doc.setFontSize(11); doc.setTextColor(30,41,59); doc.text('Saved Load Cases',15,y); y+=6;
+        doc.setFontSize(8);
+        doc.text('#',15,y); doc.text('Case Name',24,y); doc.text('Summary',90,y); y+=2;
+        doc.line(15,y,W-15,y); y+=4; doc.setFont(FONT,'normal');
+        savedCases.forEach((c,i)=>{
+            if(y>285){ doc.addPage(); y=15; }
+            doc.text(String(i+1),15,y);
+            doc.text(String(c.name).substring(0,40),24,y);
+            doc.text(String(c.summary).replace('·','-').substring(0,55),90,y);
+            y+=5;
+        });
+        y+=4;
+    }
+
+    doc.setFont(FONT,'normal'); doc.setFontSize(7); doc.setTextColor(150);
+    doc.text('Generated by BeamCore — EA Engineering Tools · Direct Stiffness Method. Results to be verified by a qualified engineer.',15,292);
+    doc.save((pj.number||'beam')+'_calc.pdf');
+}
+
+// init
+document.getElementById('analysisDate').value=new Date().toISOString().split('T')[0];
+populateHPCatalog();
+renderSupports(); renderLoads(); updateSection(); recomputeSigmaAll();
+window.addEventListener('resize',()=>{ drawPreview(); if(lastResults&&document.getElementById('page-3').classList.contains('active')){ drawAllDiagrams(); } });
+
+// Modal interactions: scroll to zoom, drag to pan, ESC to close
+(function(){
+    let panX=0,panY=0,dragging=false,sx0=0,sy0=0;
+    function applyModal(){ document.getElementById('modalPanZoom').style.transform=`translate(${panX}px,${panY}px) scale(${modalScale})`; document.getElementById('modalZoomLevel').textContent=Math.round(modalScale*100)+'%'; }
+    const vp=document.getElementById('modalViewport');
+    if(vp){
+        vp.addEventListener('wheel',e=>{ e.preventDefault(); modalScale=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,modalScale+(e.deltaY<0?ZOOM_STEP:-ZOOM_STEP))); applyModal(); },{passive:false});
+        vp.addEventListener('mousedown',e=>{ dragging=true; sx0=e.clientX-panX; sy0=e.clientY-panY; vp.style.cursor='grabbing'; });
+        window.addEventListener('mousemove',e=>{ if(!dragging)return; panX=e.clientX-sx0; panY=e.clientY-sy0; applyModal(); });
+        window.addEventListener('mouseup',()=>{ dragging=false; vp.style.cursor='grab'; });
+        vp.style.cursor='grab';
+    }
+    // reset pan when (re)opening
+    const origOpen=window.openBeamFullscreen;
+    window.openBeamFullscreen=function(){ panX=0;panY=0; origOpen(); };
+    window.modalZoom=function(dir){ if(dir===0){modalScale=1;panX=0;panY=0;} else modalScale=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,modalScale+dir*ZOOM_STEP)); applyModal(); };
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeBeamFullscreen(); });
+})();
+</script>
+</body>
+</html>
