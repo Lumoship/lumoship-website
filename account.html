@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account — Lumoship</title>
+    <meta name="description" content="Manage your Lumoship account and view your saved projects.">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7IiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBlYTVlOTsiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiIHJ4PSIyMCIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+TDwvdGV4dD48L3N2Zz4=">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #0f141f;
+            --bg-tertiary: #161c2a;
+            --bg-card: #0d1220;
+            --bg-elevated: #131927;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --accent-glow: rgba(59, 130, 246, 0.12);
+            --accent-subtle: rgba(59, 130, 246, 0.06);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-dim: #475569;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: #1e2536;
+            --border-light: #252d40;
+            --border-accent: rgba(59, 130, 246, 0.25);
+            --font-display: 'JetBrains Mono', monospace;
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .nav {
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+        
+        .nav-logo-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            font-size: 1.1rem;
+        }
+        
+        .nav-logo-text { font-weight: 600; font-size: 1.1rem; color: var(--text-primary); letter-spacing: 0.02em; }
+        
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-link { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+        .nav-link:hover { color: var(--text-primary); }
+        .nav-link.active { color: var(--text-primary); }
+        
+        @media (max-width: 640px) { .nav-links { display: none; } }
+        
+        .main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .page-header {
+            margin-bottom: 3rem;
+        }
+        
+        .page-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+        
+        .page-title {
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+        
+        /* Profile Card */
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            font-size: 2rem;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-info {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .profile-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .profile-email {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .profile-meta {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+        
+        .profile-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .provider-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.25rem 0.6rem;
+            background: var(--accent-subtle);
+            border: 1px solid var(--border-accent);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            color: var(--accent-hover);
+            font-weight: 500;
+        }
+        
+        .profile-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-light);
+        }
+        
+        .btn-danger {
+            background: transparent;
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #fecaca;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-mono);
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 2.5rem;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .empty-state {
+            background: var(--bg-card);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        
+        .empty-state-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .empty-state-text {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        
+        .tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 200ms;
+            display: block;
+        }
+        
+        .tool-card:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tool-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+        
+        .tool-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tool-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .tool-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        
+        .tool-status.beta {
+            color: var(--warning);
+        }
+        
+        .tool-status.beta::before {
+            background: var(--warning);
+        }
+        
+        @media (max-width: 640px) {
+            .main { padding: 2rem 1rem; }
+            .nav-inner { padding: 1rem; }
+            .profile-card { flex-direction: column; text-align: center; }
+            .profile-actions { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-mark">L</div>
+                <span class="nav-logo-text">LUMOSHIP</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/products.html" class="nav-link">Products</a>
+                <a href="/account.html" class="nav-link active">Account</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="main">
+        <div id="loading" class="loading">Loading your account...</div>
+        
+        <div id="content" style="display: none;">
+            <div class="page-header">
+                <div class="page-eyebrow">Account Dashboard</div>
+                <h1 class="page-title">Welcome back</h1>
+                <p class="page-subtitle">Manage your profile and access your tools</p>
+            </div>
+            
+            <!-- Profile Card -->
+            <div class="profile-card">
+                <div class="profile-avatar" id="avatar">
+                    <span id="avatarLetter">L</span>
+                </div>
+                <div class="profile-info">
+                    <div class="profile-name" id="userName">Loading...</div>
+                    <div class="profile-email" id="userEmail">—</div>
+                    <div class="profile-meta">
+                        <div class="profile-meta-item">
+                            <span id="providerBadge" class="provider-badge">— Provider</span>
+                        </div>
+                        <div class="profile-meta-item">
+                            <span>Joined <span id="joinDate">—</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-actions">
+                    <button id="logoutBtn" class="btn btn-danger">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                        Sign out
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Plan</div>
+                    <div class="stat-value">Free <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">(2026)</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Projects</div>
+                    <div class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" style="color: var(--success);">Active</div>
+                </div>
+            </div>
+            
+            <!-- My Projects Section -->
+            <div class="section">
+                <h2 class="section-title">My Projects</h2>
+                <div class="empty-state">
+                    <div class="empty-state-icon">📁</div>
+                    <div class="empty-state-text">
+                        You haven't saved any projects yet.<br>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Project saving coming soon — currently in development.</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tools Section -->
+            <div class="section">
+                <h2 class="section-title">Available Tools</h2>
+                <div class="tools-grid">
+                    <a href="https://beam.lumoship.org" class="tool-card">
+                        <div class="tool-icon">📐</div>
+                        <div class="tool-name">BeamCore</div>
+                        <div class="tool-desc">Beam structural analysis with FEM solver. EN 10067 sections, marine load presets.</div>
+                        <div class="tool-status">Live</div>
+                    </a>
+                    <a href="https://sectionpro.lumoship.org" class="tool-card">
+                        <div class="tool-icon">📊</div>
+                        <div class="tool-name">SectionPro</div>
+                        <div class="tool-desc">Section properties calculator for marine structural elements.</div>
+                        <div class="tool-status">Live</div>
+                    </a>
+                    <div class="tool-card" style="opacity: 0.6; cursor: default;">
+                        <div class="tool-icon">🔲</div>
+                        <div class="tool-name">NODAL</div>
+                        <div class="tool-desc">Grillage analysis for marine structures. Coming Q2 2026.</div>
+                        <div class="tool-status beta">Beta Soon</div>
+                    </div>
+                    <div class="tool-card" style="opacity: 0.6; cursor: default;">
+                        <div class="tool-icon">⚓</div>
+                        <div class="tool-name">Lumoship Midship</div>
+                        <div class="tool-desc">Rule-based midship section design with DNV, LR, BV, RINA support. Coming 2027.</div>
+                        <div class="tool-status beta">In Development</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        const SUPABASE_URL = 'https://mjatuomzchnssivvmnsc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXR1b216Y2huc3NpdnZtbnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMDE0NDMsImV4cCI6MjA5NTcyMTQ0M30.aTLAGFkPgvBmqL1q1UH6iJ-ews6YBZxFTU5_3t7T7RRb8T049M7wDkOu584';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        const loadingEl = document.getElementById('loading');
+        const contentEl = document.getElementById('content');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }
+        
+        async function loadAccount() {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error || !session) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const user = session.user;
+            const meta = user.user_metadata || {};
+            const provider = user.app_metadata?.provider || 'email';
+            
+            // Display name
+            const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+            document.getElementById('userName').textContent = displayName;
+            document.getElementById('userEmail').textContent = user.email;
+            
+            // Avatar
+            const avatarEl = document.getElementById('avatar');
+            if (meta.avatar_url || meta.picture) {
+                avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="Avatar">`;
+            } else {
+                document.getElementById('avatarLetter').textContent = (displayName[0] || 'L').toUpperCase();
+            }
+            
+            // Provider badge
+            const providerLabel = provider === 'google' ? '🔵 Google' : '✉️ Email';
+            document.getElementById('providerBadge').textContent = providerLabel;
+            
+            // Join date
+            document.getElementById('joinDate').textContent = formatDate(user.created_at);
+            
+            // Show content
+            loadingEl.style.display = 'none';
+            contentEl.style.display = 'block';
+        }
+        
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to sign out?')) return;
+            
+            logoutBtn.disabled = true;
+            logoutBtn.textContent = 'Signing out...';
+            
+            const { error } = await supabase.auth.signOut();
+            
+            if (error) {
+                alert('Sign out failed: ' + error.message);
+                logoutBtn.disabled = false;
+            } else {
+                window.location.href = '/';
+            }
+        });
+        
+        // Listen for auth changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                window.location.href = '/';
+            }
+        });
+        
+        loadAccount();
+    </script>
+</body>
+</html>
