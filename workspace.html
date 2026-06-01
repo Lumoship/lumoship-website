@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace — Lumoship</title>
+    <meta name="description" content="Access your Lumoship marine structural engineering tools and projects.">
+    <meta name="robots" content="noindex, follow">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgcng9IjU2IiBmaWxsPSJ1cmwoI2cpIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjE3MCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj5MPC90ZXh0Pgo8L3N2Zz4=">
+    
+    <meta property="og:title" content="Workspace — Lumoship">
+    <meta property="og:description" content="Access your Lumoship marine structural engineering tools.">
+    <meta property="og:url" content="https://lumoship.org/workspace.html">
+    <meta property="og:type" content="website">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #0f141f;
+            --bg-tertiary: #161c2a;
+            --bg-card: #0d1220;
+            --bg-elevated: #131927;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --accent-bright: #60a5fa;
+            --accent-glow: rgba(59, 130, 246, 0.12);
+            --accent-subtle: rgba(59, 130, 246, 0.06);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-dim: #475569;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: #1e2536;
+            --border-light: #252d40;
+            --border-accent: rgba(59, 130, 246, 0.25);
+            --font-display: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --container-max: 1400px;
+            --container-content: 1100px;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: 200ms var(--ease);
+        }
+        
+        html { scroll-behavior: smooth; font-size: 16px; }
+        @media (min-width: 1600px) { html { font-size: 17px; } }
+        @media (min-width: 2000px) { html { font-size: 18px; } }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+            background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
+            mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* NAVIGATION */
+        .nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding: clamp(0.875rem, 1.5vw, 1.125rem) clamp(1.25rem, 4vw, 3rem);
+        }
+        
+        .nav-inner {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity var(--transition);
+        }
+        
+        .nav-logo:hover { opacity: 0.85; }
+        
+        .nav-logo-mark {
+            width: clamp(24px, 2.5vw, 28px);
+            height: clamp(24px, 2.5vw, 28px);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(0.85rem, 1vw, 0.95rem);
+            color: white;
+            letter-spacing: -0.02em;
+        }
+        
+        .nav-logo-text {
+            font-family: var(--font-body);
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.06em;
+        }
+        
+        .nav-context {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: var(--text-muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding-left: clamp(0.75rem, 1.5vw, 1rem);
+            margin-left: clamp(0.75rem, 1.5vw, 1rem);
+            border-left: 1px solid var(--border);
+        }
+        
+        .nav-back {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color var(--transition);
+        }
+        
+        .nav-back:hover { color: var(--text-primary); }
+        
+        @media (max-width: 640px) {
+            .nav-context { display: none; }
+        }
+        
+        /* MAIN */
+        main {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: var(--container-content);
+            margin: 0 auto;
+            padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 4vw, 2rem);
+        }
+        
+        .container-narrow {
+            max-width: 460px;
+            margin: 0 auto;
+            padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 4vw, 2rem);
+        }
+        
+        /* LOADING STATE */
+        .loading-state {
+            text-align: center;
+            padding: 6rem 2rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.825rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        
+        /* PAGE HEADER */
+        .page-label {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.75vw, 0.75rem);
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.25rem);
+        }
+        
+        .page-title {
+            font-family: var(--font-body);
+            font-size: clamp(1.85rem, 4.5vw, 2.5rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.035em;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            font-size: clamp(0.95rem, 1.15vw, 1.075rem);
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-bottom: clamp(2rem, 4vw, 2.75rem);
+        }
+        
+        /* LOGIN VIEW */
+        .login-header {
+            text-align: center;
+            margin-bottom: clamp(2rem, 4vw, 2.5rem);
+        }
+        
+        .login-header .page-label,
+        .login-header .page-title,
+        .login-header .page-subtitle {
+            text-align: center;
+        }
+        
+        .login-header .page-subtitle {
+            margin-bottom: 0;
+        }
+        
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: clamp(1.75rem, 3vw, 2.25rem);
+        }
+        
+        .btn-google {
+            width: 100%;
+            padding: 0.875rem 1.25rem;
+            background: white;
+            color: #1f2937;
+            border: 1px solid white;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            transition: all var(--transition);
+        }
+        
+        .btn-google:hover {
+            background: #f9fafb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .btn-google:active { transform: translateY(0); }
+        .btn-google:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        
+        .form-group { margin-bottom: 1.25rem; }
+        
+        .form-label {
+            display: block;
+            font-size: 0.825rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 0.95rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            transition: all var(--transition);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        
+        .form-input::placeholder { color: var(--text-dim); }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 0.875rem 1.25rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-top: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .form-extras {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .link {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color var(--transition);
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .link:hover { color: var(--accent-hover); text-decoration: underline; }
+        
+        .auth-footer {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .message {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            font-size: 0.875rem;
+            display: none;
+            line-height: 1.5;
+        }
+        
+        .message.show { display: block; }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+        }
+        
+        .message.success {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: #6ee7b7;
+        }
+        
+        /* GUEST OPTION */
+        .guest-option {
+            margin-top: clamp(1.5rem, 2.5vw, 1.75rem);
+            text-align: center;
+            padding: clamp(1rem, 2vw, 1.25rem);
+            background: var(--accent-subtle);
+            border: 1px solid var(--border-accent);
+            border-radius: 12px;
+        }
+        
+        .guest-option-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        
+        .guest-option-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .guest-option-text strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .guest-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        
+        .guest-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: color var(--transition);
+        }
+        
+        .guest-link:hover { color: var(--accent-hover); }
+        
+        /* DASHBOARD VIEW */
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: clamp(1.5rem, 3vw, 2rem);
+            margin-bottom: clamp(1.25rem, 2.5vw, 1.75rem);
+            display: flex;
+            align-items: center;
+            gap: clamp(1rem, 2vw, 1.5rem);
+            flex-wrap: wrap;
+        }
+        
+        .profile-avatar {
+            width: clamp(56px, 6vw, 72px);
+            height: clamp(56px, 6vw, 72px);
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            font-size: clamp(1.35rem, 2.25vw, 1.75rem);
+            flex-shrink: 0;
+            overflow: hidden;
+            letter-spacing: -0.02em;
+        }
+        
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-info {
+            flex: 1;
+            min-width: 180px;
+        }
+        
+        .profile-name {
+            font-size: clamp(1.1rem, 1.3vw, 1.25rem);
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .profile-email {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.6rem;
+            font-family: var(--font-mono);
+        }
+        
+        .profile-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .provider-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.55rem;
+            background: var(--accent-subtle);
+            border: 1px solid var(--border-accent);
+            border-radius: 999px;
+            font-size: 0.65rem;
+            color: var(--accent-hover);
+            font-weight: 500;
+            font-family: var(--font-mono);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        
+        .profile-actions {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 0.6rem 1.05rem;
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-size: 0.825rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            letter-spacing: -0.01em;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-light);
+        }
+        
+        .btn-danger {
+            background: transparent;
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            padding: 0.6rem 1.05rem;
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-size: 0.825rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            letter-spacing: -0.01em;
+        }
+        
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fecaca;
+        }
+        
+        /* STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: clamp(0.75rem, 1.5vw, 1rem);
+            margin-bottom: clamp(2rem, 4vw, 2.75rem);
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: clamp(1rem, 1.75vw, 1.25rem) clamp(1.15rem, 2vw, 1.4rem);
+        }
+        
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-mono);
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            font-size: clamp(1.2rem, 1.65vw, 1.4rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+        
+        .stat-value-sub {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 0.25rem;
+        }
+        
+        /* SECTIONS */
+        .section {
+            margin-bottom: clamp(2rem, 4vw, 2.75rem);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.15rem);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .section-title {
+            font-size: clamp(1rem, 1.3vw, 1.15rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+        
+        .section-meta {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        
+        .empty-state {
+            background: var(--bg-card);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: clamp(2rem, 4vw, 2.75rem) clamp(1.25rem, 2.5vw, 2rem);
+            text-align: center;
+        }
+        
+        .empty-state-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .empty-state-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-family: var(--font-mono);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        
+        /* TOOLS GRID */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: clamp(0.875rem, 1.5vw, 1rem);
+        }
+        
+        .tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: clamp(1.25rem, 2vw, 1.5rem);
+            text-decoration: none;
+            color: inherit;
+            transition: all var(--transition);
+            display: block;
+            position: relative;
+        }
+        
+        .tool-card.clickable:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+        
+        .tool-card.disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+        
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.6rem;
+        }
+        
+        .tool-name {
+            font-size: clamp(1rem, 1.2vw, 1.1rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+        
+        .tool-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 500;
+        }
+        
+        .tool-status.live { color: var(--success); }
+        .tool-status.live::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        
+        .tool-status.soon { color: var(--warning); }
+        .tool-status.soon::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--warning);
+        }
+        
+        .tool-status.dev { color: var(--text-muted); }
+        .tool-status.dev::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        
+        .tool-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .tool-cta {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            letter-spacing: 0.08em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: gap var(--transition);
+        }
+        
+        .tool-card.clickable:hover .tool-cta {
+            gap: 0.55rem;
+        }
+        
+        /* FOOTER */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: clamp(2rem, 4vw, 3rem) clamp(1.25rem, 4vw, 3rem) clamp(1.25rem, 2vw, 1.5rem);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .footer-content {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: clamp(1.5rem, 3vw, 2.5rem);
+            margin-bottom: clamp(1.5rem, 3vw, 2rem);
+        }
+        
+        .footer-brand-section { display: flex; flex-direction: column; gap: 0.75rem; }
+        .footer-brand { display: flex; align-items: center; gap: 0.6rem; }
+        
+        .footer-brand-mark {
+            width: clamp(24px, 2.5vw, 28px);
+            height: clamp(24px, 2.5vw, 28px);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .footer-brand-text {
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 0.06em;
+        }
+        
+        .footer-description {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-width: 280px;
+        }
+        
+        .footer-column-title {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        
+        .footer-link {
+            display: block;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            transition: color var(--transition);
+        }
+        
+        .footer-link:hover { color: var(--text-primary); }
+        
+        .footer-bottom {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding-top: clamp(1.25rem, 2vw, 1.5rem);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+            .profile-card { flex-direction: column; text-align: center; }
+            .profile-actions { width: 100%; justify-content: center; }
+            .profile-meta { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    
+    <nav class="nav">
+        <div class="nav-inner">
+            <div style="display: flex; align-items: center;">
+                <a href="/" class="nav-logo">
+                    <div class="nav-logo-mark">L</div>
+                    <span class="nav-logo-text">LUMOSHIP</span>
+                </a>
+                <span class="nav-context">Workspace</span>
+            </div>
+            <a href="/" class="nav-back">
+                <span>←</span>
+                <span>Back to site</span>
+            </a>
+        </div>
+    </nav>
+    
+    <main>
+        <!-- LOADING STATE -->
+        <div id="loadingView" class="loading-state">Loading workspace...</div>
+        
+        <!-- LOGIN VIEW (giriş yapmamış kullanıcı için) -->
+        <div id="loginView" style="display: none;">
+            <div class="container-narrow">
+                <div class="login-header">
+                    <div class="page-label">Sign In</div>
+                    <h1 class="page-title">Access your workspace</h1>
+                    <p class="page-subtitle">Sign in to save projects and sync across devices</p>
+                </div>
+                
+                <div class="auth-card">
+                    <div id="message" class="message"></div>
+                    
+                    <button id="googleBtn" class="btn-google" type="button">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span>Continue with Google</span>
+                    </button>
+                    
+                    <div class="divider">or</div>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email</label>
+                            <input type="email" id="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
+                        </div>
+                        
+                        <div class="form-group" id="passwordGroup">
+                            <label class="form-label" for="password">Password</label>
+                            <input type="password" id="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                        </div>
+                        
+                        <button type="submit" id="submitBtn" class="btn-primary">Sign In</button>
+                        
+                        <div class="form-extras">
+                            <a class="link" id="forgotLink">Forgot password?</a>
+                            <a class="link" id="toggleMode">Create account</a>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="guest-option">
+                    <div class="guest-option-label">No account?</div>
+                    <p class="guest-option-text">
+                        <strong>All tools work without sign-in.</strong> Sign in is only required to save your projects across sessions.
+                    </p>
+                    <div class="guest-links">
+                        <a href="https://beam.lumoship.org" class="guest-link">Open BeamCore →</a>
+                        <a href="https://sectionpro.lumoship.org" class="guest-link">Open SectionPro →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- DASHBOARD VIEW (giriş yapmış kullanıcı için) -->
+        <div id="dashboardView" style="display: none;">
+            <div class="container">
+                <div class="page-label">Workspace</div>
+                <h1 class="page-title" id="welcomeTitle">Welcome back</h1>
+                <p class="page-subtitle">Your tools and projects</p>
+                
+                <!-- Profile Card -->
+                <div class="profile-card">
+                    <div class="profile-avatar" id="avatar">
+                        <span id="avatarLetter">L</span>
+                    </div>
+                    <div class="profile-info">
+                        <div class="profile-name" id="userName">Loading...</div>
+                        <div class="profile-email" id="userEmail">—</div>
+                        <div class="profile-meta">
+                            <span id="providerBadge" class="provider-badge">Email</span>
+                            <span>Joined <span id="joinDate">—</span></span>
+                        </div>
+                    </div>
+                    <div class="profile-actions">
+                        <button id="logoutBtn" class="btn-danger">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Sign out
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Plan</div>
+                        <div class="stat-value">Free <span class="stat-value-sub">(2026)</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Projects</div>
+                        <div class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" style="color: var(--success);">Active</div>
+                    </div>
+                </div>
+                
+                <!-- Tools -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Available Tools</h2>
+                        <span class="section-meta">2 Live · 2 In Development</span>
+                    </div>
+                    <div class="tools-grid">
+                        <a href="https://beam.lumoship.org" class="tool-card clickable">
+                            <div class="tool-header">
+                                <div class="tool-name">BeamCore</div>
+                                <div class="tool-status live">Live</div>
+                            </div>
+                            <div class="tool-desc">Beam structural analysis with FEM solver. EN 10067 sections, marine load presets.</div>
+                            <div class="tool-cta">Open <span>→</span></div>
+                        </a>
+                        <a href="https://sectionpro.lumoship.org" class="tool-card clickable">
+                            <div class="tool-header">
+                                <div class="tool-name">SectionPro</div>
+                                <div class="tool-status live">Live</div>
+                            </div>
+                            <div class="tool-desc">Section properties calculator for marine structural elements.</div>
+                            <div class="tool-cta">Open <span>→</span></div>
+                        </a>
+                        <div class="tool-card disabled">
+                            <div class="tool-header">
+                                <div class="tool-name">NODAL</div>
+                                <div class="tool-status soon">Beta Q2 2026</div>
+                            </div>
+                            <div class="tool-desc">Grillage analysis for marine structures.</div>
+                        </div>
+                        <div class="tool-card disabled">
+                            <div class="tool-header">
+                                <div class="tool-name">Lumoship Midship</div>
+                                <div class="tool-status dev">In Development</div>
+                            </div>
+                            <div class="tool-desc">Rule-based midship section design with DNV, LR, BV, RINA support.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Projects -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">My Projects</h2>
+                        <span class="section-meta">Coming Soon</span>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state-text">No saved projects yet.</div>
+                        <div class="empty-state-sub">Project saving in development</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand-section">
+                <div class="footer-brand">
+                    <div class="footer-brand-mark">L</div>
+                    <span class="footer-brand-text">LUMOSHIP</span>
+                </div>
+                <p class="footer-description">
+                    Marine structural engineering software for naval architects and ship designers.
+                </p>
+            </div>
+            
+            <div>
+                <div class="footer-column-title">Tools</div>
+                <a href="https://beam.lumoship.org" class="footer-link">BeamCore</a>
+                <a href="https://sectionpro.lumoship.org" class="footer-link">SectionPro</a>
+                <a href="/products.html" class="footer-link">All products</a>
+            </div>
+            
+            <div>
+                <div class="footer-column-title">Company</div>
+                <a href="/about.html" class="footer-link">About</a>
+                <a href="/contact.html" class="footer-link">Contact</a>
+                <a href="/pricing.html" class="footer-link">Pricing</a>
+            </div>
+            
+            <div>
+                <div class="footer-column-title">Connect</div>
+                <a href="mailto:contact@lumoship.org" class="footer-link">contact@lumoship.org</a>
+                <a href="https://www.linkedin.com/company/lumos-ship-design/" class="footer-link" target="_blank" rel="noopener">LinkedIn ↗</a>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div>© 2026 Lumoship · All rights reserved</div>
+            <div><span>Istanbul · Turkey</span></div>
+        </div>
+    </footer>
+    
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        const SUPABASE_URL = 'https://mjatuomzchnssivvmnsc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXR1b216Y2huc3NpdnZtbnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDU0NDMsImV4cCI6MjA5NTcyMTQ0M30.1UH6iJ-ews6YBZxFTU5_3t7T7RRb8T049M7wDkOu584';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Views
+        const loadingView = document.getElementById('loadingView');
+        const loginView = document.getElementById('loginView');
+        const dashboardView = document.getElementById('dashboardView');
+        
+        // Login elements
+        const messageEl = document.getElementById('message');
+        const googleBtn = document.getElementById('googleBtn');
+        const loginForm = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const toggleMode = document.getElementById('toggleMode');
+        const forgotLink = document.getElementById('forgotLink');
+        const passwordGroup = document.getElementById('passwordGroup');
+        
+        // Dashboard elements
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        // State
+        let mode = 'login'; // 'login', 'signup', 'forgot'
+        
+        function showMessage(text, type = 'error') {
+            messageEl.textContent = text;
+            messageEl.className = `message show ${type}`;
+        }
+        
+        function hideMessage() {
+            messageEl.className = 'message';
+        }
+        
+        function setMode(newMode) {
+            mode = newMode;
+            hideMessage();
+            
+            const pageLabel = document.querySelector('#loginView .page-label');
+            const pageTitle = document.querySelector('#loginView .page-title');
+            const pageSub = document.querySelector('#loginView .page-subtitle');
+            
+            if (mode === 'login') {
+                pageLabel.textContent = 'Sign In';
+                pageTitle.textContent = 'Access your workspace';
+                pageSub.textContent = 'Sign in to save projects and sync across devices';
+                passwordGroup.style.display = 'block';
+                document.getElementById('password').required = true;
+                submitBtn.textContent = 'Sign In';
+                toggleMode.textContent = 'Create account';
+                forgotLink.style.display = 'inline';
+                googleBtn.querySelector('span').textContent = 'Continue with Google';
+                document.querySelector('.divider').style.display = 'flex';
+                googleBtn.style.display = 'flex';
+            } else if (mode === 'signup') {
+                pageLabel.textContent = 'Create Account';
+                pageTitle.textContent = 'Join Lumoship';
+                pageSub.textContent = 'Free during 2026. No credit card required.';
+                passwordGroup.style.display = 'block';
+                document.getElementById('password').required = true;
+                document.getElementById('password').placeholder = 'At least 8 characters';
+                document.getElementById('password').minLength = 8;
+                submitBtn.textContent = 'Create Account';
+                toggleMode.textContent = 'Sign in instead';
+                forgotLink.style.display = 'none';
+                googleBtn.querySelector('span').textContent = 'Sign up with Google';
+                document.querySelector('.divider').style.display = 'flex';
+                googleBtn.style.display = 'flex';
+            } else if (mode === 'forgot') {
+                pageLabel.textContent = 'Password Recovery';
+                pageTitle.textContent = 'Reset your password';
+                pageSub.textContent = 'Enter your email and we will send you a reset link';
+                passwordGroup.style.display = 'none';
+                document.getElementById('password').required = false;
+                submitBtn.textContent = 'Send Reset Link';
+                toggleMode.textContent = 'Back to sign in';
+                forgotLink.style.display = 'none';
+                googleBtn.style.display = 'none';
+                document.querySelector('.divider').style.display = 'none';
+            }
+        }
+        
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }
+        
+        function renderDashboard(user) {
+            const meta = user.user_metadata || {};
+            const provider = user.app_metadata?.provider || 'email';
+            
+            const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+            document.getElementById('userName').textContent = displayName;
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('welcomeTitle').textContent = `Welcome back, ${displayName.split(' ')[0]}`;
+            
+            const avatarEl = document.getElementById('avatar');
+            if (meta.avatar_url || meta.picture) {
+                avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="">`;
+            } else {
+                document.getElementById('avatarLetter').textContent = (displayName[0] || 'L').toUpperCase();
+            }
+            
+            document.getElementById('providerBadge').textContent = provider === 'google' ? 'Google' : 'Email';
+            document.getElementById('joinDate').textContent = formatDate(user.created_at);
+        }
+        
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            loadingView.style.display = 'none';
+            
+            if (session) {
+                renderDashboard(session.user);
+                dashboardView.style.display = 'block';
+            } else {
+                loginView.style.display = 'block';
+                setMode('login');
+            }
+        }
+        
+        // Mode toggle
+        toggleMode.addEventListener('click', () => {
+            if (mode === 'login') setMode('signup');
+            else if (mode === 'signup') setMode('login');
+            else if (mode === 'forgot') setMode('login');
+        });
+        
+        forgotLink.addEventListener('click', () => {
+            setMode('forgot');
+        });
+        
+        // Google OAuth
+        googleBtn.addEventListener('click', async () => {
+            hideMessage();
+            googleBtn.disabled = true;
+            const originalText = googleBtn.querySelector('span').textContent;
+            googleBtn.querySelector('span').textContent = 'Redirecting...';
+            
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/workspace.html`
+                }
+            });
+            
+            if (error) {
+                showMessage('Google sign-in failed: ' + error.message);
+                googleBtn.disabled = false;
+                googleBtn.querySelector('span').textContent = originalText;
+            }
+        });
+        
+        // Form submit (login / signup / forgot)
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessage();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            submitBtn.disabled = true;
+            const originalText = submitBtn.textContent;
+            
+            if (mode === 'login') {
+                submitBtn.textContent = 'Signing in...';
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) {
+                    showMessage(error.message);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                } else {
+                    showMessage('Success. Loading workspace...', 'success');
+                    setTimeout(() => window.location.reload(), 600);
+                }
+            } else if (mode === 'signup') {
+                if (password.length < 8) {
+                    showMessage('Password must be at least 8 characters');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+                submitBtn.textContent = 'Creating account...';
+                const { data, error } = await supabase.auth.signUp({
+                    email, password,
+                    options: { emailRedirectTo: `${window.location.origin}/workspace.html` }
+                });
+                if (error) {
+                    showMessage(error.message);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+                    showMessage('An account with this email already exists.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                } else {
+                    showMessage('Account created. Check your email to verify.', 'success');
+                    loginForm.reset();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    setTimeout(() => setMode('login'), 2500);
+                }
+            } else if (mode === 'forgot') {
+                submitBtn.textContent = 'Sending...';
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/workspace.html`
+                });
+                if (error) {
+                    showMessage(error.message);
+                } else {
+                    showMessage('Check your email for the reset link.', 'success');
+                    loginForm.reset();
+                }
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+        
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (!confirm('Sign out of your workspace?')) return;
+            logoutBtn.disabled = true;
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                alert('Sign out failed: ' + error.message);
+                logoutBtn.disabled = false;
+            } else {
+                window.location.reload();
+            }
+        });
+        
+        // Auth state listener
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
+                // Reload page to update view
+                // Already handled in form/logout handlers
+            }
+        });
+        
+        checkAuth();
+    </script>
+</body>
+</html>
