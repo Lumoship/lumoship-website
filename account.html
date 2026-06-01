@@ -4,17 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Account — Lumoship</title>
-    <meta name="description" content="Manage your Lumoship account and view your saved projects.">
+    <meta name="description" content="Manage your Lumoship account and access your projects.">
     <meta name="robots" content="noindex, nofollow">
     
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7IiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBlYTVlOTsiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiIHJ4PSIyMCIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+TDwvdGV4dD48L3N2Zz4=">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgcng9IjU2IiBmaWxsPSJ1cmwoI2cpIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjE3MCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj5MPC90ZXh0Pgo8L3N2Zz4=">
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
             --bg-primary: #0a0e17;
@@ -36,33 +34,62 @@
             --border: #1e2536;
             --border-light: #252d40;
             --border-accent: rgba(59, 130, 246, 0.25);
-            --font-display: 'JetBrains Mono', monospace;
-            --font-body: 'Inter', system-ui, sans-serif;
+            --font-display: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+            --container-max: 1400px;
+            --container-content: 1100px;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: 200ms var(--ease);
         }
+        
+        html { scroll-behavior: smooth; font-size: 16px; }
+        @media (min-width: 1600px) { html { font-size: 17px; } }
+        @media (min-width: 2000px) { html { font-size: 18px; } }
         
         body {
             font-family: var(--font-body);
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
-            min-height: 100vh;
+            font-weight: 400;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+            background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
+            mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            pointer-events: none;
+            z-index: 0;
         }
         
         .nav {
-            background: rgba(10, 14, 23, 0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
+            background: rgba(10, 14, 23, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border);
             z-index: 100;
+            padding: clamp(0.875rem, 1.5vw, 1.125rem) clamp(1.25rem, 4vw, 3rem);
         }
         
         .nav-inner {
-            max-width: 1400px;
+            max-width: var(--container-max);
             margin: 0 auto;
-            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -71,97 +98,152 @@
         .nav-logo {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
             text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity var(--transition);
         }
         
+        .nav-logo:hover { opacity: 0.85; }
+        
         .nav-logo-mark {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            width: clamp(24px, 2.5vw, 28px);
+            height: clamp(24px, 2.5vw, 28px);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: var(--font-display);
             font-weight: 700;
+            font-size: clamp(0.85rem, 1vw, 0.95rem);
             color: white;
-            font-size: 1.1rem;
+            letter-spacing: -0.02em;
         }
         
-        .nav-logo-text { font-weight: 600; font-size: 1.1rem; color: var(--text-primary); letter-spacing: 0.02em; }
+        .nav-logo-text {
+            font-family: var(--font-body);
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.06em;
+        }
         
-        .nav-links { display: flex; gap: 2rem; align-items: center; }
-        .nav-link { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+        .nav-links {
+            display: flex;
+            gap: clamp(1rem, 2.5vw, 2.25rem);
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            transition: color var(--transition);
+            padding: 0.5rem 0;
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        
         .nav-link:hover { color: var(--text-primary); }
         .nav-link.active { color: var(--text-primary); }
         
-        @media (max-width: 640px) { .nav-links { display: none; } }
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0; right: 0;
+            height: 1.5px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
         
-        .main {
-            max-width: 1100px;
+        @media (max-width: 640px) {
+            .nav-links { gap: 0.875rem; }
+            .nav-link { font-size: 0.75rem; }
+        }
+        
+        main {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: var(--container-content);
             margin: 0 auto;
-            padding: 3rem 2rem;
+            padding: clamp(2.5rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2rem);
         }
         
         .loading {
             text-align: center;
             padding: 4rem 2rem;
             color: var(--text-secondary);
-        }
-        
-        .page-header {
-            margin-bottom: 3rem;
-        }
-        
-        .page-eyebrow {
             font-family: var(--font-mono);
-            font-size: 0.75rem;
-            color: var(--accent);
-            letter-spacing: 0.25em;
+            font-size: 0.875rem;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            margin-bottom: 0.75rem;
+        }
+        
+        /* PAGE HEADER */
+        .page-header {
+            margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+        }
+        
+        .page-label {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.75vw, 0.75rem);
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.25rem);
         }
         
         .page-title {
-            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-family: var(--font-body);
+            font-size: clamp(2rem, 4.5vw, 2.75rem);
             font-weight: 600;
-            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            letter-spacing: -0.035em;
+            line-height: 1.1;
             margin-bottom: 0.5rem;
         }
         
         .page-subtitle {
+            font-size: clamp(1rem, 1.15vw, 1.075rem);
             color: var(--text-secondary);
-            font-size: 1.05rem;
+            font-weight: 400;
         }
         
-        /* Profile Card */
+        /* PROFILE CARD */
         .profile-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
+            padding: clamp(1.5rem, 3vw, 2rem);
+            margin-bottom: clamp(1.25rem, 2.5vw, 1.75rem);
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: clamp(1rem, 2vw, 1.5rem);
             flex-wrap: wrap;
         }
         
         .profile-avatar {
-            width: 80px;
-            height: 80px;
+            width: clamp(64px, 7vw, 80px);
+            height: clamp(64px, 7vw, 80px);
             border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: var(--font-display);
             font-weight: 700;
             color: white;
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
             flex-shrink: 0;
             overflow: hidden;
+            letter-spacing: -0.02em;
         }
         
         .profile-avatar img {
@@ -176,42 +258,41 @@
         }
         
         .profile-name {
-            font-size: 1.5rem;
+            font-size: clamp(1.15rem, 1.4vw, 1.35rem);
             font-weight: 600;
             margin-bottom: 0.25rem;
+            letter-spacing: -0.02em;
         }
         
         .profile-email {
             color: var(--text-secondary);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             margin-bottom: 0.75rem;
+            font-family: var(--font-mono);
         }
         
         .profile-meta {
             display: flex;
-            gap: 1.5rem;
-            font-size: 0.85rem;
+            gap: 1rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             flex-wrap: wrap;
-        }
-        
-        .profile-meta-item {
-            display: flex;
             align-items: center;
-            gap: 0.4rem;
         }
         
         .provider-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
-            padding: 0.25rem 0.6rem;
+            padding: 0.25rem 0.65rem;
             background: var(--accent-subtle);
             border: 1px solid var(--border-accent);
             border-radius: 999px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--accent-hover);
             font-weight: 500;
+            font-family: var(--font-mono);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
         
         .profile-actions {
@@ -221,18 +302,19 @@
         }
         
         .btn {
-            padding: 0.65rem 1.25rem;
+            padding: 0.65rem 1.15rem;
             border-radius: 8px;
-            font-family: inherit;
-            font-size: 0.9rem;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 200ms;
+            transition: all var(--transition);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             border: 1px solid transparent;
+            letter-spacing: -0.01em;
         }
         
         .btn-secondary {
@@ -249,129 +331,146 @@
         .btn-danger {
             background: transparent;
             color: #fca5a5;
-            border-color: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.25);
         }
         
         .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.4);
             color: #fecaca;
         }
         
-        /* Stats Grid */
+        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: clamp(0.875rem, 1.5vw, 1rem);
+            margin-bottom: clamp(2rem, 4vw, 2.75rem);
         }
         
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.25rem 1.5rem;
+            padding: clamp(1rem, 1.75vw, 1.25rem) clamp(1.15rem, 2vw, 1.4rem);
         }
         
         .stat-label {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
             margin-bottom: 0.5rem;
             font-family: var(--font-mono);
+            font-weight: 500;
         }
         
         .stat-value {
-            font-size: 1.5rem;
+            font-size: clamp(1.25rem, 1.75vw, 1.5rem);
             font-weight: 600;
             color: var(--text-primary);
+            letter-spacing: -0.02em;
         }
         
-        /* Sections */
+        .stat-value-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 0.25rem;
+        }
+        
+        /* SECTIONS */
         .section {
-            margin-bottom: 2.5rem;
+            margin-bottom: clamp(2rem, 4vw, 2.75rem);
         }
         
         .section-title {
-            font-size: 1.25rem;
+            font-size: clamp(1.05rem, 1.4vw, 1.2rem);
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.15rem);
             color: var(--text-primary);
+            letter-spacing: -0.02em;
         }
         
         .empty-state {
             background: var(--bg-card);
             border: 1px dashed var(--border);
             border-radius: 12px;
-            padding: 3rem 2rem;
+            padding: clamp(2rem, 4vw, 3rem) clamp(1.25rem, 2.5vw, 2rem);
             text-align: center;
-        }
-        
-        .empty-state-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
         }
         
         .empty-state-text {
             color: var(--text-secondary);
-            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
         }
         
-        /* Tools Grid */
+        .empty-state-sub {
+            font-size: 0.825rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-family: var(--font-mono);
+        }
+        
+        /* TOOLS GRID */
         .tools-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1rem;
+            gap: clamp(0.875rem, 1.5vw, 1rem);
         }
         
         .tool-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: clamp(1.25rem, 2vw, 1.5rem);
             text-decoration: none;
             color: inherit;
-            transition: all 200ms;
+            transition: all var(--transition);
             display: block;
+            position: relative;
         }
         
-        .tool-card:hover {
+        .tool-card.clickable:hover {
             border-color: var(--border-accent);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         }
         
-        .tool-icon {
-            font-size: 1.75rem;
-            margin-bottom: 0.75rem;
+        .tool-card.disabled {
+            opacity: 0.55;
+            cursor: default;
         }
         
         .tool-name {
-            font-size: 1.1rem;
+            font-size: clamp(1rem, 1.25vw, 1.1rem);
             font-weight: 600;
             margin-bottom: 0.4rem;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
         }
         
         .tool-desc {
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.875rem;
+            line-height: 1.5;
         }
         
         .tool-status {
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-family: var(--font-mono);
-            color: var(--success);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
+            font-weight: 500;
         }
         
-        .tool-status::before {
+        .tool-status.live { color: var(--success); }
+        .tool-status.live::before {
             content: '';
             width: 6px;
             height: 6px;
@@ -379,23 +478,64 @@
             background: var(--success);
         }
         
-        .tool-status.beta {
-            color: var(--warning);
-        }
-        
-        .tool-status.beta::before {
+        .tool-status.soon { color: var(--warning); }
+        .tool-status.soon::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
             background: var(--warning);
         }
         
+        .tool-status.dev { color: var(--text-muted); }
+        .tool-status.dev::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        
+        /* FOOTER */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: clamp(1.5rem, 3vw, 2rem) clamp(1.25rem, 4vw, 3rem);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .footer-inner {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.825rem;
+            color: var(--text-muted);
+        }
+        
+        .footer-links { display: flex; gap: 1.5rem; }
+        
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+        
+        .footer-link:hover { color: var(--text-secondary); }
+        
         @media (max-width: 640px) {
-            .main { padding: 2rem 1rem; }
-            .nav-inner { padding: 1rem; }
             .profile-card { flex-direction: column; text-align: center; }
             .profile-actions { width: 100%; justify-content: center; }
+            .profile-meta { justify-content: center; }
         }
     </style>
 </head>
 <body>
+    
     <nav class="nav">
         <div class="nav-inner">
             <a href="/" class="nav-logo">
@@ -405,108 +545,111 @@
             <div class="nav-links">
                 <a href="/" class="nav-link">Home</a>
                 <a href="/products.html" class="nav-link">Products</a>
+                <a href="/pricing.html" class="nav-link">Pricing</a>
+                <a href="/about.html" class="nav-link">About</a>
+                <a href="/contact.html" class="nav-link">Contact</a>
                 <a href="/account.html" class="nav-link active">Account</a>
             </div>
         </div>
     </nav>
     
-    <main class="main">
-        <div id="loading" class="loading">Loading your account...</div>
-        
-        <div id="content" style="display: none;">
-            <div class="page-header">
-                <div class="page-eyebrow">Account Dashboard</div>
-                <h1 class="page-title">Welcome back</h1>
-                <p class="page-subtitle">Manage your profile and access your tools</p>
-            </div>
+    <main>
+        <div class="container">
+            <div id="loading" class="loading">Loading your account...</div>
             
-            <!-- Profile Card -->
-            <div class="profile-card">
-                <div class="profile-avatar" id="avatar">
-                    <span id="avatarLetter">L</span>
+            <div id="content" style="display: none;">
+                <div class="page-header">
+                    <div class="page-label">Account Dashboard</div>
+                    <h1 class="page-title">Welcome back</h1>
+                    <p class="page-subtitle">Manage your profile and access your tools</p>
                 </div>
-                <div class="profile-info">
-                    <div class="profile-name" id="userName">Loading...</div>
-                    <div class="profile-email" id="userEmail">—</div>
-                    <div class="profile-meta">
-                        <div class="profile-meta-item">
-                            <span id="providerBadge" class="provider-badge">— Provider</span>
-                        </div>
-                        <div class="profile-meta-item">
+                
+                <div class="profile-card">
+                    <div class="profile-avatar" id="avatar">
+                        <span id="avatarLetter">L</span>
+                    </div>
+                    <div class="profile-info">
+                        <div class="profile-name" id="userName">Loading...</div>
+                        <div class="profile-email" id="userEmail">—</div>
+                        <div class="profile-meta">
+                            <span id="providerBadge" class="provider-badge">Email</span>
                             <span>Joined <span id="joinDate">—</span></span>
                         </div>
                     </div>
-                </div>
-                <div class="profile-actions">
-                    <button id="logoutBtn" class="btn btn-danger">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-                        </svg>
-                        Sign out
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Plan</div>
-                    <div class="stat-value">Free <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">(2026)</span></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Projects</div>
-                    <div class="stat-value">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Status</div>
-                    <div class="stat-value" style="color: var(--success);">Active</div>
-                </div>
-            </div>
-            
-            <!-- My Projects Section -->
-            <div class="section">
-                <h2 class="section-title">My Projects</h2>
-                <div class="empty-state">
-                    <div class="empty-state-icon">📁</div>
-                    <div class="empty-state-text">
-                        You haven't saved any projects yet.<br>
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Project saving coming soon — currently in development.</span>
+                    <div class="profile-actions">
+                        <button id="logoutBtn" class="btn btn-danger">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Sign out
+                        </button>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Tools Section -->
-            <div class="section">
-                <h2 class="section-title">Available Tools</h2>
-                <div class="tools-grid">
-                    <a href="https://beam.lumoship.org" class="tool-card">
-                        <div class="tool-icon">📐</div>
-                        <div class="tool-name">BeamCore</div>
-                        <div class="tool-desc">Beam structural analysis with FEM solver. EN 10067 sections, marine load presets.</div>
-                        <div class="tool-status">Live</div>
-                    </a>
-                    <a href="https://sectionpro.lumoship.org" class="tool-card">
-                        <div class="tool-icon">📊</div>
-                        <div class="tool-name">SectionPro</div>
-                        <div class="tool-desc">Section properties calculator for marine structural elements.</div>
-                        <div class="tool-status">Live</div>
-                    </a>
-                    <div class="tool-card" style="opacity: 0.6; cursor: default;">
-                        <div class="tool-icon">🔲</div>
-                        <div class="tool-name">NODAL</div>
-                        <div class="tool-desc">Grillage analysis for marine structures. Coming Q2 2026.</div>
-                        <div class="tool-status beta">Beta Soon</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Plan</div>
+                        <div class="stat-value">Free <span class="stat-value-sub">(2026)</span></div>
                     </div>
-                    <div class="tool-card" style="opacity: 0.6; cursor: default;">
-                        <div class="tool-icon">⚓</div>
-                        <div class="tool-name">Lumoship Midship</div>
-                        <div class="tool-desc">Rule-based midship section design with DNV, LR, BV, RINA support. Coming 2027.</div>
-                        <div class="tool-status beta">In Development</div>
+                    <div class="stat-card">
+                        <div class="stat-label">Projects</div>
+                        <div class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" style="color: var(--success);">Active</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2 class="section-title">My Projects</h2>
+                    <div class="empty-state">
+                        <div class="empty-state-text">You haven't saved any projects yet.</div>
+                        <div class="empty-state-sub">Project saving coming soon</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2 class="section-title">Available Tools</h2>
+                    <div class="tools-grid">
+                        <a href="https://beam.lumoship.org" class="tool-card clickable">
+                            <div class="tool-name">BeamCore</div>
+                            <div class="tool-desc">Beam structural analysis with FEM solver. EN 10067 sections, marine load presets.</div>
+                            <div class="tool-status live">Live</div>
+                        </a>
+                        <a href="https://sectionpro.lumoship.org" class="tool-card clickable">
+                            <div class="tool-name">SectionPro</div>
+                            <div class="tool-desc">Section properties calculator for marine structural elements.</div>
+                            <div class="tool-status live">Live</div>
+                        </a>
+                        <div class="tool-card disabled">
+                            <div class="tool-name">NODAL</div>
+                            <div class="tool-desc">Grillage analysis for marine structures. Coming Q2 2026.</div>
+                            <div class="tool-status soon">Beta Soon</div>
+                        </div>
+                        <div class="tool-card disabled">
+                            <div class="tool-name">Lumoship Midship</div>
+                            <div class="tool-desc">Rule-based midship section design with DNV, LR, BV, RINA support.</div>
+                            <div class="tool-status dev">In Development</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+    
+    <footer class="footer">
+        <div class="footer-inner">
+            <div>&copy; 2026 Lumoship. Marine structural engineering software.</div>
+            <div class="footer-links">
+                <a href="/about.html" class="footer-link">About</a>
+                <a href="/contact.html" class="footer-link">Contact</a>
+                <a href="/pricing.html" class="footer-link">Pricing</a>
+            </div>
+        </div>
+    </footer>
     
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -537,37 +680,28 @@
             const meta = user.user_metadata || {};
             const provider = user.app_metadata?.provider || 'email';
             
-            // Display name
             const displayName = meta.full_name || meta.name || user.email.split('@')[0];
             document.getElementById('userName').textContent = displayName;
             document.getElementById('userEmail').textContent = user.email;
             
-            // Avatar
             const avatarEl = document.getElementById('avatar');
             if (meta.avatar_url || meta.picture) {
-                avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="Avatar">`;
+                avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="">`;
             } else {
                 document.getElementById('avatarLetter').textContent = (displayName[0] || 'L').toUpperCase();
             }
             
-            // Provider badge
-            const providerLabel = provider === 'google' ? '🔵 Google' : '✉️ Email';
-            document.getElementById('providerBadge').textContent = providerLabel;
-            
-            // Join date
+            document.getElementById('providerBadge').textContent = provider === 'google' ? 'Google' : 'Email';
             document.getElementById('joinDate').textContent = formatDate(user.created_at);
             
-            // Show content
             loadingEl.style.display = 'none';
             contentEl.style.display = 'block';
         }
         
-        // Logout
         logoutBtn.addEventListener('click', async () => {
             if (!confirm('Are you sure you want to sign out?')) return;
             
             logoutBtn.disabled = true;
-            logoutBtn.textContent = 'Signing out...';
             
             const { error } = await supabase.auth.signOut();
             
@@ -579,7 +713,6 @@
             }
         });
         
-        // Listen for auth changes
         supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_OUT') {
                 window.location.href = '/';

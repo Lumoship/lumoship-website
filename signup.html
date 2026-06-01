@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up — Lumoship | Marine Structural Engineering Software</title>
+    <title>Sign Up — Lumoship</title>
     <meta name="description" content="Create your free Lumoship account. Access marine structural engineering tools and save your projects.">
     <meta name="robots" content="noindex, follow">
     
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7IiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBlYTVlOTsiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiIHJ4PSIyMCIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+TDwvdGV4dD48L3N2Zz4=">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgcng9IjU2IiBmaWxsPSJ1cmwoI2cpIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjE3MCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj5MPC90ZXh0Pgo8L3N2Zz4=">
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <meta property="og:title" content="Sign Up — Lumoship">
+    <meta property="og:description" content="Create your free Lumoship account.">
+    <meta property="og:url" content="https://lumoship.org/signup.html">
+    <meta property="og:type" content="website">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
             --bg-primary: #0a0e17;
@@ -35,33 +38,61 @@
             --border: #1e2536;
             --border-light: #252d40;
             --border-accent: rgba(59, 130, 246, 0.25);
-            --font-display: 'JetBrains Mono', monospace;
-            --font-body: 'Inter', system-ui, sans-serif;
+            --font-display: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+            --container-max: 1400px;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: 200ms var(--ease);
         }
+        
+        html { scroll-behavior: smooth; font-size: 16px; }
+        @media (min-width: 1600px) { html { font-size: 17px; } }
+        @media (min-width: 2000px) { html { font-size: 18px; } }
         
         body {
             font-family: var(--font-body);
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
-            min-height: 100vh;
+            font-weight: 400;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+            background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
+            mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
+            pointer-events: none;
+            z-index: 0;
         }
         
         .nav {
-            background: rgba(10, 14, 23, 0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
+            background: rgba(10, 14, 23, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border);
             z-index: 100;
+            padding: clamp(0.875rem, 1.5vw, 1.125rem) clamp(1.25rem, 4vw, 3rem);
         }
         
         .nav-inner {
-            max-width: 1400px;
+            max-width: var(--container-max);
             margin: 0 auto;
-            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -70,77 +101,119 @@
         .nav-logo {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
             text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity var(--transition);
         }
         
+        .nav-logo:hover { opacity: 0.85; }
+        
         .nav-logo-mark {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            width: clamp(24px, 2.5vw, 28px);
+            height: clamp(24px, 2.5vw, 28px);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: var(--font-display);
             font-weight: 700;
+            font-size: clamp(0.85rem, 1vw, 0.95rem);
             color: white;
-            font-size: 1.1rem;
-        }
-        
-        .nav-logo-text {
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: var(--text-primary);
-            letter-spacing: 0.02em;
-        }
-        
-        .nav-links { display: flex; gap: 2rem; align-items: center; }
-        .nav-link { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
-        .nav-link:hover { color: var(--text-primary); }
-        
-        @media (max-width: 640px) { .nav-links { display: none; } }
-        
-        .main {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 80px);
-            padding: 2rem 1rem;
-        }
-        
-        .auth-card {
-            width: 100%;
-            max-width: 440px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 2.5rem 2rem;
-        }
-        
-        .auth-eyebrow {
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: var(--accent);
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            margin-bottom: 0.75rem;
-            text-align: center;
-        }
-        
-        .auth-title {
-            font-size: 1.75rem;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 0.5rem;
             letter-spacing: -0.02em;
         }
         
-        .auth-subtitle {
+        .nav-logo-text {
+            font-family: var(--font-body);
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.06em;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: clamp(1rem, 2.5vw, 2.25rem);
+            align-items: center;
+        }
+        
+        .nav-link {
             color: var(--text-secondary);
+            text-decoration: none;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            transition: color var(--transition);
+            padding: 0.5rem 0;
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        
+        .nav-link:hover { color: var(--text-primary); }
+        .nav-link.active { color: var(--text-primary); }
+        
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0; right: 0;
+            height: 1.5px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        
+        @media (max-width: 640px) {
+            .nav-links { gap: 0.875rem; }
+            .nav-link { font-size: 0.75rem; }
+        }
+        
+        main {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 4vw, 2rem);
+        }
+        
+        .auth-container { width: 100%; max-width: 440px; }
+        
+        .page-label {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 0.75vw, 0.75rem);
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.875rem, 1.5vw, 1.25rem);
             text-align: center;
-            font-size: 0.95rem;
-            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-family: var(--font-body);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.035em;
+            line-height: 1.05;
+            margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+            text-align: center;
+        }
+        
+        .page-subtitle {
+            font-size: clamp(0.95rem, 1.1vw, 1rem);
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-weight: 400;
+            text-align: center;
+            margin-bottom: clamp(2rem, 4vw, 2.5rem);
+        }
+        
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: clamp(1.75rem, 3vw, 2.25rem);
         }
         
         .btn-google {
@@ -149,8 +222,8 @@
             background: white;
             color: #1f2937;
             border: 1px solid white;
-            border-radius: 8px;
-            font-family: inherit;
+            border-radius: 10px;
+            font-family: var(--font-body);
             font-size: 0.95rem;
             font-weight: 500;
             cursor: pointer;
@@ -158,18 +231,18 @@
             align-items: center;
             justify-content: center;
             gap: 0.75rem;
-            transition: all 200ms;
-            margin-bottom: 1.5rem;
+            transition: all var(--transition);
         }
         
         .btn-google:hover {
             background: #f9fafb;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
         
+        .btn-google:active { transform: translateY(0); }
         .btn-google:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .btn-google svg { width: 20px; height: 20px; }
+        .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
         
         .divider {
             display: flex;
@@ -177,7 +250,10 @@
             gap: 1rem;
             margin: 1.5rem 0;
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
         }
         
         .divider::before, .divider::after {
@@ -191,22 +267,23 @@
         
         .form-label {
             display: block;
-            font-size: 0.85rem;
+            font-size: 0.825rem;
             font-weight: 500;
             color: var(--text-secondary);
             margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
         }
         
         .form-input {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 0.95rem;
             background: var(--bg-elevated);
             border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--text-primary);
-            font-family: inherit;
+            font-family: var(--font-body);
             font-size: 0.95rem;
-            transition: all 200ms;
+            transition: all var(--transition);
         }
         
         .form-input:focus {
@@ -218,25 +295,20 @@
         
         .form-input::placeholder { color: var(--text-dim); }
         
-        .form-hint {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.4rem;
-        }
-        
         .btn-primary {
             width: 100%;
             padding: 0.875rem 1.25rem;
             background: var(--accent);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-family: inherit;
+            border-radius: 10px;
+            font-family: var(--font-body);
             font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 200ms;
+            transition: all var(--transition);
             margin-top: 0.5rem;
+            letter-spacing: -0.01em;
         }
         
         .btn-primary:hover {
@@ -245,11 +317,22 @@
             box-shadow: 0 4px 12px var(--accent-glow);
         }
         
+        .btn-primary:active { transform: translateY(0); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .form-extras {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
         
         .link {
             color: var(--accent);
             text-decoration: none;
+            transition: color var(--transition);
+            font-weight: 500;
         }
         
         .link:hover { color: var(--accent-hover); text-decoration: underline; }
@@ -260,46 +343,84 @@
             border-top: 1px solid var(--border);
             text-align: center;
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.875rem;
         }
         
         .message {
             padding: 0.75rem 1rem;
             border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.875rem;
             display: none;
+            line-height: 1.5;
         }
         
         .message.show { display: block; }
         
         .message.error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
             color: #fca5a5;
         }
         
         .message.success {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
             color: #6ee7b7;
         }
         
-        .terms {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-align: center;
-            margin-top: 1rem;
+        .info-notice {
+            margin-top: clamp(1.25rem, 2vw, 1.5rem);
+            padding: 0.875rem 1rem;
+            background: var(--accent-subtle);
+            border: 1px solid var(--border-accent);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
             line-height: 1.5;
+            text-align: center;
         }
         
+        .info-notice strong { color: var(--text-primary); font-weight: 600; }
+        
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: clamp(1.5rem, 3vw, 2rem) clamp(1.25rem, 4vw, 3rem);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .footer-inner {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.825rem;
+            color: var(--text-muted);
+        }
+        
+        .footer-links { display: flex; gap: 1.5rem; }
+        
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+        
+        .footer-link:hover { color: var(--text-secondary); }
+        
         @media (max-width: 480px) {
-            .auth-card { padding: 2rem 1.5rem; }
-            .nav-inner { padding: 1rem; }
+            .auth-card { padding: 1.5rem 1.25rem; }
+            .form-extras { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
+    
     <nav class="nav">
         <div class="nav-inner">
             <a href="/" class="nav-logo">
@@ -309,56 +430,70 @@
             <div class="nav-links">
                 <a href="/" class="nav-link">Home</a>
                 <a href="/products.html" class="nav-link">Products</a>
+                <a href="/pricing.html" class="nav-link">Pricing</a>
                 <a href="/about.html" class="nav-link">About</a>
+                <a href="/contact.html" class="nav-link">Contact</a>
+                <a href="/login.html" class="nav-link">Login</a>
             </div>
         </div>
     </nav>
     
-    <main class="main">
-        <div class="auth-card">
-            <div class="auth-eyebrow">Get Started</div>
-            <h1 class="auth-title">Create your account</h1>
-            <p class="auth-subtitle">Free during 2026 — no credit card required</p>
+    <main>
+        <div class="auth-container">
+            <div class="page-label">Get Started</div>
+            <h1 class="page-title">Create your account</h1>
+            <p class="page-subtitle">Free during 2026. No credit card required.</p>
             
-            <div id="message" class="message"></div>
-            
-            <button id="googleBtn" class="btn-google" type="button">
-                <svg viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                <span>Sign up with Google</span>
-            </button>
-            
-            <div class="divider">or</div>
-            
-            <form id="signupForm">
-                <div class="form-group">
-                    <label class="form-label" for="email">Email</label>
-                    <input type="email" id="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
-                </div>
+            <div class="auth-card">
+                <div id="message" class="message"></div>
                 
-                <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
-                    <input type="password" id="password" class="form-input" placeholder="At least 8 characters" required minlength="8" autocomplete="new-password">
-                    <div class="form-hint">Use 8+ characters with a mix of letters and numbers</div>
-                </div>
+                <button id="googleBtn" class="btn-google" type="button">
+                    <svg viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span>Sign up with Google</span>
+                </button>
                 
-                <button type="submit" id="submitBtn" class="btn-primary">Create Account</button>
+                <div class="divider">or</div>
                 
-                <div class="terms">
-                    By signing up, you agree to keep using Lumoship responsibly.<br>
-                    No spam, no data sharing.
+                <form id="signupForm">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" id="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <input type="password" id="password" class="form-input" placeholder="At least 8 characters" required minlength="8" autocomplete="new-password">
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="btn-primary">Create Account</button>
+                </form>
+                
+                <div class="auth-footer">
+                    Already have an account? <a href="/login.html" class="link">Sign in</a>
                 </div>
-            </form>
+            </div>
             
-            <div class="auth-footer">
-                Already have an account? <a href="/login.html" class="link">Sign in</a>
+            <div class="info-notice">
+                By signing up, you agree to use Lumoship responsibly. <strong>No spam, no data sharing.</strong>
             </div>
         </div>
     </main>
+    
+    <footer class="footer">
+        <div class="footer-inner">
+            <div>&copy; 2026 Lumoship. Marine structural engineering software.</div>
+            <div class="footer-links">
+                <a href="/about.html" class="footer-link">About</a>
+                <a href="/contact.html" class="footer-link">Contact</a>
+                <a href="/pricing.html" class="footer-link">Pricing</a>
+            </div>
+        </div>
+    </footer>
     
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -382,7 +517,6 @@
             messageEl.className = 'message';
         }
         
-        // Check if already logged in
         (async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
@@ -390,7 +524,6 @@
             }
         })();
         
-        // Google OAuth signup
         googleBtn.addEventListener('click', async () => {
             hideMessage();
             googleBtn.disabled = true;
@@ -410,7 +543,6 @@
             }
         });
         
-        // Email/Password signup
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             hideMessage();
@@ -427,8 +559,7 @@
             submitBtn.textContent = 'Creating account...';
             
             const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
+                email, password,
                 options: {
                     emailRedirectTo: `${window.location.origin}/account.html`
                 }
@@ -443,7 +574,7 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Create Account';
             } else {
-                showMessage('✓ Account created! Check your email to verify, then sign in.', 'success');
+                showMessage('Account created. Check your email to verify, then sign in.', 'success');
                 signupForm.reset();
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Create Account';
