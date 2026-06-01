@@ -201,6 +201,135 @@
             border-radius: 2px;
         }
         
+        .nav-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            padding: 0.5rem 0.95rem;
+            border-radius: 8px;
+            transition: all var(--transition);
+            letter-spacing: -0.01em;
+            margin-left: 0.5rem;
+        }
+        
+        .nav-cta:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        
+        .nav-cta-arrow {
+            font-size: 0.9em;
+            transition: transform var(--transition);
+        }
+        
+        .nav-cta:hover .nav-cta-arrow {
+            transform: translateX(2px);
+        }
+        
+        @media (max-width: 640px) {
+            .nav-cta {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.75rem;
+            }
+            .nav-cta-arrow { display: none; }
+        }
+        /* ============ MOBILE MENU ============ */
+        .nav-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.45rem;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            width: 36px;
+            height: 36px;
+        }
+        
+        .nav-toggle:hover {
+            border-color: var(--border-light);
+            background: var(--bg-elevated);
+        }
+        
+        .nav-toggle svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .nav-toggle .icon-close { display: none; }
+        .nav-toggle.open .icon-menu { display: none; }
+        .nav-toggle.open .icon-close { display: block; }
+        
+        .nav-mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 14, 23, 0.96);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            z-index: 99;
+            padding: 5rem 1.5rem 2rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .nav-mobile-menu.open {
+            display: flex;
+        }
+        
+        .nav-mobile-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 1.15rem;
+            font-weight: 500;
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid var(--border);
+            transition: color var(--transition);
+            letter-spacing: -0.01em;
+        }
+        
+        .nav-mobile-link:hover {
+            color: var(--accent);
+        }
+        
+        .nav-mobile-link.active {
+            color: var(--accent);
+        }
+        
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        
+        @media (max-width: 900px) {
+            .nav-links {
+                display: none;
+            }
+            .nav-toggle {
+                display: inline-flex;
+            }
+        }
+        
+        @media (min-width: 901px) {
+            .nav-actions .nav-toggle {
+                display: none;
+            }
+        }
+
+        
         /* ============ MAIN ============ */
         main {
             flex: 1;
@@ -857,10 +986,47 @@
                 <a href="/pricing.html" class="nav-link">Pricing</a>
                 <a href="/about.html" class="nav-link">About</a>
                 <a href="/contact.html" class="nav-link">Contact</a>
-                <a href="/login.html" class="nav-link">Login</a>
+            </div>
+            <div class="nav-actions">
+                <a href="/workspace.html" class="nav-cta">
+                    Open Workspace
+                    <span class="nav-cta-arrow">→</span>
+                </a>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                    <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
         </div>
+        <div class="nav-mobile-menu" id="navMobileMenu">
+            <a href="/" class="nav-mobile-link">Home</a>
+            <a href="/products.html" class="nav-mobile-link active">Products</a>
+            <a href="/pricing.html" class="nav-mobile-link">Pricing</a>
+            <a href="/about.html" class="nav-mobile-link">About</a>
+            <a href="/contact.html" class="nav-mobile-link">Contact</a>
+        </div>
     </nav>
+    
+    <script>
+        (function() {
+            const toggle = document.getElementById('navToggle');
+            const menu = document.getElementById('navMobileMenu');
+            if (toggle && menu) {
+                toggle.addEventListener('click', function() {
+                    toggle.classList.toggle('open');
+                    menu.classList.toggle('open');
+                    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+                });
+            }
+        })();
+    </script>
     
     <main>
         <section class="page-header">
