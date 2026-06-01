@@ -605,6 +605,7 @@
                 <a href="https://lumoship.org/pricing.html" class="lumoship-nav-link">Pricing</a>
                 <a href="https://lumoship.org/about.html" class="lumoship-nav-link">About</a>
                 <a href="https://lumoship.org/contact.html" class="lumoship-nav-link">Contact</a>
+                <a href="https://lumoship.org/login.html" class="lumoship-nav-link">Login</a>
             </div>
         </div>
     </nav>
@@ -1624,8 +1625,18 @@ async function solveBeam(){
             return null;
         }
         
-        // Return results in format expected by drawAllDiagrams
-        return data.results;
+        // Normalize backend field names to match frontend expectations
+        const results = data.results;
+        if(results.reactions){
+            results.reactions = results.reactions.map(r => ({
+                pos: r.pos,
+                type: r.type,
+                R: r.R_kN !== undefined ? r.R_kN : r.R,
+                M: r.M_kNm !== undefined ? r.M_kNm : r.M
+            }));
+        }
+        
+        return results;
         
     } catch(err) {
         console.error('Network error:', err);

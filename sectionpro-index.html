@@ -1,0 +1,1776 @@
+<!--
+    SectionPro — EA Engineering Tools v1.0.0
+    Created by Ebubekir Akarsu
+    Structural Engineer
+    
+    Steel profile section properties calculator
+    L, T, FB, HP (EN 10067) profiles with attached plate
+    BV NR467 corrosion allowance support
+    
+    Last Updated: 2026-02-06
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SectionPro — EA Engineering Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================
+           EA ENGINEERING TOOLS — DESIGN SYSTEM v1.0
+           ============================================ */
+
+        /* --- CSS Reset --- */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* --- Design Tokens --- */
+        :root {
+            --bg-primary:    #0a0e17;
+            --bg-secondary:  #111827;
+            --bg-tertiary:   #1a2236;
+            --bg-input:      #0d1321;
+            --accent:        #3b82f6;
+            --accent-hover:  #2563eb;
+            --accent-glow:   rgba(59, 130, 246, 0.15);
+            --accent-subtle: rgba(59, 130, 246, 0.08);
+            --text-primary:  #f1f5f9;
+            --text-secondary:#94a3b8;
+            --text-muted:    #64748b;
+            --success:       #22c55e;
+            --warning:       #f59e0b;
+            --error:         #ef4444;
+            --border:        #1e293b;
+            --border-accent: rgba(59, 130, 246, 0.3);
+            --font-display:  'JetBrains Mono', 'Fira Code', monospace;
+            --font-body:     'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-mono:     'JetBrains Mono', monospace;
+            --fs-xs: 0.75rem; --fs-sm: 0.8125rem; --fs-base: 0.875rem;
+            --fs-md: 1rem; --fs-lg: 1.25rem; --fs-xl: 1.5rem; --fs-2xl: 1.75rem;
+            --spacing-xs: 4px; --spacing-sm: 8px; --spacing-md: 16px;
+            --spacing-lg: 24px; --spacing-xl: 32px; --spacing-2xl: 48px;
+            --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+            --shadow-glow: 0 0 20px var(--accent-glow);
+        }
+
+        /* --- Base --- */
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            font-size: var(--fs-base);
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .ea-header {
+            position: relative; z-index: 10;
+            padding: var(--spacing-lg) var(--spacing-xl);
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(17,24,39,0.95), rgba(10,14,23,0.95));
+            backdrop-filter: blur(10px);
+        }
+        .ea-header::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.5;
+        }
+        .ea-header-inner {
+            max-width: 1600px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);
+        }
+        .ea-brand { display: flex; align-items: center; gap: var(--spacing-md); }
+        .ea-logo {
+            width: 44px; height: 44px; border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-weight: 700; font-size: 1.75rem;
+            color: white; letter-spacing: 0; flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(59,130,246,0.2);
+            line-height: 1;
+        }
+        .ea-title-group { display: flex; flex-direction: column; gap: 2px; }
+        .ea-tool-name {
+            font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 700;
+            color: var(--text-primary); letter-spacing: -0.5px; line-height: 1.2;
+        }
+        .ea-tool-subtitle { font-size: var(--fs-sm); color: var(--text-muted); letter-spacing: 0.3px; }
+        .ea-header-badge {
+            font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted);
+            background: var(--bg-tertiary); padding: 4px 10px; border-radius: 20px;
+            border: 1px solid var(--border); white-space: nowrap;
+        }
+        .ea-header-actions { display: flex; align-items: center; gap: var(--spacing-sm); }
+        .ea-test-btn {
+            font-family: var(--font-mono); font-size: var(--fs-xs);
+            background: var(--bg-tertiary); color: var(--text-secondary);
+            padding: 6px 12px; border-radius: var(--radius-md);
+            border: 1px solid var(--border); cursor: pointer;
+            transition: all 0.15s; white-space: nowrap;
+        }
+        .ea-test-btn:hover {
+            background: var(--accent-subtle); color: var(--accent);
+            border-color: var(--border-accent);
+        }
+
+        /* === TEST MODAL === */
+        .ea-test-overlay {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: rgba(10,14,23,0.85); backdrop-filter: blur(6px);
+            align-items: center; justify-content: center; padding: var(--spacing-lg);
+        }
+        .ea-test-overlay.active { display: flex; }
+        .ea-test-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-accent);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            width: 100%; max-width: 1000px; max-height: 90vh;
+            display: flex; flex-direction: column;
+        }
+        .ea-test-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border);
+        }
+        .ea-test-title {
+            font-family: var(--font-display); font-size: var(--fs-lg);
+            font-weight: 700; color: var(--text-primary);
+        }
+        .ea-test-close {
+            width: 32px; height: 32px; border-radius: var(--radius-md);
+            background: var(--bg-tertiary); border: 1px solid var(--border);
+            color: var(--text-secondary); cursor: pointer; font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .ea-test-close:hover { background: var(--error); color: white; border-color: var(--error); }
+        .ea-test-toolbar {
+            display: flex; gap: var(--spacing-sm); padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border); align-items: center; flex-wrap: wrap;
+        }
+        .ea-test-run-btn {
+            font-family: var(--font-display); font-weight: 600; font-size: var(--fs-sm);
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white; padding: 8px 18px; border-radius: var(--radius-md);
+            border: none; cursor: pointer; transition: all 0.15s;
+        }
+        .ea-test-run-btn:hover { box-shadow: 0 0 16px var(--accent-glow); transform: translateY(-1px); }
+        .ea-test-summary {
+            font-family: var(--font-mono); font-size: var(--fs-sm);
+            display: flex; gap: var(--spacing-md); align-items: center;
+        }
+        .ea-test-stat { display: flex; align-items: center; gap: 6px; }
+        .ea-test-stat-pass { color: var(--success); }
+        .ea-test-stat-fail { color: var(--error); }
+        .ea-test-stat-total { color: var(--text-secondary); }
+        .ea-test-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .ea-test-dot-pass { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .ea-test-dot-fail { background: var(--error); box-shadow: 0 0 6px var(--error); }
+        .ea-test-results {
+            flex: 1; overflow-y: auto;
+            padding: var(--spacing-md) var(--spacing-lg);
+        }
+        .ea-test-group {
+            margin-bottom: var(--spacing-md);
+        }
+        .ea-test-group-title {
+            font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 600;
+            color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: var(--spacing-sm);
+        }
+        .ea-test-row {
+            display: grid; grid-template-columns: auto 1fr auto auto auto;
+            gap: var(--spacing-md); align-items: center;
+            padding: 6px 8px; border-radius: var(--radius-sm);
+            font-family: var(--font-mono); font-size: var(--fs-xs);
+            border-left: 2px solid transparent;
+        }
+        .ea-test-row:hover { background: var(--bg-tertiary); }
+        .ea-test-row-pass { border-left-color: var(--success); }
+        .ea-test-row-fail { border-left-color: var(--error); background: rgba(239,68,68,0.05); }
+        .ea-test-name { color: var(--text-primary); font-family: var(--font-body); font-size: var(--fs-sm); }
+        .ea-test-expected, .ea-test-actual, .ea-test-tol {
+            color: var(--text-muted); font-size: var(--fs-xs); white-space: nowrap;
+        }
+        .ea-test-actual-fail { color: var(--error); font-weight: 600; }
+        .ea-test-actual-pass { color: var(--success); }
+        @media (max-width: 768px) {
+            .ea-test-row { grid-template-columns: auto 1fr; gap: var(--spacing-sm); }
+            .ea-test-expected, .ea-test-actual, .ea-test-tol { grid-column: 2; font-size: 11px; }
+        }
+
+        /* ============================================
+           3-COLUMN LAYOUT (extended from EA 2-col)
+           ============================================ */
+        .ea-main {
+            position: relative; z-index: 1; flex: 1;
+            max-width: 1600px; width: 100%; margin: 0 auto;
+            padding: var(--spacing-xl);
+            display: grid;
+            grid-template-columns: 360px 1fr 380px;
+            gap: var(--spacing-xl);
+            align-items: start;
+        }
+
+        @media (max-width: 1300px) {
+            .ea-main { grid-template-columns: 1fr; padding: var(--spacing-md); }
+            .ea-drawing-panel { min-height: 450px; }
+        }
+
+        /* ============================================
+           PANELS
+           ============================================ */
+        .ea-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            animation: fadeIn 0.4s ease forwards;
+        }
+        .ea-main > :nth-child(2) { animation-delay: 0.1s; }
+        .ea-main > :nth-child(3) { animation-delay: 0.2s; }
+
+        .ea-panel-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: var(--spacing-sm);
+        }
+        .ea-panel-icon { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+        .ea-panel-title {
+            font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 600;
+            color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;
+        }
+        .ea-panel-body { padding: var(--spacing-lg); }
+
+        /* Scrollable input/results panels */
+        .ea-panel-scroll {
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+        }
+        .ea-panel-scroll::-webkit-scrollbar { width: 4px; }
+        .ea-panel-scroll::-webkit-scrollbar-track { background: transparent; }
+        .ea-panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        /* ============================================
+           FORM ELEMENTS
+           ============================================ */
+        .ea-field { margin-bottom: var(--spacing-md); }
+        .ea-label {
+            display: block; font-size: var(--fs-xs); font-weight: 500;
+            color: var(--text-secondary); margin-bottom: var(--spacing-xs);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .ea-input-row { display: flex; align-items: center; gap: var(--spacing-sm); }
+        .ea-input-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm); }
+        .ea-input {
+            flex: 1; background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 10px 14px; border-radius: var(--radius-md);
+            font-family: var(--font-mono); font-size: var(--fs-base);
+            transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+        }
+        .ea-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-glow); }
+        .ea-input:disabled { opacity: 0.4; cursor: not-allowed; }
+        .ea-input::placeholder { color: var(--text-muted); }
+        .ea-unit {
+            font-family: var(--font-mono); font-size: var(--fs-xs);
+            color: var(--text-muted); min-width: 32px; text-align: right; flex-shrink: 0;
+        }
+        .ea-select {
+            appearance: none;
+            background: var(--bg-input) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E") no-repeat right 12px center;
+            border: 1px solid var(--border); color: var(--text-primary);
+            padding: 10px 36px 10px 14px; border-radius: var(--radius-md);
+            font-family: var(--font-mono); font-size: var(--fs-base);
+            cursor: pointer; width: 100%; transition: border-color 0.2s;
+        }
+        .ea-select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-glow); }
+        .ea-select option { background: var(--bg-secondary); color: var(--text-primary); }
+        .ea-select-sm { font-size: var(--fs-xs); padding: 8px 32px 8px 10px; }
+
+        .ea-checkbox-row {
+            display: flex; align-items: center; gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md); cursor: pointer;
+        }
+        .ea-checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+        .ea-checkbox-row label { font-size: var(--fs-sm); font-weight: 500; color: var(--text-primary); cursor: pointer; }
+
+        /* Profile Tabs */
+        .ea-tabs {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-xs); margin-bottom: var(--spacing-md);
+        }
+        .ea-tab {
+            padding: 10px 6px; border: 1px solid var(--border); background: var(--bg-input);
+            color: var(--text-secondary); border-radius: var(--radius-md); cursor: pointer;
+            font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 600;
+            text-align: center; transition: all 0.2s;
+        }
+        .ea-tab:hover { border-color: var(--accent); color: var(--text-primary); background: var(--accent-subtle); }
+        .ea-tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; border-color: var(--accent); }
+
+        /* Buttons */
+        .ea-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-sm);
+            padding: 11px 28px; border: none; border-radius: var(--radius-md);
+            font-family: var(--font-display); font-size: var(--fs-base); font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.3px;
+        }
+        .ea-btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white; box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+        }
+        .ea-btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-glow); }
+        .ea-btn-primary:active { transform: translateY(0); }
+        .ea-btn-block { width: 100%; }
+
+        .ea-divider { height: 1px; background: var(--border); margin: var(--spacing-lg) 0; }
+        .ea-section-title {
+            font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 600;
+            color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border);
+        }
+        .ea-info-badge {
+            font-size: var(--fs-xs); color: var(--accent); background: var(--accent-subtle);
+            padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md); line-height: 1.5;
+            border-left: 3px solid var(--accent);
+        }
+        .ea-warn-badge {
+            font-size: var(--fs-xs); color: var(--warning); background: rgba(245,158,11,0.1);
+            padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md); border-left: 3px solid var(--warning);
+        }
+        .profile-section { display: none; }
+        .profile-section.active { display: block; }
+
+        .ea-corr-box {
+            background: var(--bg-input); border-radius: var(--radius-md);
+            padding: var(--spacing-md); margin-top: var(--spacing-sm);
+            border: 1px solid var(--border);
+        }
+        .ea-corr-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: var(--fs-xs); }
+        .ea-corr-label { color: var(--text-muted); }
+        .ea-corr-val { color: var(--accent); font-family: var(--font-mono); font-weight: 600; }
+        .ea-corr-input {
+            width: 55px; background: transparent; border: none; color: var(--accent);
+            text-align: right; font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600;
+        }
+
+        .ea-angle-slider {
+            width: 100%; margin-top: 6px; -webkit-appearance: none; height: 4px;
+            border-radius: 2px; background: var(--border);
+        }
+        .ea-angle-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        /* ============================================
+           DRAWING PANEL
+           ============================================ */
+        .ea-drawing-panel { display: flex; flex-direction: column; }
+        .ea-drawing-panel .ea-panel-header { justify-content: space-between; }
+        .ea-drawing-area {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; cursor: grab; min-height: 500px;
+            background: var(--bg-primary);
+        }
+        .ea-drawing-area.panning { cursor: grabbing; }
+        .ea-drawing-area svg { max-width: 100%; max-height: 100%; transition: transform 0.1s ease; pointer-events: none; }
+
+        .ea-zoom-controls { display: flex; gap: 4px; align-items: center; }
+        .ea-zoom-btn {
+            width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg-tertiary); color: var(--text-secondary); font-size: 0.95rem;
+            cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+        }
+        .ea-zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .ea-zoom-level { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted); padding: 0 4px; min-width: 40px; text-align: center; }
+        .ea-drawing-note {
+            position: absolute; bottom: 10px; right: 14px;
+            font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono);
+        }
+
+        /* Dimension popup */
+        .ea-dim-popup {
+            position: absolute; background: var(--bg-secondary); border: 2px solid var(--accent);
+            border-radius: var(--radius-lg); padding: 8px; display: none; z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+        .ea-dim-popup.active { display: flex; gap: 5px; align-items: center; }
+        .ea-dim-popup input {
+            width: 70px; padding: 6px 8px; border: 1px solid var(--accent);
+            border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary);
+            font-size: var(--fs-sm); text-align: center; font-family: var(--font-mono);
+        }
+        .ea-dim-popup input:focus { outline: none; }
+        .ea-dim-popup button {
+            padding: 6px 10px; border: none; border-radius: var(--radius-sm);
+            font-weight: 700; cursor: pointer; font-size: var(--fs-sm);
+        }
+        .ea-dim-popup .ea-dim-ok { background: var(--accent); color: white; }
+        .ea-dim-popup .ea-dim-close { background: var(--error); color: white; }
+
+        /* SVG styles */
+        .profile-fill { fill: #2a3654; stroke: #6b7fa8; stroke-width: 1.8; }
+        .plate-fill { fill: #1e2d48; stroke: #6b7fa8; stroke-width: 1.8; }
+        .dimension-line { stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 4,3; }
+        .dimension-label {
+            font-size: 12px; font-weight: 600; fill: #f1f5f9;
+            font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: fill 0.2s;
+        }
+        .dimension-label:hover { fill: var(--accent); }
+        .axis-line { stroke: var(--error); stroke-width: 1; stroke-dasharray: 6,4; }
+        .centroid-marker { fill: var(--error); }
+
+        /* ============================================
+           RESULTS
+           ============================================ */
+        .ea-result-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--spacing-sm);
+        }
+        .ea-result-card {
+            background: var(--bg-tertiary); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: var(--spacing-md);
+        }
+        .ea-result-card-highlight { border-color: var(--border-accent); }
+        .ea-result-card-net { border-color: rgba(239,68,68,0.2); }
+        .ea-result-label {
+            font-size: var(--fs-xs); color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;
+        }
+        .ea-result-value {
+            font-family: var(--font-mono); font-size: var(--fs-md); font-weight: 700;
+            color: var(--text-primary); line-height: 1.3;
+        }
+        .ea-result-unit { font-size: var(--fs-xs); color: var(--text-muted); font-weight: 400; }
+        .ea-rv-accent { color: var(--accent) !important; }
+        .ea-rv-error { color: var(--error) !important; }
+        .ea-result-sub {
+            font-size: 0.68rem; color: var(--warning); font-family: var(--font-mono); margin-top: 2px;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .ea-footer {
+            position: relative; z-index: 10;
+            padding: var(--spacing-lg) var(--spacing-xl);
+            border-top: 1px solid var(--border); background: var(--bg-secondary);
+        }
+        .ea-footer::before {
+            content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.3;
+        }
+        .ea-footer-inner {
+            max-width: 1600px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: var(--spacing-md);
+        }
+        .ea-footer-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: var(--spacing-md); flex-wrap: wrap;
+        }
+        .ea-footer-signature { font-size: var(--fs-xs); color: var(--text-muted); }
+        .ea-footer-signature strong { color: var(--text-secondary); font-weight: 600; }
+        .ea-footer-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted); }
+        .ea-footer-links {
+            display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;
+        }
+        .ea-footer-link {
+            font-family: var(--font-mono); font-size: var(--fs-xs);
+            color: var(--text-secondary); text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: var(--radius-md);
+            background: var(--bg-tertiary); border: 1px solid var(--border);
+            transition: all 0.15s;
+        }
+        .ea-footer-link:hover {
+            color: var(--accent); border-color: var(--border-accent);
+            background: var(--accent-subtle);
+        }
+        .ea-footer-link svg {
+            width: 13px; height: 13px; flex-shrink: 0;
+        }
+        .ea-footer-note {
+            font-size: var(--fs-xs); color: var(--text-muted);
+            font-style: italic; text-align: center;
+            padding-top: var(--spacing-sm);
+            border-top: 1px dashed var(--border);
+        }
+        .ea-footer-note strong { color: var(--text-secondary); font-style: normal; font-weight: 600; }
+
+        /* ============================================
+           ANIMATIONS & UTILITIES
+           ============================================ */
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .mt-sm { margin-top: var(--spacing-sm); }
+        .mt-md { margin-top: var(--spacing-md); }
+        .mt-lg { margin-top: var(--spacing-lg); }
+
+        @media (max-width: 900px) {
+            .ea-header-inner { flex-direction: column; align-items: flex-start; }
+            .ea-tool-name { font-size: var(--fs-xl); }
+            .ea-footer-row { flex-direction: column; text-align: center; }
+        }
+    
+        /* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
+        :root {
+            --lumoship-bg-primary: #0a0e17;
+            --lumoship-bg-secondary: #0f141f;
+            --lumoship-bg-tertiary: #161c2a;
+            --lumoship-bg-card: #0d1220;
+            --lumoship-accent: #3b82f6;
+            --lumoship-accent-bright: #60a5fa;
+            --lumoship-text-primary: #f8fafc;
+            --lumoship-text-secondary: #94a3b8;
+            --lumoship-text-muted: #64748b;
+            --lumoship-text-dim: #475569;
+            --lumoship-border: #1e2536;
+            --lumoship-border-accent: rgba(59, 130, 246, 0.25);
+            --lumoship-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .lumoship-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--lumoship-border);
+            z-index: 1000;
+            padding: clamp(0.875rem, 1.5vw, 1.125rem) clamp(1.25rem, 4vw, 3rem);
+        }
+        
+        .lumoship-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .lumoship-nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity var(--lumoship-transition);
+        }
+        
+        .lumoship-nav-logo:hover {
+            opacity: 0.85;
+        }
+        
+        .lumoship-nav-logo-mark {
+            width: clamp(24px, 2.5vw, 28px);
+            height: clamp(24px, 2.5vw, 28px);
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 700;
+            font-size: clamp(0.85rem, 1vw, 0.95rem);
+            color: white;
+            letter-spacing: -0.02em;
+        }
+        
+        .lumoship-nav-logo-text {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            font-weight: 600;
+            color: var(--lumoship-text-primary);
+            letter-spacing: 0.06em;
+        }
+        
+        .lumoship-nav-links {
+            display: flex;
+            gap: clamp(1rem, 2.5vw, 2.25rem);
+            align-items: center;
+        }
+        
+        .lumoship-nav-link {
+            color: var(--lumoship-text-secondary);
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            transition: color var(--lumoship-transition);
+            padding: 0.5rem 0;
+            letter-spacing: -0.01em;
+        }
+        
+        .lumoship-nav-link:hover {
+            color: var(--lumoship-text-primary);
+        }
+        
+        /* Breadcrumb */
+        .lumoship-breadcrumb {
+            background: var(--lumoship-bg-secondary);
+            border-bottom: 1px solid var(--lumoship-border);
+            padding: 0.75rem clamp(1.25rem, 4vw, 3rem);
+        }
+        
+        .lumoship-breadcrumb-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            flex-wrap: wrap;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.7rem, 0.8vw, 0.78rem);
+        }
+        
+        .breadcrumb-link {
+            color: var(--lumoship-text-muted);
+            text-decoration: none;
+            transition: color var(--lumoship-transition);
+            letter-spacing: 0.02em;
+        }
+        
+        .breadcrumb-link:hover {
+            color: var(--lumoship-accent-bright);
+        }
+        
+        .breadcrumb-separator {
+            color: var(--lumoship-text-dim);
+            font-size: 0.85em;
+        }
+        
+        .breadcrumb-current {
+            color: var(--lumoship-accent);
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        
+        @media (max-width: 768px) {
+            .lumoship-nav-links {
+                gap: 0.75rem;
+            }
+            
+            .lumoship-nav-link {
+                font-size: 0.75rem;
+            }
+            
+            .lumoship-breadcrumb-inner {
+                font-size: 0.7rem;
+                gap: 0.4rem;
+            }
+        }
+        
+
+</style>
+</head>
+<body>
+
+    <!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
+    <nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <a href="https://lumoship.org" class="lumoship-nav-logo">
+                <div class="lumoship-nav-logo-mark">L</div>
+                <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+            </a>
+            <div class="lumoship-nav-links">
+                <a href="https://lumoship.org" class="lumoship-nav-link">Home</a>
+                <a href="https://lumoship.org/products.html" class="lumoship-nav-link">Products</a>
+                <a href="https://lumoship.org/pricing.html" class="lumoship-nav-link">Pricing</a>
+                <a href="https://lumoship.org/about.html" class="lumoship-nav-link">About</a>
+                <a href="https://lumoship.org/contact.html" class="lumoship-nav-link">Contact</a>
+                <a href="https://lumoship.org/login.html" class="lumoship-nav-link">Login</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Breadcrumb -->
+    <div class="lumoship-breadcrumb">
+        <div class="lumoship-breadcrumb-inner">
+            <a href="https://lumoship.org" class="breadcrumb-link">Lumoship</a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="https://lumoship.org/products.html" class="breadcrumb-link">Products</a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="https://lumoship.org/products.html#rule-based-design" class="breadcrumb-link">Rule-Based Design</a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-current">SectionPro</span>
+        </div>
+    </div>
+
+
+    <!-- ========== HEADER ========== -->
+    <header class="ea-header">
+        <div class="ea-header-inner">
+            <div class="ea-brand">
+                <div class="ea-logo">L</div>
+                <div class="ea-title-group">
+                    <h1 class="ea-tool-name">SectionPro</h1>
+                    <p class="ea-tool-subtitle">Steel Profile Section Properties Calculator</p>
+                </div>
+            </div>
+            <div class="ea-header-actions">
+                <!-- Test button hidden in production. To re-enable, remove style="display:none". -->
+                <button class="ea-test-btn" onclick="openTestPanel()" title="Run validation tests" style="display:none">⚗ Tests</button>
+                <div class="ea-header-badge">v1.0.0</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== TEST PANEL MODAL ========== -->
+    <div class="ea-test-overlay" id="test-overlay" onclick="if(event.target===this)closeTestPanel()">
+        <div class="ea-test-modal">
+            <div class="ea-test-header">
+                <div class="ea-test-title">Validation Tests</div>
+                <button class="ea-test-close" onclick="closeTestPanel()" title="Close">×</button>
+            </div>
+            <div class="ea-test-toolbar">
+                <button class="ea-test-run-btn" onclick="runAllTests()">▶ Run All Tests</button>
+                <div class="ea-test-summary" id="test-summary">
+                    <span class="ea-test-stat ea-test-stat-total">— tests not yet run</span>
+                </div>
+            </div>
+            <div class="ea-test-results" id="test-results">
+                <div style="color:var(--text-muted); font-family:var(--font-mono); font-size:var(--fs-sm); text-align:center; padding:var(--spacing-xl);">
+                    Click "Run All Tests" to validate calculations against hand-computed reference values.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MAIN ========== -->
+    <main class="ea-main">
+
+        <!-- ═══ INPUT PANEL ═══ -->
+        <div class="ea-panel">
+            <div class="ea-panel-header">
+                <div class="ea-panel-icon"></div>
+                <span class="ea-panel-title">Input Parameters</span>
+            </div>
+            <div class="ea-panel-body ea-panel-scroll">
+
+                <!-- Profile Type -->
+                <div class="ea-section-title">Profile Type</div>
+                <div class="ea-tabs">
+                    <button class="ea-tab active" onclick="selectProfile('L', this)">L</button>
+                    <button class="ea-tab" onclick="selectProfile('T', this)">T</button>
+                    <button class="ea-tab" onclick="selectProfile('FB', this)">FB</button>
+                    <button class="ea-tab" onclick="selectProfile('HP', this)">HP</button>
+                </div>
+
+                <!-- L Profile -->
+                <div id="L-section" class="profile-section active">
+                    <div class="ea-checkbox-row">
+                        <input type="checkbox" id="L-equal" checked onchange="toggleLEqual()">
+                        <label for="L-equal">Equal Legs</label>
+                    </div>
+                    <div class="ea-input-row-2">
+                        <div class="ea-field">
+                            <label class="ea-label">a (Leg 1)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="L-a" value="100" min="10" oninput="syncLDimensions()"><span class="ea-unit">mm</span></div>
+                        </div>
+                        <div class="ea-field">
+                            <label class="ea-label">b (Leg 2)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="L-b" value="100" min="10" disabled><span class="ea-unit">mm</span></div>
+                        </div>
+                    </div>
+                    <div class="ea-field">
+                        <label class="ea-label">t (Thickness)</label>
+                        <div class="ea-input-row"><input type="number" class="ea-input" id="L-t" value="10" min="1"><span class="ea-unit">mm</span></div>
+                    </div>
+                </div>
+
+                <!-- T Profile -->
+                <div id="T-section" class="profile-section">
+                    <div class="ea-input-row-2">
+                        <div class="ea-field">
+                            <label class="ea-label">h (Web Height)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="T-h" value="150" min="10"><span class="ea-unit">mm</span></div>
+                        </div>
+                        <div class="ea-field">
+                            <label class="ea-label">tw (Web Thick.)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="T-tw" value="10" min="1"><span class="ea-unit">mm</span></div>
+                        </div>
+                    </div>
+                    <div class="ea-input-row-2">
+                        <div class="ea-field">
+                            <label class="ea-label">bf (Flange Width)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="T-bf" value="100" min="10"><span class="ea-unit">mm</span></div>
+                        </div>
+                        <div class="ea-field">
+                            <label class="ea-label">tf (Flange Thick.)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="T-tf" value="12" min="1"><span class="ea-unit">mm</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FB Profile -->
+                <div id="FB-section" class="profile-section">
+                    <div class="ea-input-row-2">
+                        <div class="ea-field">
+                            <label class="ea-label">h (Height)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="FB-h" value="150" min="10"><span class="ea-unit">mm</span></div>
+                        </div>
+                        <div class="ea-field">
+                            <label class="ea-label">t (Thickness)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="FB-t" value="12" min="1"><span class="ea-unit">mm</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HP Profile -->
+                <div id="HP-section" class="profile-section">
+                    <div class="ea-field">
+                        <label class="ea-label">HP Catalog (EN 10067)</label>
+                        <select class="ea-select" id="HP-catalog" onchange="selectHPFromCatalog()">
+                            <option value="">— Manual Entry —</option>
+                        </select>
+                    </div>
+                    <div class="ea-input-row-2">
+                        <div class="ea-field">
+                            <label class="ea-label">b (Height)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="HP-b" value="200" min="10"><span class="ea-unit">mm</span></div>
+                        </div>
+                        <div class="ea-field">
+                            <label class="ea-label">t (Web Thick.)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="HP-t" value="10" min="1"><span class="ea-unit">mm</span></div>
+                        </div>
+                    </div>
+                    <div class="ea-input-row-2">
+                        <div class="ea-field">
+                            <label class="ea-label">c (Bulb Width)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="HP-c" value="28" min="5"><span class="ea-unit">mm</span></div>
+                        </div>
+                        <div class="ea-field">
+                            <label class="ea-label">r (Radius)</label>
+                            <div class="ea-input-row"><input type="number" class="ea-input" id="HP-r" value="8" min="1"><span class="ea-unit">mm</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ea-divider"></div>
+
+                <!-- Attached Plate -->
+                <div class="ea-section-title">Attached Plate</div>
+                <div class="ea-checkbox-row">
+                    <input type="checkbox" id="plate-enabled" checked>
+                    <label for="plate-enabled">Include Plate</label>
+                </div>
+                <div class="ea-input-row-2">
+                    <div class="ea-field">
+                        <label class="ea-label">Plate Width</label>
+                        <div class="ea-input-row"><input type="number" class="ea-input" id="plate-width" value="300" min="10"><span class="ea-unit">mm</span></div>
+                    </div>
+                    <div class="ea-field">
+                        <label class="ea-label">Plate Thickness</label>
+                        <div class="ea-input-row"><input type="number" class="ea-input" id="plate-thickness" value="12" min="1"><span class="ea-unit">mm</span></div>
+                    </div>
+                </div>
+
+                <div class="ea-divider"></div>
+
+                <!-- Corrosion -->
+                <div class="ea-section-title">Corrosion Allowance</div>
+                <div class="ea-checkbox-row">
+                    <input type="checkbox" id="corrosion-enabled" onchange="toggleCorrosion()">
+                    <label for="corrosion-enabled">Apply Corrosion (BV NR467)</label>
+                </div>
+                <div id="corrosion-section" style="display:none;">
+                    <div class="ea-info-badge">HP profiles: corrosion N/A — catalog values used</div>
+                    <div class="ea-field">
+                        <label class="ea-label">Plate Inner / Stiffener (tk₁)</label>
+                        <select class="ea-select ea-select-sm" id="plate-compartment-inner" onchange="updateCorrosionValues()">
+                            <option value="1.00">Ballast tank / Bilge / Chain locker (1.00)</option>
+                            <option value="1.00">Exposed to atmosphere (1.00)</option>
+                            <option value="1.00">Exposed to seawater (1.00)</option>
+                            <option value="0.50">Cargo oil tank / Fuel oil tank (0.50)</option>
+                            <option value="0.00">Chemical tank with coating (0.00)</option>
+                            <option value="0.00">LNG tank (0.00)</option>
+                            <option value="1.00">Dry bulk cargo hold (1.00)</option>
+                            <option value="1.75">Dry bulk - Inner bottom/Side plate (1.75)</option>
+                            <option value="1.00">Dry bulk - Frames & PSM (1.00)</option>
+                            <option value="0.50">Fresh water tank (0.50)</option>
+                            <option value="1.75">Moonpool (1.75)</option>
+                            <option value="1.25">Mud/brine tank (1.25)</option>
+                            <option value="2.00">Hopper well - dredging (2.00)</option>
+                            <option value="0.50">Cofferdam / Void space (0.50)</option>
+                            <option value="0.50" selected>Dry space - machinery/store (0.50)</option>
+                            <option value="0.50">Container hold - Trans. bhd (0.50)</option>
+                            <option value="1.00">Container hold - Elsewhere (1.00)</option>
+                            <option value="0.00">Accommodation (0.00)</option>
+                        </select>
+                    </div>
+                    <div class="ea-field">
+                        <label class="ea-label">Plate Outer (tk₂)</label>
+                        <select class="ea-select ea-select-sm" id="plate-compartment-outer" onchange="updateCorrosionValues()">
+                            <option value="1.00">Ballast tank / Bilge / Chain locker (1.00)</option>
+                            <option value="1.00">Exposed to atmosphere (1.00)</option>
+                            <option value="1.00">Exposed to seawater (1.00)</option>
+                            <option value="0.50">Cargo oil tank / Fuel oil tank (0.50)</option>
+                            <option value="0.00">Chemical tank with coating (0.00)</option>
+                            <option value="0.00">LNG tank (0.00)</option>
+                            <option value="1.00">Dry bulk cargo hold (1.00)</option>
+                            <option value="1.75">Dry bulk - Inner bottom/Side plate (1.75)</option>
+                            <option value="1.00">Dry bulk - Frames & PSM (1.00)</option>
+                            <option value="0.50">Fresh water tank (0.50)</option>
+                            <option value="1.75">Moonpool (1.75)</option>
+                            <option value="1.25">Mud/brine tank (1.25)</option>
+                            <option value="2.00">Hopper well - dredging (2.00)</option>
+                            <option value="0.50">Cofferdam / Void space (0.50)</option>
+                            <option value="0.50" selected>Dry space - machinery/store (0.50)</option>
+                            <option value="0.50">Container hold - Trans. bhd (0.50)</option>
+                            <option value="1.00">Container hold - Elsewhere (1.00)</option>
+                            <option value="0.00">Accommodation (0.00)</option>
+                        </select>
+                    </div>
+                    <div class="ea-corr-box">
+                        <div class="ea-corr-row"><span class="ea-corr-label">Plate tc</span><span><input type="number" id="plate-corr-total" value="1.0" readonly class="ea-corr-input"> mm</span></div>
+                        <div class="ea-corr-row"><span class="ea-corr-label">Stiffener tc (2×tk₁+tres)</span><span><input type="number" id="stiffener-corr-total" value="1.0" readonly class="ea-corr-input"> mm</span></div>
+                    </div>
+                </div>
+
+                <div class="ea-divider"></div>
+
+                <!-- Angle -->
+                <div class="ea-section-title">Profile Angle</div>
+                <div class="ea-field">
+                    <label class="ea-label">Angle (Plate ↔ Profile)</label>
+                    <div class="ea-input-row"><input type="number" class="ea-input" id="profile-angle" value="90" min="30" max="150" step="1"><span class="ea-unit">deg</span></div>
+                    <input type="range" class="ea-angle-slider" id="angle-slider" min="30" max="150" value="90"
+                        oninput="document.getElementById('profile-angle').value=this.value; calculate();">
+                </div>
+                <div class="ea-warn-badge" id="angle-warning" style="display:none;">⚠ Non-90° angle: results are approximate</div>
+
+                <button class="ea-btn ea-btn-primary ea-btn-block mt-md" onclick="calculate()">▶ Calculate & Draw</button>
+            </div>
+        </div>
+
+        <!-- ═══ DRAWING PANEL ═══ -->
+        <div class="ea-panel ea-drawing-panel">
+            <div class="ea-panel-header">
+                <div style="display:flex; align-items:center; gap:var(--spacing-sm);">
+                    <div class="ea-panel-icon"></div>
+                    <span class="ea-panel-title">Section View</span>
+                </div>
+                <div class="ea-zoom-controls">
+                    <button class="ea-zoom-btn" onclick="zoomOut()">−</button>
+                    <span class="ea-zoom-level" id="zoom-level">100%</span>
+                    <button class="ea-zoom-btn" onclick="zoomIn()">+</button>
+                    <button class="ea-zoom-btn" onclick="zoomReset()" style="font-size:0.8rem;">⟲</button>
+                </div>
+            </div>
+            <div class="ea-drawing-area" id="drawing-area">
+                <svg id="profile-svg" viewBox="0 0 550 550"></svg>
+                <div class="ea-dim-popup" id="dimension-popup">
+                    <input type="number" id="dimension-input" min="1" step="1">
+                    <button class="ea-dim-ok" onclick="applyDimensionChange()">✓</button>
+                    <button class="ea-dim-close" onclick="closeDimensionPopup()">✕</button>
+                </div>
+                <div class="ea-drawing-note">Dims in mm · Click to edit</div>
+            </div>
+        </div>
+
+        <!-- ═══ RESULTS PANEL ═══ -->
+        <div class="ea-panel">
+            <div class="ea-panel-header">
+                <div class="ea-panel-icon"></div>
+                <span class="ea-panel-title">Results</span>
+            </div>
+            <div class="ea-panel-body ea-panel-scroll">
+
+                <div class="ea-section-title">Area</div>
+                <div class="ea-result-grid">
+                    <div class="ea-result-card"><div class="ea-result-label">Total</div><div class="ea-result-value" id="result-area">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">Profile</div><div class="ea-result-value" id="result-profile-area">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">Plate</div><div class="ea-result-value" id="result-plate-area">—</div></div>
+                </div>
+
+                <div class="ea-section-title mt-lg">Centroid</div>
+                <div class="ea-result-grid">
+                    <div class="ea-result-card"><div class="ea-result-label">Ȳ (from top)</div><div class="ea-result-value" id="result-ybar">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">X̄ (from center)</div><div class="ea-result-value" id="result-xbar">—</div></div>
+                </div>
+
+                <div class="ea-section-title mt-lg">Moments of Inertia</div>
+                <div class="ea-result-grid">
+                    <div class="ea-result-card"><div class="ea-result-label">Ixx</div><div class="ea-result-value" id="result-ixx">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">Iyy</div><div class="ea-result-value" id="result-iyy">—</div></div>
+                </div>
+
+                <div class="ea-section-title mt-lg">Section Moduli — Gross</div>
+                <div class="ea-result-grid">
+                    <div class="ea-result-card ea-result-card-highlight"><div class="ea-result-label">Wxx Top</div><div class="ea-result-value ea-rv-accent" id="result-wxx-top">—</div></div>
+                    <div class="ea-result-card ea-result-card-highlight"><div class="ea-result-label">Wxx Bottom</div><div class="ea-result-value ea-rv-accent" id="result-wxx-bot">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">Wyy</div><div class="ea-result-value" id="result-wyy">—</div></div>
+                </div>
+
+                <!-- Net Section (Corrosion) -->
+                <div id="net-results-section" style="display:none;">
+                    <div class="ea-section-title mt-lg">Section Moduli — Net</div>
+                    <div class="ea-result-grid">
+                        <div class="ea-result-card ea-result-card-net">
+                            <div class="ea-result-label">Net Wxx Top</div>
+                            <div class="ea-result-value ea-rv-error" id="result-net-wxx-top">—</div>
+                            <div class="ea-result-sub" id="result-reduction-top"></div>
+                        </div>
+                        <div class="ea-result-card ea-result-card-net">
+                            <div class="ea-result-label">Net Wxx Bottom</div>
+                            <div class="ea-result-value ea-rv-error" id="result-net-wxx-bot">—</div>
+                            <div class="ea-result-sub" id="result-reduction-bot"></div>
+                        </div>
+                    </div>
+                    <div class="ea-corr-box mt-md">
+                        <div class="ea-corr-row"><span class="ea-corr-label">Plate tc (tk₁+tk₂)</span><span class="ea-corr-val" id="result-plate-corr">—</span></div>
+                        <div class="ea-corr-row"><span class="ea-corr-label">Stiffener tc (2×tk)</span><span class="ea-corr-val" id="result-stiff-corr">—</span></div>
+                        <div class="ea-corr-row"><span class="ea-corr-label">Net Plate Thickness</span><span class="ea-corr-val" id="result-net-plate-t">—</span></div>
+                    </div>
+                </div>
+
+                <div class="ea-section-title mt-lg">Radii of Gyration</div>
+                <div class="ea-result-grid">
+                    <div class="ea-result-card"><div class="ea-result-label">ix</div><div class="ea-result-value" id="result-ix">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">iy</div><div class="ea-result-value" id="result-iy">—</div></div>
+                </div>
+
+                <div class="ea-section-title mt-lg">Weight & Angle</div>
+                <div class="ea-result-grid">
+                    <div class="ea-result-card"><div class="ea-result-label">Unit Weight (ρ=7850)</div><div class="ea-result-value" id="result-weight">—</div></div>
+                    <div class="ea-result-card"><div class="ea-result-label">Profile Angle</div><div class="ea-result-value" id="result-angle">—</div></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="ea-footer">
+        <div class="ea-footer-inner">
+            <div class="ea-footer-row">
+                <div class="ea-footer-signature">Created by <strong>Ebubekir Akarsu</strong> — Structural Engineer</div>
+                <div class="ea-footer-links">
+                    <a class="ea-footer-link" href="https://www.linkedin.com/in/ebubekirakarsu/" target="_blank" rel="noopener noreferrer" title="LinkedIn profile">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+                        LinkedIn
+                    </a>
+                    <a class="ea-footer-link" href="mailto:ebubekir.akarsu@lumoship.org?subject=Feedback%3A%20SectionPro" title="Send feedback">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        Feedback
+                    </a>
+                </div>
+                <div class="ea-footer-meta"><span>© 2025–2026 All rights reserved</span></div>
+            </div>
+            <div class="ea-footer-note">
+                Part of <strong>Lumoship Engineering Tools</strong> — more tools coming soon. Stay tuned via LinkedIn.
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========== JAVASCRIPT ========== -->
+    <script>
+        /*
+         * SectionPro v1.0.0
+         * Created by Ebubekir Akarsu
+         * EA Coding Standard: camelCase vars, UPPER_SNAKE consts, BV refs in comments
+         */
+
+        // === HP Catalog (EN 10067) ===
+        const HP_CATALOG = [
+            { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.08, dx:3.24, Ixx:8.82 },
+            { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:3.79, dx:3.32, Ixx:10.6 },
+            { name:"HP 60x6", b:60, t:6, c:13, r:3.5, A:4.49, dx:3.40, Ixx:12.2 },
+            { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.09, dx:4.33, Ixx:26.3 },
+            { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.03, dx:4.43, Ixx:30.4 },
+            { name:"HP 80x7", b:80, t:7, c:14, r:4, A:6.95, dx:4.52, Ixx:34.2 },
+            { name:"HP 80x8", b:80, t:8, c:14, r:4, A:7.86, dx:4.61, Ixx:37.7 },
+            { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.64, dx:5.40, Ixx:61.7 },
+            { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.82, dx:5.51, Ixx:69.7 },
+            { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.98, dx:5.61, Ixx:77.2 },
+            { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.24, dx:6.48, Ixx:112 },
+            { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.7, dx:6.60, Ixx:127 },
+            { name:"HP 120x8", b:120, t:8, c:17, r:5, A:11.72, dx:6.96, Ixx:165 },
+            { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.6, dx:7.68, Ixx:208 },
+            { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:14.3, dx:7.81, Ixx:232 },
+            { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.9, dx:7.93, Ixx:254 },
+            { name:"HP 160x7", b:160, t:7, c:22, r:6, A:14.5, dx:8.83, Ixx:322 },
+            { name:"HP 160x8", b:160, t:8, c:22, r:6, A:16.4, dx:8.97, Ixx:359 },
+            { name:"HP 160x9", b:160, t:9, c:22, r:6, A:18.3, dx:9.10, Ixx:394 },
+            { name:"HP 180x8", b:180, t:8, c:25, r:7, A:18.6, dx:10.10, Ixx:526 },
+            { name:"HP 180x9", b:180, t:9, c:25, r:7, A:20.8, dx:10.25, Ixx:579 },
+            { name:"HP 180x10", b:180, t:10, c:25, r:7, A:22.9, dx:10.39, Ixx:629 },
+            { name:"HP 180x11", b:180, t:11, c:25, r:7, A:25.0, dx:10.52, Ixx:677 },
+            { name:"HP 200x9", b:200, t:9, c:28, r:8, A:23.3, dx:11.38, Ixx:814 },
+            { name:"HP 200x10", b:200, t:10, c:28, r:8, A:25.7, dx:11.54, Ixx:886 },
+            { name:"HP 200x11", b:200, t:11, c:28, r:8, A:28.1, dx:11.69, Ixx:955 },
+            { name:"HP 200x12", b:200, t:12, c:28, r:8, A:30.4, dx:11.83, Ixx:1020 },
+            { name:"HP 220x10", b:220, t:10, c:31, r:9, A:28.6, dx:12.68, Ixx:1210 },
+            { name:"HP 220x11", b:220, t:11, c:31, r:9, A:31.2, dx:12.84, Ixx:1300 },
+            { name:"HP 220x12", b:220, t:12, c:31, r:9, A:33.8, dx:12.99, Ixx:1400 },
+            { name:"HP 240x10", b:240, t:10, c:34, r:10, A:31.4, dx:13.82, Ixx:1610 },
+            { name:"HP 240x11", b:240, t:11, c:34, r:10, A:34.4, dx:13.99, Ixx:1740 },
+            { name:"HP 240x12", b:240, t:12, c:34, r:10, A:37.3, dx:14.15, Ixx:1870 },
+            { name:"HP 260x10", b:260, t:10, c:37, r:11, A:34.3, dx:14.96, Ixx:2100 },
+            { name:"HP 260x11", b:260, t:11, c:37, r:11, A:37.5, dx:15.14, Ixx:2270 },
+            { name:"HP 260x12", b:260, t:12, c:37, r:11, A:40.7, dx:15.31, Ixx:2440 },
+            { name:"HP 280x11", b:280, t:11, c:40, r:12, A:40.7, dx:16.28, Ixx:2900 },
+            { name:"HP 280x12", b:280, t:12, c:40, r:12, A:44.2, dx:16.46, Ixx:3120 },
+            { name:"HP 280x13", b:280, t:13, c:40, r:12, A:47.6, dx:16.63, Ixx:3330 },
+            { name:"HP 300x11", b:300, t:11, c:43, r:13, A:43.8, dx:17.42, Ixx:3640 },
+            { name:"HP 300x12", b:300, t:12, c:43, r:13, A:47.6, dx:17.61, Ixx:3920 },
+            { name:"HP 300x13", b:300, t:13, c:43, r:13, A:51.3, dx:17.79, Ixx:4190 },
+            { name:"HP 320x12", b:320, t:12, c:46, r:14, A:51.0, dx:18.75, Ixx:4840 },
+            { name:"HP 320x13", b:320, t:13, c:46, r:14, A:55.0, dx:18.94, Ixx:5180 },
+            { name:"HP 320x14", b:320, t:14, c:46, r:14, A:59.0, dx:19.12, Ixx:5510 },
+            { name:"HP 340x12", b:340, t:12, c:49, r:15, A:54.4, dx:19.89, Ixx:5900 },
+            { name:"HP 340x13", b:340, t:13, c:49, r:15, A:58.7, dx:20.09, Ixx:6310 },
+            { name:"HP 340x14", b:340, t:14, c:49, r:15, A:62.9, dx:20.28, Ixx:6710 },
+            { name:"HP 370x13", b:370, t:13, c:53.5, r:16.5, A:64.1, dx:21.73, Ixx:8230 },
+            { name:"HP 370x14", b:370, t:14, c:53.5, r:16.5, A:68.7, dx:21.94, Ixx:8760 },
+            { name:"HP 370x15", b:370, t:15, c:53.5, r:16.5, A:73.3, dx:22.14, Ixx:9270 },
+            { name:"HP 400x14", b:400, t:14, c:58, r:18, A:74.6, dx:23.59, Ixx:11200 },
+            { name:"HP 400x15", b:400, t:15, c:58, r:18, A:79.6, dx:23.81, Ixx:11900 },
+            { name:"HP 400x16", b:400, t:16, c:58, r:18, A:84.6, dx:24.02, Ixx:12500 },
+            { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:80.5, dx:25.32, Ixx:14100 },
+            { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:85.9, dx:25.55, Ixx:14900 },
+            { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:96.5, dx:25.99, Ixx:16500 },
+            { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:107, dx:26.41, Ixx:18000 },
+            { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:112, dx:26.61, Ixx:18700 }
+        ];
+
+        // === State ===
+        let currentProfile = 'L';
+        let currentZoom = 1, panX = 0, panY = 0;
+        let isPanning = false, startX = 0, startY = 0;
+        let currentEditingDimension = null;
+        const MIN_ZOOM = 0.5, MAX_ZOOM = 3, ZOOM_STEP = 0.25;
+
+        // === Profile Calculations ===
+        function _calcL(a, b, t) {
+            const aCm = a/10, bCm = b/10, tCm = t/10;
+            const area = (aCm + bCm - tCm) * tCm;
+            const A1 = aCm * tCm, A2 = (bCm - tCm) * tCm;
+            const y1 = aCm/2, y2 = tCm/2, x1 = tCm/2, x2 = tCm + (bCm-tCm)/2;
+            const centroidX = (A1*x1 + A2*x2) / area;
+            const centroidY = (A1*y1 + A2*y2) / area;
+            const Ixx = (tCm*aCm**3)/12 + A1*(y1-centroidY)**2 + ((bCm-tCm)*tCm**3)/12 + A2*(y2-centroidY)**2;
+            const Iyy = (aCm*tCm**3)/12 + A1*(x1-centroidX)**2 + (tCm*(bCm-tCm)**3)/12 + A2*(x2-centroidX)**2;
+            // Product of inertia (Ixy) — rectangles have zero Ixy in their own centroid,
+            // so only parallel-axis terms contribute. Needed for inclined L profiles.
+            const Ixy = A1*(x1-centroidX)*(y1-centroidY) + A2*(x2-centroidX)*(y2-centroidY);
+            return { type:'L', area, centroidX, centroidY, Ixx, Iyy, Ixy, height:aCm, maxWidth:bCm, xOffsetFromWebCenter: centroidX - tCm/2, dimensions:{a,b,t} };
+        }
+        function _calcT(h, tw, bf, tf) {
+            const hCm=h/10, twCm=tw/10, bfCm=bf/10, tfCm=tf/10;
+            const webArea = (hCm-tfCm)*twCm, flangeArea = bfCm*tfCm, area = webArea+flangeArea;
+            const webCY = tfCm + (hCm-tfCm)/2, flangeCY = tfCm/2;
+            const centroidY = (webArea*webCY + flangeArea*flangeCY) / area;
+            const Ixx = (twCm*(hCm-tfCm)**3)/12 + webArea*(webCY-centroidY)**2 + (bfCm*tfCm**3)/12 + flangeArea*(flangeCY-centroidY)**2;
+            const Iyy = ((hCm-tfCm)*twCm**3)/12 + (tfCm*bfCm**3)/12;
+            return { type:'T', area, centroidX:bfCm/2, centroidY, Ixx, Iyy, Ixy:0, height:hCm, maxWidth:bfCm, xOffsetFromWebCenter:0, dimensions:{h,tw,bf,tf} };
+        }
+        function _calcFB(h, t) {
+            const hCm=h/10, tCm=t/10, area=hCm*tCm;
+            return { type:'FB', area, centroidX:tCm/2, centroidY:hCm/2, Ixx:(tCm*hCm**3)/12, Iyy:(hCm*tCm**3)/12, Ixy:0, height:hCm, maxWidth:tCm, xOffsetFromWebCenter:0, dimensions:{h,t} };
+        }
+
+        function calculateLProfile() { return _calcL(pv('L-a',100), pv('L-b',100), pv('L-t',10)); }
+        function calculateTProfile() { return _calcT(pv('T-h',150), pv('T-tw',10), pv('T-bf',100), pv('T-tf',12)); }
+        function calculateFBProfile() { return _calcFB(pv('FB-h',150), pv('FB-t',12)); }
+        function calculateHPProfile() {
+            const b=pv('HP-b',200), t=pv('HP-t',10), c=pv('HP-c',28), r=pv('HP-r',8);
+            const bCm=b/10, tCm=t/10, cCm=c/10, rCm=r/10;
+            const cat = HP_CATALOG.find(hp => hp.b===b && hp.t===t);
+            let area, centroidY, Ixx;
+            if (cat) { area=cat.A; centroidY=cat.dx; Ixx=cat.Ixx; }
+            else {
+                const wH=bCm-cCm, wA=tCm*wH, bA=((tCm+cCm)/2)*cCm*0.5 + Math.PI*rCm**2/4;
+                area=wA+bA; const wCY=wH/2, bCY=wH+cCm*0.6;
+                centroidY=(wA*wCY+bA*bCY)/area;
+                Ixx=(tCm*wH**3)/12+wA*(wCY-centroidY)**2+bA*(cCm*0.3)**2+bA*(bCY-centroidY)**2;
+            }
+            // Iyy approximation: web rectangle (b × t) + bulb area offset (c-t)/2 from web axis.
+            // Much better than the previous A·c²/12 which ignored the web entirely.
+            const Aweb = bCm*tCm;
+            const Abulb = Math.max(0, area - Aweb);
+            const bulbOffset = (cCm - tCm) / 2;
+            const Iyy = (bCm*tCm**3)/12 + (Abulb*cCm**2)/12 + Abulb*bulbOffset**2;
+            return { type:'HP', area, centroidX:cCm/2, centroidY, Ixx, Iyy, Ixy:0, height:bCm, maxWidth:cCm, xOffsetFromWebCenter:(cCm-tCm)/2*0.4, dimensions:{b,t,c,r} };
+        }
+
+        function calculateProfileWithThickness(type, t1, t2) {
+            switch(type) {
+                case 'L': return _calcL(pv('L-a',100), pv('L-b',100), t1);
+                case 'T': return _calcT(pv('T-h',150), t1, pv('T-bf',100), t2);
+                case 'FB': return _calcFB(pv('FB-h',150), t1);
+            }
+        }
+
+        // === Combined Section ===
+        // Inclined profile (angle ≠ 90°): the profile web makes angle (90° - uiAngle) with the
+        // plate normal. Local section principal axes are rotated by that angle relative to the
+        // global axes (plate-parallel = global X, plate-normal = global Y). Mohr's transformation:
+        //   I_X_global = Ixx·sin²(ui) + Iyy·cos²(ui) − 2·Ixy·sin(ui)·cos(ui)
+        // For symmetric sections (T, FB, HP about the web axis) Ixy ≈ 0 and the −2·Ixy·s·c term
+        // vanishes. For L profiles Ixy is significant and must NOT be dropped — ignoring it
+        // produced large unsafe errors at non-90° angles in the original version.
+        function computeCombinedSection(pd, plateOn, pw, pt, angle) {
+            const rad=angle*Math.PI/180, sinA=Math.sin(rad), cosA=Math.cos(rad);
+            const effH = pd.height*sinA;
+            const pwCm=pw/10, ptCm=pt/10;
+            const pArea = plateOn ? pwCm*ptCm : 0;
+            const totalArea = pd.area + pArea;
+            const Ixy = pd.Ixy || 0;
+            // Profile centroidal moments resolved onto the global (plate-aligned) axes:
+            const Ixx_rot = pd.Ixx*sinA**2 + pd.Iyy*cosA**2 - 2*Ixy*sinA*cosA;
+            const Iyy_rot = pd.Ixx*cosA**2 + pd.Iyy*sinA**2 + 2*Ixy*sinA*cosA;
+            let combCY;
+            if (plateOn) {
+                const plateCY = ptCm/2;
+                const profCY = pd.type==='HP' ? ptCm+pd.centroidY*sinA : ptCm+(pd.height-pd.centroidY)*sinA;
+                combCY = (pArea*plateCY + pd.area*profCY) / totalArea;
+            } else {
+                combCY = pd.type==='HP' ? pd.centroidY*sinA : (pd.height-pd.centroidY)*sinA;
+            }
+            const totalH = plateOn ? ptCm+effH : effH;
+            const profOX = pd.xOffsetFromWebCenter||0;
+            const combCX = plateOn ? (pd.area*profOX)/totalArea : profOX;
+
+            let combIxx;
+            if (plateOn) {
+                const plateCY=ptCm/2;
+                const profCY = pd.type==='HP' ? ptCm+pd.centroidY*sinA : ptCm+(pd.height-pd.centroidY)*sinA;
+                const d1=plateCY-combCY, d2=profCY-combCY;
+                const pIxx=(pwCm*ptCm**3)/12;
+                combIxx = Ixx_rot + pd.area*d2**2 + pIxx + pArea*d1**2;
+            } else { combIxx = Ixx_rot; }
+
+            let combIyy;
+            if (plateOn) {
+                const pIyy=(ptCm*pwCm**3)/12;
+                const dxP=0-combCX, dxPr=profOX-combCX;
+                combIyy = Iyy_rot + pd.area*dxPr**2 + pIyy + pArea*dxP**2;
+            } else { combIyy = Iyy_rot; }
+
+            const yT=combCY, yB=totalH-combCY;
+            const WxxTop=combIxx/yT, WxxBot=combIxx/yB;
+            // Wyy must use the actual furthest fibre — for narrow plates with wide flanges
+            // the profile's half-width can exceed the plate's, so include both candidates.
+            const profHalfW = pd.maxWidth/2;
+            let yyyMax;
+            if (plateOn) {
+                const pL=-pwCm/2-combCX, pR=pwCm/2-combCX;
+                const profL=profOX-profHalfW-combCX, profR=profOX+profHalfW-combCX;
+                yyyMax = Math.max(Math.abs(pL),Math.abs(pR),Math.abs(profL),Math.abs(profR));
+            } else { yyyMax = profHalfW; }
+            const Wyy = combIyy / (yyyMax||profHalfW);
+            return { totalArea, plateArea:pArea, combinedCentroidY:combCY, combinedCentroidX:combCX,
+                totalHeight:totalH, combinedIxx:combIxx, combinedIyy:combIyy,
+                WxxTop, WxxBot, Wyy, ix:Math.sqrt(combIxx/totalArea), iy:Math.sqrt(combIyy/totalArea),
+                weight:totalArea*7850/10000, sinA, cosA };
+        }
+
+        // === Main Calculate ===
+        function calculate() {
+            const plateOn = el('plate-enabled').checked;
+            const pw = pv('plate-width',0), pt = pv('plate-thickness',0);
+            const angle = pv('profile-angle',90);
+            updateAngleWarning();
+            let pd;
+            switch(currentProfile) {
+                case 'L': pd=calculateLProfile(); break;
+                case 'T': pd=calculateTProfile(); break;
+                case 'FB': pd=calculateFBProfile(); break;
+                case 'HP': pd=calculateHPProfile(); break;
+            }
+            const r = computeCombinedSection(pd, plateOn, pw, pt, angle);
+            const f = (v,u) => `${v.toFixed(2)}<span class="ea-result-unit"> ${u}</span>`;
+            el('result-area').innerHTML=f(r.totalArea,'cm²');
+            el('result-profile-area').innerHTML=f(pd.area,'cm²');
+            el('result-plate-area').innerHTML=plateOn?f(r.plateArea,'cm²'):'—';
+            el('result-ybar').innerHTML=f(r.combinedCentroidY,'cm');
+            el('result-xbar').innerHTML=f(r.combinedCentroidX,'cm');
+            el('result-ixx').innerHTML=f(r.combinedIxx,'cm⁴');
+            el('result-iyy').innerHTML=f(r.combinedIyy,'cm⁴');
+            el('result-wxx-top').innerHTML=f(r.WxxTop,'cm³');
+            el('result-wxx-bot').innerHTML=f(r.WxxBot,'cm³');
+            el('result-wyy').innerHTML=f(r.Wyy,'cm³');
+            el('result-ix').innerHTML=f(r.ix,'cm');
+            el('result-iy').innerHTML=f(r.iy,'cm');
+            el('result-weight').innerHTML=f(r.weight,'kg/m');
+            el('result-angle').innerHTML=`${angle.toFixed(1)}°`;
+
+            // Net section
+            const corrOn = el('corrosion-enabled').checked;
+            if (corrOn && currentProfile!=='HP' && plateOn) {
+                const ptCorr=parseFloat(el('plate-corr-total').value)||0;
+                const stCorr=parseFloat(el('stiffener-corr-total').value)||0;
+                const netPt=Math.max(0,pt-ptCorr);
+                let netPd;
+                switch(currentProfile) {
+                    case 'L': netPd=calculateProfileWithThickness('L',Math.max(1,pv('L-t',10)-stCorr)); break;
+                    case 'T': netPd=calculateProfileWithThickness('T',Math.max(1,pv('T-tw',10)-stCorr),Math.max(1,pv('T-tf',12)-stCorr)); break;
+                    case 'FB': netPd=calculateProfileWithThickness('FB',Math.max(1,pv('FB-t',12)-stCorr)); break;
+                }
+                const nr=computeCombinedSection(netPd,true,pw,netPt,angle);
+                el('result-net-wxx-top').innerHTML=f(nr.WxxTop,'cm³');
+                el('result-net-wxx-bot').innerHTML=f(nr.WxxBot,'cm³');
+                el('result-reduction-top').textContent=`↓ −${((r.WxxTop-nr.WxxTop)/r.WxxTop*100).toFixed(1)}%`;
+                el('result-reduction-bot').textContent=`↓ −${((r.WxxBot-nr.WxxBot)/r.WxxBot*100).toFixed(1)}%`;
+                el('result-plate-corr').textContent=`${ptCorr.toFixed(2)} mm`;
+                el('result-stiff-corr').textContent=`${stCorr.toFixed(2)} mm`;
+                el('result-net-plate-t').textContent=`${netPt.toFixed(1)} mm`;
+                el('net-results-section').style.display='block';
+            } else if (corrOn && currentProfile==='HP') {
+                el('result-net-wxx-top').innerHTML='<span style="color:var(--text-muted)">N/A (HP)</span>';
+                el('result-net-wxx-bot').innerHTML='<span style="color:var(--text-muted)">N/A (HP)</span>';
+                el('result-reduction-top').textContent=''; el('result-reduction-bot').textContent='';
+                el('result-plate-corr').textContent='—'; el('result-stiff-corr').textContent='—'; el('result-net-plate-t').textContent='—';
+                el('net-results-section').style.display='block';
+            } else { el('net-results-section').style.display='none'; }
+
+            drawProfile(pd, plateOn, pw, pt, r.combinedCentroidY, r.totalHeight, angle);
+        }
+
+        // === Corrosion (BV NR467 Sec 3, 1.2.1) ===
+        function toggleCorrosion() {
+            const on = el('corrosion-enabled').checked;
+            el('corrosion-section').style.display = on?'block':'none';
+            el('net-results-section').style.display = on?'block':'none';
+            if (on) updateCorrosionValues();
+            calculate();
+        }
+        function updateCorrosionValues() {
+            const tk1=parseFloat(el('plate-compartment-inner').value)||0;
+            const tk2=parseFloat(el('plate-compartment-outer').value)||0;
+            const ptGross=pv('plate-thickness',0);
+            let stGross=0;
+            switch(currentProfile) {
+                case 'L': stGross=pv('L-t',0); break;
+                case 'T': stGross=Math.min(pv('T-tw',0),pv('T-tf',0)); break;
+                case 'FB': stGross=pv('FB-t',0); break;
+            }
+            const tres=0.5;
+            let ptCorr = (tk1===0&&tk2===0) ? 0 : ptGross<=10 ? Math.min(tk1+tk2+tres,0.2*ptGross) : tk1+tk2+tres;
+            let stCorr = tk1===0 ? 0 : (stGross<=10&&stGross>0) ? Math.min(2*tk1+tres,0.2*stGross) : 2*tk1+tres;
+            el('plate-corr-total').value=ptCorr.toFixed(2);
+            el('stiffener-corr-total').value=stCorr.toFixed(2);
+            calculate();
+        }
+
+        // === UI Controls ===
+        function pv(id,def) { return parseFloat(document.getElementById(id).value)||def; }
+        function el(id) { return document.getElementById(id); }
+
+        function selectProfile(type, btn) {
+            currentProfile=type;
+            document.querySelectorAll('.ea-tab').forEach(b=>b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            document.querySelectorAll('.profile-section').forEach(s=>s.classList.remove('active'));
+            el(`${type}-section`).classList.add('active');
+            calculate();
+        }
+        function toggleLEqual() { const eq=el('L-equal').checked; el('L-b').disabled=eq; if(eq) el('L-b').value=el('L-a').value; }
+        function syncLDimensions() { if(el('L-equal').checked) el('L-b').value=el('L-a').value; }
+        function selectHPFromCatalog() {
+            const s=HP_CATALOG.find(hp=>hp.name===el('HP-catalog').value);
+            if(s){el('HP-b').value=s.b;el('HP-t').value=s.t;el('HP-c').value=s.c;el('HP-r').value=s.r;}
+            calculate();
+        }
+        function populateHPCatalog() { HP_CATALOG.forEach(hp=>{const o=document.createElement('option');o.value=hp.name;o.textContent=hp.name;el('HP-catalog').appendChild(o);}); }
+        function updateAngleWarning() { el('angle-warning').style.display=(pv('profile-angle',90)!==90)?'block':'none'; }
+
+        // Zoom & Pan
+        function zoomIn(){if(currentZoom<MAX_ZOOM){currentZoom+=ZOOM_STEP;applyTransform();}}
+        function zoomOut(){if(currentZoom>MIN_ZOOM){currentZoom-=ZOOM_STEP;applyTransform();}}
+        function zoomReset(){currentZoom=1;panX=0;panY=0;applyTransform();}
+        function applyTransform(){el('profile-svg').style.transform=`translate(${panX}px,${panY}px) scale(${currentZoom})`;el('zoom-level').textContent=`${Math.round(currentZoom*100)}%`;}
+
+        // Dimension popup
+        function openDimensionPopup(dimType,curVal,event){
+            event.stopPropagation();const popup=el('dimension-popup'),input=el('dimension-input');
+            const da=el('drawing-area'),rect=da.getBoundingClientRect();
+            currentEditingDimension=dimType;input.value=curVal;
+            popup.style.left=(event.clientX-rect.left+10)+'px';popup.style.top=(event.clientY-rect.top-20)+'px';
+            popup.classList.add('active');input.focus();input.select();
+        }
+        function closeDimensionPopup(){el('dimension-popup').classList.remove('active');currentEditingDimension=null;}
+        function applyDimensionChange(){
+            const nv=parseFloat(el('dimension-input').value);if(isNaN(nv)||nv<=0)return;
+            switch(currentEditingDimension){
+                case 'plate-width':el('plate-width').value=nv;break;
+                case 'plate-thickness':el('plate-thickness').value=nv;break;
+                case 'L-a':case 'L-b':el(currentEditingDimension).value=nv;if(el('L-equal').checked){el('L-a').value=nv;el('L-b').value=nv;}break;
+                case 'T-h':case 'T-bf':el(currentEditingDimension).value=nv;break;
+                case 'FB-h':case 'FB-t':el(currentEditingDimension).value=nv;break;
+                case 'HP-b':case 'HP-c':el(currentEditingDimension).value=nv;el('HP-catalog').value='';break;
+            }
+            closeDimensionPopup();calculate();
+        }
+
+        // === Drawing ===
+        function drawProfile(pd, plateOn, pw, pt, combCY, totalH, angle) {
+            const svg=el('profile-svg'), w=550, h=550, margin=100;
+            const rad=angle*Math.PI/180;
+            const maxDim=Math.max(pd.height*10*Math.sin(rad)+pd.maxWidth*10*Math.abs(Math.cos(rad)),plateOn?pw:0,plateOn?pt+pd.height*10:pd.height*10);
+            const scale=(Math.min(w,h)-2*margin)/maxDim;
+            const cx=w/2, ptY=margin+50;
+            let s=`<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(59,130,246,0.03)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/>`;
+            let pbY=ptY;
+            if(plateOn){const pW=pw*scale,pH=pt*scale;pbY=ptY+pH;
+                s+=`<rect x="${cx-pW/2}" y="${ptY}" width="${pW}" height="${pH}" class="plate-fill"/>`;
+                s+=drawDim(cx-pW/2,ptY-40,cx+pW/2,ptY-40,`${pw}`,false,'plate-width');
+                s+=drawDim(cx-pW/2-35,ptY,cx-pW/2-35,pbY,`${pt}`,true,'plate-thickness');
+            }
+            switch(pd.type){
+                case 'L':s+=drawLDown(pd,cx,pbY,scale,angle);break;
+                case 'T':s+=drawTDown(pd,cx,pbY,scale,angle);break;
+                case 'FB':s+=drawFBDown(pd,cx,pbY,scale,angle);break;
+                case 'HP':s+=drawHPDown(pd,cx,pbY,scale,angle);break;
+            }
+            const aCY=ptY+(combCY*10*scale);
+            const aLen=Math.max(pw,pd.maxWidth*10)*scale*0.8;
+            s+=`<line x1="${cx-aLen}" y1="${aCY}" x2="${cx+aLen}" y2="${aCY}" class="axis-line"/>`;
+            s+=`<circle cx="${cx}" cy="${aCY}" r="5" class="centroid-marker"/>`;
+            s+=`<text x="${cx+aLen+5}" y="${aCY+4}" class="dimension-label" fill="#ef4444" style="cursor:default;pointer-events:none;">N.A.</text>`;
+            if(angle!==90){s+=`<line x1="${cx}" y1="${pbY}" x2="${cx}" y2="${pbY+60}" stroke="#334155" stroke-width="1" stroke-dasharray="3,3"/>`;
+                s+=`<text x="${cx+50}" y="${pbY+40}" class="dimension-label" fill="#f59e0b" style="cursor:default;pointer-events:none;">${angle}°</text>`;}
+            svg.innerHTML=s;
+        }
+        function drawLDown(d,cx,tY,sc,ang){const{a,b,t}=d.dimensions;const ar=ang*Math.PI/180,aS=a*sc,bS=b*sc,tS=t*sc;
+            const pts=[{x:-tS/2,y:0},{x:-tS/2,y:aS},{x:-tS/2+bS,y:aS},{x:-tS/2+bS,y:aS-tS},{x:tS/2,y:aS-tS},{x:tS/2,y:0}];
+            const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
+            let s=`<path d="M ${rp.map(p=>`${p.x} ${p.y}`).join(' L ')} Z" class="profile-fill"/>`;
+            if(ang===90){s+=drawDim(rp[1].x,rp[1].y+25,rp[2].x,rp[2].y+25,`${b}`,false,'L-b');s+=drawDim(cx+bS/2+35,tY,cx+bS/2+35,tY+aS,`${a}`,true,'L-a');}return s;}
+        function drawTDown(d,cx,tY,sc,ang){const{h,tw,bf,tf}=d.dimensions;const ar=ang*Math.PI/180,hS=h*sc,twS=tw*sc,bfS=bf*sc,tfS=tf*sc;
+            const pts=[{x:-twS/2,y:0},{x:-twS/2,y:hS-tfS},{x:-bfS/2,y:hS-tfS},{x:-bfS/2,y:hS},{x:bfS/2,y:hS},{x:bfS/2,y:hS-tfS},{x:twS/2,y:hS-tfS},{x:twS/2,y:0}];
+            const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
+            let s=`<path d="M ${rp.map(p=>`${p.x} ${p.y}`).join(' L ')} Z" class="profile-fill"/>`;
+            if(ang===90){s+=drawDim(cx+bfS/2+35,tY,cx+bfS/2+35,tY+hS,`${h}`,true,'T-h');s+=drawDim(cx-bfS/2,tY+hS+25,cx+bfS/2,tY+hS+25,`${bf}`,false,'T-bf');}return s;}
+        function drawFBDown(d,cx,tY,sc,ang){const{h,t}=d.dimensions;const ar=ang*Math.PI/180,hS=h*sc,tS=t*sc;
+            const pts=[{x:-tS/2,y:0},{x:-tS/2,y:hS},{x:tS/2,y:hS},{x:tS/2,y:0}];
+            const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
+            let s=`<path d="M ${rp.map(p=>`${p.x} ${p.y}`).join(' L ')} Z" class="profile-fill"/>`;
+            if(ang===90){s+=drawDim(cx+tS/2+35,tY,cx+tS/2+35,tY+hS,`${h}`,true,'FB-h');s+=drawDim(cx-tS/2,tY+hS+25,cx+tS/2,tY+hS+25,`${t}`,false,'FB-t');}return s;}
+        function drawHPDown(d,cx,tY,sc,ang){const{b,t,c,r}=d.dimensions;const ar=ang*Math.PI/180,bS=b*sc,tS=t*sc,cS=c*sc,rS=r*sc;let s='';
+            if(ang===90){const lE=cx-tS/2,rE=cx+tS/2,pB=tY+bS;const sa=30*Math.PI/180,si=Math.sin(sa),co=Math.cos(sa);const bTX=cx+cS;
+                const uTX=rE+rS*si,uTY=pB-cS+rS*(1-co);const lRCX=bTX-rS,lTX=lRCX+rS*si,lTY=pB-rS-rS*co;const r2=rS*0.4;const uRCY=pB-cS+rS*si;
+                s+=`<path d="M ${lE} ${tY} L ${lE} ${pB-r2} Q ${lE} ${pB} ${lE+r2} ${pB} L ${lRCX} ${pB} A ${rS} ${rS} 0 0 0 ${lTX} ${lTY} L ${uTX} ${uTY} A ${rS} ${rS} 0 0 1 ${rE} ${uRCY-rS} L ${rE} ${tY} Z" class="profile-fill"/>`;
+                s+=drawDim(bTX+30,tY,bTX+30,pB,`${b}`,true,'HP-b');s+=drawDim(lE,tY-18,rE,tY-18,`${t}`);s+=drawDim(cx,pB+30,bTX,pB+30,`${c}`,false,'HP-c');
+            } else {const sa=30*Math.PI/180,si=Math.sin(sa),co=Math.cos(sa);const bTX=tS/2+cS,bSY=bS-cS;
+                const uTX=tS/2+rS*si,uTY=bSY+rS*(1-co);const lRCX=bTX-rS,lTX=lRCX+rS*si,lTY=bS-rS-rS*co;
+                const pts=[{x:-tS/2,y:0},{x:-tS/2,y:bS-rS*0.4},{x:-tS/2+rS*0.4,y:bS},{x:lRCX,y:bS},{x:bTX,y:bS-rS},{x:lTX,y:lTY},{x:uTX,y:uTY},{x:tS/2,y:bSY-rS},{x:tS/2,y:0}];
+                const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
+                s+=`<path d="M ${rp.map(p=>`${p.x} ${p.y}`).join(' L ')} Z" class="profile-fill"/>`;}
+            return s;}
+        function drawDim(x1,y1,x2,y2,txt,vert=false,editId=null){
+            const mx=(x1+x2)/2,my=(y1+y2)/2;let s=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="dimension-line"/>`;
+            const ck=editId?`onclick="openDimensionPopup('${editId}',${txt},event)" style="cursor:pointer;pointer-events:all;"`:'';
+            if(vert){s+=`<line x1="${x1-5}" y1="${y1}" x2="${x1+5}" y2="${y1}" stroke="#3b82f6" stroke-width="1.2"/>`;
+                s+=`<line x1="${x2-5}" y1="${y2}" x2="${x2+5}" y2="${y2}" stroke="#3b82f6" stroke-width="1.2"/>`;
+                s+=`<text x="${mx+16}" y="${my+4}" class="dimension-label" transform="rotate(-90 ${mx+16} ${my+4})" ${ck}>${txt}</text>`;
+            } else {s+=`<line x1="${x1}" y1="${y1-5}" x2="${x1}" y2="${y1+5}" stroke="#3b82f6" stroke-width="1.2"/>`;
+                s+=`<line x1="${x2}" y1="${y2-5}" x2="${x2}" y2="${y2+5}" stroke="#3b82f6" stroke-width="1.2"/>`;
+                s+=`<text x="${mx}" y="${my-8}" class="dimension-label" text-anchor="middle" ${ck}>${txt}</text>`;}return s;}
+
+        // === Init ===
+        document.addEventListener('DOMContentLoaded', function(){
+            populateHPCatalog();
+            el('profile-angle').addEventListener('input',function(){el('angle-slider').value=this.value;updateAngleWarning();calculate();});
+            const da=el('drawing-area');
+            da.addEventListener('wheel',function(e){e.preventDefault();e.deltaY<0?zoomIn():zoomOut();});
+            da.addEventListener('mousedown',function(e){if(e.target.closest('.ea-zoom-controls'))return;isPanning=true;startX=e.clientX-panX;startY=e.clientY-panY;da.classList.add('panning');});
+            document.addEventListener('mousemove',function(e){if(!isPanning)return;panX=e.clientX-startX;panY=e.clientY-startY;applyTransform();});
+            document.addEventListener('mouseup',function(){isPanning=false;el('drawing-area').classList.remove('panning');});
+            da.addEventListener('mouseleave',function(){if(isPanning){isPanning=false;da.classList.remove('panning');}});
+            document.addEventListener('keydown',function(e){
+                if(e.key==='Enter'&&currentEditingDimension)applyDimensionChange();
+                else if(e.key==='Escape'){if(currentEditingDimension)closeDimensionPopup();if(el('test-overlay').classList.contains('active'))closeTestPanel();}
+            });
+            calculate();
+        });
+
+        // ============================================
+        // TEST INFRASTRUCTURE
+        // ============================================
+        // Golden reference values computed by independent hand calculation in Python,
+        // then cross-checked against the formulas. Tolerance defaults to 0.5% relative.
+        // ============================================
+
+        function openTestPanel() { el('test-overlay').classList.add('active'); }
+        function closeTestPanel() { el('test-overlay').classList.remove('active'); }
+
+        // Compare a computed value to expected within either absolute or relative tolerance.
+        function approx(actual, expected, tolRel=0.005, tolAbs=0.001) {
+            if (!isFinite(actual) || !isFinite(expected)) return false;
+            const diff = Math.abs(actual - expected);
+            if (diff <= tolAbs) return true;
+            if (expected === 0) return diff <= tolAbs;
+            return diff / Math.abs(expected) <= tolRel;
+        }
+
+        // Test case definitions. Each yields one or more assertions against a known result.
+        const TEST_CASES = [
+            // ===== GROUP: Bare profile properties =====
+            { group: 'Bare Profile Properties', name: 'L 100×100×10: area', fn: () => {
+                const r = _calcL(100,100,10);
+                return { actual: r.area, expected: 19.0, unit: 'cm²' };
+            }},
+            { group: 'Bare Profile Properties', name: 'L 100×100×10: centroidY', fn: () => {
+                const r = _calcL(100,100,10);
+                return { actual: r.centroidY, expected: 2.8684, unit: 'cm' };
+            }},
+            { group: 'Bare Profile Properties', name: 'L 100×100×10: Ixx', fn: () => {
+                const r = _calcL(100,100,10);
+                return { actual: r.Ixx, expected: 180.0044, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'L 100×100×10: Ixy (non-zero!)', fn: () => {
+                const r = _calcL(100,100,10);
+                return { actual: r.Ixy, expected: -106.5789, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'L 100×100×10: Ixx == Iyy (symmetric)', fn: () => {
+                const r = _calcL(100,100,10);
+                return { actual: r.Ixx, expected: r.Iyy, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'L 150×100×10: Ixx (unequal)', fn: () => {
+                const r = _calcL(150,100,10);
+                return { actual: r.Ixx, expected: 557.62, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'T 150×10/100×12: area', fn: () => {
+                const r = _calcT(150,10,100,12);
+                return { actual: r.area, expected: 25.80, unit: 'cm²' };
+            }},
+            { group: 'Bare Profile Properties', name: 'T 150×10/100×12: centroidY', fn: () => {
+                const r = _calcT(150,10,100,12);
+                return { actual: r.centroidY, expected: 4.6116, unit: 'cm' };
+            }},
+            { group: 'Bare Profile Properties', name: 'T 150×10/100×12: Ixx', fn: () => {
+                const r = _calcT(150,10,100,12);
+                return { actual: r.Ixx, expected: 581.4925, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'T: Ixy must be 0 (symmetric)', fn: () => {
+                const r = _calcT(150,10,100,12);
+                return { actual: r.Ixy, expected: 0, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'FB 150×12: area', fn: () => {
+                const r = _calcFB(150,12);
+                return { actual: r.area, expected: 18.0, unit: 'cm²' };
+            }},
+            { group: 'Bare Profile Properties', name: 'FB 150×12: Ixx = t·h³/12', fn: () => {
+                const r = _calcFB(150,12);
+                return { actual: r.Ixx, expected: 337.5, unit: 'cm⁴' };
+            }},
+            { group: 'Bare Profile Properties', name: 'FB 150×12: Iyy = h·t³/12', fn: () => {
+                const r = _calcFB(150,12);
+                return { actual: r.Iyy, expected: 2.16, unit: 'cm⁴' };
+            }},
+
+            // ===== GROUP: Combined section, 90° (perpendicular) =====
+            { group: 'Combined Section @ 90°', name: 'FB 150×12 + Plate 600×10: area', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
+                return { actual: r.totalArea, expected: 78.0, unit: 'cm²' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'FB 150×12 + Plate 600×10: cY (NA from plate top)', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
+                return { actual: r.combinedCentroidY, expected: 2.3462, unit: 'cm' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'FB 150×12 + Plate 600×10: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
+                return { actual: r.combinedIxx, expected: 1228.6538, unit: 'cm⁴' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'FB 150×12 + Plate 600×10: Wxx_top', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
+                return { actual: r.WxxTop, expected: 523.6885, unit: 'cm³' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'FB 150×12 + Plate 600×10: Wxx_bot', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
+                return { actual: r.WxxBot, expected: 89.9859, unit: 'cm³' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'T 150×10/100×12 + Plate 600×10: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                return { actual: r.combinedIxx, expected: 2725.4866, unit: 'cm⁴' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'T 150×10/100×12 + Plate 600×10: Wxx_top', fn: () => {
+                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                return { actual: r.WxxTop, expected: 722.1504, unit: 'cm³' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'L 100×100×10 + Plate 600×10: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcL(100,100,10), true, 600, 10, 90);
+                return { actual: r.combinedIxx, expected: 1025.4441, unit: 'cm⁴' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'T 200×12/150×15 + Plate 800×12: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(200,12,150,15), true, 800, 12, 90);
+                return { actual: r.combinedIxx, expected: 8522.4830, unit: 'cm⁴' };
+            }},
+            { group: 'Combined Section @ 90°', name: 'T 200×12/150×15 + Plate 800×12: weight', fn: () => {
+                const r = computeCombinedSection(_calcT(200,12,150,15), true, 800, 12, 90);
+                return { actual: r.weight, expected: 110.4495, unit: 'kg/m' };
+            }},
+
+            // ===== GROUP: Inclined profile (Mohr transformation) =====
+            { group: 'Inclined Profile (Mohr transform)', name: 'L 100×100×10 + Plate @ 60°: Ixx (Ixy term!)', fn: () => {
+                const r = computeCombinedSection(_calcL(100,100,10), true, 600, 10, 60);
+                return { actual: r.combinedIxx, expected: 920.4765, unit: 'cm⁴' };
+            }},
+            { group: 'Inclined Profile (Mohr transform)', name: 'L 100×100×10 + Plate @ 60°: cY', fn: () => {
+                const r = computeCombinedSection(_calcL(100,100,10), true, 600, 10, 60);
+                return { actual: r.combinedCentroidY, expected: 2.1057, unit: 'cm' };
+            }},
+            { group: 'Inclined Profile (Mohr transform)', name: 'FB 150×12 + Plate @ 45°: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 45);
+                return { actual: r.combinedIxx, expected: 641.1449, unit: 'cm⁴' };
+            }},
+            { group: 'Inclined Profile (Mohr transform)', name: 'T 100×8/80×10 + Plate @ 75°: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(100,8,80,10), true, 400, 8, 75);
+                return { actual: r.combinedIxx, expected: 686.3882, unit: 'cm⁴' };
+            }},
+            { group: 'Inclined Profile (Mohr transform)', name: 'FB @ 90° == effH equals full height', fn: () => {
+                const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
+                return { actual: r.totalHeight, expected: 16.0, unit: 'cm' };
+            }},
+
+            // ===== GROUP: Standalone profile (no plate) =====
+            { group: 'Standalone Profile (no plate)', name: 'FB 200×15 standalone: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcFB(200,15), false, 0, 0, 90);
+                return { actual: r.combinedIxx, expected: 1000.0, unit: 'cm⁴' };
+            }},
+            { group: 'Standalone Profile (no plate)', name: 'FB 200×15 standalone: area = plate-only?', fn: () => {
+                const r = computeCombinedSection(_calcFB(200,15), false, 0, 0, 90);
+                return { actual: r.totalArea, expected: 30.0, unit: 'cm²' };
+            }},
+
+            // ===== GROUP: Sanity checks (invariants) =====
+            { group: 'Sanity Checks', name: 'Wxx_top × cY ≈ Ixx (definition)', fn: () => {
+                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                return { actual: r.WxxTop * r.combinedCentroidY, expected: r.combinedIxx, unit: 'cm⁴' };
+            }},
+            { group: 'Sanity Checks', name: 'Wxx_bot × (H − cY) ≈ Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                return { actual: r.WxxBot * (r.totalHeight - r.combinedCentroidY), expected: r.combinedIxx, unit: 'cm⁴' };
+            }},
+            { group: 'Sanity Checks', name: 'ix² = Ixx / A (radius of gyration)', fn: () => {
+                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                return { actual: r.ix * r.ix * r.totalArea, expected: r.combinedIxx, unit: 'cm⁴' };
+            }},
+            { group: 'Sanity Checks', name: 'Profile area + plate area = total area', fn: () => {
+                const pd = _calcT(150,10,100,12);
+                const r = computeCombinedSection(pd, true, 600, 10, 90);
+                return { actual: pd.area + r.plateArea, expected: r.totalArea, unit: 'cm²' };
+            }},
+            { group: 'Sanity Checks', name: 'Weight = total area × 0.785 (kg/m)', fn: () => {
+                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                return { actual: r.totalArea * 0.785, expected: r.weight, unit: 'kg/m', tolAbs: 0.01 };
+            }},
+
+            // ===== GROUP: HP catalog values =====
+            { group: 'HP Catalog Lookup', name: 'HP 200×10: catalog area', fn: () => {
+                const saved={b:el('HP-b').value, t:el('HP-t').value, c:el('HP-c').value, r:el('HP-r').value};
+                el('HP-b').value=200; el('HP-t').value=10; el('HP-c').value=28; el('HP-r').value=8;
+                const r = calculateHPProfile();
+                el('HP-b').value=saved.b; el('HP-t').value=saved.t; el('HP-c').value=saved.c; el('HP-r').value=saved.r;
+                return { actual: r.area, expected: 25.7, unit: 'cm²' };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP 200×10: catalog Ixx', fn: () => {
+                const saved={b:el('HP-b').value, t:el('HP-t').value, c:el('HP-c').value, r:el('HP-r').value};
+                el('HP-b').value=200; el('HP-t').value=10; el('HP-c').value=28; el('HP-r').value=8;
+                const r = calculateHPProfile();
+                el('HP-b').value=saved.b; el('HP-t').value=saved.t; el('HP-c').value=saved.c; el('HP-r').value=saved.r;
+                return { actual: r.Ixx, expected: 886, unit: 'cm⁴' };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP 200×10: Iyy includes web (not just A·c²/12)', fn: () => {
+                const saved={b:el('HP-b').value, t:el('HP-t').value, c:el('HP-c').value, r:el('HP-r').value};
+                el('HP-b').value=200; el('HP-t').value=10; el('HP-c').value=28; el('HP-r').value=8;
+                const r = calculateHPProfile();
+                el('HP-b').value=saved.b; el('HP-t').value=saved.t; el('HP-c').value=saved.c; el('HP-r').value=saved.r;
+                // Iyy approximation should give around 10 cm⁴, definitely less than the old buggy A·c²/12 = 16.79
+                return { actual: r.Iyy, expected: 10.01, unit: 'cm⁴', tolRel: 0.03 };
+            }},
+        ];
+
+        function runAllTests() {
+            const resultsEl = el('test-results');
+            const summaryEl = el('test-summary');
+            resultsEl.innerHTML = '';
+
+            // Group tests by category
+            const groups = {};
+            TEST_CASES.forEach(tc => {
+                if (!groups[tc.group]) groups[tc.group] = [];
+                groups[tc.group].push(tc);
+            });
+
+            let passed = 0, failed = 0, total = 0;
+            const startTime = performance.now();
+
+            Object.keys(groups).forEach(groupName => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'ea-test-group';
+                const titleEl = document.createElement('div');
+                titleEl.className = 'ea-test-group-title';
+                titleEl.textContent = groupName;
+                groupDiv.appendChild(titleEl);
+
+                groups[groupName].forEach(tc => {
+                    total++;
+                    let result, isPass = false, errorMsg = '';
+                    try {
+                        result = tc.fn();
+                        const tolRel = result.tolRel !== undefined ? result.tolRel : 0.005;
+                        const tolAbs = result.tolAbs !== undefined ? result.tolAbs : 0.001;
+                        isPass = approx(result.actual, result.expected, tolRel, tolAbs);
+                    } catch(e) {
+                        result = { actual: NaN, expected: NaN, unit: '' };
+                        errorMsg = e.message;
+                    }
+
+                    if (isPass) passed++; else failed++;
+
+                    const row = document.createElement('div');
+                    row.className = 'ea-test-row ' + (isPass ? 'ea-test-row-pass' : 'ea-test-row-fail');
+                    const dot = `<span class="ea-test-dot ${isPass?'ea-test-dot-pass':'ea-test-dot-fail'}"></span>`;
+                    const fmt = (v) => typeof v === 'number' && isFinite(v) ? v.toFixed(4) : String(v);
+                    const actClass = isPass ? 'ea-test-actual-pass' : 'ea-test-actual-fail';
+                    const tolRel = result.tolRel !== undefined ? result.tolRel : 0.005;
+                    row.innerHTML = `
+                        ${dot}
+                        <span class="ea-test-name">${tc.name}</span>
+                        <span class="ea-test-expected">expected: <strong>${fmt(result.expected)}</strong> ${result.unit||''}</span>
+                        <span class="ea-test-actual ${actClass}">actual: <strong>${fmt(result.actual)}</strong> ${result.unit||''}</span>
+                        <span class="ea-test-tol">${errorMsg ? '⚠ '+errorMsg : 'tol ±'+(tolRel*100).toFixed(2)+'%'}</span>
+                    `;
+                    groupDiv.appendChild(row);
+                });
+                resultsEl.appendChild(groupDiv);
+            });
+
+            const elapsed = (performance.now() - startTime).toFixed(1);
+            const status = failed === 0
+                ? `<span class="ea-test-stat ea-test-stat-pass"><span class="ea-test-dot ea-test-dot-pass"></span><strong>${passed}</strong> passed</span>
+                   <span class="ea-test-stat ea-test-stat-total">/ ${total} tests in ${elapsed} ms</span>`
+                : `<span class="ea-test-stat ea-test-stat-pass"><span class="ea-test-dot ea-test-dot-pass"></span><strong>${passed}</strong> passed</span>
+                   <span class="ea-test-stat ea-test-stat-fail"><span class="ea-test-dot ea-test-dot-fail"></span><strong>${failed}</strong> failed</span>
+                   <span class="ea-test-stat ea-test-stat-total">of ${total} (${elapsed} ms)</span>`;
+            summaryEl.innerHTML = status;
+        }
+    </script>
+</body>
+</html>
