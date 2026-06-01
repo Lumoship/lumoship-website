@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumoship Auth Test</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%233b82f6'/%3E%3Cstop offset='100%25' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='56' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' font-family='Inter, sans-serif' font-weight='700' font-size='170' fill='white' text-anchor='middle' dominant-baseline='central'%3EL%3C/text%3E%3C/svg%3E">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0e17 0%, #0f141f 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        
+        .container {
+            max-width: 440px;
+            width: 100%;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-mark {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        
+        .card {
+            background: #0f141f;
+            border: 1px solid #1e2536;
+            border-radius: 16px;
+            padding: 2.5rem;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .btn-google {
+            width: 100%;
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.875rem 1rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            transition: all 200ms;
+        }
+        
+        .btn-google:hover {
+            background: #f9fafb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn-google:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .google-icon {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #131a2a;
+            border: 1px solid #1e2536;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.825rem;
+            line-height: 1.6;
+            word-break: break-all;
+            white-space: pre-wrap;
+            display: none;
+        }
+        
+        .result.show { display: block; }
+        
+        .result.success {
+            border-color: #10b981;
+            color: #6ee7b7;
+        }
+        
+        .result.error {
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+        
+        .info {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            font-size: 0.825rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        
+        .info strong { color: #60a5fa; }
+        
+        .user-info {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .user-info.show { display: block; }
+        
+        .user-info h3 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+        }
+        
+        .user-info p {
+            font-size: 0.875rem;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .user-info code {
+            background: rgba(0,0,0,0.3);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        
+        .btn-signout {
+            margin-top: 1rem;
+            background: transparent;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-family: inherit;
+            font-size: 0.825rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms;
+        }
+        
+        .btn-signout:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-mark">L</div>
+            <div class="logo-text">LUMOSHIP</div>
+        </div>
+        
+        <div class="card">
+            <h1>Auth Test</h1>
+            <p class="subtitle">Google OAuth Integration</p>
+            
+            <button class="btn-google" id="googleBtn" onclick="signInWithGoogle()">
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continue with Google
+            </button>
+            
+            <div class="result" id="result"></div>
+            
+            <div class="user-info" id="userInfo">
+                <h3>✓ Signed In Successfully</h3>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>User ID:</strong> <code id="userId"></code></p>
+                <p><strong>Provider:</strong> <span id="userProvider"></span></p>
+                <button class="btn-signout" onclick="signOut()">Sign Out</button>
+            </div>
+            
+            <div class="info">
+                <strong>Test Info:</strong><br>
+                After clicking "Continue with Google", you'll be redirected to Google's sign-in page. 
+                After signing in, you'll come back here and see your user information.
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+        
+        const SUPABASE_URL = 'https://mjatuomzchnssivvmnsc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXR1b216Y2huc3NpdnZtbnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDU0NDMsImV4cCI6MjA5NTcyMTQ0M30.1UH6iJ-ews6YBZxFTU5_3t7T7RRb8T049M7wDkOu584';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        window.supabase = supabase;
+        
+        // Check if user is already signed in (after redirect)
+        async function checkAuth() {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (session) {
+                showUser(session.user);
+            }
+        }
+        
+        // Google sign in
+        window.signInWithGoogle = async function() {
+            const btn = document.getElementById('googleBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Redirecting to Google...</span>';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.href
+                    }
+                });
+                
+                if (error) {
+                    showResult('error', 'Error: ' + error.message);
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google`;
+                }
+            } catch (err) {
+                showResult('error', 'Error: ' + err.message);
+                btn.disabled = false;
+            }
+        };
+        
+        window.signOut = async function() {
+            await supabase.auth.signOut();
+            document.getElementById('userInfo').classList.remove('show');
+            showResult('success', 'Signed out successfully');
+        };
+        
+        function showUser(user) {
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userId').textContent = user.id;
+            document.getElementById('userProvider').textContent = user.app_metadata?.provider || 'unknown';
+            document.getElementById('userInfo').classList.add('show');
+        }
+        
+        function showResult(type, message) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = 'result show ' + type;
+        }
+        
+        // Listen for auth changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth event:', event);
+            if (event === 'SIGNED_IN' && session) {
+                showUser(session.user);
+                showResult('success', '✓ Successfully signed in!');
+            }
+        });
+        
+        // Check on load
+        checkAuth();
+    </script>
+</body>
+</html>
