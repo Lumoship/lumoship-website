@@ -4603,3 +4603,17 @@
             width: 100%;
             padding-right: var(--space-5);
         }
+
+        /* Sag panel 16px yukaridan basliyordu: "Properties" ile soldaki
+           "Material Properties" ayni yatay cizgide degildi. Ust dolgu sol
+           panelinkiyle ayni. */
+        .entity-info-panel {
+            padding-top: var(--space-4);
+        }
+
+        /* Baslik ile ilk kart arasi 28px idi (baslik margin 12 + govde dolgu 16),
+           kartlarin kendi arasi ise 12px: ayni sutunda iki farkli ritim.
+           Govdenin ust dolgusu kalkti, bosluk her yerde 12px. */
+        .entity-info-body {
+            padding-top: 0;
+        }
