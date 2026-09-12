@@ -4617,3 +4617,96 @@
         .entity-info-body {
             padding-top: 0;
         }
+
+        /* ---- Sekme iceriginin dikey ritmi ----
+           Olculen durum: Model sekmesinde bloklar 12px arayla, Boundary ve
+           Loads sekmelerinde 16px arayla diziliyordu; aralarda 20px ve 8px
+           tekil sapmalar vardi. Yani sekme degistirince ayni arayuzun nefesi
+           degisiyordu. Tek olcek:
+               blok -> blok        12px
+               blok -> yeni baslik 16px  (grup ayrimi)
+               baslik -> icerik    12px
+           Marj cokusmesi sayesinde baslik mt=16 komsunun mb=12'sini yutar.
+           !important gerekiyor cunku index.html'de bu bloklarin bir kismi
+           style="margin-top:20px" gibi satir ici marj tasiyor ve satir ici
+           bildirimi normal bir kural yenemez. Kapsam dar tutuldu: yalnizca
+           sekme iceriginin DOGRUDAN cocuklari. */
+        .main-tab-content > * {
+            margin-top: 0 !important;
+            margin-bottom: var(--space-3) !important;
+        }
+
+        .main-tab-content > *:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        .main-tab-content > h3.panel-title {
+            margin-top: var(--space-4) !important;
+            margin-bottom: var(--space-3) !important;
+        }
+
+        /* Her sekmenin ILK cocugu gizli bir <h2>'dir (ekran okuyucu basligi),
+           bu yuzden :first-child gorunen ilk bloga hicbir zaman denk gelmiyor
+           ve Model/Settings sekmelerinde baslik 16px asagi kayiyordu - sag
+           paneldeki Properties kutusuyla ayni hizada durmuyordu. */
+        .main-tab-content > h3.panel-title:first-child,
+        .main-tab-content > h2:first-child + h3.panel-title {
+            margin-top: 0 !important;
+        }
+
+        /* ---- Tek kart tarifi ----
+           Olculen durum: uygulamada IKI ayri kart vardi - .collapsible-panel
+           (--bg-elev + cerceve + 4px) ve satir ici yazilmis (--bg-tertiary,
+           cercevesiz, 8px, 12px dolgu) - ustune Boundary/Loads sekmelerinde
+           hic kartlanmamis bolumler. Ayni sekmede "Point Loads" duz, "Add
+           Point Load" kutulu goruluyordu. Kanonik tarif .collapsible-panel'in
+           kutusudur; sag paneldeki .entity-section de aynisini kullanir. */
+        .panel-card {
+            background: var(--bg-elev);
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            padding: var(--space-3);
+        }
+
+        /* Katlanabilir bolum kendi basligini ve govdesini zaten dolguluyor. */
+        .collapsible.panel-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* ---- Kaydirma cubuklari ----
+           Paneller temali, ama panellerin ICINDEKI kaydirma kutulari
+           (tablo sarmalayicilari, acilir listeler) tarayici varsayilanini
+           kullaniyordu: koyu temanin ustunde parlak beyaz serit. Ayni
+           kural butun ic kutulara da uygulanir. */
+        .panel *::-webkit-scrollbar,
+        .entity-info-panel *::-webkit-scrollbar,
+        .modal *::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .panel *::-webkit-scrollbar-track,
+        .entity-info-panel *::-webkit-scrollbar-track,
+        .modal *::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+
+        .panel *::-webkit-scrollbar-thumb,
+        .entity-info-panel *::-webkit-scrollbar-thumb,
+        .modal *::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: var(--r-ctl);
+        }
+
+        .panel *::-webkit-scrollbar-thumb:hover,
+        .entity-info-panel *::-webkit-scrollbar-thumb:hover,
+        .modal *::-webkit-scrollbar-thumb:hover {
+            background: var(--border-strong, #3a4454);
+        }
+
+        .panel *::-webkit-scrollbar-corner,
+        .entity-info-panel *::-webkit-scrollbar-corner,
+        .modal *::-webkit-scrollbar-corner {
+            background: var(--bg-main);
+        }
