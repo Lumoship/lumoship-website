@@ -642,7 +642,7 @@
             align-items: center;
             justify-content: center;
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-weight: 700;
+            font-weight: 600;
             font-size: 0.95rem;
             color: white;
         }
@@ -725,7 +725,7 @@
             align-items: center;
             justify-content: center;
             font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
+            font-weight: 600;
             font-size: 0.75rem;
             color: white;
             letter-spacing: -0.02em;
@@ -798,6 +798,10 @@
 
     
         
+
+        /* Stillenmemis iki baglanti tarayicinin varsayilan mavisiyle
+           ciziliyordu (rgb(0,0,238)) - paletin disinda bir renk. */
+        a:not([class]) { color: var(--primary); }
 </style>
     
     <!-- Header -->

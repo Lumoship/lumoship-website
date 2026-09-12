@@ -596,7 +596,7 @@
             align-items: center;
             justify-content: center;
             font-family: var(--font-mono);
-            font-weight: 700;
+            font-weight: 600;
             font-size:var(--fs-lg);
             color: #fff;
             letter-spacing: -0.5px;
@@ -613,7 +613,7 @@
         .brand-name {
             font-family: var(--font-mono);
             font-size:var(--fs-lg);
-            font-weight: 700;
+            font-weight: 600;
             color: var(--text-primary);
             letter-spacing: -0.5px;
             line-height: 1.1;
@@ -925,9 +925,11 @@
         }
         
         .btn-secondary {
-            background: var(--bg-tertiary);
+            background: rgba(255, 255, 255, 0.055);
             color: var(--text-primary);
-            border: 1px solid var(--border-default);
+            /* Zemin tonu sinirini zaten cizyor, cerceve ikinci kez cizmesin.
+               Odak halkasi ve :hover kendi kurallarinda duruyor. */
+            border: 1px solid transparent;
         }
         
         .btn-secondary:hover:not(:disabled) {
@@ -1478,9 +1480,11 @@
             align-items: center;
             gap: var(--space-1);
             padding: var(--space-1) var(--space-2);
-            background: rgba(15, 23, 42, 0.5);
+            background: rgba(255, 255, 255, 0.04);
             border-radius: var(--radius-md);
-            border: 1px solid var(--border-default);
+            /* Cerceve kaldirildi: yedi arac grubu birden kutuya giriyordu.
+               Ayirma isini zemin tonu ve bosluk yapiyor. */
+            border: 1px solid transparent;
         }
         
         .toolbar-group-label {
@@ -2964,7 +2968,7 @@
         
         .logo-brand {
             font-size: var(--text-xl);
-            font-weight: 700;
+            font-weight: 600;
             color: var(--text);
             letter-spacing: 0.05em;
         }
@@ -3140,9 +3144,10 @@
         
         /* SECONDARY: Most buttons */
         .btn-secondary {
-            background: var(--bg-elev);
+            background: rgba(255, 255, 255, 0.055);
             color: var(--text);
-            border: 1px solid var(--border);
+            /* Zemin tonu siniri zaten cizyor; cerceve ikinci kez cizmesin. */
+            border: 1px solid transparent;
         }
         
         .btn-secondary:hover:not(:disabled) {
@@ -3187,8 +3192,9 @@
         }
         
         .toolbar-group {
-            background: var(--bg-main);
-            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+            /* Yedi arac grubu birden kutuya giriyordu; zemin tonu ve bosluk yeter. */
+            border: 1px solid transparent;
             border-radius: var(--r-sm);
             padding: var(--s-1) var(--s-2);
         }
@@ -4104,7 +4110,7 @@
         
         .results-data-table .stress-ok { color: var(--success); }
         .results-data-table .stress-warn { color: var(--warning); }
-        .results-data-table .stress-fail { color: var(--danger); font-weight: bold; }
+        .results-data-table .stress-fail { color: var(--danger); font-weight: 600; }
         
         @media (max-width: 1200px) {
             .results-bottom-panel {
@@ -4482,3 +4488,6 @@
             padding-right: var(--space-3);
             vertical-align: top;
         }
+        /* Tarayici <strong> icin 700 kullanir; arayuzde uc agirlik yeterli,
+           dordunculer sadece govde metninde beliriyordu. */
+        strong, b { font-weight: 600; }
