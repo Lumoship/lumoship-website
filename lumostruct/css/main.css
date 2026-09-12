@@ -3580,18 +3580,24 @@
             font-weight: 600;
         }
         
+        /* Sag paneldeki bolum kutulari sol paneldeki .collapsible-panel ile
+           BIREBIR ayni: ayni zemin, ayni cerceve, ayni kose yaricapi. Iki panel
+           farkli gorunuyorsa once buraya bakilir. */
         .entity-section {
-            background: rgba(255, 255, 255, 0.03);
-            /* Sag panel de sol panelle ayni dili konussun: bolumler
-               cerceveyle degil zemin tonu ve bosluklarla ayrilir. */
-            border: 1px solid transparent;
+            background: var(--bg-elev);
+            border: 1px solid var(--border);
             border-radius: var(--r-md);
         }
         
+        /* Sol panel baslıklari normal yazi, 12px, acik renk. Sagdakiler
+           BUYUK HARF + harf araligi + soluk renkti: ayni ekranda iki ayri
+           baslik dili. */
         .entity-section-title {
-            color: var(--text-3);
-            font-size: var(--text-xs);
+            color: var(--text);
+            font-size: var(--fs-sm);
             font-weight: 500;
+            text-transform: none;
+            letter-spacing: normal;
         }
         
         .entity-property .label {
@@ -4504,3 +4510,16 @@
            yapisikti. Bosluk olcege oturtuldu. */
         .status-actions { gap: var(--space-2) !important; }
         .status-actions button { padding: 2px var(--space-2); }
+
+        /* Sol panelin ic dolgusu 16px, sagdaki 0 idi: sag paneldeki her sey
+           kenara yapisik duruyordu. */
+        .entity-info-panel { padding: var(--space-4); }
+        /* Sag panelin kaydirma cubugu tarayici varsayilaniydi, soldaki
+           stillenmisti: ayni ekranda iki farkli kaydirma cubugu. */
+        .entity-info-panel::-webkit-scrollbar { width: 6px; }
+        .entity-info-panel::-webkit-scrollbar-track { background: var(--bg-primary); }
+        .entity-info-panel::-webkit-scrollbar-thumb {
+            background: var(--bg-elevated);
+            border-radius: var(--r-ctl);
+        }
+        .entity-info-panel::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
