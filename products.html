@@ -1057,14 +1057,14 @@
                 
                 <div class="tools-grid">
                     
-                    <div class="tool-card upcoming" onclick="openModal('nodal-modal')">
+                    <div class="tool-card" onclick="openModal('nodal-modal')">
                         <div class="tool-card-header">
                             <h3 class="tool-card-name">LumoStruct</h3>
                             <span class="tool-card-status beta">Beta</span>
                         </div>
                         <p class="tool-card-tagline">Beam-based grillage solver for ship structures.</p>
                         <div class="tool-card-footer">
-                            <span class="tool-card-meta">COMING ONLINE</span>
+                            <span class="tool-card-meta">BETA</span>
                             <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M5 12h14M12 5l7 7-7 7"/>
                             </svg>
@@ -1120,13 +1120,59 @@
                         </div>
                     </div>
                     
-                    <div class="tool-card empty">
-                        <div class="empty-content">Midship calculations<br><span style="opacity: 0.6;">+ Coming soon</span></div>
-                    </div>
+                    <a href="/midship/" class="tool-card">
+                        <div class="tool-card-header">
+                            <h3 class="tool-card-name">Midship Scantling</h3>
+                            <span class="tool-card-status beta">Beta</span>
+                        </div>
+                        <p class="tool-card-tagline">Rule-based midship section design &mdash; DNV, LR, BV, RINA.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-card-meta">BETA</span>
+                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
                     
-                    <div class="tool-card empty">
-                        <div class="empty-content">Scantling check<br><span style="opacity: 0.6;">+ Coming soon</span></div>
-                    </div>
+                    <a href="/nr467/" class="tool-card">
+                        <div class="tool-card-header">
+                            <h3 class="tool-card-name">NR467 Scantlings</h3>
+                            <span class="tool-card-status beta">Beta</span>
+                        </div>
+                        <p class="tool-card-tagline">Local scantlings to BV NR467 &mdash; fore, aft, machinery space, deckhouse.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-card-meta">BETA</span>
+                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                    <a href="/nr615/" class="tool-card">
+                        <div class="tool-card-header">
+                            <h3 class="tool-card-name">NR615 Buckling</h3>
+                            <span class="tool-card-status beta">Beta</span>
+                        </div>
+                        <p class="tool-card-tagline">Buckling of plated structures to BV NR615 R07.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-card-meta">BETA</span>
+                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                    <a href="/shipstruct/" class="tool-card">
+                        <div class="tool-card-header">
+                            <h3 class="tool-card-name">ShipStruct Modeler</h3>
+                            <span class="tool-card-status beta">Beta</span>
+                        </div>
+                        <p class="tool-card-tagline">Quick structural model set-up for ship sections.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-card-meta">BETA</span>
+                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
                     
                 </div>
             </section>
@@ -1150,16 +1196,19 @@
 
                 <div class="tools-grid">
 
-                    <div class="tool-card upcoming">
+                    <a href="/lumocad/" class="tool-card">
                         <div class="tool-card-header">
                             <h3 class="tool-card-name">LumoCAD</h3>
                             <span class="tool-card-status beta">Beta</span>
                         </div>
                         <p class="tool-card-tagline">2D drafting with DXF import and export.</p>
                         <div class="tool-card-footer">
-                            <span class="tool-card-meta">COMING ONLINE</span>
+                            <span class="tool-card-meta">BETA</span>
+                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
                         </div>
-                    </div>
+                    </a>
 
                 </div>
             </section>
@@ -1280,7 +1329,7 @@
                     </div>
                 </div>
                 <div class="modal-cta-row">
-                    <a href="https://sectionpro.lumoship.org" class="modal-btn modal-btn-primary" target="_blank" rel="noopener">
+                    <a href="/sectionpro/" class="modal-btn modal-btn-primary" target="_blank" rel="noopener">
                         Open SectionPro
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -1340,7 +1389,7 @@
                     </div>
                 </div>
                 <div class="modal-cta-row">
-                    <a href="https://beam.lumoship.org" class="modal-btn modal-btn-primary" target="_blank" rel="noopener">
+                    <a href="/beam/" class="modal-btn modal-btn-primary" target="_blank" rel="noopener">
                         Open BeamCore
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -1397,8 +1446,8 @@
                     </div>
                 </div>
                 <div class="modal-cta-row">
-                    <a href="mailto:contact@lumoship.org?subject=LumoStruct beta access" class="modal-btn modal-btn-primary">
-                        Request beta access
+                    <a href="/lumostruct/" class="modal-btn modal-btn-primary">
+                        Open LumoStruct
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>

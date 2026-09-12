@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Drafting in the Browser | LumoCAD by Lumoship</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
+<!-- Fonts are vendored locally, exactly as the sibling apps do — nothing here touches the network. -->
+<link rel="stylesheet" href="app/fonts.css">
+<link rel="stylesheet" href="app/app.css">
+<script src="app/vendor/jspdf.umd.min.js"></script>
+    <style>
+/* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
+        .lumoship-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid #1e2536;
+            z-index: 10000;
+            padding: 0.875rem 1.5rem;
+        }
+        .lumoship-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lumoship-nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity 200ms;
+        }
+        .lumoship-nav-logo:hover { opacity: 0.85; }
+        .lumoship-nav-logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .lumoship-nav-logo-text {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+            letter-spacing: 0.06em;
+        }
+        .lumoship-nav-links {
+            display: none;
+        }
+        
+        /* NEW MINIMAL NAVBAR */
+        .nav-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-context {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: #64748b;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding-left: clamp(0.75rem, 1.5vw, 1rem);
+            margin-left: clamp(0.75rem, 1.5vw, 1rem);
+            border-left: 1px solid #1e2536;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.75rem, 1.5vw, 1.25rem);
+        }
+        
+        .nav-back {
+            color: #94a3b8;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 200ms;
+        }
+        
+        .nav-back:hover { color: #f8fafc; }
+        .nav-back-arrow { font-size: 1em; }
+        
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 999px;
+            text-decoration: none;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.825rem;
+            font-weight: 500;
+            transition: all 200ms;
+        }
+        
+        .user-badge:hover {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        
+        .user-badge-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: white;
+            letter-spacing: -0.02em;
+            overflow: hidden;
+        }
+        
+        .user-badge-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-badge-name {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .user-badge-login {
+            padding: 0.45rem 0.95rem;
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        
+        .user-badge-login:hover {
+            background: #60a5fa;
+            border-color: #60a5fa;
+        }
+        
+        @media (max-width: 640px) {
+            .nav-back-text { display: none; }
+            .user-badge-name { display: none; }
+            .nav-context { display: none; }
+        }
+        
+        .lumoship-nav-link {
+            display: none;
+        }
+        .lumoship-nav-link:hover { color: #f8fafc; }
+        .lumoship-breadcrumb {
+            background: #0f141f;
+            border-bottom: 1px solid #1e2536;
+            padding: 0.75rem 1.5rem;
+        }
+        .lumoship-breadcrumb-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .breadcrumb-link {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 200ms;
+        }
+        .breadcrumb-link:hover { color: #60a5fa; }
+        .breadcrumb-separator { color: #475569; }
+        .breadcrumb-current {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .lumoship-breadcrumb { display: none; }
+        }
+
+    
+        
+    </style>
+</head>
+<body>
+<!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
+    <nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <div class="nav-left">
+                <a href="https://lumoship.org" class="lumoship-nav-logo">
+                    <div class="lumoship-nav-logo-mark">L</div>
+                    <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+                </a>
+                <span class="nav-context">LumoCAD</span>
+            </div>
+            <div class="nav-right">
+                <a href="https://lumoship.org/workspace.html" class="nav-back">
+                    <span class="nav-back-arrow">←</span>
+                    <span class="nav-back-text">Workspace</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="userBadge" class="user-badge" style="display: none;">
+                    <span id="userBadgeAvatar" class="user-badge-avatar">L</span>
+                    <span id="userBadgeName" class="user-badge-name">Account</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="loginBadge" class="user-badge user-badge-login" style="display: none;">
+                    <span>Sign in</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+<div id="app">
+
+  <!-- ---------- title bar: identity, quick access, document ---------- -->
+  <div id="topbar">
+    <div class="brand">
+      <div class="brand-logo">L</div>
+      <div class="brand-text"><h1>Lumo<span>CAD</span></h1></div>
+    </div>
+
+    <div class="qat" role="toolbar" aria-label="Quick access">
+      <button class="qat-btn" title="New drawing (Ctrl+N)" onclick="startCommand('NEW')">
+        <svg viewBox="0 0 24 24"><path d="M6 3h7l5 5v13H6z"/><path d="M13 3v5h5"/></svg></button>
+      <button class="qat-btn" title="Open (Ctrl+O)" onclick="startCommand('OPEN')">
+        <svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg></button>
+      <button class="qat-btn" title="Save (Ctrl+S)" onclick="startCommand('SAVE')">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v6h7V4M8 20v-6h8v6"/></svg></button>
+      <span class="qat-sep"></span>
+      <button class="qat-btn" title="Undo (Ctrl+Z)" onclick="undo()">
+        <svg viewBox="0 0 24 24"><path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12h-2"/></svg></button>
+      <button class="qat-btn" title="Redo (Ctrl+Y)" onclick="redo()">
+        <svg viewBox="0 0 24 24"><path d="M15 7l5 5-5 5"/><path d="M20 12H10a6 6 0 0 0 0 12h2"/></svg></button>
+    </div>
+
+    <div class="header-right">
+      <div class="file-tab" title="Current drawing">Drawing1.lcad</div>
+      <div class="badge">Lumoship <b>v4.1</b></div>
+    </div>
+  </div>
+
+  <!-- ---------- ribbon: tab strip above, the active tab's panels below ---------- -->
+  <div id="ribbonTabs"></div>
+  <div id="ribbon"></div>
+
+  <!-- ---------- properties ---------- -->
+  <div id="left">
+    <div class="panel-head prop-head"><span class="dot"></span>Properties</div>
+    <div class="prop-body" id="propBody"><div class="prop-empty">No selection</div></div>
+  </div>
+
+  <!-- ---------- drawing area ---------- -->
+  <div id="canvas-wrap">
+    <canvas id="cv"></canvas>
+    <div id="cmdHist"></div>
+    <div id="refToggle" title="Show command reference">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      Commands
+    </div>
+    <div class="nav-cube">
+      <div class="nav-btn" id="navZoomIn" title="Zoom in">+</div>
+      <div class="nav-btn" id="navZoomOut" title="Zoom out">&#8722;</div>
+      <div class="nav-btn" id="navExt" title="Zoom extents (fit drawing)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <div class="panel-head"><span class="dot"></span>Command Reference<span class="ref-close" id="refClose">&#10005;</span></div>
+    <div class="prop-body" id="cmdRef" style="flex:1"></div>
+  </div>
+
+  <!-- ---------- command line and status ---------- -->
+  <div id="status">
+    <div id="cmdline">
+      <span class="prompt">Command</span>
+      <input id="cmdInput" autocomplete="off" spellcheck="false" placeholder="type a command or its alias — L, C, TR, O, Z, H&#8230;">
+      <div id="cmdAuto"></div>
+    </div>
+    <div id="coords" title="Cursor position">X <b>0.00</b>&nbsp;&nbsp;Y <b>0.00</b></div>
+    <div class="status-chip" id="activeLayerChip" title="Current layer — click to open the Layer Manager"></div>
+    <div class="status-chip" id="scaleChip" title="Drawing scale — click to change">1:50</div>
+    <div class="status-toggle on" id="tSnap" title="Object snap (F9) — right-click for settings">SNAP</div>
+    <div class="status-toggle on" id="tOrtho" title="Ortho mode (F8)">ORTHO</div>
+    <div class="status-toggle on" id="tGrid" title="Grid (F7) — right-click for spacing">GRID</div>
+    <div class="status-toggle on" id="tPolar" title="Polar tracking (F10)">POLAR</div>
+    <div class="status-toggle on" id="tPick" title="PICKFIRST — select first, then command">PICK</div>
+    <div class="status-toggle on" id="tDyn" title="Dynamic input — live dimensions at the cursor">DYN</div>
+  </div>
+</div>
+
+<script src="app/10-core.js"></script>
+<script src="app/15-entities.js"></script>
+<script src="app/20-render.js"></script>
+<script src="app/25-geometry.js"></script>
+<script src="app/30-commands.js"></script>
+<script src="app/40-dxf-export.js"></script>
+<script src="app/45-sheet-pdf.js"></script>
+<script src="app/50-dxf-import.js"></script>
+<script src="app/55-modify.js"></script>
+<script src="app/56-boundary.js"></script>
+<script src="app/60-inquiry.js"></script>
+<script src="app/65-blocks.js"></script>
+<script src="app/70-edit.js"></script>
+<script src="app/75-select.js"></script>
+<script src="app/76-file.js"></script>
+<script src="app/77-styles.js"></script>
+<script src="app/78-acad.js"></script>
+<script src="app/80-ui.js"></script>
+<script src="app/90-input.js"></script>
+    <script type="module">
+
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    const SUPABASE_URL = 'https://mmjdgxvxtjippjktajdd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tamRneHZ4dGppcHBqa3RhamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxODczMzQsImV4cCI6MjEwNDc2MzMzNH0.yJwV6pjt5fBCR_bweiBXCi3etL0z4bQ0zXsz_Tmzen4';
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    (async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const userBadge = document.getElementById('userBadge');
+            const loginBadge = document.getElementById('loginBadge');
+            
+            if (session && session.user) {
+                const user = session.user;
+                const meta = user.user_metadata || {};
+                const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+                const firstName = displayName.split(' ')[0];
+                
+                const avatarEl = document.getElementById('userBadgeAvatar');
+                if (meta.avatar_url || meta.picture) {
+                    avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="">`;
+                } else {
+                    avatarEl.textContent = (firstName[0] || 'U').toUpperCase();
+                }
+                
+                document.getElementById('userBadgeName').textContent = firstName;
+                userBadge.style.display = 'inline-flex';
+                loginBadge.style.display = 'none';
+            } else {
+                userBadge.style.display = 'none';
+                loginBadge.style.display = 'inline-flex';
+            }
+        } catch (err) {
+            console.warn('Auth check failed:', err);
+            document.getElementById('loginBadge').style.display = 'inline-flex';
+        }
+    })();
+
+    </script>
+</body>
+</html>

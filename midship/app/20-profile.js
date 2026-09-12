@@ -1,0 +1,476 @@
+/* ==========================================================================
+   20-profile.js  —  Steel profile section properties (window.Profile)
+   Extracted verbatim from Index.html (lines 14199–14661 of the
+   original single-file build). Load order is significant: see index.html.
+   ========================================================================== */
+// ==========================================================================
+// SCANTLING APP (original code below)
+// ==========================================================================
+
+// ==========================================================================
+// PROFILE MODULE — Steel section properties calculator (from SectionPro)
+// Computes Ixx, Iyy, centroid, section modulus for L/T/FB/HP profiles
+// with attached plate. Used for best-fit profile suggestions.
+// ==========================================================================
+window.Profile = (function(){
+  // HP catalog — EN 10067 bulb flat profiles (extended)
+  const HP_CATALOG = [
+    { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.08, dx:3.24, Ixx:8.82 },
+    { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:3.79, dx:3.32, Ixx:10.6 },
+    { name:"HP 60x6", b:60, t:6, c:13, r:3.5, A:4.49, dx:3.40, Ixx:12.2 },
+    { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.09, dx:4.33, Ixx:26.3 },
+    { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.03, dx:4.43, Ixx:30.4 },
+    { name:"HP 80x7", b:80, t:7, c:14, r:4, A:6.95, dx:4.52, Ixx:34.2 },
+    { name:"HP 80x8", b:80, t:8, c:14, r:4, A:7.86, dx:4.61, Ixx:37.7 },
+    { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.64, dx:5.40, Ixx:61.7 },
+    { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.82, dx:5.51, Ixx:69.7 },
+    { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.98, dx:5.61, Ixx:77.2 },
+    { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.24, dx:6.48, Ixx:112 },
+    { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.7, dx:6.60, Ixx:127 },
+    // ⚠ CORRECTED — this row held A:11.72, dx:6.96, Ixx:165 and was the ONLY
+    // entry in the 59-row catalogue that broke its own trends: inside a b-group
+    // I/(A·b²) must fall and dx/b must rise as t increases, and this row
+    // reversed both (I/Ab² 0,0842 → 0,0824 → 0,0978; dx/b 0,540 → 0,550 → 0,580),
+    // while ΔA/Δt dropped from 1,46 to 1,02 where every neighbour is constant.
+    // Ixx:165 overstated the section modulus with attached plate by 5,5 %.
+    // The values below are what the catalogue's own trends give and they agree
+    // with EN 10067 (9,54 kg/m → 12,15 cm²). CONFIRM against your EN 10067 table.
+    { name:"HP 120x8", b:120, t:8, c:17, r:5, A:12.15, dx:6.72, Ixx:142 },
+    { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.6, dx:7.68, Ixx:208 },
+    { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:14.3, dx:7.81, Ixx:232 },
+    { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.9, dx:7.93, Ixx:254 },
+    { name:"HP 160x7", b:160, t:7, c:22, r:6, A:14.5, dx:8.83, Ixx:322 },
+    { name:"HP 160x8", b:160, t:8, c:22, r:6, A:16.4, dx:8.97, Ixx:359 },
+    { name:"HP 160x9", b:160, t:9, c:22, r:6, A:18.3, dx:9.10, Ixx:394 },
+    { name:"HP 180x8", b:180, t:8, c:25, r:7, A:18.6, dx:10.10, Ixx:526 },
+    { name:"HP 180x9", b:180, t:9, c:25, r:7, A:20.8, dx:10.25, Ixx:579 },
+    { name:"HP 180x10", b:180, t:10, c:25, r:7, A:22.9, dx:10.39, Ixx:629 },
+    { name:"HP 180x11", b:180, t:11, c:25, r:7, A:25.0, dx:10.52, Ixx:677 },
+    { name:"HP 200x9", b:200, t:9, c:28, r:8, A:23.3, dx:11.38, Ixx:814 },
+    { name:"HP 200x10", b:200, t:10, c:28, r:8, A:25.7, dx:11.54, Ixx:886 },
+    { name:"HP 200x11", b:200, t:11, c:28, r:8, A:28.1, dx:11.69, Ixx:955 },
+    { name:"HP 200x12", b:200, t:12, c:28, r:8, A:30.4, dx:11.83, Ixx:1020 },
+    { name:"HP 220x10", b:220, t:10, c:31, r:9, A:28.6, dx:12.68, Ixx:1210 },
+    { name:"HP 220x11", b:220, t:11, c:31, r:9, A:31.2, dx:12.84, Ixx:1300 },
+    { name:"HP 220x12", b:220, t:12, c:31, r:9, A:33.8, dx:12.99, Ixx:1400 },
+    { name:"HP 240x10", b:240, t:10, c:34, r:10, A:31.4, dx:13.82, Ixx:1610 },
+    { name:"HP 240x11", b:240, t:11, c:34, r:10, A:34.4, dx:13.99, Ixx:1740 },
+    { name:"HP 240x12", b:240, t:12, c:34, r:10, A:37.3, dx:14.15, Ixx:1870 },
+    { name:"HP 260x10", b:260, t:10, c:37, r:11, A:34.3, dx:14.96, Ixx:2100 },
+    { name:"HP 260x11", b:260, t:11, c:37, r:11, A:37.5, dx:15.14, Ixx:2270 },
+    { name:"HP 260x12", b:260, t:12, c:37, r:11, A:40.7, dx:15.31, Ixx:2440 },
+    { name:"HP 280x11", b:280, t:11, c:40, r:12, A:40.7, dx:16.28, Ixx:2900 },
+    { name:"HP 280x12", b:280, t:12, c:40, r:12, A:44.2, dx:16.46, Ixx:3120 },
+    { name:"HP 280x13", b:280, t:13, c:40, r:12, A:47.6, dx:16.63, Ixx:3330 },
+    { name:"HP 300x11", b:300, t:11, c:43, r:13, A:43.8, dx:17.42, Ixx:3640 },
+    { name:"HP 300x12", b:300, t:12, c:43, r:13, A:47.6, dx:17.61, Ixx:3920 },
+    { name:"HP 300x13", b:300, t:13, c:43, r:13, A:51.3, dx:17.79, Ixx:4190 },
+    { name:"HP 320x12", b:320, t:12, c:46, r:14, A:51.0, dx:18.75, Ixx:4840 },
+    { name:"HP 320x13", b:320, t:13, c:46, r:14, A:55.0, dx:18.94, Ixx:5180 },
+    { name:"HP 320x14", b:320, t:14, c:46, r:14, A:59.0, dx:19.12, Ixx:5510 },
+    { name:"HP 340x12", b:340, t:12, c:49, r:15, A:54.4, dx:19.89, Ixx:5900 },
+    { name:"HP 340x13", b:340, t:13, c:49, r:15, A:58.7, dx:20.09, Ixx:6310 },
+    { name:"HP 340x14", b:340, t:14, c:49, r:15, A:62.9, dx:20.28, Ixx:6710 },
+    { name:"HP 370x13", b:370, t:13, c:53.5, r:16.5, A:64.1, dx:21.73, Ixx:8230 },
+    { name:"HP 370x14", b:370, t:14, c:53.5, r:16.5, A:68.7, dx:21.94, Ixx:8760 },
+    { name:"HP 370x15", b:370, t:15, c:53.5, r:16.5, A:73.3, dx:22.14, Ixx:9270 },
+    { name:"HP 400x14", b:400, t:14, c:58, r:18, A:74.6, dx:23.59, Ixx:11200 },
+    { name:"HP 400x15", b:400, t:15, c:58, r:18, A:79.6, dx:23.81, Ixx:11900 },
+    { name:"HP 400x16", b:400, t:16, c:58, r:18, A:84.6, dx:24.02, Ixx:12500 },
+    { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:80.5, dx:25.32, Ixx:14100 },
+    { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:85.9, dx:25.55, Ixx:14900 },
+    { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:96.5, dx:25.99, Ixx:16500 },
+    { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:107, dx:26.41, Ixx:18000 },
+    { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:112, dx:26.61, Ixx:18700 }
+  ];
+
+  // L-profile catalog — unequal/equal angles (common shipbuilding sizes)
+  // a = web height, b = flange width, t = thickness (mm)
+  const L_CATALOG_SIZES = [
+    {a:75,  b:50,  t:6},  {a:75,  b:50,  t:8},
+    {a:100, b:75,  t:7},  {a:100, b:75,  t:8},  {a:100, b:75,  t:10},
+    {a:125, b:75,  t:8},  {a:125, b:75,  t:10}, {a:125, b:75,  t:12},
+    {a:150, b:75,  t:9},
+    {a:150, b:90,  t:9},  {a:150, b:90,  t:10}, {a:150, b:90,  t:12},
+    {a:150, b:100, t:10}, {a:150, b:100, t:12},
+    {a:175, b:90,  t:10}, {a:175, b:90,  t:12},
+    {a:180, b:100, t:10},
+    {a:200, b:90,  t:10}, {a:200, b:90,  t:12},
+    {a:200, b:100, t:10}, {a:200, b:100, t:12}, {a:200, b:100, t:14},
+    {a:250, b:90,  t:10}, {a:250, b:90,  t:12},
+    {a:250, b:100, t:12}, {a:250, b:100, t:14},
+    {a:300, b:100, t:12}, {a:300, b:100, t:14}
+  ];
+
+  // FB (flat bar) catalog
+  const FB_CATALOG_SIZES = [
+    // h=80
+    {h:80, t:8}, {h:80, t:9}, {h:80, t:10}, {h:80, t:11}, {h:80, t:12}, {h:80, t:13}, {h:80, t:14}, {h:80, t:15}, {h:80, t:16}, {h:80, t:18}, {h:80, t:20}, {h:80, t:22}, {h:80, t:25}, {h:80, t:28}, {h:80, t:30}, {h:80, t:35}, {h:80, t:40},
+    // h=85
+    {h:85, t:8}, {h:85, t:9}, {h:85, t:10}, {h:85, t:11}, {h:85, t:12}, {h:85, t:13}, {h:85, t:14}, {h:85, t:15}, {h:85, t:16}, {h:85, t:18}, {h:85, t:20}, {h:85, t:22}, {h:85, t:25}, {h:85, t:28}, {h:85, t:30}, {h:85, t:35}, {h:85, t:40},
+    // h=90
+    {h:90, t:8}, {h:90, t:9}, {h:90, t:10}, {h:90, t:11}, {h:90, t:12}, {h:90, t:13}, {h:90, t:14}, {h:90, t:15}, {h:90, t:16}, {h:90, t:18}, {h:90, t:20}, {h:90, t:22}, {h:90, t:25}, {h:90, t:28}, {h:90, t:30}, {h:90, t:35}, {h:90, t:40},
+    // h=95
+    {h:95, t:8}, {h:95, t:9}, {h:95, t:10}, {h:95, t:11}, {h:95, t:12}, {h:95, t:13}, {h:95, t:14}, {h:95, t:15}, {h:95, t:16}, {h:95, t:18}, {h:95, t:20}, {h:95, t:22}, {h:95, t:25}, {h:95, t:28}, {h:95, t:30}, {h:95, t:35}, {h:95, t:40},
+    // h=100
+    {h:100, t:8}, {h:100, t:9}, {h:100, t:10}, {h:100, t:11}, {h:100, t:12}, {h:100, t:13}, {h:100, t:14}, {h:100, t:15}, {h:100, t:16}, {h:100, t:18}, {h:100, t:20}, {h:100, t:22}, {h:100, t:25}, {h:100, t:28}, {h:100, t:30}, {h:100, t:35}, {h:100, t:40},
+    // h=105
+    {h:105, t:8}, {h:105, t:9}, {h:105, t:10}, {h:105, t:11}, {h:105, t:12}, {h:105, t:13}, {h:105, t:14}, {h:105, t:15}, {h:105, t:16}, {h:105, t:18}, {h:105, t:20}, {h:105, t:22}, {h:105, t:25}, {h:105, t:28}, {h:105, t:30}, {h:105, t:35}, {h:105, t:40},
+    // h=110
+    {h:110, t:8}, {h:110, t:9}, {h:110, t:10}, {h:110, t:11}, {h:110, t:12}, {h:110, t:13}, {h:110, t:14}, {h:110, t:15}, {h:110, t:16}, {h:110, t:18}, {h:110, t:20}, {h:110, t:22}, {h:110, t:25}, {h:110, t:28}, {h:110, t:30}, {h:110, t:35}, {h:110, t:40},
+    // h=115
+    {h:115, t:8}, {h:115, t:9}, {h:115, t:10}, {h:115, t:11}, {h:115, t:12}, {h:115, t:13}, {h:115, t:14}, {h:115, t:15}, {h:115, t:16}, {h:115, t:18}, {h:115, t:20}, {h:115, t:22}, {h:115, t:25}, {h:115, t:28}, {h:115, t:30}, {h:115, t:35}, {h:115, t:40},
+    // h=120
+    {h:120, t:8}, {h:120, t:9}, {h:120, t:10}, {h:120, t:11}, {h:120, t:12}, {h:120, t:13}, {h:120, t:14}, {h:120, t:15}, {h:120, t:16}, {h:120, t:18}, {h:120, t:20}, {h:120, t:22}, {h:120, t:25}, {h:120, t:28}, {h:120, t:30}, {h:120, t:35}, {h:120, t:40},
+    // h=125
+    {h:125, t:8}, {h:125, t:9}, {h:125, t:10}, {h:125, t:11}, {h:125, t:12}, {h:125, t:13}, {h:125, t:14}, {h:125, t:15}, {h:125, t:16}, {h:125, t:18}, {h:125, t:20}, {h:125, t:22}, {h:125, t:25}, {h:125, t:28}, {h:125, t:30}, {h:125, t:35}, {h:125, t:40},
+    // h=130
+    {h:130, t:8}, {h:130, t:9}, {h:130, t:10}, {h:130, t:11}, {h:130, t:12}, {h:130, t:13}, {h:130, t:14}, {h:130, t:15}, {h:130, t:16}, {h:130, t:18}, {h:130, t:20}, {h:130, t:22}, {h:130, t:25}, {h:130, t:28}, {h:130, t:30}, {h:130, t:35}, {h:130, t:40},
+    // h=135
+    {h:135, t:8}, {h:135, t:9}, {h:135, t:10}, {h:135, t:11}, {h:135, t:12}, {h:135, t:13}, {h:135, t:14}, {h:135, t:15}, {h:135, t:16}, {h:135, t:18}, {h:135, t:20}, {h:135, t:22}, {h:135, t:25}, {h:135, t:28}, {h:135, t:30}, {h:135, t:35}, {h:135, t:40},
+    // h=140
+    {h:140, t:8}, {h:140, t:9}, {h:140, t:10}, {h:140, t:11}, {h:140, t:12}, {h:140, t:13}, {h:140, t:14}, {h:140, t:15}, {h:140, t:16}, {h:140, t:18}, {h:140, t:20}, {h:140, t:22}, {h:140, t:25}, {h:140, t:28}, {h:140, t:30}, {h:140, t:35}, {h:140, t:40},
+    // h=145
+    {h:145, t:8}, {h:145, t:9}, {h:145, t:10}, {h:145, t:11}, {h:145, t:12}, {h:145, t:13}, {h:145, t:14}, {h:145, t:15}, {h:145, t:16}, {h:145, t:18}, {h:145, t:20}, {h:145, t:22}, {h:145, t:25}, {h:145, t:28}, {h:145, t:30}, {h:145, t:35}, {h:145, t:40},
+    // h=150
+    {h:150, t:8}, {h:150, t:9}, {h:150, t:10}, {h:150, t:11}, {h:150, t:12}, {h:150, t:13}, {h:150, t:14}, {h:150, t:15}, {h:150, t:16}, {h:150, t:18}, {h:150, t:20}, {h:150, t:22}, {h:150, t:25}, {h:150, t:28}, {h:150, t:30}, {h:150, t:35}, {h:150, t:40},
+    // h=155
+    {h:155, t:8}, {h:155, t:9}, {h:155, t:10}, {h:155, t:11}, {h:155, t:12}, {h:155, t:13}, {h:155, t:14}, {h:155, t:15}, {h:155, t:16}, {h:155, t:18}, {h:155, t:20}, {h:155, t:22}, {h:155, t:25}, {h:155, t:28}, {h:155, t:30}, {h:155, t:35}, {h:155, t:40},
+    // h=160
+    {h:160, t:8}, {h:160, t:9}, {h:160, t:10}, {h:160, t:11}, {h:160, t:12}, {h:160, t:13}, {h:160, t:14}, {h:160, t:15}, {h:160, t:16}, {h:160, t:18}, {h:160, t:20}, {h:160, t:22}, {h:160, t:25}, {h:160, t:28}, {h:160, t:30}, {h:160, t:35}, {h:160, t:40},
+    // h=165
+    {h:165, t:8}, {h:165, t:9}, {h:165, t:10}, {h:165, t:11}, {h:165, t:12}, {h:165, t:13}, {h:165, t:14}, {h:165, t:15}, {h:165, t:16}, {h:165, t:18}, {h:165, t:20}, {h:165, t:22}, {h:165, t:25}, {h:165, t:28}, {h:165, t:30}, {h:165, t:35}, {h:165, t:40},
+    // h=170
+    {h:170, t:8}, {h:170, t:9}, {h:170, t:10}, {h:170, t:11}, {h:170, t:12}, {h:170, t:13}, {h:170, t:14}, {h:170, t:15}, {h:170, t:16}, {h:170, t:18}, {h:170, t:20}, {h:170, t:22}, {h:170, t:25}, {h:170, t:28}, {h:170, t:30}, {h:170, t:35}, {h:170, t:40},
+    // h=175
+    {h:175, t:8}, {h:175, t:9}, {h:175, t:10}, {h:175, t:11}, {h:175, t:12}, {h:175, t:13}, {h:175, t:14}, {h:175, t:15}, {h:175, t:16}, {h:175, t:18}, {h:175, t:20}, {h:175, t:22}, {h:175, t:25}, {h:175, t:28}, {h:175, t:30}, {h:175, t:35}, {h:175, t:40},
+    // h=180
+    {h:180, t:8}, {h:180, t:9}, {h:180, t:10}, {h:180, t:11}, {h:180, t:12}, {h:180, t:13}, {h:180, t:14}, {h:180, t:15}, {h:180, t:16}, {h:180, t:18}, {h:180, t:20}, {h:180, t:22}, {h:180, t:25}, {h:180, t:28}, {h:180, t:30}, {h:180, t:35}, {h:180, t:40},
+    // h=185
+    {h:185, t:8}, {h:185, t:9}, {h:185, t:10}, {h:185, t:11}, {h:185, t:12}, {h:185, t:13}, {h:185, t:14}, {h:185, t:15}, {h:185, t:16}, {h:185, t:18}, {h:185, t:20}, {h:185, t:22}, {h:185, t:25}, {h:185, t:28}, {h:185, t:30}, {h:185, t:35}, {h:185, t:40},
+    // h=190
+    {h:190, t:8}, {h:190, t:9}, {h:190, t:10}, {h:190, t:11}, {h:190, t:12}, {h:190, t:13}, {h:190, t:14}, {h:190, t:15}, {h:190, t:16}, {h:190, t:18}, {h:190, t:20}, {h:190, t:22}, {h:190, t:25}, {h:190, t:28}, {h:190, t:30}, {h:190, t:35}, {h:190, t:40},
+    // h=195
+    {h:195, t:8}, {h:195, t:9}, {h:195, t:10}, {h:195, t:11}, {h:195, t:12}, {h:195, t:13}, {h:195, t:14}, {h:195, t:15}, {h:195, t:16}, {h:195, t:18}, {h:195, t:20}, {h:195, t:22}, {h:195, t:25}, {h:195, t:28}, {h:195, t:30}, {h:195, t:35}, {h:195, t:40},
+    // h=200
+    {h:200, t:8}, {h:200, t:9}, {h:200, t:10}, {h:200, t:11}, {h:200, t:12}, {h:200, t:13}, {h:200, t:14}, {h:200, t:15}, {h:200, t:16}, {h:200, t:18}, {h:200, t:20}, {h:200, t:22}, {h:200, t:25}, {h:200, t:28}, {h:200, t:30}, {h:200, t:35}, {h:200, t:40},
+    // h=205
+    {h:205, t:8}, {h:205, t:9}, {h:205, t:10}, {h:205, t:11}, {h:205, t:12}, {h:205, t:13}, {h:205, t:14}, {h:205, t:15}, {h:205, t:16}, {h:205, t:18}, {h:205, t:20}, {h:205, t:22}, {h:205, t:25}, {h:205, t:28}, {h:205, t:30}, {h:205, t:35}, {h:205, t:40},
+    // h=210
+    {h:210, t:8}, {h:210, t:9}, {h:210, t:10}, {h:210, t:11}, {h:210, t:12}, {h:210, t:13}, {h:210, t:14}, {h:210, t:15}, {h:210, t:16}, {h:210, t:18}, {h:210, t:20}, {h:210, t:22}, {h:210, t:25}, {h:210, t:28}, {h:210, t:30}, {h:210, t:35}, {h:210, t:40},
+    // h=215
+    {h:215, t:8}, {h:215, t:9}, {h:215, t:10}, {h:215, t:11}, {h:215, t:12}, {h:215, t:13}, {h:215, t:14}, {h:215, t:15}, {h:215, t:16}, {h:215, t:18}, {h:215, t:20}, {h:215, t:22}, {h:215, t:25}, {h:215, t:28}, {h:215, t:30}, {h:215, t:35}, {h:215, t:40},
+    // h=220
+    {h:220, t:8}, {h:220, t:9}, {h:220, t:10}, {h:220, t:11}, {h:220, t:12}, {h:220, t:13}, {h:220, t:14}, {h:220, t:15}, {h:220, t:16}, {h:220, t:18}, {h:220, t:20}, {h:220, t:22}, {h:220, t:25}, {h:220, t:28}, {h:220, t:30}, {h:220, t:35}, {h:220, t:40},
+    // h=225
+    {h:225, t:8}, {h:225, t:9}, {h:225, t:10}, {h:225, t:11}, {h:225, t:12}, {h:225, t:13}, {h:225, t:14}, {h:225, t:15}, {h:225, t:16}, {h:225, t:18}, {h:225, t:20}, {h:225, t:22}, {h:225, t:25}, {h:225, t:28}, {h:225, t:30}, {h:225, t:35}, {h:225, t:40},
+    // h=230
+    {h:230, t:8}, {h:230, t:9}, {h:230, t:10}, {h:230, t:11}, {h:230, t:12}, {h:230, t:13}, {h:230, t:14}, {h:230, t:15}, {h:230, t:16}, {h:230, t:18}, {h:230, t:20}, {h:230, t:22}, {h:230, t:25}, {h:230, t:28}, {h:230, t:30}, {h:230, t:35}, {h:230, t:40},
+    // h=235
+    {h:235, t:8}, {h:235, t:9}, {h:235, t:10}, {h:235, t:11}, {h:235, t:12}, {h:235, t:13}, {h:235, t:14}, {h:235, t:15}, {h:235, t:16}, {h:235, t:18}, {h:235, t:20}, {h:235, t:22}, {h:235, t:25}, {h:235, t:28}, {h:235, t:30}, {h:235, t:35}, {h:235, t:40},
+    // h=240
+    {h:240, t:8}, {h:240, t:9}, {h:240, t:10}, {h:240, t:11}, {h:240, t:12}, {h:240, t:13}, {h:240, t:14}, {h:240, t:15}, {h:240, t:16}, {h:240, t:18}, {h:240, t:20}, {h:240, t:22}, {h:240, t:25}, {h:240, t:28}, {h:240, t:30}, {h:240, t:35}, {h:240, t:40},
+    // h=245
+    {h:245, t:8}, {h:245, t:9}, {h:245, t:10}, {h:245, t:11}, {h:245, t:12}, {h:245, t:13}, {h:245, t:14}, {h:245, t:15}, {h:245, t:16}, {h:245, t:18}, {h:245, t:20}, {h:245, t:22}, {h:245, t:25}, {h:245, t:28}, {h:245, t:30}, {h:245, t:35}, {h:245, t:40},
+    // h=250
+    {h:250, t:8}, {h:250, t:9}, {h:250, t:10}, {h:250, t:11}, {h:250, t:12}, {h:250, t:13}, {h:250, t:14}, {h:250, t:15}, {h:250, t:16}, {h:250, t:18}, {h:250, t:20}, {h:250, t:22}, {h:250, t:25}, {h:250, t:28}, {h:250, t:30}, {h:250, t:35}, {h:250, t:40},
+    // h=255
+    {h:255, t:8}, {h:255, t:9}, {h:255, t:10}, {h:255, t:11}, {h:255, t:12}, {h:255, t:13}, {h:255, t:14}, {h:255, t:15}, {h:255, t:16}, {h:255, t:18}, {h:255, t:20}, {h:255, t:22}, {h:255, t:25}, {h:255, t:28}, {h:255, t:30}, {h:255, t:35}, {h:255, t:40},
+    // h=260
+    {h:260, t:8}, {h:260, t:9}, {h:260, t:10}, {h:260, t:11}, {h:260, t:12}, {h:260, t:13}, {h:260, t:14}, {h:260, t:15}, {h:260, t:16}, {h:260, t:18}, {h:260, t:20}, {h:260, t:22}, {h:260, t:25}, {h:260, t:28}, {h:260, t:30}, {h:260, t:35}, {h:260, t:40},
+    // h=265
+    {h:265, t:8}, {h:265, t:9}, {h:265, t:10}, {h:265, t:11}, {h:265, t:12}, {h:265, t:13}, {h:265, t:14}, {h:265, t:15}, {h:265, t:16}, {h:265, t:18}, {h:265, t:20}, {h:265, t:22}, {h:265, t:25}, {h:265, t:28}, {h:265, t:30}, {h:265, t:35}, {h:265, t:40},
+    // h=270
+    {h:270, t:8}, {h:270, t:9}, {h:270, t:10}, {h:270, t:11}, {h:270, t:12}, {h:270, t:13}, {h:270, t:14}, {h:270, t:15}, {h:270, t:16}, {h:270, t:18}, {h:270, t:20}, {h:270, t:22}, {h:270, t:25}, {h:270, t:28}, {h:270, t:30}, {h:270, t:35}, {h:270, t:40},
+    // h=275
+    {h:275, t:8}, {h:275, t:9}, {h:275, t:10}, {h:275, t:11}, {h:275, t:12}, {h:275, t:13}, {h:275, t:14}, {h:275, t:15}, {h:275, t:16}, {h:275, t:18}, {h:275, t:20}, {h:275, t:22}, {h:275, t:25}, {h:275, t:28}, {h:275, t:30}, {h:275, t:35}, {h:275, t:40},
+    // h=280
+    {h:280, t:8}, {h:280, t:9}, {h:280, t:10}, {h:280, t:11}, {h:280, t:12}, {h:280, t:13}, {h:280, t:14}, {h:280, t:15}, {h:280, t:16}, {h:280, t:18}, {h:280, t:20}, {h:280, t:22}, {h:280, t:25}, {h:280, t:28}, {h:280, t:30}, {h:280, t:35}, {h:280, t:40},
+    // h=285
+    {h:285, t:8}, {h:285, t:9}, {h:285, t:10}, {h:285, t:11}, {h:285, t:12}, {h:285, t:13}, {h:285, t:14}, {h:285, t:15}, {h:285, t:16}, {h:285, t:18}, {h:285, t:20}, {h:285, t:22}, {h:285, t:25}, {h:285, t:28}, {h:285, t:30}, {h:285, t:35}, {h:285, t:40},
+    // h=290
+    {h:290, t:8}, {h:290, t:9}, {h:290, t:10}, {h:290, t:11}, {h:290, t:12}, {h:290, t:13}, {h:290, t:14}, {h:290, t:15}, {h:290, t:16}, {h:290, t:18}, {h:290, t:20}, {h:290, t:22}, {h:290, t:25}, {h:290, t:28}, {h:290, t:30}, {h:290, t:35}, {h:290, t:40},
+    // h=295
+    {h:295, t:8}, {h:295, t:9}, {h:295, t:10}, {h:295, t:11}, {h:295, t:12}, {h:295, t:13}, {h:295, t:14}, {h:295, t:15}, {h:295, t:16}, {h:295, t:18}, {h:295, t:20}, {h:295, t:22}, {h:295, t:25}, {h:295, t:28}, {h:295, t:30}, {h:295, t:35}, {h:295, t:40},
+    // h=300
+    {h:300, t:8}, {h:300, t:9}, {h:300, t:10}, {h:300, t:11}, {h:300, t:12}, {h:300, t:13}, {h:300, t:14}, {h:300, t:15}, {h:300, t:16}, {h:300, t:18}, {h:300, t:20}, {h:300, t:22}, {h:300, t:25}, {h:300, t:28}, {h:300, t:30}, {h:300, t:35}, {h:300, t:40},
+    // h=305
+    {h:305, t:8}, {h:305, t:9}, {h:305, t:10}, {h:305, t:11}, {h:305, t:12}, {h:305, t:13}, {h:305, t:14}, {h:305, t:15}, {h:305, t:16}, {h:305, t:18}, {h:305, t:20}, {h:305, t:22}, {h:305, t:25}, {h:305, t:28}, {h:305, t:30}, {h:305, t:35}, {h:305, t:40},
+    // h=310
+    {h:310, t:8}, {h:310, t:9}, {h:310, t:10}, {h:310, t:11}, {h:310, t:12}, {h:310, t:13}, {h:310, t:14}, {h:310, t:15}, {h:310, t:16}, {h:310, t:18}, {h:310, t:20}, {h:310, t:22}, {h:310, t:25}, {h:310, t:28}, {h:310, t:30}, {h:310, t:35}, {h:310, t:40},
+    // h=315
+    {h:315, t:8}, {h:315, t:9}, {h:315, t:10}, {h:315, t:11}, {h:315, t:12}, {h:315, t:13}, {h:315, t:14}, {h:315, t:15}, {h:315, t:16}, {h:315, t:18}, {h:315, t:20}, {h:315, t:22}, {h:315, t:25}, {h:315, t:28}, {h:315, t:30}, {h:315, t:35}, {h:315, t:40},
+    // h=320
+    {h:320, t:8}, {h:320, t:9}, {h:320, t:10}, {h:320, t:11}, {h:320, t:12}, {h:320, t:13}, {h:320, t:14}, {h:320, t:15}, {h:320, t:16}, {h:320, t:18}, {h:320, t:20}, {h:320, t:22}, {h:320, t:25}, {h:320, t:28}, {h:320, t:30}, {h:320, t:35}, {h:320, t:40},
+    // h=325
+    {h:325, t:8}, {h:325, t:9}, {h:325, t:10}, {h:325, t:11}, {h:325, t:12}, {h:325, t:13}, {h:325, t:14}, {h:325, t:15}, {h:325, t:16}, {h:325, t:18}, {h:325, t:20}, {h:325, t:22}, {h:325, t:25}, {h:325, t:28}, {h:325, t:30}, {h:325, t:35}, {h:325, t:40},
+    // h=330
+    {h:330, t:8}, {h:330, t:9}, {h:330, t:10}, {h:330, t:11}, {h:330, t:12}, {h:330, t:13}, {h:330, t:14}, {h:330, t:15}, {h:330, t:16}, {h:330, t:18}, {h:330, t:20}, {h:330, t:22}, {h:330, t:25}, {h:330, t:28}, {h:330, t:30}, {h:330, t:35}, {h:330, t:40},
+    // h=335
+    {h:335, t:8}, {h:335, t:9}, {h:335, t:10}, {h:335, t:11}, {h:335, t:12}, {h:335, t:13}, {h:335, t:14}, {h:335, t:15}, {h:335, t:16}, {h:335, t:18}, {h:335, t:20}, {h:335, t:22}, {h:335, t:25}, {h:335, t:28}, {h:335, t:30}, {h:335, t:35}, {h:335, t:40},
+    // h=340
+    {h:340, t:8}, {h:340, t:9}, {h:340, t:10}, {h:340, t:11}, {h:340, t:12}, {h:340, t:13}, {h:340, t:14}, {h:340, t:15}, {h:340, t:16}, {h:340, t:18}, {h:340, t:20}, {h:340, t:22}, {h:340, t:25}, {h:340, t:28}, {h:340, t:30}, {h:340, t:35}, {h:340, t:40},
+    // h=345
+    {h:345, t:8}, {h:345, t:9}, {h:345, t:10}, {h:345, t:11}, {h:345, t:12}, {h:345, t:13}, {h:345, t:14}, {h:345, t:15}, {h:345, t:16}, {h:345, t:18}, {h:345, t:20}, {h:345, t:22}, {h:345, t:25}, {h:345, t:28}, {h:345, t:30}, {h:345, t:35}, {h:345, t:40},
+    // h=350
+    {h:350, t:8}, {h:350, t:9}, {h:350, t:10}, {h:350, t:11}, {h:350, t:12}, {h:350, t:13}, {h:350, t:14}, {h:350, t:15}, {h:350, t:16}, {h:350, t:18}, {h:350, t:20}, {h:350, t:22}, {h:350, t:25}, {h:350, t:28}, {h:350, t:30}, {h:350, t:35}, {h:350, t:40},
+    // h=355
+    {h:355, t:8}, {h:355, t:9}, {h:355, t:10}, {h:355, t:11}, {h:355, t:12}, {h:355, t:13}, {h:355, t:14}, {h:355, t:15}, {h:355, t:16}, {h:355, t:18}, {h:355, t:20}, {h:355, t:22}, {h:355, t:25}, {h:355, t:28}, {h:355, t:30}, {h:355, t:35}, {h:355, t:40},
+    // h=360
+    {h:360, t:8}, {h:360, t:9}, {h:360, t:10}, {h:360, t:11}, {h:360, t:12}, {h:360, t:13}, {h:360, t:14}, {h:360, t:15}, {h:360, t:16}, {h:360, t:18}, {h:360, t:20}, {h:360, t:22}, {h:360, t:25}, {h:360, t:28}, {h:360, t:30}, {h:360, t:35}, {h:360, t:40},
+    // h=365
+    {h:365, t:8}, {h:365, t:9}, {h:365, t:10}, {h:365, t:11}, {h:365, t:12}, {h:365, t:13}, {h:365, t:14}, {h:365, t:15}, {h:365, t:16}, {h:365, t:18}, {h:365, t:20}, {h:365, t:22}, {h:365, t:25}, {h:365, t:28}, {h:365, t:30}, {h:365, t:35}, {h:365, t:40},
+    // h=370
+    {h:370, t:8}, {h:370, t:9}, {h:370, t:10}, {h:370, t:11}, {h:370, t:12}, {h:370, t:13}, {h:370, t:14}, {h:370, t:15}, {h:370, t:16}, {h:370, t:18}, {h:370, t:20}, {h:370, t:22}, {h:370, t:25}, {h:370, t:28}, {h:370, t:30}, {h:370, t:35}, {h:370, t:40},
+    // h=375
+    {h:375, t:8}, {h:375, t:9}, {h:375, t:10}, {h:375, t:11}, {h:375, t:12}, {h:375, t:13}, {h:375, t:14}, {h:375, t:15}, {h:375, t:16}, {h:375, t:18}, {h:375, t:20}, {h:375, t:22}, {h:375, t:25}, {h:375, t:28}, {h:375, t:30}, {h:375, t:35}, {h:375, t:40},
+    // h=380
+    {h:380, t:8}, {h:380, t:9}, {h:380, t:10}, {h:380, t:11}, {h:380, t:12}, {h:380, t:13}, {h:380, t:14}, {h:380, t:15}, {h:380, t:16}, {h:380, t:18}, {h:380, t:20}, {h:380, t:22}, {h:380, t:25}, {h:380, t:28}, {h:380, t:30}, {h:380, t:35}, {h:380, t:40},
+    // h=385
+    {h:385, t:8}, {h:385, t:9}, {h:385, t:10}, {h:385, t:11}, {h:385, t:12}, {h:385, t:13}, {h:385, t:14}, {h:385, t:15}, {h:385, t:16}, {h:385, t:18}, {h:385, t:20}, {h:385, t:22}, {h:385, t:25}, {h:385, t:28}, {h:385, t:30}, {h:385, t:35}, {h:385, t:40},
+    // h=390
+    {h:390, t:8}, {h:390, t:9}, {h:390, t:10}, {h:390, t:11}, {h:390, t:12}, {h:390, t:13}, {h:390, t:14}, {h:390, t:15}, {h:390, t:16}, {h:390, t:18}, {h:390, t:20}, {h:390, t:22}, {h:390, t:25}, {h:390, t:28}, {h:390, t:30}, {h:390, t:35}, {h:390, t:40},
+    // h=395
+    {h:395, t:8}, {h:395, t:9}, {h:395, t:10}, {h:395, t:11}, {h:395, t:12}, {h:395, t:13}, {h:395, t:14}, {h:395, t:15}, {h:395, t:16}, {h:395, t:18}, {h:395, t:20}, {h:395, t:22}, {h:395, t:25}, {h:395, t:28}, {h:395, t:30}, {h:395, t:35}, {h:395, t:40},
+    // h=400
+    {h:400, t:8}, {h:400, t:9}, {h:400, t:10}, {h:400, t:11}, {h:400, t:12}, {h:400, t:13}, {h:400, t:14}, {h:400, t:15}, {h:400, t:16}, {h:400, t:18}, {h:400, t:20}, {h:400, t:22}, {h:400, t:25}, {h:400, t:28}, {h:400, t:30}, {h:400, t:35}, {h:400, t:40},
+    // h=405
+    {h:405, t:8}, {h:405, t:9}, {h:405, t:10}, {h:405, t:11}, {h:405, t:12}, {h:405, t:13}, {h:405, t:14}, {h:405, t:15}, {h:405, t:16}, {h:405, t:18}, {h:405, t:20}, {h:405, t:22}, {h:405, t:25}, {h:405, t:28}, {h:405, t:30}, {h:405, t:35}, {h:405, t:40},
+    // h=410
+    {h:410, t:8}, {h:410, t:9}, {h:410, t:10}, {h:410, t:11}, {h:410, t:12}, {h:410, t:13}, {h:410, t:14}, {h:410, t:15}, {h:410, t:16}, {h:410, t:18}, {h:410, t:20}, {h:410, t:22}, {h:410, t:25}, {h:410, t:28}, {h:410, t:30}, {h:410, t:35}, {h:410, t:40},
+    // h=415
+    {h:415, t:8}, {h:415, t:9}, {h:415, t:10}, {h:415, t:11}, {h:415, t:12}, {h:415, t:13}, {h:415, t:14}, {h:415, t:15}, {h:415, t:16}, {h:415, t:18}, {h:415, t:20}, {h:415, t:22}, {h:415, t:25}, {h:415, t:28}, {h:415, t:30}, {h:415, t:35}, {h:415, t:40},
+    // h=420
+    {h:420, t:8}, {h:420, t:9}, {h:420, t:10}, {h:420, t:11}, {h:420, t:12}, {h:420, t:13}, {h:420, t:14}, {h:420, t:15}, {h:420, t:16}, {h:420, t:18}, {h:420, t:20}, {h:420, t:22}, {h:420, t:25}, {h:420, t:28}, {h:420, t:30}, {h:420, t:35}, {h:420, t:40},
+    // h=425
+    {h:425, t:8}, {h:425, t:9}, {h:425, t:10}, {h:425, t:11}, {h:425, t:12}, {h:425, t:13}, {h:425, t:14}, {h:425, t:15}, {h:425, t:16}, {h:425, t:18}, {h:425, t:20}, {h:425, t:22}, {h:425, t:25}, {h:425, t:28}, {h:425, t:30}, {h:425, t:35}, {h:425, t:40},
+    // h=430
+    {h:430, t:8}, {h:430, t:9}, {h:430, t:10}, {h:430, t:11}, {h:430, t:12}, {h:430, t:13}, {h:430, t:14}, {h:430, t:15}, {h:430, t:16}, {h:430, t:18}, {h:430, t:20}, {h:430, t:22}, {h:430, t:25}, {h:430, t:28}, {h:430, t:30}, {h:430, t:35}, {h:430, t:40},
+    // h=435
+    {h:435, t:8}, {h:435, t:9}, {h:435, t:10}, {h:435, t:11}, {h:435, t:12}, {h:435, t:13}, {h:435, t:14}, {h:435, t:15}, {h:435, t:16}, {h:435, t:18}, {h:435, t:20}, {h:435, t:22}, {h:435, t:25}, {h:435, t:28}, {h:435, t:30}, {h:435, t:35}, {h:435, t:40},
+    // h=440
+    {h:440, t:8}, {h:440, t:9}, {h:440, t:10}, {h:440, t:11}, {h:440, t:12}, {h:440, t:13}, {h:440, t:14}, {h:440, t:15}, {h:440, t:16}, {h:440, t:18}, {h:440, t:20}, {h:440, t:22}, {h:440, t:25}, {h:440, t:28}, {h:440, t:30}, {h:440, t:35}, {h:440, t:40},
+    // h=445
+    {h:445, t:8}, {h:445, t:9}, {h:445, t:10}, {h:445, t:11}, {h:445, t:12}, {h:445, t:13}, {h:445, t:14}, {h:445, t:15}, {h:445, t:16}, {h:445, t:18}, {h:445, t:20}, {h:445, t:22}, {h:445, t:25}, {h:445, t:28}, {h:445, t:30}, {h:445, t:35}, {h:445, t:40},
+    // h=450
+    {h:450, t:8}, {h:450, t:9}, {h:450, t:10}, {h:450, t:11}, {h:450, t:12}, {h:450, t:13}, {h:450, t:14}, {h:450, t:15}, {h:450, t:16}, {h:450, t:18}, {h:450, t:20}, {h:450, t:22}, {h:450, t:25}, {h:450, t:28}, {h:450, t:30}, {h:450, t:35}, {h:450, t:40},
+    // h=455
+    {h:455, t:8}, {h:455, t:9}, {h:455, t:10}, {h:455, t:11}, {h:455, t:12}, {h:455, t:13}, {h:455, t:14}, {h:455, t:15}, {h:455, t:16}, {h:455, t:18}, {h:455, t:20}, {h:455, t:22}, {h:455, t:25}, {h:455, t:28}, {h:455, t:30}, {h:455, t:35}, {h:455, t:40},
+    // h=460
+    {h:460, t:8}, {h:460, t:9}, {h:460, t:10}, {h:460, t:11}, {h:460, t:12}, {h:460, t:13}, {h:460, t:14}, {h:460, t:15}, {h:460, t:16}, {h:460, t:18}, {h:460, t:20}, {h:460, t:22}, {h:460, t:25}, {h:460, t:28}, {h:460, t:30}, {h:460, t:35}, {h:460, t:40},
+    // h=465
+    {h:465, t:8}, {h:465, t:9}, {h:465, t:10}, {h:465, t:11}, {h:465, t:12}, {h:465, t:13}, {h:465, t:14}, {h:465, t:15}, {h:465, t:16}, {h:465, t:18}, {h:465, t:20}, {h:465, t:22}, {h:465, t:25}, {h:465, t:28}, {h:465, t:30}, {h:465, t:35}, {h:465, t:40},
+    // h=470
+    {h:470, t:8}, {h:470, t:9}, {h:470, t:10}, {h:470, t:11}, {h:470, t:12}, {h:470, t:13}, {h:470, t:14}, {h:470, t:15}, {h:470, t:16}, {h:470, t:18}, {h:470, t:20}, {h:470, t:22}, {h:470, t:25}, {h:470, t:28}, {h:470, t:30}, {h:470, t:35}, {h:470, t:40},
+    // h=475
+    {h:475, t:8}, {h:475, t:9}, {h:475, t:10}, {h:475, t:11}, {h:475, t:12}, {h:475, t:13}, {h:475, t:14}, {h:475, t:15}, {h:475, t:16}, {h:475, t:18}, {h:475, t:20}, {h:475, t:22}, {h:475, t:25}, {h:475, t:28}, {h:475, t:30}, {h:475, t:35}, {h:475, t:40},
+    // h=480
+    {h:480, t:8}, {h:480, t:9}, {h:480, t:10}, {h:480, t:11}, {h:480, t:12}, {h:480, t:13}, {h:480, t:14}, {h:480, t:15}, {h:480, t:16}, {h:480, t:18}, {h:480, t:20}, {h:480, t:22}, {h:480, t:25}, {h:480, t:28}, {h:480, t:30}, {h:480, t:35}, {h:480, t:40},
+    // h=485
+    {h:485, t:8}, {h:485, t:9}, {h:485, t:10}, {h:485, t:11}, {h:485, t:12}, {h:485, t:13}, {h:485, t:14}, {h:485, t:15}, {h:485, t:16}, {h:485, t:18}, {h:485, t:20}, {h:485, t:22}, {h:485, t:25}, {h:485, t:28}, {h:485, t:30}, {h:485, t:35}, {h:485, t:40},
+    // h=490
+    {h:490, t:8}, {h:490, t:9}, {h:490, t:10}, {h:490, t:11}, {h:490, t:12}, {h:490, t:13}, {h:490, t:14}, {h:490, t:15}, {h:490, t:16}, {h:490, t:18}, {h:490, t:20}, {h:490, t:22}, {h:490, t:25}, {h:490, t:28}, {h:490, t:30}, {h:490, t:35}, {h:490, t:40},
+    // h=495
+    {h:495, t:8}, {h:495, t:9}, {h:495, t:10}, {h:495, t:11}, {h:495, t:12}, {h:495, t:13}, {h:495, t:14}, {h:495, t:15}, {h:495, t:16}, {h:495, t:18}, {h:495, t:20}, {h:495, t:22}, {h:495, t:25}, {h:495, t:28}, {h:495, t:30}, {h:495, t:35}, {h:495, t:40},
+    // h=500
+    {h:500, t:8}, {h:500, t:9}, {h:500, t:10}, {h:500, t:11}, {h:500, t:12}, {h:500, t:13}, {h:500, t:14}, {h:500, t:15}, {h:500, t:16}, {h:500, t:18}, {h:500, t:20}, {h:500, t:22}, {h:500, t:25}, {h:500, t:28}, {h:500, t:30}, {h:500, t:35}, {h:500, t:40}
+  ];
+
+  // T-profile catalog (built/rolled T)
+  const T_CATALOG_SIZES = [
+    {h:100, tw:6, bf:60, tf:8}, {h:120, tw:6, bf:80, tf:8}, {h:140, tw:7, bf:80, tf:10},
+    {h:160, tw:7, bf:100, tf:10}, {h:180, tw:8, bf:100, tf:10}, {h:200, tw:8, bf:120, tf:12},
+    {h:220, tw:8, bf:120, tf:12}, {h:240, tw:9, bf:140, tf:12}, {h:260, tw:9, bf:140, tf:12},
+    {h:280, tw:10, bf:160, tf:14}, {h:300, tw:10, bf:160, tf:14}, {h:350, tw:10, bf:180, tf:14},
+    {h:400, tw:12, bf:200, tf:16}
+  ];
+
+  // --- Geometry calcs (from SectionPro) — all in cm for Ixx/Iyy ---
+  function _calcL(a, b, t) {
+    const aCm = a/10, bCm = b/10, tCm = t/10;
+    const area = (aCm + bCm - tCm) * tCm;
+    const A1 = aCm * tCm, A2 = (bCm - tCm) * tCm;
+    const y1 = aCm/2, y2 = tCm/2, x1 = tCm/2, x2 = tCm + (bCm-tCm)/2;
+    const centroidX = (A1*x1 + A2*x2) / area;
+    const centroidY = (A1*y1 + A2*y2) / area;
+    const Ixx = (tCm*aCm**3)/12 + A1*(y1-centroidY)**2 + ((bCm-tCm)*tCm**3)/12 + A2*(y2-centroidY)**2;
+    const Iyy = (aCm*tCm**3)/12 + A1*(x1-centroidX)**2 + (tCm*(bCm-tCm)**3)/12 + A2*(x2-centroidX)**2;
+    return { type:'L', name:`L ${a}x${b}x${t}`, area, centroidX, centroidY, Ixx, Iyy, height:aCm, maxWidth:bCm, xOffsetFromWebCenter: centroidX - tCm/2, dimensions:{a,b,t} };
+  }
+
+  function _calcT(h, tw, bf, tf) {
+    const hCm=h/10, twCm=tw/10, bfCm=bf/10, tfCm=tf/10;
+    const webArea = (hCm-tfCm)*twCm, flangeArea = bfCm*tfCm, area = webArea+flangeArea;
+    const webCY = tfCm + (hCm-tfCm)/2, flangeCY = tfCm/2;
+    const centroidY = (webArea*webCY + flangeArea*flangeCY) / area;
+    const Ixx = (twCm*(hCm-tfCm)**3)/12 + webArea*(webCY-centroidY)**2 + (bfCm*tfCm**3)/12 + flangeArea*(flangeCY-centroidY)**2;
+    const Iyy = ((hCm-tfCm)*twCm**3)/12 + (tfCm*bfCm**3)/12;
+    return { type:'T', name:`T ${h}x${tw}/${bf}x${tf}`, area, centroidX:bfCm/2, centroidY, Ixx, Iyy, height:hCm, maxWidth:bfCm, xOffsetFromWebCenter:0, dimensions:{h,tw,bf,tf} };
+  }
+
+  function _calcFB(h, t) {
+    const hCm=h/10, tCm=t/10, area=hCm*tCm;
+    return { type:'FB', name:`FB ${h}x${t}`, area, centroidX:tCm/2, centroidY:hCm/2, Ixx:(tCm*hCm**3)/12, Iyy:(hCm*tCm**3)/12, height:hCm, maxWidth:tCm, xOffsetFromWebCenter:0, dimensions:{h,t} };
+  }
+
+  function _calcHP(hp) {
+    // hp: catalog entry {name, b, t, c, r, A, dx, Ixx}
+    const cCm = hp.c/10, bCm = hp.b/10, tCm = hp.t/10;
+    const Iyy = (hp.A * cCm**2)/12;
+    return { type:'HP', name:hp.name, area:hp.A, centroidX:cCm/2, centroidY:hp.dx, Ixx:hp.Ixx, Iyy, height:bCm, maxWidth:cCm, xOffsetFromWebCenter:(cCm-tCm)/2*0.4, dimensions:{b:hp.b,t:hp.t,c:hp.c,r:hp.r} };
+  }
+
+  // --- Combined section with attached plate (from SectionPro) ---
+  // pd:  profile data object (from _calcL/_calcT/_calcFB/_calcHP)
+  // pw, pt: plate width (mm), plate thickness (mm)
+  // angle: stiffener-to-plate angle in degrees (90 = perpendicular)
+  // Returns: { WxxBot, WxxTop, Wyy, combIxx, combIyy, totalArea, weight (kg/m), ... }
+  function computeCombinedSection(pd, plateOn, pw, pt, angle) {
+    angle = angle || 90;
+    const rad=angle*Math.PI/180, sinA=Math.sin(rad), cosA=Math.cos(rad);
+    const effH = pd.height*sinA;
+    const pwCm=pw/10, ptCm=pt/10;
+    const pArea = plateOn ? pwCm*ptCm : 0;
+    const totalArea = pd.area + pArea;
+    let combCY;
+    if (plateOn) {
+      const plateCY = ptCm/2;
+      const profCY = pd.type==='HP' ? ptCm+pd.centroidY*sinA : ptCm+(pd.height-pd.centroidY)*sinA;
+      combCY = (pArea*plateCY + pd.area*profCY) / totalArea;
+    } else {
+      combCY = pd.type==='HP' ? pd.centroidY*sinA : (pd.height-pd.centroidY)*sinA;
+    }
+    const totalH = plateOn ? ptCm+effH : effH;
+    const profOX = pd.xOffsetFromWebCenter||0;
+    const combCX = plateOn ? (pd.area*profOX)/totalArea : profOX;
+
+    let combIxx;
+    if (plateOn) {
+      const plateCY=ptCm/2;
+      const profCY = pd.type==='HP' ? ptCm+pd.centroidY*sinA : ptCm+(pd.height-pd.centroidY)*sinA;
+      const d1=plateCY-combCY, d2=profCY-combCY;
+      const pIxx=(pwCm*ptCm**3)/12;
+      combIxx = (pd.Ixx*sinA**2+pd.Iyy*cosA**2) + pd.area*d2**2 + pIxx + pArea*d1**2;
+    } else { combIxx = pd.Ixx*sinA**2 + pd.Iyy*cosA**2; }
+
+    let combIyy;
+    if (plateOn) {
+      const pIyy=(ptCm*pwCm**3)/12;
+      const dxP=0-combCX, dxPr=profOX-combCX;
+      combIyy = (pd.Iyy*sinA**2+pd.Ixx*cosA**2) + pd.area*dxPr**2 + pIyy + pArea*dxP**2;
+    } else { combIyy = pd.Iyy*sinA**2 + pd.Ixx*cosA**2; }
+
+    const yT=combCY, yB=totalH-combCY;
+    const WxxTop=combIxx/yT, WxxBot=combIxx/yB;
+    let yyyMax;
+    if (plateOn) {
+      const pL=-pwCm/2-combCX, pR=pwCm/2-combCX;
+      yyyMax = Math.max(Math.abs(pL),Math.abs(pR));
+    } else { yyyMax = pd.maxWidth/2; }
+    const Wyy = combIyy / (yyyMax||pd.maxWidth/2);
+    return {
+      totalArea, plateArea:pArea, combinedCentroidY:combCY, combinedCentroidX:combCX,
+      totalHeight:totalH, combinedIxx:combIxx, combinedIyy:combIyy,
+      WxxTop, WxxBot, Wyy,
+      ix:Math.sqrt(combIxx/totalArea), iy:Math.sqrt(combIyy/totalArea),
+      weight:totalArea*7850/10000  // kg/m (area in cm², density 7850 kg/m³)
+    };
+  }
+
+  // --- Generate all profile data objects for a given family ---
+  function allL() { return L_CATALOG_SIZES.map(s => _calcL(s.a, s.b, s.t)); }
+  function allT() { return T_CATALOG_SIZES.map(s => _calcT(s.h, s.tw, s.bf, s.tf)); }
+  function allFB() { return FB_CATALOG_SIZES.map(s => _calcFB(s.h, s.t)); }
+  function allHP() { return HP_CATALOG.map(_calcHP); }
+  function allProfiles(families) {
+    families = families || ['L','HP','FB','T'];
+    const out = [];
+    if (families.includes('L')) out.push(...allL());
+    if (families.includes('HP')) out.push(...allHP());
+    if (families.includes('FB')) out.push(...allFB());
+    if (families.includes('T')) out.push(...allT());
+    return out;
+  }
+
+  // --- Best-fit selector ---
+  // Finds all profiles where (attached plate) combined WxxBot >= Zreq_cm3.
+  // Returns sorted-by-weight list of { name, type, Z_cm3 (=WxxBot), I_cm4, weight, A }
+  // opts: { families: ['L','HP','FB','T'], plateWidth_mm (=s), plateThickness_mm, angle=90, maxResults=10, margin=1.0 }
+  function findBestFit(Zreq_cm3, opts) {
+    opts = opts || {};
+    const families = opts.families || ['L','HP','FB'];
+    const pw = opts.plateWidth_mm || 700;
+    const pt = opts.plateThickness_mm || 10;
+    const angle = opts.angle || 90;
+    const margin = opts.margin || 1.0;   // Z_required_with_margin = Zreq * margin
+    const Zneeded = Zreq_cm3 * margin;
+    const maxResults = opts.maxResults || 10;
+    // LR Pt 4 Ch 1 — Inertia requirement: I ≥ (C_I/k)·l_e·Z  [cm⁴]
+    // Tables 1.4.3, 1.4.4, 1.6.1: C_I = 2.3
+    // Tables 1.9.1: C_I = 2.3 (stiffener) or 2.5 (stringer/web)
+    // Tables 1.4.6 (tank): C_I = 2.8
+    // Passed via opts.Ineeded_cm4 if caller has computed it; 0 disables check.
+    const Ineeded = (opts.Ineeded_cm4 != null && opts.Ineeded_cm4 > 0)
+      ? opts.Ineeded_cm4 : 0;
+
+    // Slenderness limits (LR Pt 4 Ch 1 Tablo 1.4.4 / 1.6.1 / 1.9.1 Notes).
+    // d_w/t ≤ 60·√k_L for HP/L/T (rolled with flange)
+    // d_w/t ≤ 18·√k_L for FB continuous
+    // d_w/t ≤ 15·√k_L for FB non-continuous
+    // Without filtering on slenderness, the optimizer can return short+thick
+    // FB profiles (e.g. FB 130x30) that comply with Z but waste mass — a
+    // taller+thinner FB at the same Z is always lighter and uses the
+    // buckling limit better.
+    const kL_filter = (opts.kL != null && opts.kL > 0) ? opts.kL : 0.72;
+    const fbContinuous = opts.fbContinuous !== false;
+    const dwt_LHP    = 60 * Math.sqrt(kL_filter);
+    const dwt_FBcont = 18 * Math.sqrt(kL_filter);
+    const dwt_FBnon  = 15 * Math.sqrt(kL_filter);
+    const slenderOK = (pd) => {
+      const dim = pd.dimensions || {};
+      if (pd.type === 'L')  return (dim.a||0)/(dim.t||1) <= dwt_LHP;
+      if (pd.type === 'HP') return (dim.b||0)/(dim.t||1) <= dwt_LHP;
+      if (pd.type === 'T')  return (dim.h||dim.a||0)/(dim.tw||dim.t||1) <= dwt_LHP;
+      if (pd.type === 'FB') return (dim.h||dim.a||0)/(dim.t||1)
+                              <= (fbContinuous ? dwt_FBcont : dwt_FBnon);
+      return true;
+    };
+
+    const candidates = allProfiles(families).map(pd => {
+      const r = computeCombinedSection(pd, true, pw, pt, angle);
+      const Z_min = Math.min(r.WxxBot, r.WxxTop);
+      const passZ = Z_min >= Zneeded;
+      const passI = (Ineeded === 0) || (r.combinedIxx >= Ineeded);
+      const passSlender = slenderOK(pd);
+      return {
+        name: pd.name,
+        type: pd.type,
+        Z_cm3: Z_min,
+        WxxTop_cm3: r.WxxTop,
+        WxxBot_cm3: r.WxxBot,
+        I_cm4: r.combinedIxx,
+        A_cm2: r.totalArea,
+        weight_kgm: r.weight,
+        dimensions: pd.dimensions,
+        passes: passZ && passI && passSlender,
+        passZ, passI, passSlender
+      };
+    });
+
+    // Filter passes, sort by weight ascending
+    const passing = candidates.filter(c => c.passes).sort((a,b) => a.weight_kgm - b.weight_kgm);
+    return passing.slice(0, maxResults);
+  }
+
+  return {
+    HP_CATALOG,
+    L_CATALOG_SIZES,
+    FB_CATALOG_SIZES,
+    T_CATALOG_SIZES,
+    _calcL, _calcT, _calcFB, _calcHP,
+    computeCombinedSection,
+    allL, allT, allFB, allHP, allProfiles,
+    findBestFit
+  };
+})();
+

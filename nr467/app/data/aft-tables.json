@@ -1,0 +1,24 @@
+{
+ "source": "Aft_Part_Calculation_Sheet.xlsx, sheet 'Coefficients'",
+ "note": "BV NR467 Pt B rule tables for the aft part. The corrosion table is this workbook's own abridgement of Ch 4 Sec 3 Tab 1 and is compared against the fore one by the verifier. The corrosion table has been removed from this file: Ch 4 Sec 3 Tab 1 is now read once from the rule into app/data/corrosion.json and shared. What this workbook had is recorded in build/aft_expected.json.",
+ "Cd": {
+  "flat bottom aft": 1.3,
+  "sloshing": 1,
+  "other": 1
+ },
+ "endFixation": {
+  "simply supported": {
+   "ns": 0,
+   "fbdg": 8
+  },
+  "one end fixed": {
+   "ns": 1,
+   "fbdg": 12
+  },
+  "continuous": {
+   "ns": 2,
+   "fbdg": 16
+  }
+ },
+ "sternSlamAlpha": 0.86
+}

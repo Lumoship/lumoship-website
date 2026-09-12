@@ -1,0 +1,27 @@
+{
+ "source": "Fore_Part_Calculation_Sheet.xlsx, sheet 'Coefficients'",
+ "note": "BV NR467 Pt B rule tables. The corrosion table here is the fore workbook's own abridgement of Ch 4 Sec 3 Tab 1 and it does NOT match the deckhouse workbook's abridgement: the names differ ('sea water' vs 'seawater') and this one carries a 'weather deck exposed' entry at 1.7 mm that the deckhouse table has no equivalent for. They are kept separate deliberately rather than merged, so each module reproduces its own source; reconcile them against the rule text before sharing one table. The corrosion table has been removed from this file: Ch 4 Sec 3 Tab 1 is now read once from the rule into app/data/corrosion.json and shared. What this workbook had is recorded in build/fore_expected.json.",
+ "Cd": {
+  "flat bottom": 1.3,
+  "bow flare": 1.2,
+  "sloshing": 1
+ },
+ "endFixation": {
+  "simply supported": {
+   "ns": 0,
+   "fbdg": 8
+  },
+  "one end fixed": {
+   "ns": 1,
+   "fbdg": 12
+  },
+  "continuous": {
+   "ns": 2,
+   "fbdg": 16
+  }
+ },
+ "cF": {
+  "forecastle sides": 0.9,
+  "other": 1
+ }
+}

@@ -1,0 +1,425 @@
+/* ============================================================
+   LumoCAD — application stylesheet
+   ------------------------------------------------------------
+   Four surfaces, one hairline, one accent. Depth comes from the
+   steps between the surfaces rather than from shadows and glows,
+   which is what keeps a dark tool looking like an instrument and
+   not like a game. Inter carries the interface; JetBrains Mono is
+   reserved for things that are numbers — coordinates, dimensions,
+   the command line — so figures line up and read as data.
+   ============================================================ */
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+
+:root{
+  /* ---- surfaces, darkest first ---- */
+  --canvas:#0a0e17;
+  --bg-primary:#0a0e17;      /* the drawing ground */
+  --bg-secondary:#0f131c;    /* panels, ribbon, status */
+  --bg-tertiary:#171d2a;     /* raised controls */
+  --bg-hover:#1e2533;
+  --bg-input:#0b0f17;
+
+  /* ---- line work ---- */
+  --border:#212838;
+  --border-soft:rgba(255,255,255,0.045);
+  --border-strong:#2b3446;
+
+  /* ---- accent ---- */
+  --accent:#3b82f6;
+  --accent-hover:#6aa0ff;
+  --accent-glow:rgba(76,139,245,0.14);
+  --accent-subtle:rgba(76,139,245,0.10);
+  --accent-line:rgba(76,139,245,0.42);
+
+  /* ---- text ---- */
+  --text-primary:#e9edf5;
+  --text-secondary:#98a4b9;
+  --text-muted:#5d6880;
+
+  /* ---- semantic ---- */
+  --success:#3fbf7f;--warning:#e0a33a;--error:#e5606b;
+  --cyan:#38bec9;--orange:#e0a33a;--purple:#a07cf0;
+
+  --font-display:'Inter',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+
+  --radius-sm:4px;--radius-md:6px;--radius-lg:9px;--radius-xl:13px;
+
+  /* ---- layout ---- */
+  --topbar-h:42px; --tabs-h:30px; --ribbon-h:78px; --sidebar-w:236px; --status-h:30px;
+  --rb-w:54px; --rb-h:52px; --rb-icon:19px; --rb-label:9.5px;
+  --ui-font:11px; --base-font:13px;
+}
+
+@media (max-width:1400px){ :root{ --sidebar-w:218px; --rb-w:50px; } }
+@media (max-width:1180px){ :root{ --sidebar-w:200px; --rb-w:46px; --rb-icon:18px; --rb-label:9px; } }
+@media (max-width:900px){
+  :root{ --topbar-h:40px; --sidebar-w:0px; --rb-w:44px; }
+  #left{display:none !important}
+  #app{grid-template-columns:0 1fr}
+  .badge,.qat{display:none}
+}
+@media (max-width:560px){
+  :root{ --rb-w:40px; --ribbon-h:56px; }
+  .rb span{display:none}
+  .file-tab{display:none}
+}
+
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:var(--font-body);color:var(--text-primary);background:var(--bg-primary);
+  user-select:none;font-size:var(--base-font);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent);color:#fff}
+
+/* thin, quiet scrollbars everywhere */
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#232b3b;border-radius:5px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:#33405a;background-clip:content-box}
+
+#app{
+  display:grid;height:100vh;
+  grid-template-rows:var(--topbar-h) var(--tabs-h) var(--ribbon-h) 1fr var(--status-h);
+  grid-template-columns:var(--sidebar-w) 1fr;
+  grid-template-areas:"top top" "tabs tabs" "ribbon ribbon" "left canvas" "status status";
+}
+
+/* ============================================================
+   Title bar
+   ============================================================ */
+#topbar{
+  grid-area:top;position:relative;z-index:100;
+  background:linear-gradient(180deg,#141a26 0%,#0f131c 100%);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 12px 0 14px;gap:18px;
+}
+#topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.05)}
+
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand-logo{
+  width:25px;height:25px;border-radius:7px;
+  background:linear-gradient(145deg,#5b95f7,#2f63c9);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;color:#fff;letter-spacing:-0.4px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.28),0 1px 3px rgba(0,0,0,0.45);
+}
+.brand-text h1{font-size:13.5px;font-weight:650;letter-spacing:-0.2px;line-height:1}
+.brand-text h1 span{color:var(--accent)}
+
+/* quick access: the five things you reach for without thinking */
+.qat{display:flex;align-items:center;gap:2px}
+.qat-btn{
+  width:27px;height:27px;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid transparent;border-radius:var(--radius-md);
+  color:var(--text-secondary);cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.qat-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.qat-btn:hover{background:var(--bg-tertiary);border-color:var(--border);color:var(--text-primary)}
+.qat-btn:active{background:var(--bg-hover)}
+.qat-sep{width:1px;height:16px;background:var(--border);margin:0 6px}
+
+.header-right{margin-left:auto;display:flex;align-items:center;gap:9px}
+.file-tab{
+  font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);
+  padding:4px 11px;border:1px solid var(--border);border-radius:var(--radius-md);
+  background:var(--bg-tertiary);letter-spacing:-0.1px;
+}
+.badge{
+  font-size:10.5px;color:var(--text-muted);background:transparent;
+  padding:3px 9px;border-radius:20px;border:1px solid var(--border);letter-spacing:0.2px;
+}
+.badge b{color:var(--text-secondary);font-weight:600}
+
+/* ============================================================
+   Ribbon — tab strip, then the active tab's panels
+   ============================================================ */
+#ribbonTabs{
+  grid-area:tabs;background:var(--bg-secondary);border-bottom:1px solid var(--border);
+  display:flex;align-items:stretch;padding:0 10px;gap:1px;overflow:hidden;
+}
+.ribbon-tab{
+  position:relative;display:flex;align-items:center;padding:0 15px;
+  font-size:11.5px;font-weight:550;letter-spacing:0.1px;color:var(--text-muted);
+  cursor:pointer;white-space:nowrap;transition:color .13s;
+}
+.ribbon-tab:hover{color:var(--text-secondary)}
+.ribbon-tab.on{color:var(--text-primary)}
+.ribbon-tab.on::after{
+  content:'';position:absolute;left:9px;right:9px;bottom:0;height:2px;
+  background:var(--accent);border-radius:2px 2px 0 0;
+}
+
+#ribbon{
+  grid-area:ribbon;background:#12161f;border-bottom:1px solid var(--border);
+  position:relative;overflow-x:auto;overflow-y:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
+}
+#ribbon::-webkit-scrollbar{height:5px}
+.ribbon-panel{display:none;align-items:stretch;height:100%;padding:5px 6px 0}
+.ribbon-panel.on{display:flex}
+.ribbon-group{
+  display:flex;flex-direction:column;padding:0 9px;flex:0 0 auto;position:relative;
+}
+.ribbon-group+.ribbon-group::before{
+  content:'';position:absolute;left:0;top:10%;bottom:20%;width:1px;
+  background:linear-gradient(180deg,transparent,var(--border-strong) 25%,var(--border-strong) 75%,transparent);
+}
+.ribbon-tools{display:flex;gap:2px;align-items:flex-start;justify-content:flex-start}
+.ribbon-label{
+  margin-top:auto;padding:3px 0 4px;
+  font-size:9px;text-transform:uppercase;letter-spacing:0.9px;font-weight:600;
+  color:var(--text-muted);text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:5px;cursor:default;transition:color .12s;
+}
+.ribbon-label:has(.exp){cursor:pointer}
+.ribbon-label:hover{color:var(--text-secondary)}
+.ribbon-label .exp{
+  display:inline-flex;width:14px;height:14px;align-items:center;justify-content:center;
+  border-radius:4px;border:1px solid var(--border);font-size:9px;line-height:1;
+  transition:background .15s,border-color .15s,color .15s,transform .15s;
+}
+.ribbon-label:hover .exp{border-color:var(--border-strong);color:var(--text-secondary)}
+.ribbon-label.expanded{color:var(--accent)}
+.ribbon-label.expanded .exp{transform:rotate(180deg);background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.rb{
+  width:var(--rb-w);height:var(--rb-h);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  border-radius:7px;cursor:pointer;color:var(--text-secondary);
+  border:1px solid transparent;background:transparent;
+  transition:background .12s,color .12s,border-color .12s;
+  position:relative;flex-shrink:0;overflow:hidden;
+}
+.rb:hover{background:var(--bg-tertiary);border-color:var(--border);color:var(--text-primary)}
+.rb:active{background:var(--bg-hover)}
+.rb.active{background:var(--accent-subtle);border-color:var(--accent-line);color:var(--accent)}
+.rb.active::before{content:'';position:absolute;inset:0;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(76,139,245,0.18)}
+.rb svg{width:var(--rb-icon);height:var(--rb-icon);flex-shrink:0}
+.rb span{
+  font-size:var(--rb-label);font-weight:500;letter-spacing:0.05px;
+  white-space:nowrap;max-width:calc(var(--rb-w) - 4px);overflow:hidden;text-overflow:ellipsis;text-align:center;
+  color:inherit;opacity:.92;
+}
+.rb .tip{display:none}
+
+/* the "more commands" drawer under a group label */
+#ribbonFlyout{
+  position:absolute;top:calc(var(--topbar-h) + var(--tabs-h) + var(--ribbon-h));
+  background:#12161f;border:1px solid var(--border-strong);border-top:none;
+  border-radius:0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow:0 18px 40px rgba(0,0,0,0.55);
+  z-index:450;padding:11px 12px 12px;display:none;max-width:calc(100vw - 24px);
+}
+#ribbonFlyout.open{display:block}
+#ribbonFlyout .fly-title{
+  font-size:9px;text-transform:uppercase;letter-spacing:1.1px;color:var(--text-muted);
+  margin-bottom:9px;font-weight:600;display:flex;align-items:center;gap:10px;
+}
+#ribbonFlyout .fly-title .fly-close{margin-left:auto;cursor:pointer;color:var(--text-muted);font-size:12px;padding-left:14px}
+#ribbonFlyout .fly-title .fly-close:hover{color:var(--accent)}
+#ribbonFlyout .fly-grid{display:grid;grid-template-columns:repeat(5,var(--rb-w));gap:2px;justify-content:start}
+
+/* ============================================================
+   Properties panel
+   ============================================================ */
+#left{
+  grid-area:left;background:var(--bg-secondary);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-head{
+  font-size:9.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--text-secondary);
+  padding:11px 14px 10px;border-bottom:1px solid var(--border);font-weight:600;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.panel-head .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.panel-head .add{margin-left:auto;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1}
+.panel-head .add:hover{color:var(--accent)}
+.prop-head{margin-top:0}
+.prop-body{padding:6px 14px 16px;overflow-y:auto;flex:1}
+.prop-empty{color:var(--text-muted);font-size:11.5px;text-align:center;margin-top:26px;letter-spacing:0.1px}
+
+.prop-type{
+  font-size:10.5px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:650;
+  padding:10px 0 9px;border-bottom:1px solid var(--border);margin-bottom:4px;
+}
+.prop-section{
+  font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.1px;
+  padding:13px 0 5px;font-weight:600;
+}
+.prop-row{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  min-height:25px;padding:3px 0;font-size:11.5px;
+  border-bottom:1px solid var(--border-soft);
+}
+.prop-row:last-child{border-bottom:none}
+.prop-row label{color:var(--text-muted);font-size:11px;letter-spacing:0.1px;white-space:nowrap}
+.prop-row .pval{color:var(--text-primary);font-family:var(--font-mono);font-size:11px;text-align:right}
+.prop-row .pval.calc{color:var(--orange)}
+.prop-row input,.prop-row select{
+  background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);
+  font-family:var(--font-mono);font-size:11px;padding:3px 7px;border-radius:var(--radius-sm);
+  text-align:right;transition:border-color .12s,background .12s;
+}
+.prop-row select{text-align:left;padding:3px 5px;cursor:pointer}
+.prop-row input{width:92px}
+.prop-row input:hover,.prop-row select:hover{border-color:var(--border-strong)}
+.prop-row input:focus,.prop-row select:focus{outline:none;border-color:var(--accent);background:var(--bg-primary)}
+
+/* number steppers, where the app adds them */
+.num-wrap{position:relative;display:inline-flex;align-items:center}
+.num-stepper{display:flex;flex-direction:column;margin-left:3px}
+.num-stepper button{
+  width:14px;height:11px;padding:0;background:var(--bg-tertiary);border:1px solid var(--border);
+  color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.num-stepper button:first-child{border-radius:3px 3px 0 0;border-bottom:none}
+.num-stepper button:last-child{border-radius:0 0 3px 3px}
+.num-stepper button:hover{color:var(--accent);border-color:var(--border-strong)}
+.num-stepper svg{width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:2.4}
+
+/* layer rows, where the sidebar shows them */
+.layer-row{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border-soft);transition:background .12s}
+.layer-row:hover{background:var(--bg-tertiary)}
+.layer-row.active{background:var(--accent-subtle);box-shadow:inset 2px 0 0 var(--accent)}
+.swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;border:1px solid rgba(255,255,255,0.18);cursor:pointer}
+.lname{flex:1;color:var(--text-primary);letter-spacing:0.1px}
+.layer-row.active .lname{color:var(--accent);font-weight:600}
+.leye{color:var(--text-muted);font-size:12px;width:15px;text-align:center}
+.leye:hover{color:var(--accent)}
+.layers-scroll{overflow-y:auto;flex-shrink:0;max-height:42%}
+
+/* ============================================================
+   Drawing area
+   ============================================================ */
+#canvas-wrap{grid-area:canvas;position:relative;overflow:hidden;background:var(--canvas);cursor:none}
+#canvas-wrap.panning{cursor:grabbing}
+canvas{display:block;position:absolute;top:0;left:0}
+
+/* the running transcript, tucked into the corner rather than across the drawing */
+#cmdHist{
+  position:absolute;bottom:12px;left:12px;width:430px;max-width:calc(100% - 24px);
+  background:rgba(9,12,18,0.72);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:8px 12px;font-family:var(--font-mono);font-size:10.5px;line-height:1.65;
+  color:var(--text-muted);display:flex;flex-direction:column-reverse;
+  pointer-events:none;backdrop-filter:blur(10px);
+}
+#cmdHist div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cmdHist div:last-child{color:var(--text-secondary)}
+#cmdHist .echo{color:var(--accent)}
+
+.nav-cube{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:4px}
+.nav-btn{
+  width:28px;height:28px;background:rgba(15,19,28,0.85);border:1px solid var(--border);
+  border-radius:var(--radius-md);color:var(--text-secondary);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;
+  transition:color .12s,border-color .12s,background .12s;backdrop-filter:blur(8px);
+}
+.nav-btn:hover{color:var(--accent);border-color:var(--accent-line);background:rgba(23,29,42,0.9)}
+
+#refToggle{
+  position:absolute;top:12px;right:52px;display:flex;align-items:center;gap:6px;
+  background:rgba(15,19,28,0.85);border:1px solid var(--border);border-radius:var(--radius-md);
+  color:var(--text-secondary);padding:6px 11px;cursor:pointer;
+  font-size:11px;font-weight:500;letter-spacing:0.1px;transition:color .13s,border-color .13s;
+  z-index:40;backdrop-filter:blur(8px);
+}
+#refToggle:hover{color:var(--accent);border-color:var(--accent-line)}
+#refToggle svg{width:13px;height:13px}
+
+/* ============================================================
+   Command reference drawer
+   ============================================================ */
+#right{
+  position:fixed;top:calc(var(--topbar-h) + var(--tabs-h) + var(--ribbon-h));right:0;bottom:var(--status-h);
+  width:286px;background:var(--bg-secondary);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;z-index:500;
+  transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);
+  box-shadow:-14px 0 40px rgba(0,0,0,0.5);
+}
+#right.open{transform:translateX(0)}
+.ref-close{margin-left:auto;cursor:pointer;color:var(--text-muted);font-size:13px;line-height:1}
+.ref-close:hover{color:var(--accent)}
+
+/* ============================================================
+   Dynamic input at the cursor
+   ============================================================ */
+#dynInput{position:fixed;z-index:300;display:none;gap:6px;pointer-events:none;font-family:var(--font-mono);font-size:12px}
+#dynInput.on{display:flex}
+#dynInput .dyn-field{
+  display:flex;align-items:center;gap:5px;background:rgba(11,15,23,0.94);
+  border:1px solid var(--border-strong);border-radius:7px;padding:4px 8px;
+  color:var(--text-primary);box-shadow:0 6px 18px rgba(0,0,0,0.5);white-space:nowrap;
+}
+#dynInput .dyn-field.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-line),0 6px 18px rgba(0,0,0,0.5)}
+#dynInput .dyn-field .lab{color:var(--text-muted);font-size:10px}
+#dynInput .dyn-field input{width:62px;background:transparent;border:none;outline:none;color:var(--accent);
+  font-family:var(--font-mono);font-size:12px;pointer-events:auto;padding:0}
+#dynInput .dyn-field .val{min-width:44px;text-align:right}
+
+/* ============================================================
+   Command line and status bar
+   ============================================================ */
+#status{
+  grid-area:status;background:linear-gradient(180deg,#0f131c,#0c1018);
+  border-top:1px solid var(--border);display:flex;align-items:stretch;font-size:11px;
+}
+#cmdline{flex:1;display:flex;align-items:center;padding:0 8px 0 13px;gap:9px;min-width:0;position:relative}
+#cmdline .prompt{
+  color:var(--text-muted);font-size:9px;font-weight:650;text-transform:uppercase;letter-spacing:1.1px;
+  flex-shrink:0;padding-right:9px;border-right:1px solid var(--border);
+}
+#cmdInput{
+  flex:1;background:transparent;border:none;outline:none;color:var(--text-primary);
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:0.2px;min-width:0;
+}
+#cmdInput::placeholder{color:var(--text-muted);font-family:var(--font-body);letter-spacing:0}
+
+#cmdAuto{
+  position:absolute;bottom:calc(100% + 7px);left:8px;min-width:264px;
+  background:var(--bg-tertiary);border:1px solid var(--border-strong);border-radius:var(--radius-lg);
+  box-shadow:0 -12px 36px rgba(0,0,0,0.6);overflow:hidden;display:none;z-index:200;padding:4px;
+}
+#cmdAuto .ac-item{
+  display:flex;justify-content:space-between;gap:16px;padding:6px 10px;border-radius:var(--radius-md);
+  font-family:var(--font-mono);font-size:11.5px;color:var(--text-primary);cursor:pointer;
+}
+#cmdAuto .ac-item.sel{background:var(--accent);color:#fff}
+#cmdAuto .ac-item .ac-alias{color:var(--text-muted);font-size:10.5px}
+#cmdAuto .ac-item.sel .ac-alias{color:rgba(255,255,255,0.82)}
+
+/* readouts sit in the status bar, where AutoCAD keeps them, instead of over the drawing */
+#coords{
+  display:flex;align-items:center;padding:0 13px;border-left:1px solid var(--border);
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  letter-spacing:0.3px;white-space:nowrap;min-width:186px;
+}
+#coords b{color:var(--text-secondary);font-weight:500}
+
+.status-chip{
+  display:flex;align-items:center;gap:6px;padding:0 12px;border-left:1px solid var(--border);
+  color:var(--text-secondary);cursor:pointer;white-space:nowrap;font-size:11px;
+  transition:color .12s,background .12s;
+}
+.status-chip:hover{color:var(--text-primary);background:var(--bg-tertiary)}
+
+.status-toggle{
+  position:relative;padding:0 12px;display:flex;align-items:center;
+  border-left:1px solid var(--border);cursor:pointer;color:var(--text-muted);
+  font-size:9.5px;font-weight:650;letter-spacing:0.9px;
+  transition:color .12s,background .12s;white-space:nowrap;
+}
+.status-toggle:hover{color:var(--text-secondary);background:var(--bg-tertiary)}
+.status-toggle.on{color:var(--accent);background:var(--accent-subtle)}
+.status-toggle.on::after{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent)}
+
+/* ============================================================
+   Text window (F2)
+   ============================================================ */
+#textWindow{font-family:var(--font-mono)}

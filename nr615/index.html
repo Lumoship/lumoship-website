@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NR615 Buckling Assessment | Lumoship</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="app/app.css">
+<link rel="stylesheet" href="app/nr615.css">
+<!-- Vendored locally, exactly as the sibling apps do — nothing here touches the network. -->
+<script src="app/vendor/jspdf.umd.min.js" defer></script>
+<script src="app/vendor/xlsx.full.min.js" defer></script>
+    <style>
+/* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
+        .lumoship-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid #1e2536;
+            z-index: 10000;
+            padding: 0.875rem 1.5rem;
+        }
+        .lumoship-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lumoship-nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity 200ms;
+        }
+        .lumoship-nav-logo:hover { opacity: 0.85; }
+        .lumoship-nav-logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .lumoship-nav-logo-text {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+            letter-spacing: 0.06em;
+        }
+        .lumoship-nav-links {
+            display: none;
+        }
+        
+        /* NEW MINIMAL NAVBAR */
+        .nav-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-context {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: #64748b;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding-left: clamp(0.75rem, 1.5vw, 1rem);
+            margin-left: clamp(0.75rem, 1.5vw, 1rem);
+            border-left: 1px solid #1e2536;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.75rem, 1.5vw, 1.25rem);
+        }
+        
+        .nav-back {
+            color: #94a3b8;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 200ms;
+        }
+        
+        .nav-back:hover { color: #f8fafc; }
+        .nav-back-arrow { font-size: 1em; }
+        
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 999px;
+            text-decoration: none;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.825rem;
+            font-weight: 500;
+            transition: all 200ms;
+        }
+        
+        .user-badge:hover {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        
+        .user-badge-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: white;
+            letter-spacing: -0.02em;
+            overflow: hidden;
+        }
+        
+        .user-badge-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-badge-name {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .user-badge-login {
+            padding: 0.45rem 0.95rem;
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        
+        .user-badge-login:hover {
+            background: #60a5fa;
+            border-color: #60a5fa;
+        }
+        
+        @media (max-width: 640px) {
+            .nav-back-text { display: none; }
+            .user-badge-name { display: none; }
+            .nav-context { display: none; }
+        }
+        
+        .lumoship-nav-link {
+            display: none;
+        }
+        .lumoship-nav-link:hover { color: #f8fafc; }
+        .lumoship-breadcrumb {
+            background: #0f141f;
+            border-bottom: 1px solid #1e2536;
+            padding: 0.75rem 1.5rem;
+        }
+        .lumoship-breadcrumb-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .breadcrumb-link {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 200ms;
+        }
+        .breadcrumb-link:hover { color: #60a5fa; }
+        .breadcrumb-separator { color: #475569; }
+        .breadcrumb-current {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .lumoship-breadcrumb { display: none; }
+        }
+
+    
+        
+    </style>
+</head>
+<body>
+<!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
+    <nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <div class="nav-left">
+                <a href="https://lumoship.org" class="lumoship-nav-logo">
+                    <div class="lumoship-nav-logo-mark">L</div>
+                    <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+                </a>
+                <span class="nav-context">NR615 Buckling</span>
+            </div>
+            <div class="nav-right">
+                <a href="https://lumoship.org/workspace.html" class="nav-back">
+                    <span class="nav-back-arrow">←</span>
+                    <span class="nav-back-text">Workspace</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="userBadge" class="user-badge" style="display: none;">
+                    <span id="userBadgeAvatar" class="user-badge-avatar">L</span>
+                    <span id="userBadgeName" class="user-badge-name">Account</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="loginBadge" class="user-badge user-badge-login" style="display: none;">
+                    <span>Sign in</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+
+<header class="ea-header">
+  <div class="ea-header-inner">
+    <div class="ea-header-top">
+      <div class="ea-header-left">
+        <div class="ea-brand">
+          <div class="ea-logo">B</div>
+          <div class="ea-title-group">
+            <h1>NR615 Buckling</h1>
+            <p id="brandSub">Bureau Veritas NR615 R07 (07/2026) — plated structures</p>
+          </div>
+        </div>
+      </div>
+      <div class="ea-header-actions">
+        <span class="ea-header-badge">v1.0</span>
+        <button class="ea-header-btn" onclick="document.getElementById('loadFile').click()" title="Load a saved assessment (.json)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Load
+        </button>
+        <input type="file" id="loadFile" accept=".json" class="hidden-input" onchange="UI.loadJSON(event)">
+        <button class="ea-header-btn" onclick="document.getElementById('importFile').click()" title="Import an existing NR615_Buckling_Assessment.xlsx — inputs and the Panels batch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+          Workbook
+        </button>
+        <input type="file" id="importFile" accept=".xlsx,.xlsm" class="hidden-input" onchange="IMPORT.handleFile(event)">
+        <button class="ea-header-btn" onclick="UI.saveJSON()" title="Save every input and the batch to a .json file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save
+        </button>
+        <button class="ea-header-btn" onclick="UI.exportExcel()" title="Export inputs, every derived quantity and the batch to .xlsx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+          Excel
+        </button>
+        <button class="ea-header-btn primary" onclick="UI.exportPDF()" title="Calculation report as PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PDF
+        </button>
+      </div>
+    </div>
+
+    <nav class="ea-wizard" id="wizard"></nav>
+
+    <!-- The verdict never leaves the screen: whatever page you are on, the
+         governing utilisation and the overall assessment stay in view. -->
+    <div class="nr-verdict" id="verdict"></div>
+  </div>
+</header>
+
+<div class="ea-page active" id="page-1"><main class="ea-main" id="main-1"></main></div>
+<div class="ea-page" id="page-2"><main class="ea-main" id="main-2"></main></div>
+<div class="ea-page" id="page-3"><main class="ea-main" id="main-3"></main></div>
+<div class="ea-page" id="page-4"><main class="ea-main" id="main-4"></main></div>
+<div class="ea-page" id="page-5"><main class="ea-main" id="main-5"></main></div>
+<div class="ea-page" id="page-6"><main class="ea-main" id="main-6"></main></div>
+
+<footer class="ea-footer">
+  <div class="ea-footer-inner">
+    <span>BV NR615 R07 (07/2026) · Sec 1 sign convention · net scantlings · Sec 3 [1.1.3] repeat per design load set and dynamic load case</span>
+    <span>Not BV-approved — verify against the current rule text before any class submission.</span>
+  </div>
+</footer>
+
+<div class="nr-toast" id="toast"></div>
+
+<script src="app/10-inputs.js"></script>
+<script src="app/20-engine.js"></script>
+<script src="app/30-fields.js"></script>
+<script src="app/40-ui.js"></script>
+<script src="app/50-results.js"></script>
+<script src="app/60-batch.js"></script>
+<script src="app/70-export.js"></script>
+<script src="app/80-import.js"></script>
+<script>UI.boot();</script>
+    <script type="module">
+
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    const SUPABASE_URL = 'https://mmjdgxvxtjippjktajdd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tamRneHZ4dGppcHBqa3RhamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxODczMzQsImV4cCI6MjEwNDc2MzMzNH0.yJwV6pjt5fBCR_bweiBXCi3etL0z4bQ0zXsz_Tmzen4';
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    (async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const userBadge = document.getElementById('userBadge');
+            const loginBadge = document.getElementById('loginBadge');
+            
+            if (session && session.user) {
+                const user = session.user;
+                const meta = user.user_metadata || {};
+                const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+                const firstName = displayName.split(' ')[0];
+                
+                const avatarEl = document.getElementById('userBadgeAvatar');
+                if (meta.avatar_url || meta.picture) {
+                    avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="">`;
+                } else {
+                    avatarEl.textContent = (firstName[0] || 'U').toUpperCase();
+                }
+                
+                document.getElementById('userBadgeName').textContent = firstName;
+                userBadge.style.display = 'inline-flex';
+                loginBadge.style.display = 'none';
+            } else {
+                userBadge.style.display = 'none';
+                loginBadge.style.display = 'inline-flex';
+            }
+        } catch (err) {
+            console.warn('Auth check failed:', err);
+            document.getElementById('loginBadge').style.display = 'inline-flex';
+        }
+    })();
+
+    </script>
+</body>
+</html>

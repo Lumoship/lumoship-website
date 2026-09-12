@@ -1,0 +1,738 @@
+/* =========================================================================
+   refine.css — premium pass over app.css
+   Loaded AFTER app.css. Presentation only: no layout rules that the Geometry
+   page's locked-viewport sizing depends on, and nothing that changes what any
+   control does. Delete this one <link> to get the previous look back.
+
+   What it changes, and why:
+     1. Surfaces read as raised instead of flat — a dark UI needs a top inner
+        highlight plus a soft drop shadow, not just a border.
+     2. The Setup page's two top cards were 900px wide above a 1550px panel;
+        the mismatched edges were the single most unfinished-looking thing.
+     3. Inputs get hover + a real focus ring. They are the controls an engineer
+        touches all day and they had almost no feedback.
+     4. Numbers align. tabular-nums on every numeric field, table cell and
+        readout so digits line up in a column — the main usability win here.
+     5. Type hierarchy: panel title < group title < value. Labels recede so the
+        numbers dominate, which is the way this tool is actually read.
+   ========================================================================= */
+
+:root{
+  /* Elevation. Low-opacity shadows plus a 1px top highlight is what makes a
+     dark surface read as lifted; a border alone reads as a drawn box. */
+  --elev-1: 0 1px 0 rgba(255,255,255,0.035) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 20px -10px rgba(0,0,0,0.7);
+  --elev-3: 0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 48px -18px rgba(0,0,0,0.85);
+
+  --focus-ring: 0 0 0 3px rgba(59,130,246,0.22);
+  --border-soft: rgba(148,163,184,0.10);
+  --border-strong: rgba(148,163,184,0.20);
+
+  /* One measure for the whole Setup page so every edge lines up. */
+  --measure: 1180px;
+
+  /* --text-muted was #64748b, which fails WCAG AA everywhere it is used:
+     4.06 on --bg-primary, 3.73 on --bg-secondary, 3.33 on --bg-tertiary,
+     against the 4.5 needed for normal text. It carried 54 of the 55 failing
+     text nodes on the Setup page - and the refinement pass above made that
+     worse by moving labels and panel titles onto it.
+
+     #7c8ba1 is the darkest value that clears 4.5 on every surface (worst case
+     4.57 on --bg-tertiary). Going lighter would pass more comfortably but
+     collide with --text-secondary (#94a3b8) and flatten the three-step text
+     hierarchy, so this takes the minimum that complies. */
+  --text-muted: #7c8ba1;
+}
+
+/* ── 1. Surfaces ──────────────────────────────────────────────────────── */
+
+.ea-panel{
+  border-color: var(--border-soft);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0) 120px),
+    var(--bg-secondary);
+  box-shadow: var(--elev-2);
+}
+
+.ea-panel-header{
+  border-bottom-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+/* The header dot was three different colours with no meaning attached.
+   Keep the shape, drop the decoration to one accent + real status colours. */
+.ea-panel-icon{
+  width:6px;height:6px;
+  box-shadow:0 0 0 3px rgba(59,130,246,0.12);
+}
+.ea-panel-icon.cyan,
+.ea-panel-icon.purple,
+.ea-panel-icon.orange{
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+.ea-panel-icon.success{box-shadow:0 0 0 3px rgba(34,197,94,0.14)}
+.ea-panel-icon.warning{box-shadow:0 0 0 3px rgba(245,158,11,0.14)}
+
+/* The markup wraps the dot and the title in .ea-panel-header-left, but no
+   stylesheet ever defined that class. It stayed display:block, so on the
+   Geometry page the dot sat on its own line above the title. Pre-existing;
+   one rule fixes both places that use it. */
+.ea-panel-header-left{
+  display:flex;
+  align-items:center;
+  gap:var(--spacing-sm);
+  min-width:0;
+}
+
+/* ── 2. Setup page measure ────────────────────────────────────────────── */
+/* Was max-width:900px centred, sitting above a full-width panel. Same measure
+   for both, and a slight bias to the left card which holds more fields. */
+
+.ea-page#page-1 > .ea-main{max-width: var(--measure)}
+.ea-setup-grid{
+  max-width: none;
+  grid-template-columns: 1.45fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+/* The logo dropzone was the heaviest element on the page and the least
+   important. Let it shrink to something proportionate. */
+.ea-setup-grid .ea-panel [onclick*="upload"],
+.ea-setup-grid .ea-panel .upload-zone,
+.ea-setup-grid .ea-panel [class*="upload"]{
+  min-height: 0;
+}
+
+/* ── 3. Fields ────────────────────────────────────────────────────────── */
+
+.ea-label{
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.ea-input,
+.ea-select{
+  /* background-COLOR only. The base .ea-select rule paints its chevron with a
+     background-image shorthand, and setting `background` here wiped it, leaving
+     every dropdown looking like a plain text box. */
+  background-color: var(--bg-input);
+  border-color: var(--border-soft);
+  padding-top: 11px;
+  padding-bottom: 11px;
+  box-shadow: var(--elev-1);
+  transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+  /* Digits line up in a column — the single biggest readability win in a
+     form that is almost entirely numbers. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.ea-input:hover:not(:disabled),
+.ea-select:hover:not(:disabled){
+  border-color: var(--border-strong);
+  background-color: #0f1526;
+}
+
+.ea-input:focus,
+.ea-select:focus{
+  border-color: var(--accent);
+  background-color: #0f1526;
+  box-shadow: var(--elev-1), var(--focus-ring);
+}
+
+.ea-input.readonly,
+.ea-input[readonly]{
+  background-color: rgba(59,130,246,0.06);
+  border-color: rgba(59,130,246,0.18);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+/* Was #475569 (2.09:1) - I introduced that while softening the form. Use the
+   token, which is the darkest grey that still clears AA on every surface. */
+.ea-input::placeholder{color:var(--text-muted);opacity:1}
+
+/* Keyboard users get the same ring everywhere, mouse users don't get it on
+   click — the usual focus-visible split. */
+.ea-btn:focus-visible,
+.ea-header-btn:focus-visible,
+.ea-wizard-step:focus-visible{
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ── 4. Type hierarchy ────────────────────────────────────────────────── */
+/* Panel title is a category label, so it recedes. The group title inside a
+   panel gets an accent bar instead of a full-width underline, which was
+   competing with the panel's own divider. */
+
+.ea-panel-title{
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.ea-section-title{
+  border-bottom: none;
+  padding-bottom: 0;
+  padding-left: 10px;
+  position: relative;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--spacing-md);
+}
+.ea-section-title::before{
+  content:'';
+  position:absolute; left:0; top:2px; bottom:2px;
+  width:2px; border-radius:2px;
+  background: var(--accent);
+}
+
+/* ── 5. Buttons ───────────────────────────────────────────────────────── */
+
+.ea-header-btn{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0)), var(--bg-tertiary);
+  box-shadow: var(--elev-1);
+  transition: border-color .16s ease, color .16s ease, background-color .16s ease, transform .16s ease;
+}
+.ea-header-btn:hover{border-color:var(--border-strong);color:var(--text-primary)}
+.ea-header-btn:active{transform:translateY(1px)}
+.ea-header-btn.primary{
+  background: linear-gradient(180deg, #4c8ef7, var(--accent));
+  border-color: #2f6fd0;
+  color:#fff;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 6px 16px -8px rgba(59,130,246,0.8);
+}
+.ea-header-btn.primary:hover{background:linear-gradient(180deg,#5b99f8,var(--accent-hover))}
+
+.ea-btn{transition: all .16s ease}
+.ea-btn-primary{
+  background: linear-gradient(180deg, #4c8ef7, var(--accent));
+  border-color:#2f6fd0;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 8px 20px -10px rgba(59,130,246,0.85);
+}
+.ea-btn-primary:hover{background:linear-gradient(180deg,#5b99f8,var(--accent-hover))}
+.ea-btn-primary:active{transform:translateY(0)}
+.ea-btn-secondary{
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0)), var(--bg-tertiary);
+  border-color: var(--border-soft);
+  box-shadow: var(--elev-1);
+}
+.ea-btn-secondary:hover{border-color:var(--border-strong);color:var(--text-primary)}
+
+/* ── 6. Wizard stepper ────────────────────────────────────────────────── */
+
+.ea-wizard-step{border-radius:var(--radius-md);transition:color .16s ease, background-color .16s ease}
+.ea-wizard-step:hover{background:rgba(255,255,255,0.03)}
+.ea-wizard-num{transition:all .18s ease}
+.ea-wizard-step.active .ea-wizard-num{
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.14), 0 4px 12px -4px rgba(59,130,246,0.9);
+}
+.ea-wizard-line{transition:background-color .2s ease}
+
+/* ── 7. Data display ──────────────────────────────────────────────────── */
+
+.ea-table{font-variant-numeric: tabular-nums; font-feature-settings:"tnum" 1}
+.ea-table th{
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), var(--bg-tertiary);
+  border-bottom-color: var(--border-soft);
+  letter-spacing: 0.08em;
+}
+.ea-table td{border-bottom-color: rgba(148,163,184,0.07)}
+.ea-table tr:hover td{background:rgba(59,130,246,0.06)}
+.ea-table-wrap{border-color:var(--border-soft);box-shadow:var(--elev-1)}
+.ea-table input,.ea-table select{
+  border-color:var(--border-soft);
+  font-variant-numeric: tabular-nums;
+  transition:border-color .16s ease, box-shadow .16s ease;
+}
+.ea-table input:focus,.ea-table select:focus{box-shadow:var(--focus-ring)}
+
+.ea-calc-box{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)), var(--bg-input);
+  box-shadow: var(--elev-1);
+}
+.ea-calc-row{border-bottom-color: rgba(148,163,184,0.07)}
+.ea-calc-row .val{font-variant-numeric: tabular-nums}
+
+.ea-summary-card{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), var(--bg-tertiary);
+  box-shadow: var(--elev-2);
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.ea-summary-value{
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.ea-summary-label{letter-spacing:0.1em;font-size:0.6875rem}
+
+/* ── 8. Header ────────────────────────────────────────────────────────── */
+
+.ea-header{border-bottom-color: var(--border-soft)}
+.ea-logo{
+  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -8px rgba(59,130,246,0.9);
+}
+.ea-title-group p{color:var(--text-muted);letter-spacing:0.01em}
+.ea-header-badge{border-color:var(--border-soft)}
+
+/* ── 9. Scrollbars ────────────────────────────────────────────────────── */
+/* Default dark-on-dark scrollbars are the loudest thing on a data-heavy panel. */
+
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{
+  background:rgba(148,163,184,0.16);
+  border-radius:8px;
+  border:2px solid transparent;
+  background-clip:content-box;
+}
+*::-webkit-scrollbar-thumb:hover{background:rgba(148,163,184,0.30);background-clip:content-box}
+
+/* ── 10. Motion ───────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    transition-duration:.001ms !important;
+  }
+}
+
+/* =========================================================================
+   New Project wizard
+   The modal was written with inline styles, which meant it could not pick up
+   any of the refinements above — it was the one screen visibly behind the
+   rest of the app. These classes carry the same treatment; the markup keeps
+   only structure.
+   ========================================================================= */
+
+.np-backdrop{
+  position:fixed; inset:0; z-index:10000;
+  display:none;
+  align-items:center; justify-content:center;
+  background:rgba(5,8,14,0.72);
+  backdrop-filter:blur(6px);
+  padding:var(--spacing-lg);
+}
+.np-backdrop.open{display:flex}
+
+.np-dialog{
+  width:100%; max-width:820px; max-height:90vh;
+  display:flex; flex-direction:column;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0) 160px),
+    var(--bg-secondary);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius-xl);
+  box-shadow:var(--elev-3);
+  overflow:hidden;
+}
+
+.np-head{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:var(--spacing-lg);
+  padding:var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+  border-bottom:1px solid var(--border-soft);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+.np-head h2{
+  font-family:var(--font-display);
+  font-size:var(--fs-lg); font-weight:700;
+  color:var(--text-primary); line-height:1.25;
+}
+.np-head p{
+  margin-top:4px;
+  font-size:var(--fs-xs); color:var(--text-muted); max-width:52ch; line-height:1.55;
+}
+
+.np-body{
+  padding:var(--spacing-lg);
+  overflow-y:auto;
+  display:flex; flex-direction:column; gap:var(--spacing-lg);
+}
+
+/* One group = one labelled band of fields. The rule bar matches
+   .ea-section-title so the modal reads as part of the same app. */
+.np-group > h3{
+  font-family:var(--font-display);
+  font-size:0.6875rem; font-weight:600;
+  color:var(--accent);
+  text-transform:uppercase; letter-spacing:0.1em;
+  padding-left:10px; position:relative;
+  margin-bottom:var(--spacing-sm);
+}
+.np-group > h3::before{
+  content:''; position:absolute; left:0; top:2px; bottom:2px;
+  width:2px; border-radius:2px; background:var(--accent);
+}
+.np-group > .np-hint{
+  font-size:var(--fs-xs); color:var(--text-muted);
+  margin:-2px 0 var(--spacing-sm) 10px; line-height:1.55;
+}
+
+.np-row{display:grid; gap:var(--spacing-sm)}
+.np-row.c2{grid-template-columns:2fr 1fr}
+.np-row.c3{grid-template-columns:2fr 1fr 1fr}
+.np-row.c4{grid-template-columns:repeat(4,1fr)}
+.np-row.c5{grid-template-columns:repeat(5,1fr)}
+.np-row + .np-row{margin-top:var(--spacing-sm)}
+
+/* Callouts: amber for "you must supply this", red for validation. */
+.np-note{
+  border-radius:var(--radius-md);
+  padding:11px 13px;
+  font-size:var(--fs-xs); line-height:1.6;
+  border:1px solid;
+}
+.np-note.warn{
+  background:rgba(245,158,11,0.08);
+  border-color:rgba(245,158,11,0.32);
+  color:#fcd34d;
+}
+.np-note.error{
+  background:rgba(239,68,68,0.09);
+  border-color:rgba(239,68,68,0.40);
+  color:#fca5a5;
+}
+
+.np-foot{
+  display:flex; justify-content:flex-end; gap:var(--spacing-sm);
+  padding:var(--spacing-md) var(--spacing-lg);
+  border-top:1px solid var(--border-soft);
+  background:linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+/* The "still needs your numbers" banner after a project is generated. */
+.np-banner{
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  z-index:9998; width:min(92%,640px);
+  display:none;
+  background:rgba(30,22,8,0.92);
+  border:1px solid rgba(245,158,11,0.45);
+  color:#fcd34d;
+  border-radius:var(--radius-lg);
+  padding:13px 15px;
+  font-size:var(--fs-xs); line-height:1.65;
+  box-shadow:var(--elev-3);
+  backdrop-filter:blur(10px);
+}
+.np-banner.open{display:block}
+.np-banner-dismiss{
+  float:right; margin-left:var(--spacing-md);
+  background:transparent; border:1px solid currentColor; color:inherit;
+  border-radius:var(--radius-sm); padding:3px 9px;
+  font-family:var(--font-display); font-size:0.6875rem; cursor:pointer;
+}
+.np-banner-dismiss:hover{background:rgba(245,158,11,0.14)}
+
+@media (max-width:860px){
+  .np-row.c5,.np-row.c4{grid-template-columns:repeat(2,1fr)}
+  .np-row.c3,.np-row.c2{grid-template-columns:1fr}
+}
+
+/* Required-but-empty inputs.
+   A new project deliberately leaves a few fields blank (see 95-project.js).
+   Until they are filled, anything downstream of them computes to NaN — the
+   summary showed "NaN" for plate weight with no hint as to which input caused
+   it. Mark the field itself so the cause is visible where the fix is made. */
+.ea-input.is-missing,
+.ea-select.is-missing{
+  border-color: rgba(245,158,11,0.55);
+  background-color: rgba(245,158,11,0.05);
+}
+.ea-input.is-missing:focus{
+  border-color: var(--warning);
+  box-shadow: var(--elev-1), 0 0 0 3px rgba(245,158,11,0.22);
+}
+.ea-field:has(.is-missing) > .ea-label{color:#fcd34d}
+.ea-field:has(.is-missing) > .ea-label::after{
+  content:' — needed';
+  opacity:.7;
+  text-transform:none;
+  letter-spacing:0;
+}
+
+/* =========================================================================
+   Geometry page — the screen this tool is actually used on.
+   Component-level only: the locked-viewport grid in app.css is untouched.
+   ========================================================================= */
+
+/* ── Segmented controls ───────────────────────────────────────────────── */
+/* .view-pills (General/Thk/Prof/…) and .ed-tabs (GEOM/PARAMS/…) are the same
+   pattern built twice. Same treatment for both: the track reads as a well,
+   the active segment as a raised chip. */
+
+.view-pills,
+.ed-tabs{
+  background: rgba(0,0,0,0.28);
+  border-color: var(--border-soft);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.45);
+  padding: 3px;
+  gap: 2px;
+}
+.view-pill,
+.ed-tab{
+  transition: color .14s ease, background-color .14s ease, box-shadow .14s ease;
+}
+.view-pill:hover:not(.active),
+.ed-tab:hover:not(.active){
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+.view-pill.active,
+.ed-tab.active{
+  background: linear-gradient(180deg, #4c8ef7, var(--accent));
+  color:#fff;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.22) inset, 0 2px 6px -1px rgba(59,130,246,0.55);
+}
+
+/* ── Toolbar above the drawing ────────────────────────────────────────── */
+
+.draw-bridge-bar{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), var(--bg-tertiary);
+  box-shadow: var(--elev-1);
+}
+
+.zoom-btn{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), var(--bg-tertiary);
+  transition: border-color .14s ease, color .14s ease, background-color .14s ease;
+}
+.zoom-btn:hover{border-color:var(--accent);color:var(--accent);background-color:rgba(59,130,246,0.08)}
+.zoom-btn:active{transform:translateY(1px)}
+.zoom-btn.active{
+  background: linear-gradient(180deg, #4c8ef7, var(--accent));
+  box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset;
+}
+.zoom-info{font-variant-numeric:tabular-nums}
+
+/* ── The drawing itself ───────────────────────────────────────────────── */
+/* A recessed well reads as "the section sits on a surface" rather than the
+   panel simply running out of content. */
+
+#svgContainer{
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.045), rgba(0,0,0,0) 60%),
+    rgba(0,0,0,0.16);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* ── Right-hand editor ────────────────────────────────────────────────── */
+
+.editor-header{
+  border-bottom-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+.editor-header-title{
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+/* The editor rows are the densest list in the app. Hover used to go to
+   --bg-primary, which is DARKER than the panel behind it, so pointing at a
+   row dimmed it instead of lighting it up. Lift it instead. */
+.ed-row{
+  transition: background-color .12s ease, box-shadow .12s ease;
+  border-radius: var(--radius-sm);
+}
+.ed-row:hover{
+  background: rgba(255,255,255,0.045);
+  box-shadow: inset 2px 0 0 rgba(59,130,246,0.55);
+}
+
+.ed-input{
+  border-color: var(--border-soft);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:"tnum" 1;
+  transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease;
+}
+.ed-input:hover:not(:disabled){border-color:var(--border-strong)}
+.ed-input:focus{box-shadow:0 0 0 3px rgba(59,130,246,0.20)}
+.ed-input.err{box-shadow:0 0 0 3px rgba(239,68,68,0.18)}
+
+/* Slack-strake marker: keep the meaning, make the bar match the hover bar. */
+.ed-row.is-slack-strake{border-left:none;box-shadow:inset 2px 0 0 rgba(251,191,36,0.75)}
+.ed-row.is-slack-strake:hover{box-shadow:inset 2px 0 0 rgba(251,191,36,1)}
+
+/* ── Left sidebar legend ──────────────────────────────────────────────── */
+
+.legend{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)), var(--bg-secondary);
+  box-shadow: var(--elev-1);
+}
+.legend .sw{height:3px;border-radius:2px}
+
+/* ── Status bar ───────────────────────────────────────────────────────── */
+/* Labels recede, values carry the weight, separators stop competing. */
+
+.status-bar{
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), var(--bg-tertiary);
+  box-shadow: var(--elev-1);
+}
+/* Was #5b6577 (2.69:1) - same mistake as the placeholder above. */
+.status-bar .sb-label{color:var(--text-muted);letter-spacing:0.08em}
+.status-bar .sb-value{font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.status-bar > .sb-sep{background:var(--border-soft)}
+.status-bar .sb-expand,
+.status-bar .sb-nav-btn{
+  border-color:var(--border-soft);
+  transition:all .14s ease;
+}
+.status-bar .sb-nav-btn:hover{border-color:var(--border-strong);color:var(--text-primary)}
+
+/* ── Floating info overlay ────────────────────────────────────────────── */
+
+#infoOverlay,
+.info-overlay{
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--elev-3) !important;
+}
+
+/* =========================================================================
+   Summary page
+   ========================================================================= */
+
+/* Long result tables: the header must stay put while scanning rows, and the
+   element name column is what you scan by, so it gets the weight. */
+.ea-table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.ea-table tbody td:first-child{
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: left;
+  padding-left: var(--spacing-lg);
+}
+.ea-table thead th:first-child{text-align:left;padding-left:var(--spacing-lg)}
+
+/* No chip styling for status words here. The table generator already builds
+   those badges with inline styles and no class, so rules keyed on .ok/.success
+   never matched them - and the padding they added only ever fired on cells
+   that did not need it.
+
+   What the badges DO need: tabular-nums above widens digits, and these badges
+   are laid out to their text width, so "Margin: +0.40 mm" started wrapping to
+   two lines inside its pill. Keep them on one line. */
+.ea-table td span{white-space:nowrap}
+
+.ea-summary-card.pass{box-shadow: var(--elev-2), 0 0 0 1px rgba(34,197,94,0.25)}
+.ea-summary-card.fail{box-shadow: var(--elev-2), 0 0 0 1px rgba(239,68,68,0.3)}
+
+/* A NaN readout means an input upstream is blank. Say so instead of printing
+   "NaN" in 2rem type. The value is set as text by 71-recalc.js, so this is a
+   presentation-only hint keyed off a class that JS adds. */
+.ea-summary-value.is-nan{
+  color: var(--warning);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* Per-row profile select.
+   Its inline style is flex:1;min-width:0, so its rendered width came from the
+   intrinsic width of the widest <option>. Now that each row carries only the
+   selected option (see buildOptionsHtml in 10-draw.js) that intrinsic width is
+   gone and the control collapsed to ~12px, hiding the profile name. Give it a
+   floor so the value stays readable. */
+.ed-profile-row-select{
+  min-width: 96px !important;
+  text-overflow: ellipsis;
+}
+
+/* Active wizard step number: white on #3b82f6 is 3.68:1 at 12px, under the 4.5
+   needed. #2563eb clears it at 5.17 and is close enough to the accent that the
+   step marker still reads as the same blue as everything else. The ring around
+   it keeps the brighter accent so the chip still glows. */
+.ea-wizard-step.active .ea-wizard-num{
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* White on the active segment: the gradient bottomed out at #3b82f6, giving
+   3.68:1 for the 12px label. Land it on #2563eb (5.17:1) instead — visually
+   the same blue chip, now readable. */
+.view-pill.active,
+.ed-tab.active{
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+}
+
+/* The purple "equal spacing" affordance was #a855f7 on a dark panel (4.00:1)
+   and #7c3aed in places (2.78:1). Lift it to a tint that clears AA. */
+.ed-group-header [data-eq-spacing],
+.ed-add-btn[data-eq-spacing]{ color:#b77df9 !important; }
+
+/* ── Remaining AA failures on the Geometry page ───────────────────────────
+   White-on-accent: several controls paint white 10–12px text on #3b82f6,
+   which is 3.68:1. The gradients added earlier only set background-image, so
+   the painted background-color stayed the lighter accent. Set the colour too,
+   so the contrast is real and not just in the gradient. #2563eb = 5.17:1. */
+.ea-header-btn.primary,
+.ea-btn-primary,
+.view-pill.active,
+.ed-tab.active,
+.ed-recalc,
+.zoom-btn.active{
+  background-color: #2563eb;
+}
+.ea-wizard-step.active .ea-wizard-num{background-color:#2563eb}
+
+/* Unit suffixes in the editor rows ("mm") are emitted with an inline
+   color:#475569, which is 2.34:1 — the least readable text in the app, and it
+   is on the panel used most. Inline styles need !important to beat. */
+.ed-label{color:var(--text-muted) !important}
+
+/* Same story for the inline purple used on material chips. */
+.ed-group-header strong[style*="124, 58, 237"],
+[style*="color:#7c3aed"],
+[style*="color: rgb(124, 58, 237)"]{color:#b77df9 !important}
+
+/* The last two white-on-accent controls. #runAnalysisBtn carries an inline
+   background:var(--accent), so it needs !important; .sb-nav-btn.fwd is the
+   forward button in the status bar. */
+#runAnalysisBtn{background:#2563eb !important}
+/* app.css uses .status-bar .sb-nav-btn.fwd (two classes + descendant), which
+   outranks a bare .sb-nav-btn.fwd — match its specificity. */
+.status-bar .sb-nav-btn.fwd{background:#2563eb;border-color:#2563eb}
+.status-bar .sb-nav-btn.fwd:hover{background:#1d4ed8;border-color:#1d4ed8}
+
+/* Toast. 70-history.js has one but it is closure-local and inline-styled, so
+   nothing else can reach it. This is the shared one, announced to screen
+   readers via aria-live (the app had no live region at all). */
+.ea-toast{
+  position:fixed; right:20px; bottom:20px; z-index:99999;
+  display:flex; align-items:center; gap:9px;
+  max-width:min(92vw,420px);
+  padding:11px 15px;
+  background:rgba(17,24,39,0.96);
+  border:1px solid var(--border-strong);
+  border-left:3px solid var(--accent);
+  border-radius:var(--radius-md);
+  color:var(--text-primary);
+  font-size:var(--fs-xs); line-height:1.5;
+  box-shadow:var(--elev-3);
+  backdrop-filter:blur(10px);
+  opacity:0; transform:translateY(6px);
+  transition:opacity .18s ease, transform .18s ease;
+  pointer-events:none;
+}
+.ea-toast.show{opacity:1; transform:translateY(0)}
+.ea-toast.ok{border-left-color:var(--success)}
+.ea-toast.warn{border-left-color:var(--warning)}
+.ea-toast .ea-toast-file{
+  font-family:var(--font-mono);
+  color:var(--text-secondary);
+  word-break:break-all;
+}

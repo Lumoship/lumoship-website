@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Midship Scantling Design | Lumoship</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="app/app.css">
+    <link rel="stylesheet" href="app/refine.css">
+<!-- Vendored locally (was cdnjs). Still deferred, so they execute after the
+     app modules below — exactly the order the single-file build had. -->
+<script src="app/vendor/jspdf.umd.min.js" defer></script>
+<script src="app/vendor/xlsx.full.min.js" defer></script>
+    <style>
+/* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
+        .lumoship-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid #1e2536;
+            z-index: 10000;
+            padding: 0.875rem 1.5rem;
+        }
+        .lumoship-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lumoship-nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity 200ms;
+        }
+        .lumoship-nav-logo:hover { opacity: 0.85; }
+        .lumoship-nav-logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .lumoship-nav-logo-text {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+            letter-spacing: 0.06em;
+        }
+        .lumoship-nav-links {
+            display: none;
+        }
+        
+        /* NEW MINIMAL NAVBAR */
+        .nav-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-context {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: #64748b;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding-left: clamp(0.75rem, 1.5vw, 1rem);
+            margin-left: clamp(0.75rem, 1.5vw, 1rem);
+            border-left: 1px solid #1e2536;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.75rem, 1.5vw, 1.25rem);
+        }
+        
+        .nav-back {
+            color: #94a3b8;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 200ms;
+        }
+        
+        .nav-back:hover { color: #f8fafc; }
+        .nav-back-arrow { font-size: 1em; }
+        
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 999px;
+            text-decoration: none;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.825rem;
+            font-weight: 500;
+            transition: all 200ms;
+        }
+        
+        .user-badge:hover {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        
+        .user-badge-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: white;
+            letter-spacing: -0.02em;
+            overflow: hidden;
+        }
+        
+        .user-badge-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-badge-name {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .user-badge-login {
+            padding: 0.45rem 0.95rem;
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        
+        .user-badge-login:hover {
+            background: #60a5fa;
+            border-color: #60a5fa;
+        }
+        
+        @media (max-width: 640px) {
+            .nav-back-text { display: none; }
+            .user-badge-name { display: none; }
+            .nav-context { display: none; }
+        }
+        
+        .lumoship-nav-link {
+            display: none;
+        }
+        .lumoship-nav-link:hover { color: #f8fafc; }
+        .lumoship-breadcrumb {
+            background: #0f141f;
+            border-bottom: 1px solid #1e2536;
+            padding: 0.75rem 1.5rem;
+        }
+        .lumoship-breadcrumb-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .breadcrumb-link {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 200ms;
+        }
+        .breadcrumb-link:hover { color: #60a5fa; }
+        .breadcrumb-separator { color: #475569; }
+        .breadcrumb-current {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .lumoship-breadcrumb { display: none; }
+        }
+
+    
+        
+    </style>
+</head>
+<body>
+<!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
+    <nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <div class="nav-left">
+                <a href="https://lumoship.org" class="lumoship-nav-logo">
+                    <div class="lumoship-nav-logo-mark">L</div>
+                    <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+                </a>
+                <span class="nav-context">Midship Scantling</span>
+            </div>
+            <div class="nav-right">
+                <a href="https://lumoship.org/workspace.html" class="nav-back">
+                    <span class="nav-back-arrow">←</span>
+                    <span class="nav-back-text">Workspace</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="userBadge" class="user-badge" style="display: none;">
+                    <span id="userBadgeAvatar" class="user-badge-avatar">L</span>
+                    <span id="userBadgeName" class="user-badge-name">Account</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="loginBadge" class="user-badge user-badge-login" style="display: none;">
+                    <span>Sign in</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+
+
+
+<header class="ea-header">
+  <div class="ea-header-inner">
+    <div class="ea-header-top">
+      <div class="ea-header-left">
+        <div class="ea-brand">
+          <div class="ea-logo">L</div>
+          <div class="ea-title-group">
+            <h1>Midship Scantling Viewer</h1>
+            <p id="headerSubtitle">Baltic Laker GC — LR Pt 4 Ch 1</p>
+          </div>
+        </div>
+      </div>
+      <div class="ea-header-actions">
+        <span class="ea-header-badge">v1.0</span>
+        <button class="ea-header-btn" onclick="Project.newProject()" title="Start a new project from principal particulars">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          New
+        </button>
+        <button class="ea-header-btn" onclick="Project.loadExample()" title="Reload the built-in example project (Wagenborg Baltic Laker GC)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
+          Example
+        </button>
+        <button class="ea-header-btn" onclick="document.getElementById('loadFile').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Load
+        </button>
+        <input type="file" id="loadFile" accept=".json" class="hidden-input" onchange="loadJSON(event)">
+        <button class="ea-header-btn" onclick="saveJSON()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save
+        </button>
+        <button class="ea-header-btn" onclick="exportDXF()" title="Export drawing to AutoCAD DXF (all layers, stiffeners with real profile shapes)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h7M7 16h4"/></svg>
+          DXF
+        </button>
+        <button class="ea-header-btn" onclick="exportExcel()" title="Export plates, stiffeners, section properties and ship parameters to Excel (.xlsx)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+          Excel
+        </button>
+        <button class="ea-header-btn primary" onclick="exportPDF()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PDF
+        </button>
+      </div>
+    </div>
+    <nav class="ea-wizard">
+      <button class="ea-wizard-step active" onclick="goToPage(1)"><span class="ea-wizard-num">1</span> Setup</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" onclick="goToPage(2)" style="display:none" aria-hidden="true"><span class="ea-wizard-num">—</span> Scantling</button>
+      <button class="ea-wizard-step" onclick="goToPage(3)"><span class="ea-wizard-num">2</span> Geometry</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" onclick="goToPage(4)"><span class="ea-wizard-num">3</span> Summary</button>
+    </nav>
+  </div>
+</header>
+
+<!-- PAGE 1: SETUP -->
+<div class="ea-page active" id="page-1">
+  <main class="ea-main">
+    <div class="ea-setup-grid">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Project Information</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-field"><label class="ea-label">Vessel Name</label><input type="text" class="ea-input" id="vesselName" value="Wagenborg Baltic Laker GC"></div>
+          <div class="ea-form-row">
+            <div class="ea-field"><label class="ea-label">Variant</label>
+              <select class="ea-select" id="variant" onchange="updateVariantParticulars()">
+                <option value="1B" selected>Variant 1B (L=192 m · 0.96·Lwl)</option>
+                <option value="2A">Variant 2A (L=216 m · 0.96·Lwl)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
+          </div>
+          <div class="ea-form-row">
+            <div class="ea-field"><label class="ea-label">Analysis Date</label><input type="date" class="ea-input" id="analysisDate"></div>
+            <div class="ea-field"><label class="ea-label">Classification Society</label>
+              <select class="ea-select" id="classificationSociety">
+                <option value="Lloyd's Register" selected>Lloyd's Register</option>
+                <option value="Bureau Veritas">Bureau Veritas</option>
+                <option value="DNV">DNV</option>
+                <option value="ABS">ABS</option>
+              </select>
+            </div>
+          </div>
+          <!-- Ship-type + material-grade context — used by Assign Material Grades button
+               (LR Pt 3 Ch 2 Table 2.2.1 / 2.2.2 / 2.2.3). These don't drive the
+               LR strength formulas themselves, only the grade / toughness mapping. -->
+          <div class="ea-form-row">
+            <div class="ea-field"><label class="ea-label" title="Used by LR Pt 3 Ch 2 Table 2.2.1 to pick the right material class (C4, C6, C7 etc depend on ship type).">Ship Type</label>
+              <select class="ea-select" id="shipType" onchange="recalcAll()">
+                <option value="general_cargo" selected>General Cargo</option>
+                <option value="bulk_carrier">Bulk Carrier</option>
+                <option value="container">Container</option>
+                <option value="tanker">Tanker</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 2 Sec 2.1.4 design air temperature. Default −10°C = worldwide service. Colder → stricter grades (Table 2.2.3).">Design Air Temp (°C)</label><input type="number" step="1" class="ea-input" id="designAirTemp" value="-10" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-form-row">
+            <div class="ea-field"><label class="ea-label" title="Longitudinal position of this section as a fraction of ship length. 0.5 = amidships. Within 0.3–0.7 = within 0.4L amidships (stricter grades apply).">Section x/L</label><input type="number" step="0.05" min="0" max="1" class="ea-input" id="sectionXL" value="0.5" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label" title="Steel family: HT = higher-tensile (AH/DH/EH etc.), Mild = A/B/D/E. Used as the default steel family when auto-assigning grades.">Steel Family (default)</label>
+              <select class="ea-select" id="steelFamily" onchange="recalcAll()">
+                <option value="HT" selected>HT (AH / DH / EH)</option>
+                <option value="Mild">Mild (A / B / D / E)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Report Assets</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-field">
+            <label class="ea-label">Company Logo (PDF)</label>
+            <label class="ea-logo-preview" onclick="document.getElementById('logoInput').click()">
+              <img id="logoPreview" style="display:none">
+              <span id="logoPlaceholder">Click to upload</span>
+            </label>
+            <input type="file" id="logoInput" accept="image/*" class="hidden-input" onchange="handleLogoUpload(event)">
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Prepared By</label>
+            <input type="text" class="ea-input" id="preparedBy" value="Ebubekir Akarsu">
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Notes</label>
+            <input type="text" class="ea-input" id="reportNotes" placeholder="Additional notes">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ship Particulars -->
+    <div class="ea-panel" style="margin-top:var(--spacing-xl)">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Ship Particulars &amp; Design Parameters</span></div>
+      <div class="ea-panel-body">
+        <div class="ea-section-title">Main Dimensions</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="LR rule length — defaults to 0.96·Lwl per Pt 3 Ch 1 Sec 4. Variant 1B: 192 m, Variant 2A: 216 m.">L (m)</label><input type="number" step="0.01" class="ea-input" id="L" value="192" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">B (m)</label><input type="number" step="0.01" class="ea-input" id="B" value="23.76" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">D (m)</label><input type="number" step="0.01" class="ea-input" id="D" value="15.30" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">T (m)</label><input type="number" step="0.01" class="ea-input" id="T" value="10.50" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" title="Block coefficient (LR Pt 3 Ch 4 Sec 5.2.1). Minimum used is 0.60.">C_b</label><input type="number" step="0.01" class="ea-input" id="Cb" value="0.881" onchange="recalcAll()"></div>
+        </div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Material &amp; Hull Girder</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Default k value when zone-specific overrides are not set.">Default k</label>
+            <select class="ea-select" id="material" onchange="updateMaterial()">
+              <option value="MS">k = 1.00</option>
+              <option value="AH32">k = 0.78</option>
+              <option value="AH36" selected>k = 0.72</option>
+              <option value="AH40">k = 0.68</option>
+            </select>
+          </div>
+          <div class="ea-field" style="grid-column:span 2">
+            <label class="ea-label" title="AUTO: F_B and F_D are recomputed live from the current section modulus on every recalc (LR Pt 3 Ch 4 Sec 5.7.2: F = σ_actual / σ_perm). Your manual edits to the F_B/F_D inputs will be overwritten.&#10;&#10;MANUAL: The values you type in F_B and F_D below are used as-is. Auto-sync from section modulus is disabled. Use this when you want to lock F_B/F_D for a what-if study or to enforce a target ratio.">F_B / F_D Mode</label>
+            <div style="display:flex;gap:12px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.72rem">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex:1">
+                <input type="radio" name="fbfdMode" id="fbfdModeAuto" value="auto" onchange="onFBFDModeChange()" style="cursor:pointer">
+                <span style="font-weight:600;color:var(--text-primary)">Auto</span>
+                <span style="color:var(--text-muted);font-size:0.65rem">(live from SM)</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex:1">
+                <input type="radio" name="fbfdMode" id="fbfdModeManual" value="manual" checked onchange="onFBFDModeChange()" style="cursor:pointer">
+                <span style="font-weight:600;color:var(--text-primary)">Manual</span>
+                <span style="color:var(--text-muted);font-size:0.65rem">(use my values)</span>
+              </label>
+            </div>
+          </div>
+          <div class="ea-field"><label class="ea-label" id="FB_label" title="F_B (bottom) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.">F_B <span id="FB_modeTag" style="color:#fbbf24;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">· manual</span></label><input type="number" step="0.01" class="ea-input" id="FB" value="0.8" style="border-color:#fbbf24;background:rgba(251,191,36,0.05)" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" id="FD_label" title="F_D (deck) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.">F_D <span id="FD_modeTag" style="color:#fbbf24;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">· manual</span></label><input type="number" step="0.01" class="ea-input" id="FD" value="1" style="border-color:#fbbf24;background:rgba(251,191,36,0.05)" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">l_e (m) — web frame</label><input type="number" step="0.01" class="ea-input" id="le" value="1.452" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" title="Transverse frame/stiffener spacing — short-direction plate support">s_trans (mm)</label><input type="number" step="10" class="ea-input" id="transFrameSpacing" value="726" onchange="recalcAll()"></div>
+        </div>
+
+        <!-- ZONE MATERIAL SELECTION -------------------------------------
+             Apr 2026: per-region steel grade family. Each zone picks one
+             of {Mild, AH32, AH36, AH40}; "Assign Grades" reads the zone
+             material at each plate's z-coordinate and uses that as the
+             yield-strength family before applying LR Table 2.2.2 to pick
+             the toughness grade (A/AH/D/DH/E/EH).
+             Manual per-strake overrides in Geometry remain unchanged. -->
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Zone k-value Selection (LR Pt 3 Ch 2)</div>
+        <div class="ea-form-row" style="grid-template-columns:repeat(3, 1fr);gap:var(--spacing-sm)">
+          <div class="ea-field">
+            <label class="ea-label" title="k for the double-bottom zone (BL → IB): keel, bottom shell, bilge, side girders, inner bottom, and longitudinals. The toughness letter (A/AH/D/DH/E/EH) is decided automatically from k + plate class + thickness when the analysis runs.">Double Bottom (BL → IB)</label>
+            <select class="ea-select" id="zoneMaterialDB" onchange="onZoneMaterialChange()">
+              <option value="MS">k = 1.00</option>
+              <option value="AH32">k = 0.78</option>
+              <option value="AH36" selected>k = 0.72</option>
+              <option value="AH40">k = 0.68</option>
+            </select>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label" title="k for the cargo-hold side zone (IB → UD): side shell, inner side, stringer/tween decks, upper deck, and their longitudinals.">Side / Cargo (IB → UD)</label>
+            <select class="ea-select" id="zoneMaterialSide" onchange="onZoneMaterialChange()">
+              <option value="MS">k = 1.00</option>
+              <option value="AH32">k = 0.78</option>
+              <option value="AH36" selected>k = 0.72</option>
+              <option value="AH40">k = 0.68</option>
+            </select>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label" title="k for the hatch coaming zone (UD → HC): coaming walls and coaming top plate.">Hatch Coaming (UD → HC)</label>
+            <select class="ea-select" id="zoneMaterialCoaming" onchange="onZoneMaterialChange()">
+              <option value="MS" selected>k = 1.00</option>
+              <option value="AH32">k = 0.78</option>
+              <option value="AH36">k = 0.72</option>
+              <option value="AH40">k = 0.68</option>
+            </select>
+          </div>
+        </div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Still-Water Bending Moment (optional)</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Hogging still-water bending moment (kN·m, POSITIVE). LR Pt 3 Ch 4 Sec 5.3.1: hogging Ms is positive. Used in hogging condition: M_hog_total = Ms_hog + Mw_hog. Drives bottom-side compression checks (Z_B, bottom buckling).">M_s hog (kN·m)</label><input type="number" step="1000" class="ea-input" id="MsDesign" value="900000" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" title="Sagging still-water bending moment (kN·m, NEGATIVE). LR Pt 3 Ch 4 Sec 5.3.1: sagging Ms is negative. Used in sagging condition: M_sag_total = Ms_sag + Mw_sag. Drives deck-side compression checks (Z_D, deck/coaming buckling). Often around -|Ms_hog| for typical cargo ships.">M_s sag (kN·m)</label><input type="number" step="1000" class="ea-input" id="MsSag" value="-900000" onchange="recalcAll()"></div>
+          <div class="ea-field" style="display:flex;align-items:flex-end"><button class="ea-btn ea-btn-primary" style="padding:6px 10px;font-size:0.72rem;width:100%" onclick="applyComputedFfactors()" title="Compute F_B, F_D from LR Pt 3 Ch 4 rule-based analysis using current section properties and Ms values">⚙ Compute F from LR Ch 4</button></div>
+          <div class="ea-field" style="grid-column:span 2"><label class="ea-label" style="color:var(--text-muted)">Tip</label><div style="font-size:0.7rem;color:var(--text-muted);padding:6px 0">The button runs LR Pt 3 Ch 4 longitudinal strength analysis and sets F_B/F_D from the computed hull-girder stresses (not an assumption).</div></div>
+        </div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Profile Filter Preference</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label">Show Types</label>
+            <select class="ea-select" id="preferProfileType" onchange="recalcAll()">
+              <option value="L">L Profile only</option>
+              <option value="HP" selected>HP Bulb Plate only</option>
+              <option value="FB">Flat Bar only</option>
+              <option value="L+HP">L + HP</option>
+              <option value="any">All types (L + HP + FB)</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label">Safety Margin Upper Limit</label>
+            <select class="ea-select" id="safetyUpperLimit" onchange="recalcAll()">
+              <option value="50">≤ +50% (tight)</option>
+              <option value="100" selected>≤ +100% (normal)</option>
+              <option value="200">≤ +200% (loose)</option>
+              <option value="999">No limit (show all)</option>
+            </select>
+          </div>
+          <div class="ea-field" style="grid-column: span 2;">
+            <label class="ea-label">Filter Strategy</label>
+            <div class="ea-input readonly" style="padding:10px 14px;font-size:var(--fs-xs);line-height:1.4">
+              Dropdowns show only profiles where Z_section ≥ Z_req AND safety ≤ margin limit AND slenderness OK. YOU pick from the filtered list.
+            </div>
+          </div>
+        </div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Geometry (fixed levels, ab baseline)</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label">Inner Bottom (mm)</label><input type="number" class="ea-input" id="ibLevel" value="1800" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">Tank Top (mm)</label><input type="number" class="ea-input" id="ttLevel" value="12900" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">Upper Deck (mm)</label><input type="number" class="ea-input" id="udLevel" value="15300" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label">Hatch Coaming Top (mm)</label><input type="number" class="ea-input" id="hcLevel" value="16350" onchange="recalcAll()"></div>
+        </div>
+        <div class="info-text">Tank Top = Ballast tank top plate. Void between Tank Top and Upper Deck (dry). Hatch coaming above Upper Deck.</div>
+      </div>
+    </div>
+
+    <!-- ====================================================================== -->
+    <!-- ICE CLASS PANEL — FSICR (Finnish-Swedish Ice Class Rules) — Apr 2026   -->
+    <!-- Toggle on/off; when on, FSICR ice belt is computed and the analysis     -->
+    <!-- governance for side-shell plate t and longitudinal Z is max(LR,FSICR).  -->
+    <!-- Frame Ice Strengthening zone (Reg. 4.4.1) is used for inserting         -->
+    <!-- intermediate longitudinals on the side shell only.                      -->
+    <!-- ====================================================================== -->
+    <div class="ea-panel" style="margin-top:var(--spacing-xl)" id="iceClassPanel">
+      <div class="ea-panel-header" style="cursor:pointer" onclick="toggleIcePanelBody()">
+        <div class="ea-panel-icon" id="iceClassIcon" style="background:var(--cyan)"></div>
+        <span class="ea-panel-title">Ice Class Calculations (FSICR)</span>
+        <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;font-family:var(--font-mono)" id="iceClassStatus">DISABLED · click to expand</span>
+      </div>
+      <div class="ea-panel-body" id="iceClassBody">
+        <!-- TOGGLE -->
+        <div class="ea-form-row-4">
+          <div class="ea-field" style="grid-column:span 2">
+            <label class="ea-label" title="Enable FSICR (Finnish-Swedish Ice Class Rules) cross-checks. When enabled: side-shell plate thickness and longitudinal stiffener Z become max(LR, FSICR) within the FSICR ice belt; the 'Add Ice Intermediate Longs' button becomes active.">Enable Ice Class Rules</label>
+            <div style="display:flex;gap:12px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.72rem">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex:1">
+                <input type="radio" name="iceEnabled" id="iceEnabledOff" value="off" checked onchange="onIceEnabledChange()" style="cursor:pointer">
+                <span style="font-weight:600;color:var(--text-primary)">Disabled</span>
+                <span style="color:var(--text-muted);font-size:0.65rem">(LR only)</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex:1">
+                <input type="radio" name="iceEnabled" id="iceEnabledOn" value="on" onchange="onIceEnabledChange()" style="cursor:pointer">
+                <span style="font-weight:600;color:var(--text-primary)">Enabled</span>
+                <span style="color:var(--text-muted);font-size:0.65rem">(LR + FSICR governance)</span>
+              </label>
+            </div>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="FSICR ice class. 1A Super = Baltic ice operation; 1A/1B/1C = decreasing severity.">Ice Class</label>
+            <select class="ea-select" id="iceClass" onchange="onIceInputChange()">
+              <option value="1AS">1A Super</option>
+              <option value="1A" selected>1A FS</option>
+              <option value="1B">1B FS</option>
+              <option value="1C">1C FS</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Reg. 4.3.2 abrasion margin (mm) — added to net plate thickness in the ice belt.">t_c abrasion (mm)</label><input type="number" step="0.1" class="ea-input" id="ice_tc" value="2.0" onchange="onIceInputChange()"></div>
+        </div>
+
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Ice Waterlines (FSICR Reg. 4.2 / 4.3 / 4.4)</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Upper Ice Waterline — FW summer load line (m, above baseline).">T_UIWL (m)</label><input type="number" step="0.0001" class="ea-input" id="ice_T_uiwl" value="10.7425" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="Lower Ice Waterline — chosen ballast condition (m, above baseline).">T_LIWL (m)</label><input type="number" step="0.01" class="ea-input" id="ice_T_liwl" value="5.50" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="Displacement at UIWL in fresh water, ρ=1.0 t/m³.">Δ at UIWL (t)</label><input type="number" step="1" class="ea-input" id="ice_Disp" value="44513" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="Plate minimum thickness floor — used as lower bound on FSICR plate thickness.">t floor (mm)</label><input type="number" step="0.5" class="ea-input" id="ice_t_floor" value="9.0" onchange="onIceInputChange()"></div>
+        </div>
+
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Engine &amp; Framing</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Engine power (kW) — used in FSICR Reg. 4.2.2 to compute size parameter k = √(Δ·P)/1000.">Engine P (kW)</label><input type="number" step="10" class="ea-input" id="ice_P0" value="5220" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="Framing system at side shell. LONG = longitudinal stiffeners (Reg. 4.4.3). TRANS = transverse frames (Reg. 4.4.2.1).">Framing system</label>
+            <select class="ea-select" id="ice_framing" onchange="onIceInputChange()">
+              <option value="LONG" selected>Longitudinal</option>
+              <option value="TRANS">Transverse</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="m_o for transverse framing (Reg. 4.4.2.1) — typical 7 for bulk carriers w/ top wing tanks.">m_o (transverse)</label>
+            <select class="ea-select" id="ice_mo" onchange="onIceInputChange()">
+              <option value="7" selected>7 — bulk carrier w/ top wing tanks</option>
+              <option value="6">6 — frames tank top → single deck</option>
+              <option value="5.7">5.7 — continuous between several decks</option>
+              <option value="5">5 — frames between two decks only</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Reg. 3.2 minimum required engine power for the chosen ice class. Status auto-validates.">FSICR P_min req (kW)</label><input type="number" step="1" class="ea-input" id="ice_P0_required" value="4910" onchange="onIceInputChange()"></div>
+        </div>
+
+        <!-- COMPUTED EXTENTS DISPLAY -->
+        <div class="ea-form-row" style="grid-template-columns:1fr 1fr;gap:var(--spacing-md);margin-top:var(--spacing-md)">
+          <div class="ea-calc-box">
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">① Plate Ice Belt (Reg. 4.3.1)</span>
+              <span class="ea-calc-value accent" id="ice_plateExtent_disp">— mm</span>
+            </div>
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">② Frame Strengthening (Reg. 4.4.1)</span>
+              <span class="ea-calc-value accent" id="ice_frameExtent_disp">— mm</span>
+            </div>
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">Ice pressure p (before c_a)</span>
+              <span class="ea-calc-value" id="ice_p_disp">— MPa</span>
+            </div>
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">Engine power status</span>
+              <span class="ea-calc-value" id="ice_P0_status">—</span>
+            </div>
+          </div>
+          <div class="ea-calc-box">
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">FSICR plate t_req (current side s)</span>
+              <span class="ea-calc-value accent" id="ice_t_req_disp">— mm</span>
+            </div>
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">FSICR Z_req (current spacing)</span>
+              <span class="ea-calc-value accent" id="ice_Z_req_disp">— cm³</span>
+            </div>
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">FSICR Z_req (intermediate s/2)</span>
+              <span class="ea-calc-value" id="ice_Z_req_inter_disp">— cm³</span>
+            </div>
+            <div class="ea-calc-row">
+              <span class="ea-calc-label">FSICR governs over LR?</span>
+              <span class="ea-calc-value" id="ice_governs_disp">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Intermediate Longitudinal Insertion</div>
+        <div class="ea-form-row" style="grid-template-columns:auto 1fr;gap:var(--spacing-md);align-items:center">
+          <button class="ea-btn ea-btn-primary" id="ice_insertBtn" onclick="insertIceIntermediates()" style="padding:8px 14px" disabled>+ Add Ice Intermediate Longs (side shell)</button>
+          <div style="font-size:0.72rem;color:var(--text-muted);line-height:1.5">
+            Inserts an intermediate longitudinal at the midpoint between every adjacent side-shell longitudinal pair whose midpoint falls inside the FSICR Frame Ice Strengthening zone (Reg. 4.4.1). Click again to refresh after changing inputs (existing intermediates with the &quot;ice&quot; tag are removed and re-inserted). Inner side, decks, and bottom shell are NOT affected. Profile inherits from the lower neighbour.
+          </div>
+        </div>
+        <div class="ea-form-row" style="grid-template-columns:1fr;margin-top:var(--spacing-md)">
+          <div style="font-size:0.7rem;color:var(--text-muted);line-height:1.5;background:var(--bg-input);padding:10px 12px;border-radius:var(--radius-sm);border-left:3px solid var(--cyan)" id="ice_insertSummary">No ice intermediates inserted.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="ea-page-actions">
+      <div></div>
+      <button class="ea-btn ea-btn-primary" onclick="goToPage(3)">Continue to Geometry →</button>
+    </div>
+  </main>
+</div>
+
+<!-- PAGE 2: SCANTLINGS -->
+<div class="ea-page" id="page-2">
+  <main class="ea-main">
+    <div class="ea-input-layout">
+
+      <!-- BOTTOM SHELL -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">1. Bottom Shell (Plate + Longitudinal)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-section-title">Plate (LR Table 1.5.2)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">Keel Plate Width (mm)</label><input type="number" class="ea-input" id="keelWidth" value="1800" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Keel Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="keelT" value="16" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Bottom Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="bottomT" value="14" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Bilge Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="bilgeT" value="14" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-section-title" style="margin-top:var(--spacing-md)">Longitudinal (LR Table 1.6.1 Location 3)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">Count (per side)</label><input type="number" class="ea-input" id="bottomLongCount" value="10" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Max Spacing (mm)</label><input type="number" class="ea-input" id="bottomLongSpacing" value="710" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Profile (Z-filtered)</label>
+              <select class="ea-select" id="bottomLongProfile" onchange="recalcAll()">
+                <!-- populated dynamically with viable profiles only -->
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Z_req (cm³)</label><input type="text" class="ea-input readonly" id="bottomZreq" value="234" readonly></div>
+          </div>
+          <div class="ea-calc-box" id="bottomCalc"></div>
+        </div>
+      </div>
+
+      <!-- INNER BOTTOM -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">2. Inner Bottom (LR Pt 4 Ch 1 Sec 8.4)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-section-title">Plate Configuration (Sec 8.4.1 + 8.4.2 + 2.2.2 + 8.4.4)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">IB Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="ibT" value="16" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">IB Long Spacing s (mm)</label><input type="number" class="ea-input" id="ibLongSpacing" value="710" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Cargo Load (t/m²)</label><input type="number" step="0.5" class="ea-input" id="ibCargo" value="20" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Location</label>
+              <select class="ea-select" id="ibLocation" onchange="recalcAll()">
+                <option value="hold" selected>In hold (general)</option>
+                <option value="hatch">Under hatchway</option>
+              </select>
+            </div>
+          </div>
+          <div class="ea-form-row-3" style="margin-top:var(--spacing-md)">
+            <div class="ea-field"><label class="ea-label">Wooden Ceiling</label>
+              <select class="ea-select" id="ibCeiling" onchange="recalcAll()">
+                <option value="yes">Fitted (normal)</option>
+                <option value="no" selected>Not fitted (bare steel)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Grab Discharge</label>
+              <select class="ea-select" id="ibGrab" onchange="recalcAll()">
+                <option value="no">No (normal cargo)</option>
+                <option value="yes" selected>Yes (grab/clamshell)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Side Tank Connection</label>
+              <select class="ea-select" id="ibSideTank" onchange="recalcAll()">
+                <option value="no">Independent DB</option>
+                <option value="yes" selected>Common w/ side tank / cofferdam</option>
+              </select>
+            </div>
+          </div>
+          <div id="ibSideTankRow" class="ea-form-row-2" style="margin-top:var(--spacing-md);display:grid">
+            <div class="ea-field"><label class="ea-label">Side Tank Head h (m)</label><input type="number" step="0.1" class="ea-input" id="ibSideTankH" value="16.06" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">ρ (cargo/fluid, t/m³)</label><input type="number" step="0.025" class="ea-input" id="ibRho" value="1.025" onchange="recalcAll()"></div>
+          </div>
+          
+          <div class="ea-section-title" style="margin-top:var(--spacing-md)">Longitudinal (Sec 8.4.5 — Z ≥ 0.85 × Z_bottom)</div>
+          <div class="ea-form-row-3">
+            <div class="ea-field"><label class="ea-label">Count (per side)</label><input type="number" class="ea-input" id="ibLongCount" value="10" onchange="recalcAll()"></div>
+            <div class="ea-field">
+              <label class="ea-label">Profile</label>
+              <select class="ea-select" id="ibLongProfile" onchange="recalcAll()"></select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Z_req (cm³)</label><input type="text" class="ea-input readonly" id="ibZreq" value="242" readonly></div>
+          </div>
+          <div class="ea-form-row-2">
+            <div class="ea-field"><label class="ea-label">Z_section (cm³)</label><input type="text" class="ea-input readonly" id="ibZsec" value="—" readonly></div>
+            <div class="ea-field"><label class="ea-label">Status</label><input type="text" class="ea-input readonly" id="ibLongStatus" value="—" readonly></div>
+          </div>
+          <div class="ea-calc-box" id="ibCalc"></div>
+          <div class="info-text" style="margin-top:12px">
+            <strong>Sec 8.4.1:</strong> t = 0.00136·(s + 660)·⁴√(k²·L·T) mm. Min 6.5 mm (holds), 7.5 mm (hatchway, no ceiling).<br>
+            <strong>Sec 8.4.2:</strong> +2 mm under hatchways if ceiling omitted.<br>
+            <strong>Sec 2.2.2:</strong> +3 mm (grab + ceiling) or +5 mm (grab + no ceiling, alt.).<br>
+            <strong>Sec 8.4.4:</strong> If DB common with side tank/cofferdam → deep tank formula (h to highest point).
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDE SHELL PLATE - 6 Strakes -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon purple"></div><span class="ea-panel-title">3. Side Shell Plate — 6 Strakes (LR Table 1.5.3)</span></div>
+        <div class="ea-panel-body">
+          <div class="info-text" style="margin-bottom:var(--spacing-md)">Weld seams at 1900, 3880, 6360, 8690, 11170, 13420 mm ab baseline. Strake 6 extends to upper deck (15300).</div>
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>Strake</th><th>z1 (mm)</th><th>z2 (mm)</th><th>H (mm)</th><th>Mid z (m)</th><th>Max s (mm)</th><th>t (mm)</th><th>Gov</th></tr>
+              </thead>
+              <tbody id="sidePlateBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDE SHELL LONGITUDINAL -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon purple"></div><span class="ea-panel-title">4. Side Shell Longitudinal — 18 Positions (LR Table 1.6.1)</span></div>
+        <div class="ea-panel-body">
+          <div class="info-text" style="margin-bottom:var(--spacing-md)">Fixed positions: 2375, 2950 (LR required), 10700 (user-fixed). z &lt; 12900: Location (2) tank; z ≥ 12900: Location (1) dry.</div>
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>#</th><th>z (mm)</th><th>Spacing (mm)</th><th>Strake</th><th>Region</th><th>Loc</th><th>Z_req (cm³)</th><th>Group</th></tr>
+              </thead>
+              <tbody id="sideLongBody"></tbody>
+            </table>
+          </div>
+          <div class="ea-section-title" style="margin-top:var(--spacing-lg)">Profile Groups</div>
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>Group</th><th>Longs</th><th>Z_max (cm³)</th><th>Plate (mm)</th><th>Profile</th><th>Z_sec (cm³)</th><th>Safety</th><th>kg/m</th></tr>
+              </thead>
+              <tbody id="sideGroupBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- INNER SIDE -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon orange"></div><span class="ea-panel-title">5. Inner Side (Longitudinal Bulkhead)</span></div>
+        <div class="ea-panel-body">
+          <div class="info-text" style="margin-bottom:var(--spacing-md)">
+            Inner side extends 1800 → 16350 mm, three regions:<br>
+            <strong>Deep Tank (1800–12900 mm)</strong> — LR Pt 4 Ch 1 Sec 9.2.1, Table 1.9.1 (deep tank):<br>
+            · Plating: t = 0.004·s·f·√(ρ·h₄/1.025) + 2.5 mm, min 7.5 mm (L ≥ 90)<br>
+            · Stiffener: Z = ρ·s·k·h₄·l_e² / (22·γ·(ω₁+ω₂+2)) cm³, γ=1.4, ω₁=ω₂=1.0 (bracketed)<br>
+            · h₄ = max(tank_top − z, (overflow − z)/2)<br>
+            <strong>Void (12900–15300 mm)</strong> — Sec 9 min (non-WT);
+            <strong>Coaming (15300–16350 mm)</strong> — Pt 3 Ch 11.
+          </div>
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>Strake</th><th>z1 (mm)</th><th>z2 (mm)</th><th>Region</th><th>Max s (mm)</th><th>h_4 (m)</th><th>t (mm)</th><th>Rule</th></tr>
+              </thead>
+              <tbody id="innerSidePlateBody"></tbody>
+            </table>
+          </div>
+          <div class="ea-section-title" style="margin-top:var(--spacing-lg)">Inner Side Longitudinal Groups</div>
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>Group</th><th>z range</th><th>Longs</th><th>Region</th><th>Z_max (cm³)</th><th>Profile</th><th>Z_sec</th><th>kg/m</th></tr>
+              </thead>
+              <tbody id="innerSideGroupBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DB INTERNALS -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">6. DB Internals (Girders, Floors — LR Pt 4 Ch 1 Sec 8)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-form-row-4" style="margin-bottom:16px">
+            <div class="ea-field"><label class="ea-label">DB Configuration</label>
+              <select class="ea-select" id="dbConfig" onchange="recalcAll()">
+                <option value="duct_keel" selected>Duct Keel (no centre girder)</option>
+                <option value="centre_girder">Centre Girder</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Centre Girder t (mm)</label><input type="number" step="0.5" class="ea-input" id="cgT" value="13" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Side Girder t (mm)</label><input type="number" step="0.5" class="ea-input" id="sgT" value="10" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Duct Keel Side t (mm)</label><input type="number" step="0.5" class="ea-input" id="dkT" value="12" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-form-row-4" style="margin-bottom:16px">
+            <div class="ea-field"><label class="ea-label">Floor non-WT t (mm)</label><input type="number" step="0.5" class="ea-input" id="floorNonWtT" value="12" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Floor WT t (mm)</label><input type="number" step="0.5" class="ea-input" id="floorWtT" value="12" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Bracket t (mm)</label><input type="number" step="0.5" class="ea-input" id="brkT" value="12" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Duct Keel Spacing (m)</label><input type="number" step="0.1" class="ea-input" id="dkSpacing" value="1.8" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-form-row-4" style="margin-bottom:16px">
+            <div class="ea-field"><label class="ea-label" title="Sec 8.3.8(b) — Is the duct keel interconnected with adjacent side tanks / cofferdams? If yes, deep-tank thickness check is applied.">Duct Interconnect (8.3.8b)</label>
+              <select class="ea-select" id="dkInterconnect" onchange="recalcAll()">
+                <option value="yes" selected>Common w/ side tank / cofferdam</option>
+                <option value="no">Independent (no DT check)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label" title="Stiffener spacing s on duct keel side plate (mm). For unstiffened panels, use min(panel height, web-frame spacing × 1000). Default = web frame × 1000 / 2 ≈ panel mid-stiff spacing.">Duct stiff. spacing s (mm)</label><input type="number" step="10" class="ea-input" id="dkStiffS" value="726" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label" title="Primary member spacing S in metres (web frame spacing or floor spacing, whichever bounds the panel).">Duct primary spacing S (m)</label><input type="number" step="0.1" class="ea-input" id="dkPrimaryS" value="2.5" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label" title="ρ = density of liquid in connected side tank (t/m³). Ballast = 1.025, fuel ≈ 0.92, fresh water = 1.0.">Duct fluid ρ (t/m³)</label><input type="number" step="0.025" class="ea-input" id="dkRho" value="1.025" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>Element</th><th>Count</th><th>t or dim (actual)</th><th>Geometry</th><th>Rule</th><th>Formula</th><th>t_req (mm)</th><th>Status</th></tr>
+              </thead>
+              <tbody id="dbBody"></tbody>
+            </table>
+          </div>
+          <div class="info-text" style="margin-top:12px">
+            <strong>Sec 8.3.1 — Centre girder depth:</strong> d_DB = max(28·B + 205·√T, min(50·B, 2000), 760) mm.<br>
+            <strong>Sec 8.3.2 (last sentence) — d_DB for thickness:</strong> The thickness <em>may be determined using d_DB without applying the minimum depths (b) and (c)</em> from 8.3.1. Tool now uses formula (a) only, i.e. d_DB(a) = 28·B + 205·√T, even if the as-built IB is taller. Both values are shown in the dim column.<br>
+            <strong>Sec 8.3.5 — Side girders (longitudinally framed ships):</strong> One side girder is to be fitted where B &gt; 14 m, and two girders on each side of the centreline where B &gt; 21 m. The girders are to extend <em>as far forward and aft as practicable</em> and shall have thickness not less than (0.0075·d_DB + 1)·√k mm, min 6.0 mm. A vertical stiffener (≥ 100 mm depth, thickness = girder t) is to be arranged midway between floors.<br>
+            <strong>Sec 8.3.8 — Duct keel:</strong> Replaces centre girder; side plates t ≥ <em>greater of</em>:
+            (a) (0.008·d_DB + 2)·√k mm, or
+            (b) deep-tank formula (Tablo 1.9.1: 0.004·s·f·√(ρ·h₄·k/1.025) + 2.5) <em>if duct interconnected with side tank / cofferdam</em>.
+            h₄ measured from (z_bot + H/3) to top of side tank, OR half to overflow. Min 6.0 mm (Sec 8.3.8) & 7.5 mm (Tablo 1.9.1, L≥90). Sides spaced ≤ 2.0 m apart.
+          </div>
+        </div>
+      </div>
+
+      <!-- DECKS (STRINGER + TWEEN + UPPER) -->
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">7. Decks — LR Pt 4 Ch 1 Sec 4 (Tables 1.4.1 – 1.4.4)</span></div>
+        <div class="ea-panel-body">
+          
+          <!-- STRINGER DECK (inside ballast tank — structural stringer) -->
+          <div class="ea-section-title">Stringer Deck (inside ballast tank — Sec 9 deep tank)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">Level (mm)</label><input type="number" class="ea-input" id="strDeckLevel" value="8000" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="strDeckT" value="10" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Spacing s (mm)</label><input type="number" class="ea-input" id="strDeckSpacing" value="700" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Count (per side)</label><input type="number" class="ea-input" id="strDeckLongCount" value="8" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-form-row-3" style="margin-top:var(--spacing-md)">
+            <div class="ea-field"><label class="ea-label">Stringer Type</label>
+              <select class="ea-select" id="strDeckFunction" onchange="recalcAll()">
+                <option value="non_wt_same_tank" selected>Non-WT stringer (both sides same tank, Δp=0)</option>
+                <option value="deep_tank">Deep tank stringer (Table 1.9.1)</option>
+                <option value="deep_tank_crown">Deep tank crown (Table 1.4.4 (3))</option>
+                <option value="cargo">Cargo deck (Table 1.4.4)</option>
+                <option value="platform">Platform deck</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Deck Type (plate)</label>
+              <select class="ea-select" id="strDeckType" onchange="recalcAll()">
+                <option value="second">Second deck (0.012·s₁·√k)</option>
+                <option value="third" selected>Third/Platform (0.010·s₁·√k)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Long Profile</label>
+              <select class="ea-select" id="strDeckProfile" onchange="recalcAll()"></select>
+            </div>
+          </div>
+          <div class="ea-calc-box" id="strDeckCalc"></div>
+          
+          <!-- TWEEN DECK (void space — no cargo load) -->
+          <div class="ea-section-title" style="margin-top:var(--spacing-lg)">Tween Deck (void space — minimum platform)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">Level (mm)</label><input type="number" class="ea-input" id="twnDeckLevel" value="12900" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="twnDeckT" value="12" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Spacing s (mm)</label><input type="number" class="ea-input" id="twnDeckSpacing" value="700" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Count (per side)</label><input type="number" class="ea-input" id="twnDeckLongCount" value="8" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-form-row-3" style="margin-top:var(--spacing-md)">
+            <div class="ea-field"><label class="ea-label">Deck Function</label>
+              <select class="ea-select" id="twnDeckFunction" onchange="recalcAll()">
+                <option value="deep_tank_crown" selected>Deep tank crown (Table 1.4.4 (3), h₄=overflow)</option>
+                <option value="void">Void (no load, minimum only)</option>
+                <option value="cargo">Cargo (h₂)</option>
+                <option value="accommodation">Accommodation (h₃)</option>
+                <option value="platform">Platform deck</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Deck Type (plate)</label>
+              <select class="ea-select" id="twnDeckType" onchange="recalcAll()">
+                <option value="second">Second deck (0.012·s₁·√k)</option>
+                <option value="third" selected>Third/Platform (0.010·s₁·√k)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Long Profile</label>
+              <select class="ea-select" id="twnDeckProfile" onchange="recalcAll()"></select>
+            </div>
+          </div>
+          <div class="ea-calc-box" id="twnDeckCalc"></div>
+          
+          <!-- UPPER DECK (STRENGTH/WEATHER) -->
+          <div class="ea-section-title" style="margin-top:var(--spacing-lg)">Upper Deck (Strength/Weather — Table 1.4.1 plate + 1.4.3 long.)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">Level (mm)</label><input type="number" class="ea-input readonly" id="udDeckLevelRO" value="15300" readonly></div>
+            <div class="ea-field"><label class="ea-label">Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="deckT" value="25" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Spacing s (mm)</label><input type="number" class="ea-input" id="deckLongSpacing" value="700" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Count (per side)</label><input type="number" class="ea-input" id="deckLongCount" value="12" onchange="recalcAll()"></div>
+          </div>
+          <div class="ea-form-row-3" style="margin-top:var(--spacing-md)">
+            <div class="ea-field"><label class="ea-label">Location</label>
+              <select class="ea-select" id="udLocation" onchange="recalcAll()">
+                <option value="outside_openings" selected>Outside line of openings</option>
+                <option value="inside_openings">Inside line of openings</option>
+                <option value="tank_crown">In way of tank crown (Table 1.4.3 (2))</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Framing</label>
+              <select class="ea-select" id="udFraming" onchange="recalcAll()">
+                <option value="longitudinal" selected>Longitudinal</option>
+                <option value="transverse">Transverse</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Long Profile</label>
+              <select class="ea-select" id="deckLongProfile" onchange="recalcAll()"></select>
+            </div>
+          </div>
+          <div class="ea-form-row-2" style="margin-top:var(--spacing-sm)">
+            <div class="ea-field"><label class="ea-label" title="Only used when Location = tank crown. h_4 = head from mid-l_e to top of tank or half-overflow, whichever greater.">h_4 (m) — tank crown</label>
+              <input type="number" step="0.1" class="ea-input" id="udTankH" value="2.5" onchange="recalcAll()">
+            </div>
+          </div>
+          <div class="ea-calc-box" id="udDeckCalc"></div>
+
+          <!-- HATCH COAMING TOP PLATE -->
+          <div class="ea-section-title" style="margin-top:var(--spacing-lg)">Hatch Coaming Top (Pt 3 Ch 11 — deck box closure)</div>
+          <div class="ea-form-row-4">
+            <div class="ea-field"><label class="ea-label">Coaming Top Plate t (mm)</label><input type="number" step="0.5" class="ea-input" id="coamingT" value="40" onchange="recalcAll()"></div>
+            <div class="ea-field"><label class="ea-label">Long Profile</label>
+              <select class="ea-select" id="coamingProfile" onchange="recalcAll()"></select>
+            </div>
+          </div>
+          
+          <div class="info-text" style="margin-top:12px">
+            <strong>Baltic Laker — actual layout:</strong> Stringer deck is inside ballast tank (Sec 9 deep tank rules apply). Tween deck is in the void space above tank top (no design load — minimums only). Upper deck is the weather/strength deck.<br><br>
+            <strong>Stringer (deep tank) plate:</strong> t = 0.004·s·f·√(ρ·h₄/1.025)+2.5 mm (Table 1.9.1 DT, min 7.5 mm L≥90)<br>
+            <strong>Stringer (deep tank) long:</strong> Z = ρ·s·k·h₄·l_e²/(22·γ·(ω₁+ω₂+2)) cm³ (γ=1.4, ω₁=ω₂=1)<br>
+            <strong>Tween (void) plate:</strong> Table 1.4.8 minimum (6.5 mm for L≥90, 5.5 mm for L<90)<br>
+            <strong>Tween (void) long:</strong> No design load — minimum stiffening per Sec 9 / Pt 3 Ch 3<br>
+            <strong>Upper deck (strength/weather, long):</strong> t = max[0.001·s₁·(0.059·L₁+7)·√(F_D/k_L), 0.00083·s₁·√(L·k)+2.5]<br>
+            <strong>Upper deck long (outside openings):</strong> Z = 0.043·s·k·h_T1·l_e²·F₁ cm³ (Table 1.4.3)
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="ea-page-actions">
+      <button class="ea-btn ea-btn-secondary" onclick="goToPage(1)">← Back</button>
+      <button class="ea-btn ea-btn-primary" onclick="goToPage(3)">View Geometry →</button>
+    </div>
+  </main>
+</div>
+
+<!-- PAGE 3: GEOMETRY (midship section drawing + rule cross-check) -->
+<div class="ea-page" id="page-3">
+  <main class="ea-main">
+
+    <div class="draw-bridge-bar">
+      <div style="display:flex;align-items:center;gap:10px;font-weight:600">
+        <span style="color:var(--text-secondary)">Geometry</span>
+        <span id="modeIndicator" style="padding:3px 10px;border-radius:var(--radius-sm);font-size:0.7rem;font-family:var(--font-mono);background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border)">DRAW MODE</span>
+        <span id="modeHelp" style="color:var(--text-muted);font-size:0.72rem">Review geometry only. Click "Run Analysis" to check LR rule compliance.</span>
+      </div>
+      <div class="counts" id="ruleCounts">
+        <div class="count-item" id="countOkWrap" style="display:none"><span style="color:var(--success)">✓</span><span class="count-num" id="cntOk" style="color:var(--success)">—</span><span style="color:var(--text-muted);font-size:0.72rem">OK</span></div>
+        <div class="count-item" id="countFailWrap" style="display:none"><span style="color:var(--error)">✗</span><span class="count-num" id="cntFail" style="color:var(--error)">—</span><span style="color:var(--text-muted);font-size:0.72rem">FAIL</span></div>
+        <button id="runAnalysisBtn" class="ea-btn ea-btn-primary" style="padding:5px 10px;font-size:0.72rem;background:var(--accent);display:inline-flex;align-items:center;gap:6px;white-space:nowrap" onclick="toggleAnalysisMode()"><span id="runAnalysisIcon" style="display:inline-flex;align-items:center"></span><span id="runAnalysisLabel">Run Analysis</span></button>
+
+        <!-- OPTIMIZE TOOLBAR — 4 buttons grouped together, visible in Analysis mode -->
+        <div id="optimizeToolbar" style="display:none;align-items:stretch;gap:0;margin-left:6px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);background:var(--bg-tertiary)">
+          <button id="optimizeStiffBtn" class="opt-tool-btn" onclick="optimizeSelectedStiff()" disabled
+                  title="Optimize only the currently selected stiffener. Click a stiffener in the drawing first to enable.">
+            <span class="opt-tool-icon"></span>
+            <span class="opt-tool-label">Optimize Stiff</span>
+          </button>
+          <button id="customProfileBtn" class="opt-tool-btn" onclick="openCustomProfileModal()" disabled
+                  title="Manually enter any L / T / FB / HP profile dimensions (or pick from HP catalog). Applies to the selected stiffener.">
+            <span class="opt-tool-icon"></span>
+            <span class="opt-tool-label">Custom Profile</span>
+          </button>
+          <button id="optimizeProfilesBtn" class="opt-tool-btn" onclick="window.showOptimizeMenu(event, 'profiles')"
+                  title="Optimize stiffeners. Click to choose: Required (Z_req from LR Pt 4 Ch 1) or Buckling (UC ≤ 1.0 from LR Pt 3 Ch 4 Sec 7).">
+            <span class="opt-tool-icon"></span>
+            <span class="opt-tool-label">Optimize Profiles ▾</span>
+          </button>
+          <button id="optimizePlatesBtn" class="opt-tool-btn" onclick="window.showOptimizeMenu(event, 'plates')"
+                  title="Optimize plate / strake thicknesses. Click to choose: Required (LR Pt 4 Ch 1), Buckling (LR Pt 3 Ch 4 Sec 7 UC ≤ 1.0), or Hull Girder (σ_hg ≤ σ_perm).">
+            <span class="opt-tool-icon"></span>
+            <span class="opt-tool-label">Optimize Plates ▾</span>
+          </button>
+          <button id="optimizeSectionModBtn" class="opt-tool-btn" onclick="autoOptimizeSectionModulus()"
+                  title="Last-resort section modulus booster. Raises plate thicknesses until Z_B, Z_D, I_NA meet LR Pt 3 Ch 4 Sec 5.4/5.8 minimums (+5% margin). Respects ratio-based neighbour steps and per-plate caps. Plate-only (stiffeners untouched).">
+            <span class="opt-tool-icon" style="font-family:var(--font-mono);font-weight:700;color:var(--accent)">Σ</span>
+            <span class="opt-tool-label">Section Modulus</span>
+          </button>
+          <button id="assignMaterialGradesBtn" class="opt-tool-btn" onclick="assignMaterialGrades()"
+                  title="Assign LR material grades (A/AH/B/D/DH/E/EH/FH) to every plate based on Setup inputs: ship type, x/L position, design air temperature, steel family. Applies LR Pt 3 Ch 2 Tables 2.2.1 / 2.2.2 / 2.2.3. Run this LAST, after plate thicknesses are final.">
+            <span class="opt-tool-icon" style="font-family:var(--font-mono);font-weight:700;color:#22c55e">Gr</span>
+            <span class="opt-tool-label">Material Grades</span>
+          </button>
+        </div>
+
+        <!-- Undo / Redo (wired to HistoryManager). Disabled until there is
+             history available. Keyboard shortcuts Ctrl+Z / Ctrl+Y also work. -->
+        <button id="undoBtn" class="ea-btn" disabled
+                style="padding:5px 8px;font-size:0.72rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono)"
+                onclick="if(window.HistoryManager) window.HistoryManager.undo()"
+                title="Undo (Ctrl+Z)">↶ Undo</button>
+        <button id="redoBtn" class="ea-btn" disabled
+                style="padding:5px 8px;font-size:0.72rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono)"
+                onclick="if(window.HistoryManager) window.HistoryManager.redo()"
+                title="Redo (Ctrl+Y / Ctrl+Shift+Z)">↷ Redo</button>
+        <button class="ea-btn" style="padding:5px 10px;font-size:0.72rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);display:inline-flex;align-items:center;gap:6px" onclick="Bridge.syncFromScantling(true)" title="Re-sync drawing from form parameters"><span id="reloadIconSlot" style="display:inline-flex;align-items:center"></span><span>Re-sync</span></button>
+        <button id="debugBtn" class="ea-btn" style="padding:5px 10px;font-size:0.72rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px" onclick="debugSectionProps()" title="Show current STRAKES thicknesses + computed section properties (for debugging why values aren't updating)"><span id="debugIconSlot" style="display:inline-flex;align-items:center"></span><span>Debug</span></button>
+        <button id="refreshAnalysisBtn" class="ea-btn" style="padding:5px 10px;font-size:0.72rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px" onclick="forceRefreshAnalysis()" title="Force re-render of hull girder stress + buckling panels + element inspector using CURRENT section properties"><span id="refreshIconSlot" style="display:inline-flex;align-items:center"></span><span>Refresh</span></button>
+      </div>
+    </div>
+
+    <!-- DRAWING PANEL (main-grid) -->
+    <div class="main-grid">
+
+    <!-- LEFT SIDEBAR PANEL — Info / Legend / Props -->
+    <div class="ea-panel" id="leftSidebarPanel" style="position:relative">
+      <button class="panel-toggle-btn left" id="leftPanelToggle"
+              onclick="window.toggleSidePanel('left')"
+              title="Toggle Info panel (kısayol: [)">‹</button>
+      <div class="ea-panel-header">
+        <div class="ea-panel-header-left">
+          <div class="ea-panel-icon cyan"></div>
+          <span class="ea-panel-title">Info</span>
+        </div>
+      </div>
+      <div class="ea-panel-body" style="padding:var(--spacing-sm)">
+        <div class="drawing-sidebar" id="drawingSidebar">
+          <!-- TABS — hidden in v23+: panel header already says "Info", and the
+               PROPS pane is now embedded as a collapsible accordion inside the
+               info pane. Keep the markup so JS that targets .sb-tab still
+               works (analysis mode reveals HG / Buckling tabs). -->
+          <div class="sb-tabs" id="sbTabs" style="display:none">
+            <button class="sb-tab active" data-sbtab="info"     title="Selected element info">Info</button>
+            <button class="sb-tab analysis-tab" data-sbtab="hg"       title="Hull Girder stress" style="display:none">HG</button>
+            <button class="sb-tab analysis-tab" data-sbtab="buckling" title="Buckling checks" style="display:none">Buckling</button>
+            <button class="sb-tab"        data-sbtab="props"    title="Section properties">Props</button>
+          </div>
+          <!-- TAB PANES -->
+          <div class="sb-pane active" data-sbpane="info">
+            <!-- ruleMinInfoPanel moved to floating overlay in #svgContainer.
+                 Legend is now the first item in the Info tab. -->
+            <div class="html-legend" id="htmlLegend"></div>
+            <div class="strake-inspector" id="strakeInspector" style="display:none"></div>
+            <!-- Section Properties accordion — moved out of its own tab in v23+,
+                 since the tab bar is now hidden. The original #sectionProps
+                 (kept inside the props pane below) and this mirror both exist;
+                 renderSectionProperties() updates whichever it finds first. -->
+            <details id="sectionPropsAccordion" class="sb-accordion">
+              <summary><span class="sb-acc-icon">▸</span><span>Section Properties</span></summary>
+              <div class="section-props" id="sectionPropsInline"></div>
+            </details>
+          </div>
+          <div class="sb-pane" data-sbpane="hg">
+            <div id="hullGirderStrengthPanel" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-size:0.7rem"></div>
+            <div id="analysisStatusPanel" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-size:0.7rem;margin-top:8px"></div>
+          </div>
+          <div class="sb-pane" data-sbpane="buckling">
+            <div id="bucklingStatusPanel" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-size:0.7rem"></div>
+          </div>
+          <div class="sb-pane" data-sbpane="props">
+            <div class="section-props" id="sectionProps"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ea-panel" style="position:relative">
+      <div class="ea-panel-header">
+        <div class="ea-panel-header-left">
+          <div class="ea-panel-icon"></div>
+          <span class="ea-panel-title">Midship Section</span>
+        </div>
+        <div class="view-pills" id="viewPills">
+          <!-- DRAW MODE pills (visible in draw mode) -->
+          <button class="view-pill draw-pill active" data-viewmode="general"     title="General view">General</button>
+          <button class="view-pill draw-pill"        data-viewmode="thickness"   title="Plate thicknesses">Thk</button>
+          <button class="view-pill draw-pill"        data-viewmode="profile"     title="Profile sizes">Prof</button>
+          <button class="view-pill draw-pill"        data-viewmode="position"    title="Position codes">Pos</button>
+          <button class="view-pill draw-pill"        data-viewmode="wt"          title="WT / Non-WT">WT</button>
+          <button class="view-pill draw-pill"        data-viewmode="compartment" title="Compartments">Comp</button>
+          <button class="view-pill draw-pill"        data-viewmode="material"   title="Material grades (LR Pt 3 Ch 2) — colour by A/AH/DH/EH etc.">Mat</button>
+          <button class="view-pill draw-pill"        data-viewmode="yield"       title="Yield-strength family (MS / AH32 / AH36 / AH40) — colour each strake/stiff by its yield class. Strakes / stiffs that inherit the global default appear in muted colour.">Yield</button>
+          <button class="view-pill draw-pill"        data-viewmode="transverse"  title="Transverse stiffeners & brackets">Trans</button>
+          <button class="view-pill draw-pill"        data-viewmode="nodes"       title="Nodes & line elements (for naming/reference)">Nodes</button>
+          <button class="view-pill draw-pill"        data-viewmode="measure"     title="Measure — click two points to get the distance">Measure</button>
+          <!-- ANALYSIS MODE pills (visible in analysis mode only) -->
+          <button class="view-pill analysis-pill active" data-viewmode="overall"    title="Overall — any FAIL highlighted" style="display:none">Overall</button>
+          <button class="view-pill analysis-pill"        data-viewmode="local"      title="Local rule check (LR Sec 6/8/9)" style="display:none">Local</button>
+          <button class="view-pill analysis-pill"        data-viewmode="hullgirder" title="Hull girder stress (LR Pt 3 Ch 4 Sec 5.7)" style="display:none">Hull Girder</button>
+          <button class="view-pill analysis-pill"        data-viewmode="buckling"   title="Buckling (LR Pt 3 Ch 4 Sec 7)" style="display:none">Buckling</button>
+        </div>
+        <div class="zoom-bar-inline">
+          <button class="zoom-btn sm" id="mirrorToggle" title="Toggle full-body mirror (show both halves)" style="display:inline-flex;align-items:center;gap:4px"><span class="mirror-icon"></span><span>MIRROR</span></button>
+          <button class="zoom-btn" id="zoomIn" title="Zoom in (mouse wheel up)">+</button>
+          <button class="zoom-btn" id="zoomOut" title="Zoom out (mouse wheel down)">−</button>
+          <button class="zoom-btn sm" id="zoomReset" title="Reset view">RESET</button>
+          <span class="zoom-info" id="zoomInfo">100%</span>
+        </div>
+      </div>
+      <div class="ea-panel-body">
+        <div class="drawing-layout">
+          <div id="svgContainer" style="position:relative">
+            <svg id="midshipSVG" viewBox="-120 0 700 720" preserveAspectRatio="xMidYMid meet" overflow="hidden" style="width:100%;height:100%;overflow:hidden;display:block"></svg>
+            <!-- Floating INFO overlay — mirrors #ruleMinInfoPanel content into the empty drawing space -->
+            <div id="infoOverlay"
+                 style="position:absolute;left:14px;top:14px;width:280px;max-height:calc(100% - 28px);
+                        background:rgba(15,23,42,0.94);border:1px solid var(--border);border-radius:var(--radius-md);
+                        padding:10px 12px;font-size:0.7rem;box-shadow:0 6px 18px rgba(0,0,0,0.45);
+                        z-index:9;overflow-y:auto;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+                        font-family:var(--font-mono)">
+              <div id="infoOverlayHeader"
+                   style="display:flex;justify-content:space-between;align-items:center;
+                          margin:-4px -4px 6px -4px;padding:4px 6px;cursor:move;
+                          border-bottom:1px solid var(--border);user-select:none">
+                <span style="font-family:var(--font-display);font-weight:700;color:var(--accent);
+                             font-size:0.62rem;letter-spacing:0.6px;text-transform:uppercase">● Info</span>
+                <button id="infoOverlayClose"
+                        style="background:transparent;border:none;color:var(--text-muted);
+                               cursor:pointer;font-size:0.9rem;line-height:1;padding:0 4px"
+                        title="Hide overlay">×</button>
+              </div>
+              <div id="infoOverlayBody"
+                   style="font-size:0.7rem">
+                <div style="color:var(--text-muted);font-size:0.62rem">Loading…</div>
+              </div>
+            </div>
+            <!-- Small "show overlay" pill, visible only when overlay is hidden -->
+            <button id="infoOverlayShowBtn"
+                    style="display:none;position:absolute;left:14px;top:14px;z-index:9;
+                           background:rgba(15,23,42,0.94);border:1px solid var(--border);
+                           border-radius:var(--radius-sm);padding:5px 9px;color:var(--accent);
+                           font-family:var(--font-mono);font-size:0.62rem;letter-spacing:0.5px;
+                           text-transform:uppercase;cursor:pointer;font-weight:700"
+                    title="Show INFO overlay">● Info</button>
+            <!-- Color Scale Legend (UC gradient) — visible only in Analysis mode -->
+            <div id="colorScaleLegend" style="display:none;position:absolute;left:12px;top:12px;background:rgba(15,23,42,0.92);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;font-family:var(--font-mono);font-size:0.68rem;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:10;min-width:140px">
+              <div style="font-weight:700;color:var(--text-primary);font-size:0.7rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px">Utilization (UC)</div>
+              <div style="height:14px;border-radius:3px;background:linear-gradient(to right, hsl(130,70%,55%) 0%, hsl(80,70%,55%) 57%, hsl(50,70%,55%) 71%, hsl(10,85%,50%) 86%, hsl(0,85%,50%) 100%);margin-bottom:4px;border:1px solid rgba(255,255,255,0.15)"></div>
+              <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:0.6rem">
+                <span>0.0</span><span>0.8</span><span>1.0</span><span>1.2+</span>
+              </div>
+              <div style="margin-top:6px;padding-top:5px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:3px;font-size:0.6rem">
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;background:hsl(130,70%,55%);border-radius:2px;display:inline-block"></span><span style="color:var(--text-secondary)">Safe (&lt;0.8)</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;background:hsl(80,70%,55%);border-radius:2px;display:inline-block"></span><span style="color:var(--text-secondary)">Marginal (0.8–1.0)</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;background:hsl(10,85%,50%);border-radius:2px;display:inline-block"></span><span style="color:var(--text-secondary)">FAIL (&gt;1.0)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="editor" id="editor">
+      <button class="panel-toggle-btn right" id="rightPanelToggle"
+              onclick="window.toggleSidePanel('right')"
+              title="Toggle Editor panel (kısayol: ])">›</button>
+      <div class="editor-header">
+        <div class="ea-panel-icon warning"></div>
+        <span class="editor-header-title">Profile Editor</span>
+      </div>
+      <div class="editor-body">
+        <button class="ed-recalc" id="recalcBtn" title="Recalculate all profiles from geometry / spacing settings (manual edits will be overwritten)">⟲ Auto-recalculate from parameters</button>
+        <div id="edContent"></div>
+      </div>
+    </div>
+
+    <!-- RESULT PANEL — replaces Profile Editor in Analysis Mode. Shows inspection of selected element. -->
+    <div class="editor" id="resultPanel" style="display:none">
+      <button class="panel-toggle-btn right" id="rightPanelToggleResult"
+              onclick="window.toggleSidePanel('right')"
+              title="Toggle panel (kısayol: ])">›</button>
+      <div class="editor-header">
+        <div class="ea-panel-icon" style="background:#ef4444"></div>
+        <span class="editor-header-title">Analysis Result</span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <span id="resultPanelStatus" style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono)">Select an element to see details</span>
+        </div>
+      </div>
+      <div class="editor-body" id="resultPanelBody" style="padding:12px;overflow-y:auto;flex:1;min-height:0">
+        <div id="resultPanelPlaceholder" style="color:var(--text-muted);text-align:center;padding:30px 20px;font-size:0.8rem">
+          <div style="color:var(--text-primary);font-weight:600;margin-bottom:6px;font-size:0.95rem">Analysis Result Panel</div>
+          <div style="line-height:1.5">Click any plate / strake / stiffener for LR rule details.<br>Click a stiffener to see <span style="color:#c4b5fd;font-weight:600">Local Optimize</span> options.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- BOTTOM STATUS BAR — quick KPIs + page navigation, single row.
+         Combines what was previously two separate strips (status bar + page-actions). -->
+    <div class="status-bar" id="bottomStatusBar">
+      <button class="sb-nav-btn back" onclick="goToPage(1)" title="Back to Setup">← Back</button>
+      <div class="sb-sep"></div>
+      <div class="sb-item">
+        <span class="sb-label">M_max</span>
+        <span class="sb-value" id="sbMmax">—</span>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-item">
+        <span class="sb-label">Mode</span>
+        <span class="sb-value" id="sbMode">Draw</span>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-item">
+        <span class="sb-label">Rule Min</span>
+        <span class="sb-value" id="sbRule">—</span>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-item" id="sbStrakesWrap" style="display:none">
+        <span class="sb-label">Strakes</span>
+        <span class="sb-value" id="sbStrakes">—</span>
+      </div>
+      <div class="sb-item" id="sbStiffsWrap" style="display:none">
+        <span class="sb-label">Stiffs</span>
+        <span class="sb-value" id="sbStiffs">—</span>
+      </div>
+      <button class="sb-expand" onclick="window.toggleSidePanel('left', true)" title="Open Info panel for full breakdown">↗ Details</button>
+      <button class="sb-nav-btn fwd" onclick="goToPage(4)" title="Go to Summary page">View Summary →</button>
+    </div>
+
+    <!-- Rule summary panel — collapsible drawer in Analysis Mode -->
+    <div class="ea-panel rulecheck-drawer collapsed" id="ruleCheckPanel" style="display:none">
+      <div class="ea-panel-header rulecheck-drawer-header" onclick="toggleRuleCheckDrawer()" title="Click to expand / collapse the Rule Check Summary">
+        <div class="ea-panel-icon warning"></div>
+        <span class="ea-panel-title">Rule Check Summary — LR Pt 4 Ch 1</span>
+        <span class="rulecheck-drawer-status" id="ruleCheckDrawerStatus"></span>
+        <span class="rulecheck-drawer-chevron" id="ruleCheckDrawerChevron">▲</span>
+      </div>
+      <div class="ea-panel-body rulecheck-drawer-body">
+        <div class="ea-table-wrap">
+          <table class="ea-table">
+            <thead>
+              <tr><th>Element</th><th>Rule</th><th>Required</th><th>Provided</th><th>Status</th><th>Formula</th></tr>
+            </thead>
+            <tbody id="ruleCheckBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Element Inspection Panel — floating right side, shown when user clicks an element in Analysis Mode -->
+    <div id="elemInspectPanel" style="display:none;position:fixed;right:24px;top:140px;width:400px;max-height:calc(100vh - 180px);background:var(--bg-secondary);border:1.5px solid var(--accent);border-radius:var(--radius-lg);box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(59,130,246,0.3);z-index:500;overflow:hidden;display:none;flex-direction:column">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-tertiary);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:0.85rem" id="eipTitle">Element Inspection</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px" id="eipSubtitle">—</div>
+        </div>
+        <button onclick="closeElemInspect()" title="Close" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center" id="eipCloseBtn"></button>
+      </div>
+      <div style="overflow-y:auto;flex:1;padding:14px 16px" id="eipBody">
+        <div style="color:var(--text-muted);text-align:center;padding:20px">No element selected.</div>
+      </div>
+    </div>
+
+    <!-- Note: Back / View Summary buttons live inside #bottomStatusBar (above)
+         to keep the navigation in a single row instead of an extra strip. -->
+  </main>
+</div>
+
+<!-- PAGE 4: SUMMARY -->
+<div class="ea-page" id="page-4">
+  <main class="ea-main">
+    <div class="ea-results-layout">
+      <div class="ea-summary-grid">
+        <div class="ea-summary-card"><div class="ea-summary-label">Total Elements</div><div class="ea-summary-value" id="sum_total">—</div><div class="ea-summary-sub">items</div></div>
+        <div class="ea-summary-card cyan"><div class="ea-summary-label">Plate Weight</div><div class="ea-summary-value" id="sum_plate">—</div><div class="ea-summary-sub">ton (Var. 1B)</div></div>
+        <div class="ea-summary-card purple"><div class="ea-summary-label">Long Weight</div><div class="ea-summary-value" id="sum_long">—</div><div class="ea-summary-sub">ton (Var. 1B)</div></div>
+        <div class="ea-summary-card"><div class="ea-summary-label">Grand Total</div><div class="ea-summary-value" id="sum_grand">—</div><div class="ea-summary-sub">ton steel</div></div>
+        <div class="ea-summary-card" id="statusCard"><div class="ea-summary-label">Status</div><div class="ea-summary-value" id="sum_status">—</div><div class="ea-summary-sub">compliance</div></div>
+      </div>
+
+      <!-- ═════════════════════════════════════════════════════════════════ -->
+      <!-- DETAILED SUMMARY — Section 1: Hull Girder Section Properties      -->
+      <!-- Required vs Provided for Z_B, Z_D, I_NA + NA position, σ_perm     -->
+      <!-- Populated by renderDetailedSummary() on every recalcAll().        -->
+      <!-- ═════════════════════════════════════════════════════════════════ -->
+      <div class="ea-panel" id="detailedHullGirderPanel">
+        <div class="ea-panel-header">
+          <div class="ea-panel-icon cyan"></div>
+          <span class="ea-panel-title">Hull Girder — Section Properties</span>
+          <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;font-family:var(--font-mono)">LR Pt 3 Ch 4 Sec 5.4 / 5.8</span>
+        </div>
+        <div class="ea-panel-body">
+          <div class="ea-table-wrap">
+            <table class="ea-table" id="detailedHullGirderTable">
+              <thead>
+                <tr>
+                  <th>Quantity</th>
+                  <th>Required</th>
+                  <th>Provided</th>
+                  <th>Ratio</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="detailedHullGirderBody">
+                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:12px">Run analysis on the Geometry page first to populate this table.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═════════════════════════════════════════════════════════════════ -->
+      <!-- DETAILED SUMMARY — Section 2: Plates / Strakes                    -->
+      <!-- Per-strake: t_req, t_provided, Local, Hull Girder σ/σₚ, Buckling  -->
+      <!-- UC. Covers every plate group: Shell (K01..SS12), IB, IS, UD, CT,  -->
+      <!-- Stringer levels, Tween, Side Girders, Duct.                       -->
+      <!-- ═════════════════════════════════════════════════════════════════ -->
+      <div class="ea-panel" id="detailedPlatesPanel">
+        <div class="ea-panel-header">
+          <div class="ea-panel-icon"></div>
+          <span class="ea-panel-title">Plates / Strakes — All Elements</span>
+          <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;font-family:var(--font-mono)">Local rule + HG stress (Sec 5.7) + Buckling (Sec 7)</span>
+        </div>
+        <div class="ea-panel-body">
+          <div class="ea-table-wrap">
+            <table class="ea-table" id="detailedPlatesTable">
+              <thead>
+                <tr>
+                  <th>Element</th>
+                  <th>Rule</th>
+                  <th>t_req (mm)</th>
+                  <th>t_prov (mm)</th>
+                  <th>Local</th>
+                  <th>Hull Girder</th>
+                  <th>Buckling</th>
+                  <th>Overall</th>
+                </tr>
+              </thead>
+              <tbody id="detailedPlatesBody">
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:12px">Run analysis on the Geometry page first to populate this table.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═════════════════════════════════════════════════════════════════ -->
+      <!-- DETAILED SUMMARY — Section 3: Longitudinal Stiffeners             -->
+      <!-- Per-stiff: profile, z, s, Z_req, Z_sec, Local, HG, Buckling.      -->
+      <!-- Covers: bottomShell, innerBottom, sideShell (+ ice intermediates),-->
+      <!-- innerSide, stringerStiff (per level), tweenStiff, upperDeck,      -->
+      <!-- coamingStiff, sideGirder0/1/2.                                    -->
+      <!-- ═════════════════════════════════════════════════════════════════ -->
+      <div class="ea-panel" id="detailedStiffPanel">
+        <div class="ea-panel-header">
+          <div class="ea-panel-icon purple"></div>
+          <span class="ea-panel-title">Longitudinal Stiffeners — All Elements</span>
+          <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;font-family:var(--font-mono)">Z_req (Pt 4 Ch 1) + HG stress + Column/Local buckling (Pt 3 Ch 4 Sec 7)</span>
+        </div>
+        <div class="ea-panel-body">
+          <div class="ea-table-wrap">
+            <table class="ea-table" id="detailedStiffTable">
+              <thead>
+                <tr>
+                  <th>Element</th>
+                  <th>Profile</th>
+                  <th>z (mm)</th>
+                  <th>s (mm)</th>
+                  <th>Z_req (cm³)</th>
+                  <th>Z_sec (cm³)</th>
+                  <th>Local</th>
+                  <th>Hull Girder</th>
+                  <th>Buckling</th>
+                  <th>Overall</th>
+                </tr>
+              </thead>
+              <tbody id="detailedStiffBody">
+                <tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:12px">Run analysis on the Geometry page first to populate this table.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Element Summary (legacy)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-table-wrap">
+            <table class="ea-table">
+              <thead>
+                <tr><th>Element</th><th>Rule</th><th>Required</th><th>Provided</th><th>Weight (ton)</th><th>Status</th></tr>
+              </thead>
+              <tbody id="summaryBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Design Assumptions</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-calc-box">
+            <div class="ea-calc-row"><span class="lbl">Hull girder F_B, F_D (to be verified after midship SM)</span><span class="val" id="sum_FBD">0.85 / 0.85</span></div>
+            <div class="ea-calc-row"><span class="lbl">Material (k = k_L)</span><span class="val cyan" id="sum_mat">AH36 (0.72)</span></div>
+            <div class="ea-calc-row"><span class="lbl">Corrosion Addition</span><span class="val">None (LR as-built, Pt 3 Ch 2)</span></div>
+            <div class="ea-calc-row"><span class="lbl">L_1 = min(L, 190) (cap, both variants)</span><span class="val">190 m</span></div>
+            <div class="ea-calc-row"><span class="lbl">C_w (wave head coefficient)</span><span class="val" id="sum_Cw">6.39 m</span></div>
+            <div class="ea-calc-row"><span class="lbl">F_λ (wave head multiplier, L &gt; 200 m)</span><span class="val" id="sum_Flambda">1.0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ea-page-actions">
+      <button class="ea-btn ea-btn-secondary" onclick="goToPage(3)">← Back</button>
+      <button class="ea-btn ea-btn-primary" onclick="exportPDF()">Export PDF</button>
+    </div>
+  </main>
+</div>
+
+<footer class="ea-footer">
+  <div class="ea-footer-inner">
+    <div>Created by <strong>Ebubekir Akarsu</strong> — Structural Engineer</div>
+    <div>© 2025-2026</div>
+  </div>
+</footer>
+
+<!-- PROFILE SUGGESTION MODAL -->
+<div id="profileSuggestModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:720px;width:92%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
+    <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:var(--fs-md)">🔍 Best-Fit Profile Finder</div>
+        <div style="font-size:var(--fs-xs);color:var(--text-muted)" id="psmContext">—</div>
+      </div>
+      <button onclick="closeProfileSuggest()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:var(--radius-sm);font-family:var(--font-mono);cursor:pointer">✕ Close</button>
+    </div>
+    <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;gap:var(--spacing-md);flex-wrap:wrap;align-items:center;background:var(--bg-tertiary)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:var(--fs-xs)">
+        <label style="color:var(--text-secondary)">Z_req:</label>
+        <input type="number" step="0.5" id="psmZreq" style="width:90px;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:var(--fs-xs)">
+        <span style="color:var(--text-muted)">cm³</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:var(--fs-xs)">
+        <label style="color:var(--text-secondary)">Plate s:</label>
+        <input type="number" id="psmPlateS" style="width:80px;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:var(--fs-xs)">
+        <span style="color:var(--text-muted)">mm</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:var(--fs-xs)">
+        <label style="color:var(--text-secondary)">Plate t:</label>
+        <input type="number" step="0.5" id="psmPlateT" style="width:70px;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:var(--fs-xs)">
+        <span style="color:var(--text-muted)">mm</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:var(--fs-xs)">
+        <label style="color:var(--text-secondary)">Families:</label>
+        <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" id="psmFamL" checked>L</label>
+        <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" id="psmFamHP" checked>HP</label>
+        <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" id="psmFamFB">FB</label>
+        <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" id="psmFamT">T</label>
+      </div>
+      <button onclick="runProfileSuggest()" style="margin-left:auto;padding:5px 14px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:var(--fs-xs);cursor:pointer;font-weight:600">🔍 Search</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:var(--spacing-sm) var(--spacing-lg)">
+      <table class="ea-table" id="psmResultsTable" style="width:100%">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Profile</th>
+            <th>Type</th>
+            <th>Z (cm³)</th>
+            <th>I (cm⁴)</th>
+            <th>A (cm²)</th>
+            <th>Weight (kg/m)</th>
+            <th>Apply</th>
+          </tr>
+        </thead>
+        <tbody id="psmResultsBody"></tbody>
+      </table>
+      <div id="psmEmpty" style="padding:var(--spacing-lg);text-align:center;color:var(--text-muted);font-family:var(--font-mono);font-size:var(--fs-xs)">
+        Configure Z_req, plate dimensions and families above, then click Search.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Stiffener Modal — manual insertion with coord + profile + spacing helper -->
+<div id="addStiffModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:440px;width:92%;overflow:hidden;display:flex;flex-direction:column">
+    <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:var(--fs-md)" id="asmTitle">Add Stiffener</div>
+        <div style="font-size:var(--fs-xs);color:var(--text-muted)" id="asmSubtitle">—</div>
+      </div>
+      <button onclick="closeAddStiff()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:var(--radius-sm);font-family:var(--font-mono);cursor:pointer">✕</button>
+    </div>
+    <div style="padding:var(--spacing-md) var(--spacing-lg);display:flex;flex-direction:column;gap:10px">
+      <!-- Position method -->
+      <div style="display:flex;gap:6px">
+        <button id="asmModeCoord" class="ea-btn" style="flex:1;padding:6px 10px;font-size:0.72rem" title="Enter the exact Y or Z coordinate in mm">📐 By Coordinate</button>
+        <button id="asmModeSpacing" class="ea-btn" style="flex:1;padding:6px 10px;font-size:0.72rem;background:var(--bg-tertiary)" title="Offset from the previous stiffener by a spacing in mm">↔ By Spacing</button>
+      </div>
+
+      <!-- Coordinate input (direct) -->
+      <div id="asmCoordBlock">
+        <label style="display:block;font-size:0.68rem;color:var(--text-secondary);margin-bottom:4px">
+          <span id="asmCoordLabel">Coordinate</span> (mm from baseline)
+        </label>
+        <input type="number" id="asmCoordInput" step="10"
+          style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.82rem">
+        <div id="asmCoordHint" style="font-size:0.62rem;color:var(--text-muted);margin-top:3px">—</div>
+      </div>
+
+      <!-- Spacing input (offset mode) -->
+      <div id="asmSpacingBlock" style="display:none">
+        <label style="display:block;font-size:0.68rem;color:var(--text-secondary);margin-bottom:4px">Spacing from last stiffener (mm)</label>
+        <input type="number" id="asmSpacingInput" step="5" value="700"
+          style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.82rem">
+        <div id="asmSpacingHint" style="font-size:0.62rem;color:var(--text-muted);margin-top:3px">—</div>
+      </div>
+
+      <!-- Profile selection (optional override; defaults to group's profile) -->
+      <div>
+        <label style="display:block;font-size:0.68rem;color:var(--text-secondary);margin-bottom:4px">
+          Profile <span style="color:var(--text-muted);font-weight:400">(optional — leave blank to use group default)</span>
+        </label>
+        <select id="asmProfileSelect"
+          style="width:100%;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.76rem">
+          <option value="">(group default)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+        <button onclick="closeAddStiff()" class="ea-btn ea-btn-secondary" style="padding:6px 14px;font-size:0.74rem">Cancel</button>
+        <button onclick="confirmAddStiff()" class="ea-btn ea-btn-primary" style="padding:6px 14px;font-size:0.74rem">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Context Menu (right-click on midship drawing) -->
+<div id="drawContextMenu" style="display:none;position:fixed;z-index:10000;min-width:200px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 10px 32px rgba(0,0,0,0.6);overflow:hidden;font-family:var(--font-mono);font-size:0.74rem">
+  <div id="drawContextMenuHeader" style="padding:6px 12px;background:var(--bg-tertiary);border-bottom:1px solid var(--border);color:var(--text-muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px">—</div>
+  <div id="drawContextMenuBody"></div>
+</div>
+
+<!-- Equal Spacing Modal — distribute stiffeners evenly in a zone -->
+<div id="eqSpacingModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:440px;width:92%;overflow:hidden;display:flex;flex-direction:column">
+    <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:var(--fs-md)" id="esmTitle">⚖ Equal Spacing</div>
+        <div style="font-size:var(--fs-xs);color:var(--text-muted)" id="esmSubtitle">—</div>
+      </div>
+      <button onclick="closeEqualSpacing()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:var(--radius-sm);font-family:var(--font-mono);cursor:pointer">✕</button>
+    </div>
+    <div style="padding:var(--spacing-md) var(--spacing-lg);display:flex;flex-direction:column;gap:10px">
+
+      <!-- Auto-detected zone info -->
+      <div id="esmZoneInfo" style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:5px;padding:7px 10px;font-size:0.7rem;color:var(--text-secondary);line-height:1.5">—</div>
+
+      <!-- Count input -->
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--text-secondary);margin-bottom:5px;font-weight:600">
+          Number of stiffeners
+        </label>
+        <input type="number" id="esmCount" step="1" min="1" value="10"
+          style="width:100%;padding:9px 11px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.95rem;font-weight:600">
+      </div>
+
+      <!-- Include endpoints toggle -->
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.68rem">
+        <input type="checkbox" id="esmIncludeEndpoints" checked>
+        <label for="esmIncludeEndpoints" style="color:var(--text-secondary);cursor:pointer">Include endpoints (place at zone start and end too)</label>
+      </div>
+
+      <!-- Profile (optional) -->
+      <div>
+        <label style="display:block;font-size:0.68rem;color:var(--text-secondary);margin-bottom:4px">
+          Profile <span style="color:var(--text-muted);font-weight:400">(optional — blank = group default)</span>
+        </label>
+        <select id="esmProfileSelect"
+          style="width:100%;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.74rem">
+          <option value="">(group default)</option>
+        </select>
+      </div>
+
+      <!-- Live preview -->
+      <div id="esmPreview" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-family:var(--font-mono);font-size:0.66rem;color:var(--text-secondary);min-height:24px;max-height:100px;overflow-y:auto">—</div>
+
+      <div style="font-size:0.6rem;color:#fbbf24;padding:0 2px">⚠ Existing stiffeners in this group will be replaced.</div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button onclick="closeEqualSpacing()" class="ea-btn ea-btn-secondary" style="padding:6px 14px;font-size:0.74rem">Cancel</button>
+        <button onclick="confirmEqualSpacing()" class="ea-btn ea-btn-primary" style="padding:6px 14px;font-size:0.74rem;background:#a855f7">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- Custom Profile Modal — manual L/T/FB/HP dimension entry                  -->
+<!-- Opened from top-bar "Custom Profile" button (requires a stiff selected). -->
+<!-- Lets user pick a profile type and enter dimensions; HP has EN 10067     -->
+<!-- catalog fallback. Computed Z_cm3 with attached plate is shown live.     -->
+<!-- ====================================================================== -->
+<div id="customProfileModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:640px;width:94%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg-tertiary)">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:var(--fs-md)">Custom Profile</div>
+        <div id="cpmSubtitle" style="font-size:var(--fs-xs);color:var(--text-muted)">Select profile type and enter dimensions manually</div>
+      </div>
+      <button onclick="closeCustomProfileModal()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:var(--radius-sm);font-family:var(--font-mono);cursor:pointer">✕</button>
+    </div>
+
+    <div style="padding:var(--spacing-md) var(--spacing-lg);display:flex;flex-direction:column;gap:12px">
+
+      <!-- TYPE TABS (L | T | FB | HP side by side) -->
+      <div style="display:flex;gap:4px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px">
+        <button class="cpm-tab active" data-type="L"  onclick="cpmSelectTab('L')"  style="flex:1;padding:8px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--text-primary);font-weight:700;cursor:pointer;font-family:var(--font-mono)">L</button>
+        <button class="cpm-tab"         data-type="T"  onclick="cpmSelectTab('T')"  style="flex:1;padding:8px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-weight:700;cursor:pointer;font-family:var(--font-mono)">T</button>
+        <button class="cpm-tab"         data-type="FB" onclick="cpmSelectTab('FB')" style="flex:1;padding:8px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-weight:700;cursor:pointer;font-family:var(--font-mono)">FB</button>
+        <button class="cpm-tab"         data-type="HP" onclick="cpmSelectTab('HP')" style="flex:1;padding:8px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-weight:700;cursor:pointer;font-family:var(--font-mono)">HP</button>
+      </div>
+
+      <!-- L SECTION (default active) -->
+      <div id="cpm-L-section" class="cpm-section" style="display:block">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:0.72rem;color:var(--text-secondary)">
+          <input type="checkbox" id="cpm-L-equal" checked onchange="cpmToggleLEqual()">
+          <label for="cpm-L-equal" style="cursor:pointer">Equal legs (a = b)</label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">a (Web / Leg 1)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-L-a" value="150" min="10" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">b (Flange / Leg 2)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-L-b" value="150" min="10" disabled oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600;opacity:0.55">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">t (Thickness)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-L-t" value="10" min="1" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- T SECTION -->
+      <div id="cpm-T-section" class="cpm-section" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">h (Web Height)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-T-h" value="150" min="10" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">tw (Web Thickness)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-T-tw" value="10" min="1" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">bf (Flange Width)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-T-bf" value="100" min="10" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">tf (Flange Thickness)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-T-tf" value="12" min="1" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FB SECTION -->
+      <div id="cpm-FB-section" class="cpm-section" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">h (Height)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-FB-h" value="150" min="10" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">t (Thickness)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-FB-t" value="12" min="1" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HP SECTION (catalog + manual) -->
+      <div id="cpm-HP-section" class="cpm-section" style="display:none">
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">EN 10067 Catalog</label>
+          <select id="cpm-HP-catalog" onchange="cpmSelectHPFromCatalog()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.78rem">
+            <option value="">— choose from catalog —</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">b (Web Height)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-HP-b" value="200" min="10" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">t (Web Thick.)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-HP-t" value="10" min="1" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">c (Bulb)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-HP-c" value="28" min="5" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.68rem;color:var(--text-muted);margin-bottom:4px">r (Fillet Rad.)</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="cpm-HP-r" value="8" min="1" oninput="cpmUpdate()" style="width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.88rem;font-weight:600">
+              <span style="color:var(--text-muted);font-size:0.7rem">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE PREVIEW (computed with attached plate) -->
+      <div style="margin-top:6px;padding:12px 14px;background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02));border:1px solid var(--accent);border-radius:var(--radius-sm)">
+        <div style="font-size:0.64rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Computed (with attached plate)</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-family:var(--font-mono)">
+          <div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">Name</div>
+            <div id="cpmOutName" style="font-size:0.8rem;color:var(--text-primary);font-weight:700">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">Z (cm³)</div>
+            <div id="cpmOutZ" style="font-size:0.98rem;color:var(--accent);font-weight:700">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">A (cm²)</div>
+            <div id="cpmOutA" style="font-size:0.82rem;color:var(--text-primary);font-weight:700">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">Weight (kg/m)</div>
+            <div id="cpmOutW" style="font-size:0.82rem;color:var(--text-primary);font-weight:700">—</div>
+          </div>
+        </div>
+        <div id="cpmOutInfo" style="font-size:0.64rem;color:var(--text-muted);margin-top:8px">—</div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button onclick="closeCustomProfileModal()" class="ea-btn" style="padding:7px 16px;font-size:0.74rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary)">Cancel</button>
+        <button onclick="applyCustomProfile()" class="ea-btn ea-btn-primary" style="padding:7px 16px;font-size:0.74rem;background:var(--accent)">Apply to Stiff</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modules load in order; each one is a complete top-level script, so the
+     shared global scope behaves exactly as it did in the single-file build. -->
+
+<!-- ===== NEW PROJECT WIZARD ===== -->
+<div id="newProjectModal" class="np-backdrop">
+  <div class="np-dialog" role="dialog" aria-modal="true" aria-labelledby="npTitle">
+
+    <div class="np-head">
+      <div>
+        <h2 id="npTitle">New Project</h2>
+        <p>Principal particulars in, a clean midship section out. Everything stays editable afterwards.</p>
+      </div>
+      <button class="ea-btn ea-btn-sm ea-btn-secondary" onclick="Project.closeWizard()">Close</button>
+    </div>
+
+    <div class="np-body">
+
+      <div id="np_errors" class="np-note error" style="display:none"></div>
+
+      <div class="np-group">
+        <h3>Identification</h3>
+        <div class="np-row c3">
+          <div class="ea-field"><label class="ea-label" for="np_vesselName">Vessel Name</label><input type="text" class="ea-input" id="np_vesselName" placeholder="e.g. MV Example"></div>
+          <div class="ea-field"><label class="ea-label" for="np_shipType">Ship Type</label>
+            <select class="ea-select" id="np_shipType">
+              <option value="general_cargo" selected>General Cargo</option>
+              <option value="bulk_carrier">Bulk Carrier</option>
+              <option value="container">Container</option>
+              <option value="tanker">Tanker</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" for="np_classSociety">Class</label>
+            <select class="ea-select" id="np_classSociety">
+              <option value="Lloyd&#39;s Register" selected>Lloyd&#39;s Register</option>
+              <option value="Bureau Veritas">Bureau Veritas</option>
+              <option value="DNV">DNV</option>
+              <option value="ABS">ABS</option>
+            </select>
+          </div>
+        </div>
+        <div class="np-row c2">
+          <div class="ea-field"><label class="ea-label" for="np_preparedBy">Prepared By</label><input type="text" class="ea-input" id="np_preparedBy"></div>
+          <div class="ea-field"><label class="ea-label" for="np_designAirTemp" title="Design air temperature for LR Pt 3 Ch 2 material grade assignment">Design Air Temp (&deg;C)</label><input type="number" step="1" class="ea-input" id="np_designAirTemp" value="-10"></div>
+        </div>
+      </div>
+
+      <div class="np-group">
+        <h3>Principal Particulars</h3>
+        <div class="np-row c5">
+          <div class="ea-field"><label class="ea-label" for="np_L" title="LR rule length">L (m)</label><input type="number" step="0.01" class="ea-input" id="np_L"></div>
+          <div class="ea-field"><label class="ea-label" for="np_B">B (m)</label><input type="number" step="0.01" class="ea-input" id="np_B"></div>
+          <div class="ea-field"><label class="ea-label" for="np_D">D (m)</label><input type="number" step="0.01" class="ea-input" id="np_D"></div>
+          <div class="ea-field"><label class="ea-label" for="np_T">T (m)</label><input type="number" step="0.01" class="ea-input" id="np_T"></div>
+          <div class="ea-field"><label class="ea-label" for="np_Cb" title="Block coefficient">C_b</label><input type="number" step="0.001" class="ea-input" id="np_Cb"></div>
+        </div>
+      </div>
+
+      <div class="np-group">
+        <h3>Section Geometry (mm)</h3>
+        <p class="np-hint">Prefilled from B and D. Edit any of them &mdash; once you type in a box it stops auto-updating.</p>
+        <div class="np-row c5">
+          <div class="ea-field"><label class="ea-label" for="np_Bhalf" title="Half beam = B/2">Half Beam</label><input type="number" step="10" class="ea-input" id="np_Bhalf"></div>
+          <div class="ea-field"><label class="ea-label" for="np_IB">Inner Bottom Z</label><input type="number" step="10" class="ea-input" id="np_IB"></div>
+          <div class="ea-field"><label class="ea-label" for="np_TT">Tween Deck Z</label><input type="number" step="10" class="ea-input" id="np_TT"></div>
+          <div class="ea-field"><label class="ea-label" for="np_UD">Upper Deck Z</label><input type="number" step="10" class="ea-input" id="np_UD"></div>
+          <div class="ea-field"><label class="ea-label" for="np_HC">Coaming Top Z</label><input type="number" step="10" class="ea-input" id="np_HC"></div>
+        </div>
+        <div class="np-row c5">
+          <div class="ea-field"><label class="ea-label" for="np_R_B">Bilge Radius</label><input type="number" step="10" class="ea-input" id="np_R_B"></div>
+          <div class="ea-field"><label class="ea-label" for="np_keelWidth">Keel Width</label><input type="number" step="10" class="ea-input" id="np_keelWidth"></div>
+          <div class="ea-field"><label class="ea-label" for="np_ductHalf">Duct Keel Half</label><input type="number" step="10" class="ea-input" id="np_ductHalf"></div>
+          <div class="ea-field"><label class="ea-label" for="np_IS" title="Inner side from centreline">Inner Side Y</label><input type="number" step="10" class="ea-input" id="np_IS"></div>
+          <div class="ea-field"><label class="ea-label" for="np_sgCount" title="Side girders spread between duct keel and inner side">Side Girders</label><input type="number" step="1" min="0" max="8" class="ea-input" id="np_sgCount"></div>
+        </div>
+      </div>
+
+      <div class="np-group">
+        <h3>Stiffener Spacing (mm)</h3>
+        <div class="np-row c4">
+          <div class="ea-field"><label class="ea-label" for="np_dbSpacing">Double Bottom</label><input type="number" step="5" class="ea-input" id="np_dbSpacing"></div>
+          <div class="ea-field"><label class="ea-label" for="np_sideSpacing">Side Shell</label><input type="number" step="5" class="ea-input" id="np_sideSpacing"></div>
+          <div class="ea-field"><label class="ea-label" for="np_deckSpacing">Decks</label><input type="number" step="5" class="ea-input" id="np_deckSpacing"></div>
+          <div class="ea-field"><label class="ea-label" for="np_transFrameSpacing">Transverse Frame</label><input type="number" step="5" class="ea-input" id="np_transFrameSpacing"></div>
+        </div>
+        <div class="np-row c2" style="margin-top:var(--spacing-sm)">
+          <div class="ea-field"><label class="ea-label" for="np_le" title="Effective span of longitudinals between web frames">l_e (m) &mdash; web frame</label><input type="number" step="0.01" class="ea-input" id="np_le" placeholder="blank"></div>
+          <p class="np-hint" style="margin:0;align-self:end;padding-bottom:10px">Span of the longitudinals between web frames. It depends on how often web frames are fitted, so it is not derived from the frame spacing. Left blank, the optimizers quietly assume 1.5 m.</p>
+        </div>
+      </div>
+
+      <div class="np-group">
+        <h3>Still-Water Bending Moment (kN&middot;m)</h3>
+        <div class="np-note warn">M<sub>s</sub> comes from the loading manual &mdash; it cannot be derived from the principal particulars, so nothing is assumed here. The wave moment M<sub>w</sub> <em>is</em> computed from the rules. Leave these blank and fill them in on the Setup page if you do not have them yet.</div>
+        <div class="np-row c4" style="margin-top:var(--spacing-sm)">
+          <div class="ea-field"><label class="ea-label" for="np_MsHog">Hogging (+)</label><input type="number" step="1000" class="ea-input" id="np_MsHog" placeholder="blank"></div>
+          <div class="ea-field"><label class="ea-label" for="np_MsSag">Sagging (&minus;)</label><input type="number" step="1000" class="ea-input" id="np_MsSag" placeholder="blank"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="np-foot">
+      <button class="ea-btn ea-btn-secondary" onclick="Project.closeWizard()">Cancel</button>
+      <button class="ea-btn ea-btn-primary" onclick="Project.createProject()">Create Project &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<div id="np_pendingBanner" class="np-banner"></div>
+
+<script src="app/10-draw.js"></script>
+<script src="app/20-profile.js"></script>
+<script src="app/21-buckling.js"></script>
+<script src="app/22-variants-materials.js"></script>
+<script src="app/23-long-strength.js"></script>
+<script src="app/30-optimize-profiles.js"></script>
+<script src="app/31-optimize-plates.js"></script>
+<script src="app/32-optimize-section-modulus.js"></script>
+<script src="app/40-modals.js"></script>
+<script src="app/50-analysis.js"></script>
+<script src="app/60-scantling-rules.js"></script>
+<script src="app/70-history.js"></script>
+<script src="app/71-recalc.js"></script>
+<script src="app/72-materials-grades.js"></script>
+<script src="app/80-export.js"></script>
+<script src="app/90-custom-profile.js"></script>
+<script src="app/91-profile-picker.js"></script>
+<script src="app/95-project.js"></script>
+<script src="app/99-info-overlay.js"></script>
+    <script type="module">
+
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    const SUPABASE_URL = 'https://mmjdgxvxtjippjktajdd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tamRneHZ4dGppcHBqa3RhamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxODczMzQsImV4cCI6MjEwNDc2MzMzNH0.yJwV6pjt5fBCR_bweiBXCi3etL0z4bQ0zXsz_Tmzen4';
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    (async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const userBadge = document.getElementById('userBadge');
+            const loginBadge = document.getElementById('loginBadge');
+            
+            if (session && session.user) {
+                const user = session.user;
+                const meta = user.user_metadata || {};
+                const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+                const firstName = displayName.split(' ')[0];
+                
+                const avatarEl = document.getElementById('userBadgeAvatar');
+                if (meta.avatar_url || meta.picture) {
+                    avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="">`;
+                } else {
+                    avatarEl.textContent = (firstName[0] || 'U').toUpperCase();
+                }
+                
+                document.getElementById('userBadgeName').textContent = firstName;
+                userBadge.style.display = 'inline-flex';
+                loginBadge.style.display = 'none';
+            } else {
+                userBadge.style.display = 'none';
+                loginBadge.style.display = 'inline-flex';
+            }
+        } catch (err) {
+            console.warn('Auth check failed:', err);
+            document.getElementById('loginBadge').style.display = 'inline-flex';
+        }
+    })();
+
+    </script>
+</body>
+</html>
