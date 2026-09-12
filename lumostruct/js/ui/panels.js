@@ -2166,13 +2166,9 @@
             fit3DView();
         }
 
-        // Empty canvas is the first thing a new user sees. Give them somewhere to start
-        // instead of a blank grid.
-        function updateEmptyState() {
-            const el = document.getElementById('emptyState');
-            if (!el) return;
-            el.style.display = Object.keys(model.nodes).length === 0 ? 'flex' : 'none';
-        }
+        // Bos durum katmani kaldirildi: kanvasin ortasinda duruyor ve cizim
+        // tiklamalarini yiyordu. Fonksiyon cagiranlar icin duruyor, is yapmiyor.
+        function updateEmptyState() { /* katman yok */ }
 
         // A small deck grillage: 5 m x 3 m on a 1 m grid, simply supported along the short
         // edges, 8 kN/m running along the longitudinals.

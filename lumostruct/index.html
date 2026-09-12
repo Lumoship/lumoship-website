@@ -611,11 +611,16 @@
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid #1e2536;
             z-index: 10000;
-            padding: 0.875rem 1.5rem;
+            /* Yan dolgu uygulamanin kendi dolgusu ile ayni (16px), yoksa logo
+               uygulamanin markasindan 8px iceride kaliyor. */
+            padding: 0.875rem 1rem;
         }
         .lumoship-nav-inner {
-            max-width: 1400px;
-            margin: 0 auto;
+            /* Uygulama tam ekran, cubuk da oyle olmali. 1400px ortali birakilinca
+               logo 1920px ekranda x=260'ta, uygulamanin markasi ise x=16'da
+               basliyordu - iki yanda 244px kayma. */
+            max-width: none;
+            margin: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -2171,21 +2176,10 @@
             <div class="canvas-container">
                 <canvas id="mainCanvas"></canvas>
 
-                <!-- Empty state: shown only while the model has no nodes -->
-                <div id="emptyState" style="display:none; position:absolute; inset:0; z-index:60;
-                     align-items:center; justify-content:center; pointer-events:none;">
-                    <div style="pointer-events:auto; text-align:center; max-width:360px; padding:24px;
-                         background:var(--bg-panel, #111827); border:1px solid var(--border, #334155);
-                         border-radius:var(--r-ovl); box-shadow:0 8px 30px rgba(0,0,0,.35);">
-                        <div style="font-size:var(--fs-md); font-weight:600; margin-bottom:8px;">Nothing modelled yet</div>
-                        <div style="font-size:var(--fs-sm); color:var(--text-2); line-height:1.5; margin-bottom:16px;">
-                            Draw beams with <strong>L</strong>, import a DXF, or start from a worked example.
-                        </div>
-                        <button class="btn-primary" onclick="loadExampleModel()" style="padding:8px 16px; font-size:var(--fs-sm);">
-                            Load example grillage
-                        </button>
-                    </div>
-                </div>
+                <!-- Bos durum katmani kaldirildi. Kanvasin tam ortasinda duruyordu ve
+                     ic karti pointer-events:auto idi, yani cizim tiklamalarini yiyordu:
+                     modele baslamak icin once ondan kurtulmak gerekiyordu. "Load example
+                     grillage" tek erisim noktasiydi, o yuzden Model sekmesine tasindi. -->
 
                 <div id="threeContainer" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%;"></div>
                 

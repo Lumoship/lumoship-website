@@ -19,11 +19,16 @@
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid #1e2536;
             z-index: 10000;
-            padding: 0.875rem 1.5rem;
+            /* Yan dolgu uygulamanin kendi dolgusu ile ayni (16px), yoksa logo
+               uygulamanin markasindan 8px iceride kaliyor. */
+            padding: 0.875rem 1rem;
         }
         .lumoship-nav-inner {
-            max-width: 1400px;
-            margin: 0 auto;
+            /* Uygulama tam ekran, cubuk da oyle olmali. 1400px ortali birakilinca
+               logo 1920px ekranda x=260'ta, uygulamanin markasi ise x=16'da
+               basliyordu - iki yanda 244px kayma. */
+            max-width: none;
+            margin: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
