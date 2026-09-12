@@ -1039,11 +1039,13 @@
                         }
                     }
                     
-                    let tipText = `<span style="color:var(--text-2);font-size:var(--fs-xs)">X: ${xMM}  Y: ${yMM}</span><br>`;
-                    tipText += `<span class="distance">${dist.toFixed(0)} mm ${dirText}</span>`;
-                    if (cmdState.orthoMode) tipText += ` <span style="color:var(--success);font-size:var(--fs-xs)">[ORTHO]</span>`;
-                    if (snapPoint && snapPoint.type) tipText += `<br><span style="color:var(--accent-info);font-size:var(--fs-xs)">[${snapPoint.type}]</span>`;
-                    tipText += `<br><span style="color:var(--text-3);font-size:var(--fs-xs)">Type distance + Enter</span>`;
+                    // Cizerken asil bakilan sey uzunluk; once o gelir ve
+                    // buyuk yazilir. X/Y zaten durum seridinde, "Type distance
+                    // + Enter" da komut cubugunda yaziyor - imlecin yaninda
+                    // dort satir okumak zorunda kalmayin diye buradan cikti.
+                    let tipText = `<span class="distance">${dist.toFixed(0)} mm ${dirText}</span>`;
+                    if (cmdState.orthoMode) tipText += ` <span style="color:var(--success);font-size:var(--fs-xs)">ORTHO</span>`;
+                    if (snapPoint && snapPoint.type) tipText += ` <span style="color:var(--accent-info);font-size:var(--fs-xs)">${snapPoint.type}</span>`;
                     showTooltipAt(e.clientX, e.clientY, tipText);
                     
                     updateLinePreview3D(modelPos);

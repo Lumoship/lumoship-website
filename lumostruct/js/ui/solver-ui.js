@@ -59,9 +59,15 @@
                     
                     switchMainTab('results');
 
-                    // Fit AFTER the results panel opens: it takes height off the canvas, so
-                    // fitting first would frame the model for a viewport that no longer exists.
-                    if (typeof fitView === 'function') fitView();
+                    // Kamera OLDUGU GIBI kalir. Burada fitView() cagriliyordu:
+                    // sonuc paneli acilinca tuval alcaliyor, model panelin
+                    // arkasinda kalmasin diye. Ama bu, kullanicinin kendi
+                    // kurdugu gorunusu her Solve'da sifirliyor; yakinlastirip
+                    // bir detaya bakarken cozdurunce goruntu ziplayip
+                    // uzaklasiyordu. Tuval kuculuyorsa yalnizca goruntu orani
+                    // ve render boyutu guncellenir - cerceve korunur.
+                    // Modeli yeniden cerceveletmek isteyen Fit dugmesine basar.
+                    if (typeof syncPanelLayout === 'function') syncPanelLayout();
                 } catch (e) {
                     // Enhanced error messages
                     const errorMsg = parsesolverError(e);

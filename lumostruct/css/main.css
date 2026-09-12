@@ -4829,3 +4829,144 @@
         .result-box .result-value {
             color: var(--text);
         }
+
+        /* ---- Arac cubugu acilir menuleri ----
+           .canvas-toolbar dar ekranda yatay kaydirilabilmek icin
+           overflow-x:auto tasiyor; bu da overflow-y'yi hidden yapiyor ve
+           menuler cubugun alt kenarinda kesiliyordu. Snap menusunun 214px'lik
+           yuksekliginin 208px'i gorunmuyordu - yani menu aciliyor ama
+           goruntulenmiyordu. Sabit konum onu kirpma baglamindan cikarir;
+           koordinati acilisinda JS verir (js/ui/layout.js).
+           margin YOK: dugme ile menu arasinda bosluk kalirsa imlec o bosluga
+           girince hover kesiliyor ve menu kapaniyor. */
+        .toolbar-dropdown-menu {
+            position: fixed;
+            top: auto;
+            left: auto;
+            margin-top: 0;
+        }
+
+        /* ---- Komut cubugu: uc bolum ----
+           Girdi 120px'lik bir kutuydu ve cubugun sagina sikismisti; yazmak
+           icin once onu bulmak gerekiyordu. Simdi orta bolum TUVALIN
+           genisliginde ve girdi onu bastan sona dolduruyor, yani yazdiginiz
+           yer cizim alaninin tam alti. Sol ve sag bolumlerin genisligini
+           js/ui/layout.js panellerden okuyup --cmd-sol / --cmd-sag olarak
+           yaziyor, panel yeniden boyutlaninca birlikte kayiyor. */
+        .command-bar {
+            height: 32px;
+            padding: 0;
+            gap: 0;
+        }
+
+        .command-bar-left {
+            flex: 0 0 auto;
+            width: var(--cmd-sol, 326px);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 0 var(--space-3);
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .command-bar-left .command-bar-message {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .command-bar-center {
+            position: relative;
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .command-bar-right {
+            flex: 0 0 auto;
+            width: var(--cmd-sag, 286px);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--space-2);
+            padding: 0 var(--space-3);
+        }
+
+        /* Girdi orta bolumu doldurur. Sag tarafta ipuclarina yer birakilir. */
+        .command-bar-center .command-bar-input {
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+            height: 24px;
+            font-size: var(--fs-sm);
+            padding: 2px var(--space-3);
+            padding-right: 200px;
+        }
+
+        /* Ipuclari girdinin sag ucunda, kutunun icinde durur. */
+        .command-bar-center .command-bar-hints {
+            position: absolute;
+            right: var(--space-3);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* Tuval ve arac cubugu kaydirma cubuklari da temali olsun. Deformed
+           acilinca cubuk tasiyordu ve altinda tarayicinin klasik beyaz seridi
+           (ok dugmeleriyle birlikte) beliriyordu. */
+        .canvas-toolbar::-webkit-scrollbar,
+        .canvas-area *::-webkit-scrollbar,
+        .command-bar *::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .canvas-toolbar::-webkit-scrollbar-track,
+        .canvas-area *::-webkit-scrollbar-track,
+        .command-bar *::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+
+        .canvas-toolbar::-webkit-scrollbar-thumb,
+        .canvas-area *::-webkit-scrollbar-thumb,
+        .command-bar *::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: var(--r-ctl);
+        }
+
+        /* Ok dugmeleri: bunlar stillenmeyince serit klasik beyaz gorunuyordu. */
+        .panel *::-webkit-scrollbar-button,
+        .entity-info-panel *::-webkit-scrollbar-button,
+        .modal *::-webkit-scrollbar-button,
+        .canvas-toolbar::-webkit-scrollbar-button,
+        .canvas-area *::-webkit-scrollbar-button,
+        .command-bar *::-webkit-scrollbar-button {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+
+        /* ---- Sonuc paneli ----
+           "bottom: 0" idi: panel komut cubugunun ve alt bilgi seridinin
+           ALTINA uzaniyor, son satirlari onlarin arkasinda kaliyordu.
+           left/right de 326px/280px olarak sabit yazilmisti; panel
+           suruklenerek genisletilince hizayi kaybediyordu. Ucu de
+           js/ui/layout.js'in olctugu degiskenlerden gelir. */
+        .results-bottom-panel {
+            bottom: var(--alt-yukseklik, 32px);
+            left: var(--icerik-sol, 326px);
+            right: var(--icerik-sag, 280px);
+        }
+
+        /* Cizim balonundaki uzunluk: bakilan tek sayi, oyle de gorunsun.
+           --primary koyu zeminde yazi olarak 4.18 kontrast veriyordu;
+           --accent-info yazi icin ayrilmis olan. margin-left de artik
+           gereksiz: uzunluk artik satirin basinda. */
+        .cmd-tooltip .distance {
+            color: var(--accent-info);
+            font-size: var(--fs-md);
+            font-weight: 600;
+            margin-left: 0;
+        }

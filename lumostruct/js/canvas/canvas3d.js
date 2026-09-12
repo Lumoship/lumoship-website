@@ -376,8 +376,16 @@
                 threeControls.setAngles(targetTheta, targetPhi);
             }
             
-            // Always fit view to model
-            setTimeout(() => fit3DView(), animate ? 300 : 50);
+            // Cerceve KORUNUR. Burada her gorunus degisiminde fit3DView()
+            // cagriliyordu ve aci animasyonunun ortasinda (300ms) devreye
+            // girip yakinligi bir anda degistiriyordu: 3B'den XY'ye gecerken
+            // goruntu once donuyor sonra ziplayarak uzaklasiyordu.
+            // Yakinlastirma zaten korunabilir durumda - updateCameraPosition
+            // 2B'ye gecerken mesafeyi OLCEK_2B ile carpip FOV'u kisiyor, yani
+            // modelin ekrandaki boyu ayni kaliyor.
+            // Yalnizca programatik ilk kurulumda (animate=false) cerceveletir;
+            // dugmeye basan kullanicinin yakinligi bozulmaz.
+            if (!animate) setTimeout(() => fit3DView(), 50);
             
             animate3D();
         }
@@ -2436,7 +2444,13 @@
                     const loadLabelMult = window.labelSizes?.load || 1.0;
                     // Label size based on base scale (uniform for all loads)
                     labelSprite.scale.set(baseLoadArrowScale * 1.8 * loadLabelMult, baseLoadArrowScale * 0.9 * loadLabelMult, 1);
-                    labelSprite.position.y = isDownward ? arrowLength + loadArrowScale * 0.5 : -loadArrowScale * 0.5;
+                    // Etiket okun DUGUMDEN UZAK ucuna konur. Eskiden iki durum
+                    // da dugumun oteki tarafina dusuyordu: yazi dugum isaretinin
+                    // ve mesnet simgesinin ustune biniyor, rakam okunmuyordu.
+                    // Yerel +y iki durumda ters yone baktigi icin isaretler de ters.
+                    labelSprite.position.y = isDownward
+                        ? -loadArrowScale * 0.55
+                        : arrowLength + loadArrowScale * 0.55;
                     loadGroup.add(labelSprite);
                     
                     loadGroup.rotation.x = isDownward ? -Math.PI / 2 : Math.PI / 2;

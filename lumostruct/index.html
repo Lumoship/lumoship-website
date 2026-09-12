@@ -423,9 +423,14 @@
         /* Results Bottom Panel */
         .results-bottom-panel {
             position: fixed;
-            bottom: 0;
-            left: 326px;
-            right: 280px;
+            /* "bottom: 0" panelin komut cubugunun ve alt bilgi seridinin
+               ALTINA uzanmasina yol aciyordu: son satirlar onlarin arkasinda
+               kaliyordu. left/right de sabit 326/280 idi, panel suruklenerek
+               genisletilince hiza kayboluyordu. Olculeri js/ui/layout.js
+               yaziyor. */
+            bottom: var(--alt-yukseklik, 32px);
+            left: var(--icerik-sol, 326px);
+            right: var(--icerik-sag, 280px);
             height: 250px;
             background: var(--bg-panel);
             border-top: 2px solid var(--primary);
@@ -1909,11 +1914,13 @@
                 <div id="resultsWarning" style="display:none; background:var(--warning); padding:12px; border-radius:var(--r-ovl); margin-bottom:16px;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-size:var(--fs-lg);"><span class="icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span></span>
-                        <div>
+                        <div style="min-width:0;">
                             <div style="font-weight:600; color:#000;">Model Changed</div>
                             <div style="font-size:var(--fs-sm); color:#1f2937;">Results are outdated. Click <strong>Solve</strong> to update.</div>
                         </div>
-                        <button class="btn-primary" onclick="solveModel()" style="margin-left:auto; background:#000; color:var(--warning);">
+                        <!-- nowrap: dugme metni "Re-" / "Solve" diye iki satira boluniyordu;
+                             daralinca sarilmasi gereken yer yandaki metin. -->
+                        <button class="btn-primary" onclick="solveModel()" style="margin-left:auto; background:#000; color:var(--warning); white-space:nowrap; flex-shrink:0;">
                             <span class="icon"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></span> Re-Solve
                         </button>
                     </div>
@@ -2142,12 +2149,9 @@
                     </div>
                 </div>
                 
-                <!-- Deformation Scale (hidden until deformed is active) -->
-                <div id="exaggerationControl" style="display:none; align-items:center; gap:4px;">
-                    <span style="color:var(--success); font-size:var(--fs-xs); font-weight:600;">SCALE</span>
-                    <input type="range" id="deformScale" min="1" max="500" value="50" style="width:70px; accent-color:var(--success);" oninput="updateDeformScale(this.value)">
-                    <span id="deformScaleValue" style="color:var(--success); font-size:var(--fs-sm); min-width:30px;">50×</span>
-                </div>
+                <!-- Deformation Scale buradan tuvalin ustundeki gorunum satirina
+                     tasindi: arac cubugunda acildiginda cubuk tasiyor ve altinda
+                     yatay kaydirma cubugu beliriyordu. -->
                 
                 <!-- DRAW Group -->
                 <div class="toolbar-group">
@@ -2230,6 +2234,15 @@
                                oninput="updateDisplaySize(this.value)" style="width:60px; cursor:pointer;">
                         <span id="displaySizeLabel" style="min-width:28px; text-align:center; font-size:var(--fs-xs); color:var(--text-2);">0.5x</span>
                     </div>
+
+                    <!-- Deformation Scale. Yalnizca Deformed acikken gorunur.
+                         Arac cubugundayken cubugu tasiriyordu; burada zaten
+                         benzer bir kaydirici olan gorunum satirinda duruyor. -->
+                    <div id="exaggerationControl" class="display-size-control" style="display:none;" title="Deformation scale">
+                        <span class="color-key" style="background:var(--success)"></span>
+                        <input type="range" id="deformScale" min="1" max="500" value="50" style="width:60px; cursor:pointer;" oninput="updateDeformScale(this.value)">
+                        <span id="deformScaleValue" style="min-width:34px; text-align:center; font-size:var(--fs-xs); color:var(--text-2);">50&times;</span>
+                    </div>
                 </div>
                 
                 <!-- Stress Legend Overlay -->
@@ -2307,6 +2320,12 @@
                     <input id="dynInputValue" type="text" spellcheck="false" autocomplete="off" style="background:transparent; border:none; outline:none; color:var(--warning); font-family:var(--font-mono); font-size:var(--fs-xs); width:90px; pointer-events:auto;">
                 </div>
                 
+                <!-- Imlecin yanindaki olcu balonu. Kod bunu bastan beri dolduruyordu
+                     (uzunluk, aci, X/Y, snap turu) ama eleman sayfada YOKTU:
+                     showTooltipAt sessizce hicbir sey yapiyordu, yani cizerken
+                     uzunluk onizlemesi hic gorunmedi. -->
+                <div class="cmd-tooltip" id="cmdTooltip"></div>
+
                 <!-- View Info Overlay (top line, inside canvas) -->
                 <div class="canvas-viewinfo">
                     <span id="viewModeName"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg></span> XY Plane (Top)</span>
@@ -3027,17 +3046,31 @@
     </div>
 
     <!-- AutoCAD-style Command Bar -->
+    <!-- Komut cubugu uc bolum: sol bolum sol panelin, orta bolum tuvalin, sag
+         bolum sag panelin genisligindedir; genislikleri js/ui/layout.js
+         panellerle birlikte gunceller. Boylece yazdiginiz yer tuvalin tam
+         altinda ve onunla ayni genislikte durur - eskiden 120px'lik bir kutuydu
+         ve saga sikismisti.
+         #cmdCoords kaldirildi: hep bostu, koordinatlar ustteki durum seridinde
+         gosteriliyor. -->
     <div class="command-bar" id="commandBar">
-        <span class="command-bar-status" id="cmdStatus">READY</span>
-        <span class="command-bar-message" id="cmdMessage">Type a command (LINE, COPY, MOVE, ROTATE, MIRROR, OFFSET) or use the toolbar</span>
-        <input type="text" class="command-bar-input" id="cmdInput" placeholder="Command..." spellcheck="false" autocomplete="off">
-        <!-- Komut tamamlama listesi. Komut cubugu ekranin altinda oldugu icin
-             kutu yukari dogru acilir; icerigi js/commands/system.js doldurur. -->
-        <div class="cmd-autocomplete" id="cmdAutocomplete" role="listbox"></div>
-        <span class="command-bar-hints" id="cmdHints"></span>
-        <span class="command-bar-coords" id="cmdCoords"></span>
-        <button class="command-bar-ortho inactive" id="cmdOrtho" onclick="toggleOrthoMode()" title="Ortho Mode [F8]">ORTHO</button>
-        <button class="command-bar-ortho active" id="cmdSnap" onclick="toggleSnapMode()" title="Snap Mode [F9]">SNAP</button>
+        <div class="command-bar-left">
+            <span class="command-bar-status" id="cmdStatus">READY</span>
+            <span class="command-bar-message" id="cmdMessage">Type a command or use the toolbar</span>
+        </div>
+        <div class="command-bar-center">
+            <input type="text" class="command-bar-input" id="cmdInput" placeholder="Type a command - try LINE, COPY, MOVE" spellcheck="false" autocomplete="off">
+            <!-- Ipuclari girdinin sag ucunda durur; komut calisirken
+                 [ESC] Cancel gibi degisir. -->
+            <span class="command-bar-hints" id="cmdHints"></span>
+            <!-- Komut tamamlama listesi yukari dogru acilir; icerigi
+                 js/commands/system.js doldurur. -->
+            <div class="cmd-autocomplete" id="cmdAutocomplete" role="listbox"></div>
+        </div>
+        <div class="command-bar-right">
+            <button class="command-bar-ortho inactive" id="cmdOrtho" onclick="toggleOrthoMode()" title="Ortho Mode [F8]">ORTHO</button>
+            <button class="command-bar-ortho active" id="cmdSnap" onclick="toggleSnapMode()" title="Snap Mode [F9]">SNAP</button>
+        </div>
     </div>
     
     <!-- App Footer -->
