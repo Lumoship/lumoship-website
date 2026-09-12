@@ -4513,9 +4513,7 @@
         .status-actions { gap: var(--space-2) !important; }
         .status-actions button { padding: 2px var(--space-2); }
 
-        /* Sol panelin ic dolgusu 16px, sagdaki 0 idi: sag paneldeki her sey
-           kenara yapisik duruyordu. */
-        .entity-info-panel { padding: var(--space-4); }
+
         /* Sag panelin kaydirma cubugu tarayici varsayilaniydi, soldaki
            stillenmisti: ayni ekranda iki farkli kaydirma cubugu. */
         .entity-info-panel::-webkit-scrollbar { width: 6px; }
@@ -4564,4 +4562,44 @@
         /* <small> 10px cikiyordu; olcegin en kucugu 11px. */
         small {
             font-size: var(--fs-xs);
+        }
+
+        /* ---- Sag panel hizalama ----
+           Govde kendi icinde kayiyordu, baslik kaymiyordu: kaydirma cubugu
+           govdenin 15px'ini yiyor, kartlar baslıktan 15px dar kaliyordu.
+           Sol panel butun olarak kayiyor; sag da oyle olsun. Boylece baslik ve
+           kartlar ayni kenardan baslar, ayni kenarda biter. */
+        .entity-info-body {
+            overflow: visible;
+        }
+
+        /* Baslik da bir kart: asagidaki kartlarla AYNI kutu. Kutusu panel
+           kenarina kadar uzaniyordu, kartlar ise govdenin 16px dolgusuyla
+           iceride kaliyordu - ust ust duran iki farkli genislik. */
+        .entity-info-header {
+            border-radius: var(--r-md);
+            border: 1px solid var(--border);
+            margin: 0 var(--space-4) var(--space-3);
+            padding: var(--space-3);
+        }
+
+        /* Bolum kartlari kapsayicinin tamamini kaplasin. */
+        #entityInfoEmpty,
+        #entityInfoNode,
+        #entityInfoBeam,
+        #entityInfoMulti {
+            width: auto;
+        }
+
+        /* X / Y / Z girisleri 80px sabitti, sardigi kutu 182px: girdinin
+           sagında 86px bos alan kaliyor, sayilar sola sikismis ve birim
+           uzakta duruyordu. Girdi artik alanini dolduruyor. */
+        .num-wrap {
+            display: block;
+            position: relative;
+        }
+
+        .num-wrap input {
+            width: 100%;
+            padding-right: var(--space-5);
         }

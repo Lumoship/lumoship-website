@@ -810,13 +810,11 @@
          aliyordu ve icinde yalnizca logo ile bir slogan vardi; kullanici hangi
          uygulamayi actigini biliyor. O yer artik modele gidiyor. -->
     <div class="main-tab-bar">
-        <div class="brand">
-            <div class="brand-logo">L</div>
-            <div class="brand-titles">
-                <h1 class="brand-name">LumoStruct</h1>
-                <p class="brand-subtitle" id="modelName">Untitled model</p>
-            </div>
-        </div>
+        <!-- Sol marka blogu kaldirildi: ustteki Lumoship cubugu zaten
+             "LUMOSHIP | LUMOSTRUCT" yaziyor, bu ikinci kez tekrar ediyordu.
+             Model adi durum cubugunda gorunuyor; #modelName'i arayan kod
+             kirilmasin diye gizli bir tasiyici birakildi. -->
+        <span id="modelName" hidden>Untitled model</span>
         <div class="main-tab-group">
         <button class="main-tab active" onclick="switchMainTab('general')" id="mainTabGeneral">
             <span class="main-tab-icon"><span class="icon"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span></span> General
@@ -2385,17 +2383,17 @@
                         </div>
                         <div class="entity-property">
                             <span class="label">X</span>
-                            <input type="number" id="infoNodeX" value="0" step="1" style="width:80px; padding:4px; font-size:var(--fs-md); text-align:right;" onchange="applyInfoNodeCoords()">
+                            <input type="number" id="infoNodeX" value="0" step="1" style="width:100%; padding:4px; font-size:var(--fs-md); text-align:right;" onchange="applyInfoNodeCoords()">
                             <span style="color:var(--text-3); font-size:var(--fs-sm); margin-left:4px;">mm</span>
                         </div>
                         <div class="entity-property">
                             <span class="label">Y</span>
-                            <input type="number" id="infoNodeY" value="0" step="1" style="width:80px; padding:4px; font-size:var(--fs-md); text-align:right;" onchange="applyInfoNodeCoords()">
+                            <input type="number" id="infoNodeY" value="0" step="1" style="width:100%; padding:4px; font-size:var(--fs-md); text-align:right;" onchange="applyInfoNodeCoords()">
                             <span style="color:var(--text-3); font-size:var(--fs-sm); margin-left:4px;">mm</span>
                         </div>
                         <div class="entity-property">
                             <span class="label">Z</span>
-                            <input type="number" id="infoNodeZ" value="0" step="1" style="width:80px; padding:4px; font-size:var(--fs-md); text-align:right;" onchange="applyInfoNodeCoords()">
+                            <input type="number" id="infoNodeZ" value="0" step="1" style="width:100%; padding:4px; font-size:var(--fs-md); text-align:right;" onchange="applyInfoNodeCoords()">
                             <span style="color:var(--text-3); font-size:var(--fs-sm); margin-left:4px;">mm</span>
                         </div>
                     </div>
