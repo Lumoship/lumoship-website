@@ -132,19 +132,19 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Normal Stress (σ)</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:bold;">${elemResult.maxStress?.toFixed(1) || '-'} MPa</div>
+                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${elemResult.maxStress?.toFixed(1) || '-'} MPa</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Shear Stress (τ)</div>
-                            <div style="color:#22d3ee; font-size:var(--fs-lg); font-weight:bold;">${elemResult.shearStress?.toFixed(1) || '-'} MPa</div>
+                            <div style="color:#22d3ee; font-size:var(--fs-lg); font-weight:600;">${elemResult.shearStress?.toFixed(1) || '-'} MPa</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Von Mises (σ_vm)</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:bold;">${elemResult.vonMises?.toFixed(1) || '-'} MPa</div>
+                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${elemResult.vonMises?.toFixed(1) || '-'} MPa</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Utilization</div>
-                            <div style="color:${utilization > 100 ? 'var(--danger)' : utilization > 80 ? 'var(--warning)' : 'var(--success)'}; font-size:var(--fs-lg); font-weight:bold;">${utilization.toFixed(1)}%</div>
+                            <div style="color:${utilization > 100 ? 'var(--danger)' : utilization > 80 ? 'var(--warning)' : 'var(--success)'}; font-size:var(--fs-lg); font-weight:600;">${utilization.toFixed(1)}%</div>
                         </div>
                     </div>
                     
@@ -158,7 +158,7 @@
                     </div>
                     
                     <div style="margin-top:16px; padding:8px; border:1px solid ${utilization > 100 ? 'var(--danger)' : 'var(--success)'}; border-radius:var(--r-ovl); text-align:center;">
-                        <span style="color:${utilization > 100 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">
+                        <span style="color:${utilization > 100 ? 'var(--danger)' : 'var(--success)'}; font-weight:600;">
                             ${utilization > 100 ? '<span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span> OVERSTRESSED' : '<span class="icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> OK'}
                         </span>
                     </div>
@@ -296,21 +296,21 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); text-align:center;">
                             <div style="color:var(--text-3); font-size:var(--fs-sm);">Uz</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:bold;">${uz !== null ? uz.toFixed(3) : '-'} mm</div>
+                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${uz !== null ? uz.toFixed(3) : '-'} mm</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); text-align:center;">
                             <div style="color:var(--text-3); font-size:var(--fs-sm);">θx</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:bold;">${rx !== null ? rx.toFixed(3) : '-'} mrad</div>
+                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${rx !== null ? rx.toFixed(3) : '-'} mrad</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); text-align:center;">
                             <div style="color:var(--text-3); font-size:var(--fs-sm);">θy</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:bold;">${ry !== null ? ry.toFixed(3) : '-'} mrad</div>
+                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${ry !== null ? ry.toFixed(3) : '-'} mrad</div>
                         </div>
                     </div>
                     
                     ${hasReaction ? `
                     <div style="margin-top:16px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); padding:12px; border-radius:var(--r-ovl);">
-                        <div style="color:var(--success); font-weight:bold; margin-bottom:4px;"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Support Reaction</div>
+                        <div style="color:var(--success); font-weight:600; margin-bottom:4px;"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Support Reaction</div>
                         <div style="color:var(--text-2); font-size:var(--fs-md);">This node has boundary conditions applied.</div>
                     </div>
                     ` : ''}

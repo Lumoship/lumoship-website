@@ -241,7 +241,7 @@
                 
                 <div style="background:#1e3a5f; border-radius:var(--r-ovl); padding:16px; text-align:center; margin-bottom:16px;">
                     <div style="color:var(--text-2); font-size:var(--fs-sm); margin-bottom:4px;">Total Distance</div>
-                    <div style="color:var(--warning); font-size:var(--fs-lg); font-weight:bold;">${distMm} mm</div>
+                    <div style="color:var(--warning); font-size:var(--fs-lg); font-weight:600;">${distMm} mm</div>
                     <div style="color:var(--text-3); font-size:var(--fs-sm);">${distM} m</div>
                 </div>
                 

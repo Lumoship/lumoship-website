@@ -102,7 +102,9 @@
             --font-weight-normal: 400;
             --font-weight-medium: 500;
             --font-weight-semibold: 600;
-            --font-weight-bold: 700;
+            /* Arayuz uc agirlik kullaniyor: 400 / 500 / 600.
+               Bu token 700 idi ve olcegi disaridan bozuyordu. */
+            --font-weight-bold: 600;
         }
         
         /* ============== GLOBAL STYLES ============== */
@@ -4523,3 +4525,43 @@
             border-radius: var(--r-ctl);
         }
         .entity-info-panel::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+        /* ============ TUTARLILIK KATMANI ============
+           Sekme sekme olculen farklar. Kurallarin cogu bu dosyada iki kez
+           tanimli oldugu ve sonuncusu kazandigi icin duzeltmeler sona
+           yaziliyor - dosyanin ortasini duzenlemek dort kez ise yaramadi. */
+
+        /* Tablo basliklari: kiris detay penceresinde BUYUK HARF ve harf araligi
+           kaldirilmisti, sol panelde kalmisti. Ayni uygulamada iki tablo dili. */
+        .data-table th {
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        /* "or enter manually" gibi ayiricilar da BUYUK HARF idi; bolum
+           basliklari normal yaziya cevrilirken bunlar atlanmis. */
+        .section-divider {
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        /* Arayuz uc agirlik kullaniyor (400/500/600). Bu tek deger 700'de
+           kalmisti. */
+        .result-value {
+            font-weight: 600;
+        }
+
+        /* label ve alt panel basliklari da BUYUK HARF idi. Bolum basliklarini
+           normal yaziya cevirirken bunlar atlanmisti. */
+        .limit-input label,
+        .form-group label,
+        label,
+        .subpanel-title {
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        /* <small> 10px cikiyordu; olcegin en kucugu 11px. */
+        small {
+            font-size: var(--fs-xs);
+        }

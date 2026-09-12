@@ -60,7 +60,7 @@
             if (stressTable) {
                 stressTable.innerHTML = '';
                 Object.entries(results.elementResults).forEach(([elemId, res]) => {
-                    const color = res.vonMises > sigmaLimit ? 'color:var(--danger);font-weight:bold;' : '';
+                    const color = res.vonMises > sigmaLimit ? 'color:var(--danger);font-weight:600;' : '';
                     stressTable.innerHTML += `<tr style="${color}">
                         <td>${elemId}</td>
                         <td>${res.sigma.toFixed(1)}</td>
@@ -323,7 +323,7 @@
                 const utilClass = b.util > 100 ? 'stress-fail' : (b.util > 80 ? 'stress-warn' : 'stress-ok');
                 const selected = selectedElements.has(b.id) ? 'selected' : '';
                 return `<tr class="${selected}" onclick="selectBeamFromTable(${b.id})" ondblclick="openBeamDetailModal(${b.id})" title="Double-click for details">
-                    <td style="color:var(--primary); font-weight:bold;">${b.id}</td>
+                    <td style="color:var(--primary); font-weight:600;">${b.id}</td>
                     <td>${b.section}</td>
                     <td>${b.length.toFixed(3)}</td>
                     <td class="${utilClass}">${b.sigmaMax.toFixed(1)}</td>
@@ -394,10 +394,10 @@
                 const selected = selectedNodes.has(n.id) ? 'selected' : '';
                 const uzColor = Math.abs(n.uz) > 10 ? 'color:var(--warning);' : '';
                 return `<tr class="${selected}" onclick="selectNodeFromTable(${n.id})">
-                    <td style="color:var(--primary); font-weight:bold;">${n.id}</td>
+                    <td style="color:var(--primary); font-weight:600;">${n.id}</td>
                     <td>${n.x.toFixed(3)}</td>
                     <td>${n.y.toFixed(3)}</td>
-                    <td style="${uzColor} font-weight:bold;">${n.uz.toFixed(2)}</td>
+                    <td style="${uzColor} font-weight:600;">${n.uz.toFixed(2)}</td>
                     <td>${n.ux.toFixed(3)}</td>
                     <td>${n.uy.toFixed(3)}</td>
                     <td>${n.rx.toFixed(5)}</td>

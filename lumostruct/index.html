@@ -594,7 +594,7 @@
         
         .results-data-table .stress-ok { color: var(--success); }
         .results-data-table .stress-warn { color: var(--warning); }
-        .results-data-table .stress-fail { color: var(--danger); font-weight: bold; }
+        .results-data-table .stress-fail { color: var(--danger); font-weight:600; }
         
         @media (max-width: 1200px) {
             .results-bottom-panel {
@@ -1532,7 +1532,7 @@
                         Load Cases (LC1, LC2...)
                     </button>
                     <div style="font-size:var(--fs-xs); color:var(--text-2); margin-top:4px; text-align:center;">
-                        Active: <span id="activeLoadCaseName" style="color:var(--accent-info); font-weight:bold;">LC1 - Default</span>
+                        Active: <span id="activeLoadCaseName" style="color:var(--accent-info); font-weight:600;">LC1 - Default</span>
                     </div>
                 </div>
                 
@@ -2608,7 +2608,7 @@
                             <input type="range" id="infoBeamOrientation" min="-180" max="180" step="5" value="0" 
                                    style="flex:1; accent-color:var(--primary);"
                                    oninput="updateInfoOrientation(this.value)">
-                            <span id="infoOrientationValue" style="min-width:40px; color:var(--primary); font-weight:bold; font-size:var(--fs-md);">0°</span>
+                            <span id="infoOrientationValue" style="min-width:40px; color:var(--primary); font-weight:600; font-size:var(--fs-md);">0°</span>
                         </div>
                         <div style="display:flex; gap:4px; margin-top:8px;">
                             <button class="btn-secondary btn-small" onclick="setInfoOrientation(0)" style="flex:1;">0°</button>

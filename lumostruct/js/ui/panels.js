@@ -447,7 +447,7 @@
             
             let detailsHtml = `
                 <div style="background:#1e3a5f; padding:12px; border-radius:var(--r-ovl); margin-bottom:16px; border-left:4px solid var(--success);">
-                    <div style="color:var(--success); font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="color:var(--success); font-weight:600; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                         <span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Node #${node.id}</span>
                         <button class="btn-secondary btn-small" onclick="clearSelection()"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
                     </div>
@@ -514,7 +514,7 @@
                     
                     <!-- Point Load Section -->
                     <div style="border-top:1px solid var(--border); margin-top:12px; padding-top:8px;">
-                        <div style="color:var(--danger); font-weight:bold; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Point Load (P)</div>
+                        <div style="color:var(--danger); font-weight:600; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Point Load (P)</div>
                         
                         <div class="form-group">
                             <label>Force Components (kN)</label>
@@ -699,7 +699,7 @@
             
             let detailsHtml = `
                 <div style="background:#1e3a5f; padding:12px; border-radius:var(--r-ovl); margin-bottom:16px; border-left:4px solid var(--warning);">
-                    <div style="color:var(--warning); font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="color:var(--warning); font-weight:600; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                         <span><span class="icon"><svg viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Multi-Selection</span>
                         <button class="btn-secondary btn-small" onclick="clearSelection()"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
                     </div>
@@ -886,7 +886,7 @@
             
             let detailsHtml = `
                 <div style="background:#1e3a5f; padding:12px; border-radius:var(--r-ovl); margin-bottom:16px; border-left:4px solid var(--warning);">
-                    <div style="color:var(--warning); font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="color:var(--warning); font-weight:600; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                         <span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Element #${elem.id}</span>
                         <button class="btn-secondary btn-small" onclick="clearSelection()"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
                     </div>
@@ -1005,7 +1005,7 @@
                                        value="${elem.orientation || 0}" 
                                        style="flex:1; accent-color:var(--primary);"
                                        oninput="document.getElementById('orientationValue').textContent = this.value + '°'; previewOrientation(${elem.id});">
-                                <span id="orientationValue" style="min-width:45px; color:var(--primary); font-weight:bold;">${elem.orientation || 0}°</span>
+                                <span id="orientationValue" style="min-width:45px; color:var(--primary); font-weight:600;">${elem.orientation || 0}°</span>
                             </div>
                             <div style="display:flex; gap:4px; margin-top:4px;">
                                 <button class="btn-secondary btn-small" onclick="setOrientation(${elem.id}, 0)">0°</button>
@@ -1027,7 +1027,7 @@
                     
                     <!-- Line Load Section -->
                     <div style="border-top:1px solid var(--border); margin-top:12px; padding-top:8px;">
-                        <div style="color:var(--danger); font-weight:bold; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A1 1 0 0 0 22 15V6a1 1 0 0 0-.29-.71l-4-4A1 1 0 0 0 17 1H8a1 1 0 0 0-.71.29l-4 4A1 1 0 0 0 3 6v9a1 1 0 0 0 .79.98l8 2a1 1 0 0 0 .42 0l8-2z"/><line x1="7" y1="6" x2="7" y2="10"/><line x1="11" y1="6" x2="11" y2="8"/><line x1="15" y1="6" x2="15" y2="10"/></svg></span> Line Load</div>
+                        <div style="color:var(--danger); font-weight:600; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A1 1 0 0 0 22 15V6a1 1 0 0 0-.29-.71l-4-4A1 1 0 0 0 17 1H8a1 1 0 0 0-.71.29l-4 4A1 1 0 0 0 3 6v9a1 1 0 0 0 .79.98l8 2a1 1 0 0 0 .42 0l8-2z"/><line x1="7" y1="6" x2="7" y2="10"/><line x1="11" y1="6" x2="11" y2="8"/><line x1="15" y1="6" x2="15" y2="10"/></svg></span> Line Load</div>
                         
                         <div class="form-group">
                             <label>Load Value (kN/m)</label>
