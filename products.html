@@ -1057,14 +1057,14 @@
                 
                 <div class="tools-grid">
                     
-                    <div class="tool-card upcoming" onclick="openModal('nodal-modal')">
+                    <div class="tool-card" onclick="openModal('nodal-modal')">
                         <div class="tool-card-header">
-                            <h3 class="tool-card-name">NODAL</h3>
-                            <span class="tool-card-status beta">Beta Q2 2026</span>
+                            <h3 class="tool-card-name">LumoStruct</h3>
+                            <span class="tool-card-status beta">Beta</span>
                         </div>
                         <p class="tool-card-tagline">Beam-based grillage solver for ship structures.</p>
                         <div class="tool-card-footer">
-                            <span class="tool-card-meta">EARLY ACCESS</span>
+                            <span class="tool-card-meta">BETA</span>
                             <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M5 12h14M12 5l7 7-7 7"/>
                             </svg>
@@ -1131,10 +1131,46 @@
                 </div>
             </section>
             
+            <!-- ============ DRAFTING ============ -->
+            <section class="discipline-section" id="drafting">
+                <div class="discipline-header">
+                    <span class="discipline-label">// Discipline 03</span>
+                    <span class="discipline-status">
+                        <span class="discipline-status-dot development"></span>
+                        In beta
+                    </span>
+                </div>
+                <h2 class="discipline-title">Drafting</h2>
+                <p class="discipline-tagline">2D drawing in the browser, no install.</p>
+                <p class="discipline-description">
+                    A drafting board that opens in a tab. Draw, dimension and annotate, then take the
+                    drawing out as DXF or PDF — the same file your yard and class surveyor already read.
+                </p>
+                <div class="discipline-divider"></div>
+
+                <div class="tools-grid">
+
+                    <a href="https://lumocad.lumoship.org" class="tool-card">
+                        <div class="tool-card-header">
+                            <h3 class="tool-card-name">LumoCAD</h3>
+                            <span class="tool-card-status beta">Beta</span>
+                        </div>
+                        <p class="tool-card-tagline">2D drafting with DXF import and export.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-card-meta">BETA</span>
+                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+
+                </div>
+            </section>
+
             <!-- ============ PARAMETRIC MODELING ============ -->
             <section class="discipline-section" id="parametric-modeling">
                 <div class="discipline-header">
-                    <span class="discipline-label">// Discipline 03</span>
+                    <span class="discipline-label">// Discipline 04</span>
                     <span class="discipline-status">
                         <span class="discipline-status-dot planned"></span>
                         Planned · 2026 roadmap
@@ -1318,13 +1354,13 @@
         </div>
     </div>
     
-    <!-- NODAL MODAL -->
+    <!-- LumoStruct MODAL -->
     <div class="modal-overlay" id="nodal-modal" onclick="closeModal(event)">
         <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-header-content">
-                    <span class="modal-status beta">Beta Q2 2026 · Early access</span>
-                    <h2 class="modal-title">NODAL</h2>
+                    <span class="modal-status beta">Beta · Early access</span>
+                    <h2 class="modal-title">LumoStruct</h2>
                     <p class="modal-tagline">Beam-based grillage solver for ship structures.</p>
                 </div>
                 <button class="modal-close" onclick="closeModalById('nodal-modal')" aria-label="Close">
@@ -1338,7 +1374,7 @@
                 <div class="modal-section">
                     <p class="modal-section-label">Overview</p>
                     <p class="modal-section-text">
-                        NODAL is a beam-based grillage solver for marine structures — hatch covers, deck panels, bulkheads, double bottoms, crane pedestals, and stiffened panels. Built specifically for marine engineers, with HP and FB profile libraries, AH36/DH36 steel grades, and class society compliance built in.
+                        LumoStruct is a beam-based grillage solver for marine structures — hatch covers, deck panels, bulkheads, double bottoms, crane pedestals, and stiffened panels. Built specifically for marine engineers, with HP and FB profile libraries, AH36/DH36 steel grades, and class society compliance built in.
                     </p>
                 </div>
                 <div class="modal-section">
@@ -1364,8 +1400,8 @@
                     </div>
                 </div>
                 <div class="modal-cta-row">
-                    <a href="mailto:contact@lumoship.org?subject=NODAL Early Access Request" class="modal-btn modal-btn-primary">
-                        Request Early Access
+                    <a href="https://lumostruct.lumoship.org" class="modal-btn modal-btn-primary">
+                        Open LumoStruct
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
