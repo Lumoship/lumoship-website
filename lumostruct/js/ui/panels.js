@@ -454,7 +454,7 @@
                     
                     <div style="border-top:1px solid var(--border); padding-top:8px;">
                         <div class="form-group">
-                            <label style="color:var(--primary);">Coordinates (mm)</label>
+                            <label style="color:var(--accent-info);">Coordinates (mm)</label>
                             <div class="form-row-3">
                                 <div>
                                     <small style="color:var(--text-3);">X</small>
@@ -712,7 +712,7 @@
                 detailsHtml += `
                     <div style="border-top:1px solid var(--border); margin-top:8px; padding-top:8px;">
                         <div class="form-group">
-                            <label style="color:var(--primary);">Change Section for All</label>
+                            <label style="color:var(--accent-info);">Change Section for All</label>
                             <select id="multiEditProfile">
                                 <option value="">-- Keep Current --</option>
                                 <optgroup label="HP Profiles">
@@ -934,7 +934,7 @@
                     <div style="border-top:1px solid var(--border); padding-top:8px;">
                         <!-- Profile Selection -->
                         <div class="form-group">
-                            <label style="color:var(--primary); font-weight:600;">Profile</label>
+                            <label style="color:var(--accent-info); font-weight:600;">Profile</label>
                             <select id="editProfile" style="font-size:var(--fs-md);">
                                 <optgroup label="HP Profiles">
                                     <option value="HP200x10" ${currentProfile === 'HP200x10' ? 'selected' : ''}>HP200x10</option>
@@ -999,13 +999,13 @@
                         
                         <!-- Beam Orientation -->
                         <div class="form-group">
-                            <label style="color:var(--primary); font-weight:600;"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span> Beam Orientation</label>
+                            <label style="color:var(--accent-info); font-weight:600;"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span> Beam Orientation</label>
                             <div style="display:flex; gap:8px; align-items:center;">
                                 <input type="range" id="editOrientation" min="-180" max="180" step="5" 
                                        value="${elem.orientation || 0}" 
                                        style="flex:1; accent-color:var(--primary);"
                                        oninput="document.getElementById('orientationValue').textContent = this.value + '°'; previewOrientation(${elem.id});">
-                                <span id="orientationValue" style="min-width:45px; color:var(--primary); font-weight:600;">${elem.orientation || 0}°</span>
+                                <span id="orientationValue" style="min-width:45px; color:var(--accent-info); font-weight:600;">${elem.orientation || 0}°</span>
                             </div>
                             <div style="display:flex; gap:4px; margin-top:4px;">
                                 <button class="btn-secondary btn-small" onclick="setOrientation(${elem.id}, 0)">0°</button>
@@ -1083,10 +1083,10 @@
                     <div style="border-top:1px solid var(--border); margin-top:12px; padding-top:8px;">
                         <div style="color:var(--text-2); font-size:var(--fs-sm); margin-bottom:4px;">CALCULATED PROPERTIES</div>
                         <table style="width:100%; font-size:var(--fs-sm);" id="calcPropsTable">
-                            <tr><td style="color:var(--text-3);">Area:</td><td style="text-align:right; color:var(--primary);">${(sec.A * 1e4).toFixed(2)} cm²</td></tr>
-                            <tr><td style="color:var(--text-3);">Iy:</td><td style="text-align:right; color:var(--primary);">${(sec.Iy * 1e8).toFixed(2)} cm⁴</td></tr>
-                            <tr><td style="color:var(--text-3);">Wy:</td><td style="text-align:right; color:var(--primary);">${(sec.Wy * 1e6).toFixed(2)} cm³</td></tr>
-                            <tr><td style="color:var(--text-3);">Total Height:</td><td style="text-align:right; color:var(--primary);">${(sec.h * 1000).toFixed(0)} mm</td></tr>
+                            <tr><td style="color:var(--text-3);">Area:</td><td style="text-align:right; color:var(--accent-info);">${(sec.A * 1e4).toFixed(2)} cm²</td></tr>
+                            <tr><td style="color:var(--text-3);">Iy:</td><td style="text-align:right; color:var(--accent-info);">${(sec.Iy * 1e8).toFixed(2)} cm⁴</td></tr>
+                            <tr><td style="color:var(--text-3);">Wy:</td><td style="text-align:right; color:var(--accent-info);">${(sec.Wy * 1e6).toFixed(2)} cm³</td></tr>
+                            <tr><td style="color:var(--text-3);">Total Height:</td><td style="text-align:right; color:var(--accent-info);">${(sec.h * 1000).toFixed(0)} mm</td></tr>
                         </table>
                     </div>
                 </div>`;
@@ -1992,7 +1992,7 @@
                         const isSelected = selectedNodes.has(id);
                         return `<tr style="${isSelected ? 'background:rgba(56,189,248,0.2);' : ''} cursor:pointer;"
                                     onclick="selectNodeById(${id})">
-                            <td style="color:var(--primary); font-weight:500;">${id}</td>
+                            <td style="color:var(--accent-info); font-weight:500;">${id}</td>
                             <td>${(node.x * 1000).toFixed(0)}</td>
                             <td>${(node.y * 1000).toFixed(0)}</td>
                             <td>${((node.z || 0) * 1000).toFixed(0)}</td>
@@ -2019,7 +2019,7 @@
                         const isSelected = selectedElements.has(elemId);
                         return `<tr style="${isSelected ? 'background:rgba(56,189,248,0.2);' : ''}"
                                     onclick="selectBeamById(${elemId})" style="cursor:pointer;">
-                            <td style="color:var(--primary); font-weight:500;">${elemId}</td>
+                            <td style="color:var(--accent-info); font-weight:500;">${elemId}</td>
                             <td>${elem.n1}</td>
                             <td>${elem.n2}</td>
                             <td style="color:var(--success);">${elem.section || 'HP200x10'}</td>
@@ -2094,7 +2094,7 @@
                 if (sec && sec.isComposite) {
                     sectionInfo += `<br><span style="color:var(--success);">• ${sec.profileName} + Plate ${sec.plateWidth}×${sec.plateThick}mm</span>`;
                 } else if (sec) {
-                    sectionInfo += `<br><span style="color:var(--primary);">• ${secName}</span>`;
+                    sectionInfo += `<br><span style="color:var(--accent-info);">• ${secName}</span>`;
                 }
             });
             

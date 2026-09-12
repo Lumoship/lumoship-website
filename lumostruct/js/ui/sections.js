@@ -819,7 +819,7 @@
                 const Iy_cm4 = sec.Iy_cm4 ?? (sec.Iy * 1e8);
                 const Wy_cm3 = sec.Wy_cm3 ?? (sec.Wy * 1e6);
                 return `<tr>
-                    <td style="color:var(--primary);">${name}</td>
+                    <td style="color:var(--accent-info);">${name}</td>
                     <td>${A_cm2.toFixed(2)}</td>
                     <td>${Iy_cm4.toFixed(1)}</td>
                     <td>${Wy_cm3.toFixed(1)}</td>
@@ -913,7 +913,7 @@
                 const Iz = sec.Iz ? (sec.Iz * 1e8).toFixed(1) : '-';
                 const Wz = sec.Wz ? (sec.Wz * 1e6).toFixed(1) : '-';
                 return `<tr>
-                    <td style="color:var(--primary); font-weight:500;">${name}</td>
+                    <td style="color:var(--accent-info); font-weight:500;">${name}</td>
                     <td>${A}</td>
                     <td style="color:var(--success);">${Iy}</td>
                     <td style="color:var(--success);">${Wy}</td>

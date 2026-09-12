@@ -408,7 +408,7 @@
         }
         
         .orient-btn.active {
-            background: var(--primary);
+            background:var(--primary-fill);
             border-color: var(--primary);
             color: white;
         }
@@ -460,7 +460,7 @@
         }
         
         .results-resize-handle:hover::before {
-            background: var(--primary);
+            background:var(--primary-fill);
             width: 60px;
         }
         
@@ -497,7 +497,7 @@
         }
         
         .panel-resize-handle:hover::before {
-            background: var(--primary);
+            background:var(--primary-fill);
             height: 60px;
         }
         
@@ -507,7 +507,7 @@
         }
         
         .beam-diagram-tab.active {
-            background: var(--primary);
+            background:var(--primary-fill);
             color: white;
         }
         
@@ -541,7 +541,7 @@
         }
         
         .results-bottom-tab.active {
-            background: var(--primary);
+            background:var(--primary-fill);
             color: white;
             border-color: var(--primary);
         }
@@ -1622,7 +1622,7 @@
                     </div>
                     <div style="display:flex; gap:8px;">
                         <button class="btn-primary btn-small" onclick="addQuickLineLoad()" style="flex:1;">Add to Selected</button>
-                        <button class="btn-primary btn-small" onclick="addLineLoadToAllSelected()" style="flex:1; background:var(--success);" title="Apply to all selected beams">All Selected</button>
+                        <button class="btn-primary btn-small" onclick="addLineLoadToAllSelected()" style="flex:1; background:var(--success-fill);" title="Apply to all selected beams">All Selected</button>
                     </div>
                     <small style="color:var(--text-3); font-size:var(--fs-xs); display:block; margin-top:8px;">Negative = downward | Select multiple beams with Ctrl+Click or box select</small>
                 </div>
@@ -1749,8 +1749,8 @@
                     <div style="margin-bottom:12px;">
                         <label style="font-size:var(--fs-sm); color:var(--text-3); margin-bottom:8px; display:block;">Beams</label>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button class="color-swatch active" data-color="beam" data-value="var(--primary)" onclick="selectColor('beam', 'var(--primary)')" style="background:var(--primary);" title="Blue (Default)"></button>
-                            <button class="color-swatch" data-color="beam" data-value="var(--primary)" onclick="selectColor('beam', 'var(--primary)')" style="background:var(--primary);" title="Sky Blue"></button>
+                            <button class="color-swatch active" data-color="beam" data-value="var(--primary)" onclick="selectColor('beam', 'var(--primary)')" style="background:var(--primary-fill);" title="Blue (Default)"></button>
+                            <button class="color-swatch" data-color="beam" data-value="var(--primary)" onclick="selectColor('beam', 'var(--primary)')" style="background:var(--primary-fill);" title="Sky Blue"></button>
                             <button class="color-swatch" data-color="beam" data-value="#22d3ee" onclick="selectColor('beam', '#22d3ee')" style="background:#22d3ee;" title="Cyan"></button>
                             <button class="color-swatch" data-color="beam" data-value="#34d399" onclick="selectColor('beam', '#34d399')" style="background:#34d399;" title="Emerald"></button>
                             <button class="color-swatch" data-color="beam" data-value="#a78bfa" onclick="selectColor('beam', '#a78bfa')" style="background:#a78bfa;" title="Purple"></button>
@@ -1770,10 +1770,10 @@
                             <button class="color-swatch" data-color="node" data-value="#ffffff" onclick="selectColor('node', '#ffffff')" style="background:#ffffff; border:1px solid var(--text-2);" title="White"></button>
                             <button class="color-swatch" data-color="node" data-value="var(--warning)" onclick="selectColor('node', 'var(--warning)')" style="background:var(--warning);" title="Amber"></button>
                             <button class="color-swatch" data-color="node" data-value="var(--danger)" onclick="selectColor('node', 'var(--danger)')" style="background:var(--danger);" title="Red"></button>
-                            <button class="color-swatch" data-color="node" data-value="var(--success)" onclick="selectColor('node', 'var(--success)')" style="background:var(--success);" title="Green"></button>
+                            <button class="color-swatch" data-color="node" data-value="var(--success)" onclick="selectColor('node', 'var(--success)')" style="background:var(--success-fill);" title="Green"></button>
                             <button class="color-swatch" data-color="node" data-value="#c084fc" onclick="selectColor('node', '#c084fc')" style="background:#c084fc;" title="Purple"></button>
                             <button class="color-swatch" data-color="node" data-value="#fb923c" onclick="selectColor('node', '#fb923c')" style="background:#fb923c;" title="Orange"></button>
-                            <button class="color-swatch" data-color="node" data-value="var(--primary)" onclick="selectColor('node', 'var(--primary)')" style="background:var(--primary);" title="Blue"></button>
+                            <button class="color-swatch" data-color="node" data-value="var(--primary)" onclick="selectColor('node', 'var(--primary)')" style="background:var(--primary-fill);" title="Blue"></button>
                         </div>
                     </div>
                     
@@ -1796,7 +1796,7 @@
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
                             <button class="color-swatch active" data-color="selection" data-value="#fef08a" onclick="selectColor('selection', '#fef08a')" style="background:#fef08a;" title="Yellow (Default)"></button>
                             <button class="color-swatch" data-color="selection" data-value="var(--warning)" onclick="selectColor('selection', 'var(--warning)')" style="background:var(--warning);" title="Amber"></button>
-                            <button class="color-swatch" data-color="selection" data-value="var(--success)" onclick="selectColor('selection', 'var(--success)')" style="background:var(--success);" title="Green"></button>
+                            <button class="color-swatch" data-color="selection" data-value="var(--success)" onclick="selectColor('selection', 'var(--success)')" style="background:var(--success-fill);" title="Green"></button>
                             <button class="color-swatch" data-color="selection" data-value="var(--danger)" onclick="selectColor('selection', 'var(--danger)')" style="background:var(--danger);" title="Red"></button>
                             <button class="color-swatch" data-color="selection" data-value="#c084fc" onclick="selectColor('selection', '#c084fc')" style="background:#c084fc;" title="Purple"></button>
                             <button class="color-swatch" data-color="selection" data-value="#22d3ee" onclick="selectColor('selection', '#22d3ee')" style="background:#22d3ee;" title="Cyan"></button>
@@ -1819,13 +1819,13 @@
                 <div class="input-section" style="margin-top:8px;">
                     
                     <!-- Geometry Sizes -->
-                    <div style="font-size:var(--fs-xs); color:var(--text-3); margin-bottom:8px; font-weight:500;">GEOMETRY</div>
+                    <div style="font-size:var(--fs-xs); color:var(--text-3); margin-bottom:8px; font-weight:500;">Geometry</div>
                     
                     <!-- Beam Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:var(--primary);">Beam Size</label>
-                            <span id="beamSizeValue" style="font-size:var(--fs-xs); color:var(--primary); min-width:30px; text-align:right;">1.0x</span>
+                            <label style="font-size:var(--fs-xs);"><span class="color-key" style="background:var(--primary)"></span>Beam Size</label>
+                            <span id="beamSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.0x</span>
                         </div>
                         <input type="range" id="beamSizeSlider" min="0.1" max="3" step="0.1" value="1" 
                                oninput="previewDisplaySize('beam', this.value)" style="width:100%; cursor:pointer;">
@@ -1834,8 +1834,8 @@
                     <!-- Node Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:#22d3ee;">Node Size</label>
-                            <span id="nodeSizeValue" style="font-size:var(--fs-xs); color:#22d3ee; min-width:30px; text-align:right;">1.0x</span>
+                            <label style="font-size:var(--fs-xs);"><span class="color-key" style="background:#22d3ee"></span>Node Size</label>
+                            <span id="nodeSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.0x</span>
                         </div>
                         <input type="range" id="nodeSizeSlider" min="0.1" max="3" step="0.1" value="1" 
                                oninput="previewDisplaySize('node', this.value)" style="width:100%; cursor:pointer;">
@@ -1844,8 +1844,8 @@
                     <!-- Load Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:var(--danger);">Load Size</label>
-                            <span id="loadSizeValue" style="font-size:var(--fs-xs); color:var(--danger); min-width:30px; text-align:right;">1.0x</span>
+                            <label style="font-size:var(--fs-xs);"><span class="color-key" style="background:var(--danger)"></span>Load Size</label>
+                            <span id="loadSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.0x</span>
                         </div>
                         <input type="range" id="loadSizeSlider" min="0.1" max="3" step="0.1" value="1" 
                                oninput="previewDisplaySize('loadGeom', this.value)" style="width:100%; cursor:pointer;">
@@ -1854,21 +1854,21 @@
                     <!-- BC Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:#a78bfa;">Support (BC) Size</label>
-                            <span id="bcSizeValue" style="font-size:var(--fs-xs); color:#a78bfa; min-width:30px; text-align:right;">1.0x</span>
+                            <label style="font-size:var(--fs-xs);"><span class="color-key" style="background:#a78bfa"></span>Support (BC) Size</label>
+                            <span id="bcSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.0x</span>
                         </div>
                         <input type="range" id="bcSizeSlider" min="0.1" max="3" step="0.1" value="1" 
                                oninput="previewDisplaySize('bc', this.value)" style="width:100%; cursor:pointer;">
                     </div>
                     
                     <!-- Label Sizes -->
-                    <div style="font-size:var(--fs-xs); color:var(--text-3); margin:12px 0 8px 0; font-weight:500; border-top:1px solid var(--border); padding-top:8px;">LABELS</div>
+                    <div style="font-size:var(--fs-xs); color:var(--text-3); margin:12px 0 8px 0; font-weight:500; border-top:1px solid var(--border); padding-top:8px;">Labels</div>
                     
                     <!-- Beam Labels Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:var(--success);">Beam Labels</label>
-                            <span id="beamLabelSizeValue" style="font-size:var(--fs-xs); color:var(--success); min-width:30px; text-align:right;">1.0x</span>
+                            <label style="font-size:var(--fs-xs);"><span class="color-key" style="background:var(--success)"></span>Beam Labels</label>
+                            <span id="beamLabelSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.0x</span>
                         </div>
                         <input type="range" id="beamLabelSize" min="0" max="3" step="0.1" value="1" 
                                oninput="previewLabelSize('beam', this.value)" style="width:100%; cursor:pointer;">
@@ -1877,8 +1877,8 @@
                     <!-- Load Labels Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:var(--warning);">Load Labels</label>
-                            <span id="loadLabelSizeValue" style="font-size:var(--fs-xs); color:var(--warning); min-width:30px; text-align:right;">1.5x</span>
+                            <label style="font-size:var(--fs-xs);"><span class="color-key" style="background:var(--warning)"></span>Load Labels</label>
+                            <span id="loadLabelSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.5x</span>
                         </div>
                         <input type="range" id="loadLabelSize" min="0" max="3" step="0.1" value="1.5" 
                                oninput="previewLabelSize('load', this.value)" style="width:100%; cursor:pointer;">
@@ -1887,8 +1887,8 @@
                     <!-- Node Coordinates Size -->
                     <div style="margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label style="font-size:var(--fs-xs); color:var(--primary);">Node Coords</label>
-                            <span id="nodeCoordSizeValue" style="font-size:var(--fs-xs); color:var(--primary); min-width:30px; text-align:right;">1.0x</span>
+                            <label style="font-size:var(--fs-xs);">Node Coords</label>
+                            <span id="nodeCoordSizeValue" style="font-size:var(--fs-xs); color:var(--text); min-width:30px; text-align:right;">1.0x</span>
                         </div>
                         <input type="range" id="nodeCoordSize" min="0" max="3" step="0.1" value="1" 
                                oninput="previewLabelSize('coord', this.value)" style="width:100%; cursor:pointer;">
@@ -2239,7 +2239,7 @@
                         <span style="color:var(--text-3); font-size:var(--fs-xs);">⋮⋮</span>
                     </div>
                     <div style="padding:8px 12px;">
-                        <div style="height:120px; width:20px; background:var(--success); border-radius:var(--r-ctl); float:left;"></div>
+                        <div style="height:120px; width:20px; background:var(--success-fill); border-radius:var(--r-ctl); float:left;"></div>
                         <div style="margin-left:32px; height:120px; display:flex; flex-direction:column; justify-content:space-between; font-size:var(--fs-xs); color:var(--text-2);">
                             <span id="legendMax">- MPa</span>
                             <span id="legendMid">- MPa</span>
@@ -2673,7 +2673,7 @@
                         <!-- Mini Diagrams -->
                         <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:8px;">
                             <div style="display:flex; gap:4px; margin-bottom:8px;">
-                                <button class="btn-small" id="btnDiagMoment" onclick="switchMiniDiagram('moment')" style="flex:1; padding:4px 8px; font-size:var(--fs-xs); background:var(--primary); border:none; color:white; border-radius:var(--r-ctl);">M</button>
+                                <button class="btn-small" id="btnDiagMoment" onclick="switchMiniDiagram('moment')" style="flex:1; padding:4px 8px; font-size:var(--fs-xs); background:var(--primary-fill); border:none; color:white; border-radius:var(--r-ctl);">M</button>
                                 <button class="btn-small" id="btnDiagShear" onclick="switchMiniDiagram('shear')" style="flex:1; padding:4px 8px; font-size:var(--fs-xs); background:var(--bg-elev); border:1px solid var(--border); color:var(--text-2); border-radius:var(--r-ctl);">V</button>
                                 <button class="btn-small" id="btnDiagStress" onclick="switchMiniDiagram('stress')" style="flex:1; padding:4px 8px; font-size:var(--fs-xs); background:var(--bg-elev); border:1px solid var(--border); color:var(--text-2); border-radius:var(--r-ctl);">σ</button>
                             </div>
@@ -3031,6 +3031,9 @@
         <span class="command-bar-status" id="cmdStatus">READY</span>
         <span class="command-bar-message" id="cmdMessage">Type a command (LINE, COPY, MOVE, ROTATE, MIRROR, OFFSET) or use the toolbar</span>
         <input type="text" class="command-bar-input" id="cmdInput" placeholder="Command..." spellcheck="false" autocomplete="off">
+        <!-- Komut tamamlama listesi. Komut cubugu ekranin altinda oldugu icin
+             kutu yukari dogru acilir; icerigi js/commands/system.js doldurur. -->
+        <div class="cmd-autocomplete" id="cmdAutocomplete" role="listbox"></div>
         <span class="command-bar-hints" id="cmdHints"></span>
         <span class="command-bar-coords" id="cmdCoords"></span>
         <button class="command-bar-ortho inactive" id="cmdOrtho" onclick="toggleOrthoMode()" title="Ortho Mode [F8]">ORTHO</button>

@@ -132,7 +132,7 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Normal Stress (σ)</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${elemResult.maxStress?.toFixed(1) || '-'} MPa</div>
+                            <div style="color:var(--accent-info); font-size:var(--fs-lg); font-weight:600;">${elemResult.maxStress?.toFixed(1) || '-'} MPa</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Shear Stress (τ)</div>
@@ -140,7 +140,7 @@
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Von Mises (σ_vm)</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${elemResult.vonMises?.toFixed(1) || '-'} MPa</div>
+                            <div style="color:var(--accent-info); font-size:var(--fs-lg); font-weight:600;">${elemResult.vonMises?.toFixed(1) || '-'} MPa</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Utilization</div>
@@ -151,7 +151,7 @@
                     <div style="margin-top:16px; background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                         <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:8px;">Internal Forces</div>
                         <div style="display:flex; gap:16px; flex-wrap:wrap;">
-                            <span style="color:var(--text-2);">M_max: <b style="color:var(--primary);">${elemResult.maxMoment?.toFixed(2) || '-'} kN·m</b></span>
+                            <span style="color:var(--text-2);">M_max: <b style="color:var(--accent-info);">${elemResult.maxMoment?.toFixed(2) || '-'} kN·m</b></span>
                             <span style="color:var(--text-2);">V_max: <b style="color:#22d3ee;">${elemResult.maxShear?.toFixed(2) || '-'} kN</b></span>
                             <span style="color:var(--text-2);">N: <b style="color:var(--warning);">${elemResult.axialForce?.toFixed(2) || '-'} kN</b></span>
                         </div>
@@ -296,15 +296,15 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); text-align:center;">
                             <div style="color:var(--text-3); font-size:var(--fs-sm);">Uz</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${uz !== null ? uz.toFixed(3) : '-'} mm</div>
+                            <div style="color:var(--accent-info); font-size:var(--fs-lg); font-weight:600;">${uz !== null ? uz.toFixed(3) : '-'} mm</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); text-align:center;">
                             <div style="color:var(--text-3); font-size:var(--fs-sm);">θx</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${rx !== null ? rx.toFixed(3) : '-'} mrad</div>
+                            <div style="color:var(--accent-info); font-size:var(--fs-lg); font-weight:600;">${rx !== null ? rx.toFixed(3) : '-'} mrad</div>
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); text-align:center;">
                             <div style="color:var(--text-3); font-size:var(--fs-sm);">θy</div>
-                            <div style="color:var(--primary); font-size:var(--fs-lg); font-weight:600;">${ry !== null ? ry.toFixed(3) : '-'} mrad</div>
+                            <div style="color:var(--accent-info); font-size:var(--fs-lg); font-weight:600;">${ry !== null ? ry.toFixed(3) : '-'} mrad</div>
                         </div>
                     </div>
                     

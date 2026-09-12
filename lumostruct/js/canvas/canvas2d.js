@@ -52,29 +52,34 @@
                 setViewMode('plan', false);
                 animate3D();
                 
-                // Check for auto-saved model
-                const autoSave = loadAutoSave();
-                if (autoSave) {
-                    const timeAgo = formatTimeAgo(autoSave.timestamp);
-                    // Show restore prompt
-                    showAutoSavePrompt(timeAgo);
-                }
+                // Otomatik kayit: soru sorulmaz, geri yuklenir.
+                otomatikKaydiGeriYukle();
             }, 200);
         });
         
-        // Otomatik kayit istemi. Eskiden kendi penceresini elle kuruyordu: kendi
-        // perdesi, 12px kose, emoji, sabit kodlu #3b82f6 ve z-index 10001 - yani
-        // diger pencerelerin de ustune biniyordu. Uygulamada bu isi yapan bir
-        // fonksiyon zaten var.
-        function showAutoSavePrompt(timeAgo) {
-            showConfirm(
-                'Restore previous session?',
-                'An auto-saved model from ' + timeAgo + ' was found.',
-                'Choosing Start fresh keeps the empty model; the auto-save is not deleted.',
-                'Restore', false, 'Start fresh'
-            ).then(function (ok) {
-                if (ok) restoreAutoSave();
-            });
+        // Her acilista "Restore previous session?" penceresi cikiyordu - hem
+        // bos bir otomatik kayit icin bile, hem de calisma geri gelsin diye her
+        // seferinde tiklamak gerekiyordu. Bir cizim programi belgesini geri
+        // acar, izin istemez: dolu bir kayit varsa sessizce yuklenir ve durum
+        // cubugunda soylenir. Sifirdan baslamak icin Model > Clear Model var.
+        function otomatikKaydiGeriYukle() {
+            const kayit = loadAutoSave();
+            if (!kayit || !kayit.model) return;
+
+            const dugum = Object.keys(kayit.model.nodes || {}).length;
+            const eleman = Object.keys(kayit.model.elements || {}).length;
+            if (!dugum && !eleman) return;   // bos kayit: geri yuklenecek bir sey yok
+
+            if (!restoreAutoSave()) return;
+
+            // restoreAutoSave durum cubuguna yaziyor ama arkasindan calisan
+            // fitView/updateCommandUI mesajin ustune yaziyordu: model sessizce
+            // geri geliyor, kullanici neden dolu oldugunu anlamiyordu.
+            const ne = formatTimeAgo(kayit.timestamp);
+            setTimeout(() => {
+                showToast('Restored your last model from ' + ne +
+                          ' - ' + dugum + ' nodes, ' + eleman + ' beams', 'info', 5000, true);
+            }, 400);
         }
         
         // Also resize when tab becomes visible

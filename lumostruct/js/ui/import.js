@@ -271,7 +271,7 @@
                         
                         <!-- Tab Navigation -->
                         <div style="display:flex; border-bottom:1px solid var(--border); background:var(--bg-main);">
-                            <button class="lib-tab active" onclick="showLibraryTab('hp')" data-tab="hp" style="flex:1; padding:12px; background:transparent; border:none; color:var(--primary); cursor:pointer; border-bottom:2px solid var(--primary); font-weight:600;">HP Bulb</button>
+                            <button class="lib-tab active" onclick="showLibraryTab('hp')" data-tab="hp" style="flex:1; padding:12px; background:transparent; border:none; color:var(--accent-info); cursor:pointer; border-bottom:2px solid var(--primary); font-weight:600;">HP Bulb</button>
                             <button class="lib-tab" onclick="showLibraryTab('fb')" data-tab="fb" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">Flat Bar</button>
                             <button class="lib-tab" onclick="showLibraryTab('l')" data-tab="l" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">L-Angle</button>
                             <button class="lib-tab" onclick="showLibraryTab('t')" data-tab="t" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">T-Section</button>
@@ -285,7 +285,7 @@
                                 <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px;">
                                     ${HP_CATALOG.map(hp => `
                                         <div class="section-card" onclick="addSectionFromCatalog('HP', '${hp.name}')" style="padding:8px; background:var(--bg-main); border-radius:var(--r-ovl); cursor:pointer; text-align:center; border:2px solid ${SECTIONS[hp.name] ? 'var(--success)' : '#334155'}; transition:all 0.2s;">
-                                            <div style="font-weight:600; color:var(--primary); font-size:var(--fs-md);">${hp.name}</div>
+                                            <div style="font-weight:600; color:var(--accent-info); font-size:var(--fs-md);">${hp.name}</div>
                                             <div style="font-size:var(--fs-xs); color:var(--text-2); margin-top:4px;">A: ${hp.A.toFixed(1)} cm²</div>
                                             ${SECTIONS[hp.name] ? '<div style="font-size:var(--fs-xs); color:var(--success); margin-top:2px;">✓ In model</div>' : ''}
                                         </div>
@@ -329,7 +329,7 @@
                                 <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px;">
                                     ${T_CATALOG.map(t => `
                                         <div class="section-card" onclick="addSectionFromCatalog('T', '${t.name}')" style="padding:8px; background:var(--bg-main); border-radius:var(--r-ovl); cursor:pointer; text-align:center; border:2px solid ${SECTIONS[t.name] ? 'var(--success)' : '#334155'}; transition:all 0.2s;">
-                                            <div style="font-weight:600; color:var(--primary); font-size:var(--fs-md);">${t.name}</div>
+                                            <div style="font-weight:600; color:var(--accent-info); font-size:var(--fs-md);">${t.name}</div>
                                             <div style="font-size:var(--fs-xs); color:var(--text-2); margin-top:4px;">A: ${t.A.toFixed(1)} cm²</div>
                                             ${SECTIONS[t.name] ? '<div style="font-size:var(--fs-xs); color:var(--success); margin-top:2px;">✓ In model</div>' : ''}
                                         </div>
@@ -372,7 +372,7 @@
                                                 <label style="color:var(--text-2); font-size:var(--fs-sm);">Wy - Section Modulus (cm³)</label>
                                                 <input type="number" id="customSectionWy" placeholder="Auto-calculated" step="0.1" style="width:100%; padding:8px; background:var(--bg-elev); border:1px solid var(--border); color:var(--text); border-radius:var(--r-ctl); box-sizing:border-box;">
                                             </div>
-                                            <button onclick="addCustomSection()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer; font-weight:600;">
+                                            <button onclick="addCustomSection()" style="width:100%; padding:12px; background:var(--primary-fill); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer; font-weight:600;">
                                                 Add Custom Section
                                             </button>
                                         </div>
@@ -540,7 +540,7 @@
                     <div style="background:var(--bg-elev); border-radius:var(--r-ovl); width:450px; max-height:85vh; overflow:hidden;">
                         <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid var(--border); background:var(--bg-main);">
                             <h3 style="margin:0; color:var(--text); font-size:var(--fs-md);">
-                                <span style="color:var(--primary);">${profileName}</span> + Attached Plate
+                                <span style="color:var(--accent-info);">${profileName}</span> + Attached Plate
                             </h3>
                             <button onclick="this.closest('#effBreadthModal').remove()" style="background:none; border:none; color:var(--text-2); cursor:pointer; font-size:var(--fs-lg);">&times;</button>
                         </div>
@@ -564,7 +564,7 @@
                                     <label style="flex:1; display:flex; align-items:center; gap:8px; padding:8px; background:var(--bg-main); border-radius:var(--r-ctl); cursor:pointer; border:2px solid var(--border);" id="labelRuleBased">
                                         <input type="radio" name="beffMethod" value="rule" checked onchange="toggleBeffMethod()">
                                         <div>
-                                            <div style="color:var(--primary); font-size:var(--fs-sm); font-weight:600;">BV NR467 Rule</div>
+                                            <div style="color:var(--accent-info); font-size:var(--fs-sm); font-weight:600;">BV NR467 Rule</div>
                                             <div style="color:var(--text-3); font-size:var(--fs-xs);">Auto-calculate from span & spacing</div>
                                         </div>
                                     </label>
@@ -629,7 +629,7 @@
                             
                             <!-- Composite Section Results -->
                             <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl); margin-bottom:16px; border:1px solid var(--border);">
-                                <div style="color:var(--primary); font-size:var(--fs-sm); margin-bottom:8px; font-weight:600;">📐 Composite Section Properties</div>
+                                <div style="color:var(--accent-info); font-size:var(--fs-sm); margin-bottom:8px; font-weight:600;">📐 Composite Section Properties</div>
                                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:var(--fs-md);">
                                     <div><span style="color:var(--text-3);">A<sub>comp</sub>:</span> <span style="color:var(--success); font-weight:600;" id="compA">--</span></div>
                                     <div><span style="color:var(--text-3);">h<sub>total</sub>:</span> <span style="color:var(--text);" id="compH">--</span></div>
@@ -645,7 +645,7 @@
                                 <button onclick="document.getElementById('effBreadthModal').remove(); showSectionLibrary();" style="flex:1; padding:12px; background:var(--bg-hover); color:var(--text); border:none; border-radius:var(--r-ctl); cursor:pointer;">
                                     ← Back to Library
                                 </button>
-                                <button onclick="addSectionWithPlate('${profileType}', '${profileName}')" style="flex:1; padding:12px; background:var(--success); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer; font-weight:600;">
+                                <button onclick="addSectionWithPlate('${profileType}', '${profileName}')" style="flex:1; padding:12px; background:var(--success-fill); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer; font-weight:600;">
                                     ✓ Add to Model
                                 </button>
                             </div>
@@ -905,7 +905,7 @@
                                 
                                 <!-- Selection -->
                                 <div style="background:var(--bg-main); padding:16px; border-radius:var(--r-ovl);">
-                                    <h3 style="color:var(--primary); margin:0 0 12px 0; font-size:var(--fs-md); border-bottom:1px solid var(--border); padding-bottom:8px;">📌 Selection</h3>
+                                    <h3 style="color:var(--accent-info); margin:0 0 12px 0; font-size:var(--fs-md); border-bottom:1px solid var(--border); padding-bottom:8px;">📌 Selection</h3>
                                     <div style="display:flex; flex-direction:column; gap:8px;">
                                         <div style="display:flex; justify-content:space-between;"><kbd>Ctrl+A</kbd><span style="color:var(--text-2);">Select all</span></div>
                                         <div style="display:flex; justify-content:space-between;"><kbd>Delete</kbd><span style="color:var(--text-2);">Delete selected</span></div>
@@ -930,7 +930,7 @@
                                 
                                 <!-- Display Toggles -->
                                 <div style="background:var(--bg-main); padding:16px; border-radius:var(--r-ovl);">
-                                    <h3 style="color:var(--primary); margin:0 0 12px 0; font-size:var(--fs-md); border-bottom:1px solid var(--border); padding-bottom:8px;">🎨 Display Toggles</h3>
+                                    <h3 style="color:var(--accent-info); margin:0 0 12px 0; font-size:var(--fs-md); border-bottom:1px solid var(--border); padding-bottom:8px;">🎨 Display Toggles</h3>
                                     <div style="display:flex; flex-direction:column; gap:8px;">
                                         <div style="display:flex; justify-content:space-between;"><kbd>B</kbd><span style="color:var(--text-2);">Beams</span></div>
                                         <div style="display:flex; justify-content:space-between;"><kbd>N</kbd><span style="color:var(--text-2);">Nodes</span></div>
@@ -967,7 +967,7 @@
                                 
                                 <!-- Commands -->
                                 <div style="background:var(--bg-main); padding:16px; border-radius:var(--r-ovl);">
-                                    <h3 style="color:var(--primary); margin:0 0 12px 0; font-size:var(--fs-md); border-bottom:1px solid var(--border); padding-bottom:8px;">⌨️ CAD Commands</h3>
+                                    <h3 style="color:var(--accent-info); margin:0 0 12px 0; font-size:var(--fs-md); border-bottom:1px solid var(--border); padding-bottom:8px;">⌨️ CAD Commands</h3>
                                     <div style="display:flex; flex-direction:column; gap:8px; font-size:var(--fs-md);">
                                         <div style="display:flex; justify-content:space-between;"><kbd>LINE</kbd><span style="color:var(--text-2);">Draw beam</span></div>
                                         <div style="display:flex; justify-content:space-between;"><kbd>COPY</kbd><span style="color:var(--text-2);">Copy selected</span></div>
@@ -1153,9 +1153,9 @@
                 } else {
                     bcTable.innerHTML = constraints.map(([nodeId, bc]) => {
                         // Green check with background for fixed DOFs
-                        const check = (val) => val ? '<span style="background:var(--success); color:white; padding:1px 4px; border-radius:var(--r-ctl); font-weight:600;"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></span>' : '<span style="color:var(--text-3);">-</span>';
+                        const check = (val) => val ? '<span style="background:var(--success-fill); color:white; padding:1px 4px; border-radius:var(--r-ctl); font-weight:600;"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></span>' : '<span style="color:var(--text-3);">-</span>';
                         return `<tr>
-                            <td style="color:var(--primary); font-weight:600;">${nodeId}</td>
+                            <td style="color:var(--accent-info); font-weight:600;">${nodeId}</td>
                             <td style="text-align:center;">${check(bc.Ux)}</td>
                             <td style="text-align:center;">${check(bc.Uy)}</td>
                             <td style="text-align:center;">${check(bc.Uz)}</td>
@@ -1179,7 +1179,7 @@
                         const clr = (v) => v && v !== 0 ? 'var(--danger)' : 'var(--text-3)';
                         const editStyle = 'cursor:pointer; text-decoration:underline; text-decoration-style:dotted;';
                         return `<tr>
-                            <td style="color:var(--primary); font-weight:600;">${load.nodeId}</td>
+                            <td style="color:var(--accent-info); font-weight:600;">${load.nodeId}</td>
                             <td onclick="editPointLoad(${idx}, 'Fx')" style="color:${clr(load.Fx)}; ${editStyle}" title="Click to edit">${fmt(load.Fx)}</td>
                             <td onclick="editPointLoad(${idx}, 'Fy')" style="color:${clr(load.Fy)}; ${editStyle}" title="Click to edit">${fmt(load.Fy)}</td>
                             <td onclick="editPointLoad(${idx}, 'Fz')" style="color:${clr(load.Fz)}; font-weight:600; ${editStyle}" title="Click to edit">${fmt(load.Fz)}</td>
@@ -1220,7 +1220,7 @@
                     lineLoadTable.innerHTML = lineLoads.map(ll => {
                         const range = ll.start === 0 && ll.end === 1 ? 'Full' : `${(ll.start * 100).toFixed(0)}-${(ll.end * 100).toFixed(0)}%`;
                         return `<tr>
-                            <td style="color:var(--primary); font-weight:600;">E${ll.elemId}</td>
+                            <td style="color:var(--accent-info); font-weight:600;">E${ll.elemId}</td>
                             <td style="color:var(--text-3); font-size:var(--fs-xs);">${ll.n1}→${ll.n2}</td>
                             <td onclick="editLineLoad(${ll.elemId}, ${ll.idx})" style="color:var(--success); font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-style:dotted;" title="Click to edit">${ll.value.toFixed(1)}</td>
                             <td style="color:var(--text-2);">${range}</td>

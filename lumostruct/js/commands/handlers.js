@@ -1042,7 +1042,7 @@
                     let tipText = `<span style="color:var(--text-2);font-size:var(--fs-xs)">X: ${xMM}  Y: ${yMM}</span><br>`;
                     tipText += `<span class="distance">${dist.toFixed(0)} mm ${dirText}</span>`;
                     if (cmdState.orthoMode) tipText += ` <span style="color:var(--success);font-size:var(--fs-xs)">[ORTHO]</span>`;
-                    if (snapPoint && snapPoint.type) tipText += `<br><span style="color:var(--primary);font-size:var(--fs-xs)">[${snapPoint.type}]</span>`;
+                    if (snapPoint && snapPoint.type) tipText += `<br><span style="color:var(--accent-info);font-size:var(--fs-xs)">[${snapPoint.type}]</span>`;
                     tipText += `<br><span style="color:var(--text-3);font-size:var(--fs-xs)">Type distance + Enter</span>`;
                     showTooltipAt(e.clientX, e.clientY, tipText);
                     
@@ -1050,7 +1050,7 @@
                 } else {
                     // First point - just show coordinates
                     let tipText = `<span style="color:var(--text-2);font-size:var(--fs-xs)">X: ${xMM}  Y: ${yMM}</span>`;
-                    if (snapPoint && snapPoint.type) tipText += `<br><span style="color:var(--primary);font-size:var(--fs-xs)">[${snapPoint.type}]</span>`;
+                    if (snapPoint && snapPoint.type) tipText += `<br><span style="color:var(--accent-info);font-size:var(--fs-xs)">[${snapPoint.type}]</span>`;
                     showTooltipAt(e.clientX, e.clientY, tipText);
                 }
             } else if (cmdState.active === CMD.OFFSET && cmdState.phase === PHASE.DESTINATION) {

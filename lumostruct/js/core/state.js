@@ -209,7 +209,7 @@
                         </div>
                         <div style="padding:16px; max-height:400px; overflow-y:auto;">
                             <div id="loadCasesList"></div>
-                            <button onclick="addLoadCase()" style="width:100%; margin-top:12px; padding:8px; background:var(--primary); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer;">
+                            <button onclick="addLoadCase()" style="width:100%; margin-top:12px; padding:8px; background:var(--primary-fill); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer;">
                                 + Add Load Case
                             </button>
                         </div>
@@ -219,7 +219,7 @@
                                 Factor = multiplier for loads<br>
                                 Click name to edit that load case
                             </div>
-                            <button onclick="solveCombinedLoadCases(); this.closest('#loadCasesModal').remove();" style="width:100%; padding:8px; background:var(--success); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer;">
+                            <button onclick="solveCombinedLoadCases(); this.closest('#loadCasesModal').remove();" style="width:100%; padding:8px; background:var(--success-fill); color:white; border:none; border-radius:var(--r-ctl); cursor:pointer;">
                                 Solve Combined
                             </button>
                         </div>

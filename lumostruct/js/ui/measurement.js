@@ -255,7 +255,7 @@
                         <div style="color:var(--success); font-weight:600;">${dyMm} mm</div>
                     </div>
                     <div style="background:var(--bg-elev); padding:8px; border-radius:var(--r-ctl); text-align:center;">
-                        <div style="color:var(--primary); font-size:var(--fs-xs);">ΔZ</div>
+                        <div style="color:var(--accent-info); font-size:var(--fs-xs);">ΔZ</div>
                         <div style="color:#93c5fd; font-weight:600;">${dzMm} mm</div>
                     </div>
                 </div>

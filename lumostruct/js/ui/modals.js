@@ -813,7 +813,11 @@
             }
         }
         
-        function showToast(message, type = 'success', duration = 3000) {
+        // zorlaGoster: hata disi bir mesaji da balon olarak gosterir. Durum
+        // cubugu surekli updateCommandUI tarafindan uzerine yazildigi icin,
+        // gorulmesi gereken bir bildirim (ornegin "onceki modelin geri
+        // yuklendi") orada saniyeler icinde kayboluyordu.
+        function showToast(message, type = 'success', duration = 3000, zorlaGoster = false) {
             // Backward compatibility for old calls
             if (type === true) type = 'error';
             if (type === false) type = 'success';
@@ -822,7 +826,7 @@
             updateStatusBar(message, type);
             
             // Only show popup toast for errors (critical issues need attention)
-            if (type !== 'error') {
+            if (type !== 'error' && !zorlaGoster) {
                 return; // Success, warning, info only shows in status bar
             }
             

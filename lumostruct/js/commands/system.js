@@ -15,6 +15,115 @@
             JOIN: 'join',
             NODE_MOVE: 'node_move'
         };
+
+        // ============== KOMUT SOZLUGU VE TAMAMLAMA ==============
+        //
+        // Komut adlari eskiden yalnizca startCommand icindeki switch'te
+        // yaziliydi. Bu yuzden "L" ve "LINE" calisiyor ama "LI" / "LIN"
+        // calismiyordu; hangi komutlarin oldugunu gormenin de bir yolu yoktu.
+        // Sozluk hem eslestirmeyi hem de oneri listesini besler.
+        //
+        // YENI KOMUT EKLERKEN: startCommand'a case eklemek yetmez, buraya da
+        // bir satir eklenmeli - yoksa komut tamamlamada gorunmez.
+        const KOMUTLAR = [
+            { ad: 'LINE',   kisa: ['L'],       aciklama: 'Draw connected beams' },
+            { ad: 'COPY',   kisa: ['CO', 'C'], aciklama: 'Copy selected beams' },
+            { ad: 'MOVE',   kisa: ['M'],       aciklama: 'Move selected beams' },
+            { ad: 'ROTATE', kisa: ['RO', 'R'], aciklama: 'Rotate about a centre' },
+            { ad: 'MIRROR', kisa: ['MI'],      aciklama: 'Mirror about a line' },
+            { ad: 'OFFSET', kisa: ['O'],       aciklama: 'Parallel copy at a distance' },
+            { ad: 'SPLIT',  kisa: ['SP'],      aciklama: 'Split a beam at a point' },
+            { ad: 'EXTEND', kisa: ['EX'],      aciklama: 'Extend a beam to a boundary' },
+            { ad: 'TRIM',   kisa: ['TR'],      aciklama: 'Trim a beam at a boundary' },
+            { ad: 'JOIN',   kisa: ['J'],       aciklama: 'Merge collinear beams' },
+            { ad: 'PURGE',  kisa: ['PU'],      aciklama: 'Remove orphan nodes and duplicates' }
+        ];
+
+        // Yazilani bir komuta cevirir. Sirasiyla: tam ad, tam kisaltma, tek
+        // basina kalan onek. "LI" yalnizca LINE ile basliyorsa LINE'dir.
+        function komutCoz(girdi) {
+            const t = String(girdi || '').trim().toUpperCase();
+            if (!t) return null;
+
+            const tam = KOMUTLAR.find(k => k.ad === t || k.kisa.includes(t));
+            if (tam) return tam.ad;
+
+            const onek = KOMUTLAR.filter(k => k.ad.startsWith(t));
+            return onek.length === 1 ? onek[0].ad : null;
+        }
+
+        // Oneri listesi: yalnizca BASTAN eslesenler. Icinde gecenleri de
+        // katmak "O" yazinca COPY/MOVE/ROTATE/MIRROR/JOIN'i sıralıyordu -
+        // aranan komut listenin icinde kayboluyordu.
+        function komutOner(girdi) {
+            const t = String(girdi || '').trim().toUpperCase();
+            if (!t) return [];
+            return KOMUTLAR.filter(k =>
+                k.ad.startsWith(t) || k.kisa.some(a => a.startsWith(t)));
+        }
+
+        // ---- Oneri kutusu ----
+        let oneriListesi = [];
+        let oneriSecili = -1;
+
+        function oneriKutusu() {
+            return document.getElementById('cmdAutocomplete');
+        }
+
+        function oneriGizle() {
+            const kutu = oneriKutusu();
+            if (kutu) kutu.style.display = 'none';
+            oneriListesi = [];
+            oneriSecili = -1;
+        }
+
+        function oneriTazele() {
+            const kutu = oneriKutusu();
+            const input = cmdElements.input;
+            if (!kutu || !input) return;
+
+            // Komut calisirken kutu koordinat girdisi icindir, oneri cikmaz.
+            if (cmdState.active !== CMD.NONE) { oneriGizle(); return; }
+
+            oneriListesi = komutOner(input.value);
+            if (!oneriListesi.length) { oneriGizle(); return; }
+
+            oneriSecili = 0;
+            kutu.innerHTML = oneriListesi.map((k, i) =>
+                '<div class="cmd-suggestion' + (i === 0 ? ' selected' : '') + '" data-i="' + i + '">' +
+                '<span class="cmd-suggestion-name">' + k.ad + '</span>' +
+                '<span class="cmd-suggestion-alias">' + k.kisa.join(', ') + '</span>' +
+                '<span class="cmd-suggestion-desc">' + k.aciklama + '</span>' +
+                '</div>').join('');
+
+            // Kutu, girdi alaninin ustunde ve onunla ayni hizada acilir.
+            kutu.style.left = input.offsetLeft + 'px';
+            kutu.style.display = 'block';
+        }
+
+        function oneriGez(yon) {
+            if (!oneriListesi.length) return;
+            oneriSecili = (oneriSecili + yon + oneriListesi.length) % oneriListesi.length;
+            const kutu = oneriKutusu();
+            if (!kutu) return;
+            [...kutu.children].forEach((e, i) => e.classList.toggle('selected', i === oneriSecili));
+            const secili = kutu.children[oneriSecili];
+            if (secili) secili.scrollIntoView({ block: 'nearest' });
+        }
+
+        // Secili oneriyi girdi alanina yazar. calistir=true ise komutu baslatir.
+        function oneriUygula(calistir) {
+            if (oneriSecili < 0 || !oneriListesi[oneriSecili]) return false;
+            const ad = oneriListesi[oneriSecili].ad;
+            oneriGizle();
+            if (calistir) {
+                if (cmdElements.input) cmdElements.input.value = '';
+                startCommand(ad);
+            } else if (cmdElements.input) {
+                cmdElements.input.value = ad;
+            }
+            return true;
+        }
         
         // Command Phases
         const PHASE = {
@@ -98,6 +207,30 @@
             // Command input handler
             if (cmdElements.input) {
                 cmdElements.input.addEventListener('keydown', handleCommandInput);
+
+                // Yazdikca oneri listesi tazelenir.
+                cmdElements.input.addEventListener('input', oneriTazele);
+                cmdElements.input.addEventListener('focus', oneriTazele);
+                // blur'da hemen gizlemek, listeye yapilan tiklamayi yutuyor.
+                cmdElements.input.addEventListener('blur', () => setTimeout(oneriGizle, 150));
+
+                const oneriKutu = oneriKutusu();
+                if (oneriKutu) {
+                    oneriKutu.addEventListener('mousedown', e => {
+                        const satir = e.target.closest('.cmd-suggestion');
+                        if (!satir) return;
+                        e.preventDefault();               // girdi odagi kaybolmasin
+                        oneriSecili = Number(satir.dataset.i);
+                        oneriUygula(true);
+                    });
+                    oneriKutu.addEventListener('mousemove', e => {
+                        const satir = e.target.closest('.cmd-suggestion');
+                        if (!satir) return;
+                        oneriSecili = Number(satir.dataset.i);
+                        [...oneriKutu.children].forEach((el, i) =>
+                            el.classList.toggle('selected', i === oneriSecili));
+                    });
+                }
                 cmdElements.input.addEventListener('focus', () => {
                     cmdElements.input.select();
                 });
@@ -295,7 +428,41 @@
             if (!input) return;
             
             const value = input.value.trim();
-            
+
+            // ---- Oneri listesi klavyesi ----
+            const oneriAcik = oneriListesi.length > 0 &&
+                (oneriKutusu() || {}).style?.display === 'block';
+
+            if (oneriAcik && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                e.preventDefault();
+                e.stopPropagation();
+                oneriGez(e.key === 'ArrowDown' ? 1 : -1);
+                return;
+            }
+
+            // Tab: secili oneriyi yazar ama calistirmaz (AutoCAD gibi).
+            if (oneriAcik && e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+                oneriUygula(false);
+                return;
+            }
+
+            // Esc once listeyi kapatir, komutu iptal etmez.
+            if (oneriAcik && e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                oneriGizle();
+                return;
+            }
+
+            if (oneriAcik && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                e.stopPropagation();
+                oneriUygula(true);
+                return;
+            }
+
             // Enter or Space: Process input
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -605,6 +772,11 @@
         
         // Start Command - Always start from SELECT phase
         function startCommand(cmd) {
+            // "LI" / "LIN" gibi kismi yazimlar da komuta cevrilir; asagidaki
+            // switch yalnizca tam adi bilir.
+            const cozulen = komutCoz(cmd);
+            if (cozulen) cmd = cozulen;
+
             // Clear any previous command state
             cancelCommand();
             
@@ -710,6 +882,9 @@
                     return;
             }
             
+            // Komut basladi: girdi artik koordinat icin, oneri listesi kapanir.
+            oneriGizle();
+
             // Save last command for repeat (Space/Enter when no command active)
             cmdState.lastCommand = cmd;
             

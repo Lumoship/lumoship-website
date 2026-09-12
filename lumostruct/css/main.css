@@ -57,7 +57,19 @@
             --accent-success-hover: #059669;
             --accent-warning: var(--warning);
             --accent-danger: var(--danger);
-            --accent-info: var(--primary);   /* ayri bir mavi daha yok */
+            /* Yazi mavisi ARTIK --primary degil. --primary dolgulu dugmelerin
+               zemini; ayni tonu koyu kart uzerinde YAZI olarak kullanmak 4.18
+               kontrast veriyordu (4.5 gerekli). Bir basamak acigi 6.04 verir ve
+               dugme zeminine dokunmaz. */
+            --accent-info: #60a5fa;
+
+            /* Dolgulu dugmelerin ZEMINI. --primary'nin kendisi degismiyor:
+               o ayni zamanda 3B gorunumdeki kiris rengi, vurgu ve kenarlik;
+               koyultmak kirisleri koyu tuval uzerinde soluklastirirdi. Beyaz
+               yazi --primary uzerinde 3.68, --success uzerinde 2.28 kontrast
+               veriyordu; asagidaki tonlarda 5.17 ve 5.02. */
+            --primary-fill: #2563eb;
+            --success-fill: #15803d;
             
             /* Colors - Text */
             --text-primary: #f1f5f9;
@@ -176,7 +188,7 @@
         }
         
         body.light-mode .toolbar-btn.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
         }
         
@@ -262,7 +274,7 @@
         }
         
         .command-bar-hints span {
-            color: var(--primary);
+            color: var(--accent-info);
             margin: 0 1px;
         }
         
@@ -283,9 +295,11 @@
             transition: all 0.15s;
         }
         
+        /* Rozet zemini --success; acik temada bu ton koyulasinca siyah yazi
+           4.19'a dusuyordu. Beyaz yazi her iki temada da esigi geciyor. */
         .command-bar-ortho.active {
-            background: var(--success);
-            color: #000;
+            background: var(--success-fill);
+            color: #fff;
         }
         
         .command-bar-ortho.inactive {
@@ -496,7 +510,7 @@
         
         /* Command Active Indicator on Toolbar */
         .toolbar-btn.cmd-active {
-            background: var(--success) !important;
+            background: var(--success-fill) !important;
             color: white !important;
             box-shadow: none;
         }
@@ -940,7 +954,7 @@
         }
         
         .btn-success {
-            background: var(--accent-success);
+            background: var(--success-fill-fill);
             color: white;
             box-shadow: var(--shadow-sm);
         }
@@ -1015,7 +1029,7 @@
             padding: var(--space-4);
             font-size: var(--font-size-lg);
             font-weight: var(--font-weight-semibold);
-            background: var(--accent-success);
+            background: var(--success-fill-fill);
             color: white;
             border: none;
             border-radius: var(--radius-lg);
@@ -1357,7 +1371,7 @@
         }
         
         .status-bar .selection-mode button.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             border-color: var(--primary);
             color: white;
         }
@@ -1533,7 +1547,7 @@
         }
         
         .toolbar-btn.success {
-            background: var(--accent-success);
+            background: var(--success-fill-fill);
             color: white;
         }
         
@@ -1593,7 +1607,7 @@
         }
         
         .view-mode-btn.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             border-color: var(--primary);
             color: white;
             box-shadow: none;
@@ -2882,9 +2896,15 @@
             --bg-hover: #242d3d;         /* Hover states */
             
             /* Text Hierarchy */
+            /* Uc basamak da zemininden okunabilir olmali. Olculen eski
+               degerler: --text-3 kart uzerinde 2.57, en koyu zeminde 3.23
+               kontrast veriyordu - yani butun kucuk etiketler ("Material",
+               "b (mm)", "X (mm)") esikte degil, esigin epey altindaydi.
+               --text-2 yukseltilmezse iki basamak birbirine yapisiyordu.
+               Yeni degerler kart zemininde: 12.95 / 7.02 / 4.57. */
             --text: #e8ecf2;             /* Primary text, values */
-            --text-2: #8b95a5;           /* Secondary text, labels */
-            --text-3: #5a6474;           /* Muted, placeholders, disabled */
+            --text-2: #a7b0be;           /* Secondary text, labels */
+            --text-3: #828d9e;           /* Muted, placeholders, disabled */
             
             /* Single Border Color */
             --border: #2a3444;           /* All borders - subtle, consistent */
@@ -2938,7 +2958,16 @@
 
             --text: #1e293b;
             --text-2: #475569;
-            --text-3: #64748b;
+            --text-3: #5b6675;   /* #64748b acik zeminde 4.34 kaliyordu */
+            --accent-info: #1d4ed8;   /* acik zeminde acik mavi okunmaz */
+
+            /* Anlamsal renkler koyu tema icin secilmis; acik zeminde YAZI
+               olarak okunmuyorlardi (yesil 2.08, kirmizi 3.76 kontrast).
+               Dolgu tonlari (--success-fill / --primary-fill) ayri oldugu
+               icin bunlari koyultmak dugmeleri etkilemez. */
+            --success: #15803d;
+            --danger:  #b91c1c;
+            --warning: #92400e;
 
             --border: #e2e8f0;
 
@@ -3114,7 +3143,7 @@
         
         /* PRIMARY: Main actions (1 per screen ideally) */
         .btn-primary {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
             border: none;
             box-shadow: none;
@@ -3132,7 +3161,7 @@
         
         /* SUCCESS: Solve button only */
         .btn-success, .solve-btn {
-            background: var(--success);
+            background: var(--success-fill);
             color: white;
             border: none;
             box-shadow: none;
@@ -3158,7 +3187,7 @@
         }
         
         .btn-secondary.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
             border-color: var(--primary);
         }
@@ -3214,13 +3243,13 @@
         }
         
         .toolbar-btn.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
             box-shadow: none;
         }
         
         .toolbar-btn.success {
-            background: var(--success);
+            background: var(--success-fill);
             color: white;
         }
         
@@ -3254,7 +3283,7 @@
         }
         
         .context-menu-item:hover {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
         }
         
@@ -3474,7 +3503,7 @@
         }
         
         .tab.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
             box-shadow: none;
         }
@@ -3493,7 +3522,7 @@
         }
         
         .panel-subtab.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
         }
         
@@ -3612,7 +3641,7 @@
         }
         
         .entity-property .value.highlight {
-            color: var(--primary);
+            color: var(--accent-info);
         }
         
         /* -------- SECTION DIAGRAM -------- */
@@ -3935,7 +3964,7 @@
         }
         
         .orient-btn.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             border-color: var(--primary);
             color: white;
         }
@@ -4035,7 +4064,7 @@
         }
         
         .beam-diagram-tab.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
         }
         
@@ -4069,7 +4098,7 @@
         }
         
         .results-bottom-tab.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: white;
             border-color: var(--primary);
         }
@@ -4161,7 +4190,7 @@
             border-color: var(--text-2) !important;
         }
         body.light-mode .view-mode-btn.active {
-            background: var(--primary) !important;
+            background: var(--primary-fill) !important;
             color: #ffffff !important;
         }
 
@@ -4428,7 +4457,7 @@
         }
         .view-toggle:hover { background: var(--bg-hover); color: var(--text); }
         .view-toggle.active {
-            background: var(--primary);
+            background: var(--primary-fill);
             color: #fff;
             font-weight: 500;
         }
@@ -4709,4 +4738,94 @@
         .entity-info-panel *::-webkit-scrollbar-corner,
         .modal *::-webkit-scrollbar-corner {
             background: var(--bg-main);
+        }
+
+        /* ---- Komut tamamlama listesi ----
+           Komut cubugu ekranin en altinda oldugu icin liste YUKARI acilir.
+           Kart dili panellerdekiyle ayni: --bg-elev + cerceve + --r-md. */
+        .cmd-autocomplete {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 4px);
+            min-width: 300px;
+            max-width: 460px;
+            max-height: 240px;
+            overflow-y: auto;
+            background: var(--bg-elev);
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            z-index: 70;
+            padding: var(--space-1) 0;
+        }
+
+        .cmd-suggestion {
+            display: flex;
+            align-items: baseline;
+            gap: var(--space-2);
+            padding: 4px var(--space-3);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: var(--fs-xs);
+            white-space: nowrap;
+        }
+
+        .cmd-suggestion.selected {
+            background: var(--primary-fill);
+        }
+
+        /* Amber (--warning) iki temada da ayni deger; acik zeminde kontrast
+           1.75'e dusuyordu, yani okunmuyordu. Komut adi metin renginde ve
+           kalin - kimligini kalinlik verir, renk degil. */
+        .cmd-suggestion-name {
+            color: var(--text);
+            font-weight: 600;
+            min-width: 64px;
+        }
+
+        .cmd-suggestion.selected .cmd-suggestion-name {
+            color: #fff;
+        }
+
+        /* Kisaltma: komutu bir kez ogrendikten sonra kullanilacak olan sey. */
+        .cmd-suggestion-alias {
+            color: var(--text-2);   /* --text-3 koyu temada 2.57 kontrast veriyordu */
+            min-width: 44px;
+        }
+
+        .cmd-suggestion-desc {
+            color: var(--text-2);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cmd-suggestion.selected .cmd-suggestion-alias,
+        .cmd-suggestion.selected .cmd-suggestion-desc {
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        /* Komut girdisi acik temada beyaz zemin uzerinde amber yaziyordu:
+           kontrast 1.85. Ayni amber ailesinin koyu tonu okunur. */
+        body.light-mode .command-bar-input {
+            color: #92400e;
+        }
+
+        /* Gorunum boyutu etiketlerinin rengi anlam tasiyor: o ogenin 3B'deki
+           rengi. Ama renkli YAZI olarak acik temada okunmuyordu (camgobegi
+           1.81, mavi 3.68 kontrast). Renk noktaya tasindi; anlam duruyor,
+           yazi normal metin renginde. */
+        .color-key {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: var(--space-2);
+            vertical-align: baseline;
+        }
+
+        /* Hesap sonucu kutusu: yesil yazi yesil tonlu zeminde 1.92 kontrast
+           veriyordu - deger okunmuyordu. Zemin ipucu olarak kalir, deger
+           normal metin renginde yazilir. */
+        .result-box .result-value {
+            color: var(--text);
         }
