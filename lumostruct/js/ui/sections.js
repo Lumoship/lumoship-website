@@ -311,9 +311,31 @@
         }
         
         // ============== PROFILE PREVIEW SVG ==============
+        // Acilista onizleme alani, form alanlarindaki varsayilan b=200 t=10
+        // degerlerinden bir HP kesiti ciziyordu. Panel "Beam Profiles 0" ve
+        // "No profiles created" derken yaninda cizili bir profil durmasi
+        // "zaten bir profil var" gibi okunuyordu. Kullanici katalogdan bir sey
+        // secene ya da bir olcu yazana kadar onizleme bos durur.
+        let profilSecildi = false;
+
+        function profilSecimiBasladi() {
+            if (profilSecildi) return;
+            profilSecildi = true;
+            updateProfilePreview();
+        }
+
         function updateProfilePreview() {
             const svg = $('profilePreviewSVG');
             if (!svg) return;
+
+            if (!profilSecildi) {
+                svg.innerHTML =
+                    '<text x="140" y="82" text-anchor="middle" fill="currentColor" ' +
+                    'opacity="0.45" font-size="12">No profile selected</text>' +
+                    '<text x="140" y="102" text-anchor="middle" fill="currentColor" ' +
+                    'opacity="0.3" font-size="11">Pick one from the catalog, or enter dimensions</text>';
+                return;
+            }
             
             const plateEnabled = $('plateEnabled')?.checked;
             const plateW = parseFloat($('plateWidth')?.value) || 300;
@@ -934,4 +956,20 @@
                 select.appendChild(option);
             });
         }
-        
+
+        // Profil panelindeki ilk gercek etkilesim onizlemeyi acar. Tek
+        // dinleyici: her girdiye ayri kanca takmak kolayca eksik kalirdi.
+        (function profilPaneliniIzle() {
+            function kur() {
+                const alan = document.getElementById('profilePreviewArea');
+                const kap = alan && alan.parentElement;
+                if (!kap) return;
+                ['change', 'input'].forEach(tur =>
+                    kap.addEventListener(tur, e => {
+                        if (e.target && /^(INPUT|SELECT)$/.test(e.target.tagName)) profilSecimiBasladi();
+                    }, true));
+                updateProfilePreview();   // bos durumu bir kez ciz
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', kur);
+            else kur();
+        })();

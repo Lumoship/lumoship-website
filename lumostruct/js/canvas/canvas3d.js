@@ -239,6 +239,7 @@
         // axis = plane NORMAL ('Z'→XY/plan, 'Y'→XZ/front, 'X'→YZ/side).
         function setWorkPlane(axis, offset) {
             activeWorkPlane = { axis: axis, offset: offset };
+            if (typeof izgarayiDuzlemeGore === 'function') izgarayiDuzlemeGore();
             if (axis === 'Z') setViewMode('plan', true, true);
             else if (axis === 'Y') setViewMode('front', true, true);
             else if (axis === 'X') setViewMode('side', true, true);
@@ -251,6 +252,7 @@
         function clearWorkPlane() {
             if (!activeWorkPlane) return;
             activeWorkPlane = null;
+            if (typeof izgarayiDuzlemeGore === 'function') izgarayiDuzlemeGore();
             if (typeof update3DScene === 'function') update3DScene();
             if (typeof showToast === 'function') showToast('Work plane cleared', 'info');
         }
@@ -392,6 +394,10 @@
             // Yalnizca programatik ilk kurulumda (animate=false) cerceveletir;
             // dugmeye basan kullanicinin yakinligi bozulmaz.
             if (!animate) setTimeout(() => fit3DView(), 50);
+
+            // Izgara aktif duzleme doner: XZ'ye gecince XZ'de, YZ'ye gecince
+            // YZ'de gorunur. Serbest 3B'de zeminde (XY) kalir.
+            izgarayiDuzlemeGore();
             
             animate3D();
         }
@@ -3070,6 +3076,49 @@
             recreateGrid();
         }
         
+
+        // Izgara XY duzleminde kuruluyor ve orada kaliyordu; XZ ya da YZ
+        // gorunusune gecince ekranda bir cizgiye dusup kayboluyordu. Bu bir 3B
+        // kiris programi: Z yonunde calisilabilmesi icin izgaranin da o
+        // duzleme donmesi gerekiyor. Grup XY'de kuruldugu icin dondurmek yeter.
+        //
+        // Serbest 3B gorunuste izgara zeminde (XY) kalir - referans duzlem odur.
+        // Bir calisma duzlemi etkinse izgara onun uzerine oturur.
+        function izgarayiDuzlemeGore() {
+            const g = window.gridHelper;
+            if (!g || !window.gridSettings) return;
+
+            const { originX, originY } = window.gridSettings;
+            const AYIRMA = 0.01;   // z-fighting olmasin diye kilpayi geri cek
+
+            // Hangi duzlem? Once calisma duzlemi, yoksa gorunus.
+            let eksen = 'Z', kayma = 0;
+            if (activeWorkPlane) {
+                eksen = activeWorkPlane.axis;
+                kayma = activeWorkPlane.offset || 0;
+            } else if (currentViewMode === 'front') {
+                eksen = 'Y';
+            } else if (currentViewMode === 'side') {
+                eksen = 'X';
+            }
+
+            if (eksen === 'Z') {
+                // XY duzlemi: grup zaten boyle kuruldu.
+                g.rotation.set(0, 0, 0);
+                g.position.set(originX, originY, kayma - AYIRMA);
+            } else if (eksen === 'Y') {
+                // XZ duzlemi. X ekseni etrafinda 90 derece: yerel (x,y,0)
+                // dunyada (x,0,y) olur.
+                g.rotation.set(Math.PI / 2, 0, 0);
+                g.position.set(originX, kayma - AYIRMA, 0);
+            } else {
+                // YZ duzlemi. Y ekseni etrafinda 90 derece: yerel (x,y,0)
+                // dunyada (0,y,-x) olur.
+                g.rotation.set(0, Math.PI / 2, 0);
+                g.position.set(kayma - AYIRMA, originY, 0);
+            }
+        }
+
         function recreateGrid() {
             if (!threeInitialized || !threeScene) return;
             
@@ -3132,10 +3181,12 @@
             
             // Position grid at origin
             gridGroup.position.set(originX, originY, 0);
+            window.gridHelper = gridGroup;
             
             window.gridHelper = gridGroup;
             window.gridHelper.visible = view.showGrid;
             threeScene.add(window.gridHelper);
+            izgarayiDuzlemeGore();
             
             if (threeRenderer && threeCamera) {
                 threeRenderer.render(threeScene, threeCamera);

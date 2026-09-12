@@ -124,9 +124,11 @@
                 gridGroup.add(new THREE.Line(geometry, isMajor ? majorMaterial : minorMaterial));
             }
             
-            gridGroup.position.set(originX, originY, -0.01);
             window.gridHelper = gridGroup;
             threeScene.add(gridGroup);
+            // Konum ve donme aktif duzleme gore verilir (canvas3d.js).
+            if (typeof izgarayiDuzlemeGore === 'function') izgarayiDuzlemeGore();
+            else gridGroup.position.set(originX, originY, -0.01);
         }
         
         function updateBeamNodeColors() {
