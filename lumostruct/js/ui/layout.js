@@ -26,7 +26,18 @@
 
         // Yerlesim degisince kanvas, 3B render ve alt panel birlikte guncellenir.
         // Tek yerden yapilir ki biri unutulup kaymasin.
+        // syncPanelLayout sonunda window'a 'resize' yayiyor; bu olayi
+        // dinleyen bir sey tekrar syncPanelLayout cagirinca sonsuz ozyineleme
+        // olusuyordu (yigin tasmasi). Tek tur calisir.
+        let yerlesimSuruyor = false;
+
         function syncPanelLayout() {
+            if (yerlesimSuruyor) return;
+            yerlesimSuruyor = true;
+            try { syncPanelLayoutGovde(); } finally { yerlesimSuruyor = false; }
+        }
+
+        function syncPanelLayoutGovde() {
             const left = document.getElementById('leftPanel');
             const right = document.getElementById('rightPanel');
             const bottom = document.getElementById('resultsBottomPanel');
@@ -72,9 +83,35 @@
                     }
                 }
             }
+            komutCubuguOlculeri();
+
             if (typeof window !== 'undefined' && window.dispatchEvent) {
                 window.dispatchEvent(new Event('resize'));
             }
+        }
+
+        // Komut cubugunun yan bolumleri ve alt panelin ustunde kalacagi
+        // yukseklik. Tek yon: syncPanelLayout bunu cagirir, bu geri cagirmaz.
+        function komutCubuguOlculeri() {
+            const cubuk = document.getElementById('commandBar');
+            const tuval = document.querySelector('.canvas-area');
+            if (!cubuk || !tuval) return;
+
+            const t = tuval.getBoundingClientRect();
+            const c = cubuk.getBoundingClientRect();
+            if (!Number.isFinite(t.left) || !Number.isFinite(c.left)) return;
+            // Test kosumundaki DOM taklidinde style bir CSSStyleDeclaration
+            // degil; ozel degisken yazamayiz, gecerim.
+            if (!cubuk.style || typeof cubuk.style.setProperty !== 'function') return;
+
+            cubuk.style.setProperty('--cmd-sol', Math.max(0, Math.round(t.left - c.left)) + 'px');
+            cubuk.style.setProperty('--cmd-sag', Math.max(0, Math.round(c.right - t.right)) + 'px');
+
+            const altBilgi = document.querySelector('.app-footer');
+            const h = c.height + (altBilgi ? altBilgi.getBoundingClientRect().height : 0);
+            const kok = document.documentElement;
+            if (kok && kok.style && typeof kok.style.setProperty === 'function')
+                kok.style.setProperty('--alt-yukseklik', Math.round(h) + 'px');
         }
 
         // taraf: 'left' | 'right'. force verilirse o duruma getirir.
@@ -197,70 +234,39 @@
             }
         })();
 
-        // Alt yerlesim olculeri tek yerden.
-        //
-        //  --cmd-sol / --cmd-sag : komut cubugunun yan bolumleri; ortadaki
-        //      girdi tam olarak tuvalin altina oturur.
-        //  --alt-yukseklik       : komut cubugu + alt bilgi seridi. Sonuc
-        //      paneli "position:fixed; bottom:0" idi ve komut cubugunun
-        //      ALTINA uzaniyordu; artik onun ustunde biter.
-        //
-        // Paneller suruklenerek boyutlandirilabildigi icin sabit deger olmaz;
-        // eskiden left:326px / right:280px yaziliydi ve panel genisleyince
-        // hizayi kaybediyordu.
-        (function altYerlesimOlculeri() {
+        // Paneller suruklenerek boyutlandirilabildigi icin olculer sabit
+        // olamaz; degisimi izleyip syncPanelLayout'u cagiririz. Olculeri
+        // yazan tek yer orasidir - buradan ikinci bir mekanizma kurmak
+        // sonsuz ozyinelemeye yol acmisti.
+        (function yerlesimDegisiminiIzle() {
             function kur() {
-                var cubuk = document.getElementById('commandBar');
-                var tuval = document.querySelector('.canvas-area');
-                var solPanel = document.querySelector('.panel');
-                var sagPanel = document.querySelector('.entity-info-panel');
-                var altBilgi = document.querySelector('.app-footer');
-                if (!cubuk || !tuval) return;
+                const solPanel = document.querySelector('.panel');
+                const sagPanel = document.querySelector('.entity-info-panel');
+                const tuval = document.querySelector('.canvas-area');
+                if (!tuval) return;
 
-                function esitle() {
-                    var t = tuval.getBoundingClientRect();
-                    var c = cubuk.getBoundingClientRect();
-                    var kok = document.documentElement.style;
+                syncPanelLayout();
 
-                    // Tuvalin kendi kenarlari olculur: aradaki surukleme
-                    // tutamaklari da hesaba katilmis olur.
-                    cubuk.style.setProperty('--cmd-sol', Math.max(0, Math.round(t.left - c.left)) + 'px');
-                    cubuk.style.setProperty('--cmd-sag', Math.max(0, Math.round(c.right - t.right)) + 'px');
-
-                    kok.setProperty('--alt-yukseklik',
-                        Math.round(c.height + (altBilgi ? altBilgi.getBoundingClientRect().height : 0)) + 'px');
-
-                    // Alt sonuc panelinin kenarlarini zaten syncPanelLayout
-                    // yaziyor; iki ayri mekanizma olmasin.
-                    if (typeof syncPanelLayout === 'function') syncPanelLayout();
-                }
-
-                esitle();
-
-                // ResizeObserver tarayici cizim dongusune bagli; sekme on
-                // planda degilken hic tetiklenmez. Surukleme sirasinda da
-                // dogrudan cagriliyor - bkz. asagidaki pointer dinleyicileri.
+                // ResizeObserver tarayicinin cizim dongusune bagli; sekme on
+                // planda degilken hic tetiklenmez. Surukleme sirasinda asagidaki
+                // pointer dinleyicileri devreye girer.
                 if (typeof ResizeObserver === 'function') {
-                    window.__altYerlesimIzleyici = new ResizeObserver(esitle);
-                    [solPanel, sagPanel, tuval].forEach(function (e) {
-                        if (e) window.__altYerlesimIzleyici.observe(e);
+                    window.__yerlesimIzleyici = new ResizeObserver(() => syncPanelLayout());
+                    [solPanel, sagPanel, tuval].forEach(e => {
+                        if (e) window.__yerlesimIzleyici.observe(e);
                     });
                 }
-                window.addEventListener('resize', esitle);
 
-                // Panel tutamaklari surukleniyorken de takip etsin.
-                var suruklu = false;
-                document.addEventListener('pointerdown', function (e) {
+                let suruklu = false;
+                document.addEventListener('pointerdown', e => {
                     if (e.target && e.target.closest &&
                         e.target.closest('.panel-resize-handle, .results-resize-handle')) suruklu = true;
                 }, true);
-                document.addEventListener('pointermove', function () {
-                    if (suruklu) esitle();
-                }, true);
-                document.addEventListener('pointerup', function () {
+                document.addEventListener('pointermove', () => { if (suruklu) syncPanelLayout(); }, true);
+                document.addEventListener('pointerup', () => {
                     if (!suruklu) return;
                     suruklu = false;
-                    esitle();
+                    syncPanelLayout();
                 }, true);
             }
 

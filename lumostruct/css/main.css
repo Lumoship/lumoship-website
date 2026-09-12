@@ -70,6 +70,11 @@
                veriyordu; asagidaki tonlarda 5.17 ve 5.02. */
             --primary-fill: #2563eb;
             --success-fill: #15803d;
+
+            /* Tehlike rengi YAZI olarak. --danger dolgu icin secilmis; ayni
+               tonu cerceveli dugmede yazi olarak kullanmak koyu zeminde 3.94,
+               acik zeminde 3.44 kontrast veriyordu. */
+            --danger-text: #f87171;
             
             /* Colors - Text */
             --text-primary: #f1f5f9;
@@ -2968,6 +2973,7 @@
             --success: #15803d;
             --danger:  #b91c1c;
             --warning: #92400e;
+            --danger-text: #991b1b;
 
             --border: #e2e8f0;
 
@@ -4969,4 +4975,36 @@
             font-size: var(--fs-md);
             font-weight: 600;
             margin-left: 0;
+        }
+
+        /* ---- Properties: sayi satirlari ----
+           Etiket, kutu ve birim ayni yuksekligi paylasiyordu ama satir
+           align-items:normal (stretch) oldugu icin ETIKET METNI kutunun
+           ustune yapisiyordu - X/Y/Z, yanindaki kutuyla ayni hizada
+           gorunmuyordu. Kutu da 182px'e kadar uzuyordu; iceride sag-yasli
+           dort haneli bir sayi icin gereginden genis. */
+        .entity-property {
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .entity-property > .label {
+            flex: 0 0 auto;
+        }
+
+        .entity-property > .num-wrap {
+            flex: 0 1 132px;
+            width: auto;
+        }
+
+        /* Birim etiketi sabit genislikte: "mm" ve "kN·m" alt alta kaymasin. */
+        .entity-property > span:last-child {
+            flex: 0 0 auto;
+            min-width: 24px;
+        }
+
+        /* Cerceveli tehlike dugmesi: yazi tonu ayri token uzerinden. */
+        .btn-danger {
+            color: var(--danger-text);
+            border-color: var(--danger-text);
         }

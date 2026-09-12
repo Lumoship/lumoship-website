@@ -266,6 +266,12 @@
         }
         
         // Ghost (fade) an object if it's off the active work plane.
+        // Vurgu tazelemesinin ihtiyac duydugu malzemeler update3DScene'in
+        // ICINDE, tema renklerinden uretiliyor - disaridan gorunmuyorlar.
+        // Hepsini disari tasimak tema degisimini etkiler; bunun yerine
+        // update3DScene her kurulumda gereken parcalari buraya birakir.
+        let vurguMalzeme = null;
+
         function applyWorkPlaneGhost(obj3d, n1, n2) {
             if (!activeWorkPlane || isOnActiveWorkPlane(n1, n2)) return;
             obj3d.traverse(o => {
@@ -1221,7 +1227,7 @@
                             showNodeDetails(node);
                             updateEntityInfoPanel();
                             updateStatusBar();
-                            update3DScene();
+                            secimVurgusunuTazele();
                         }
                         return;
                     }
@@ -1248,7 +1254,7 @@
                             showElementDetails(selectedElement);
                             updateEntityInfoPanel();
                             updateStatusBar();
-                            update3DScene();
+                            secimVurgusunuTazele();
                         }
                         return;
                     }
@@ -1262,7 +1268,7 @@
                     selectedElement = null;
                     setStyle('elementDetails', 'display', 'none');
                     updateStatusBar();
-                    update3DScene();
+                    secimVurgusunuTazele();
                 }
             }
             
@@ -1397,7 +1403,7 @@
                 });
                 
                 updateEntityInfoPanel();
-                update3DScene();
+                secimVurgusunuTazele();
                 
                 const count = selectedNodes.size + selectedElements.size;
                 const modeText = isWindowMode ? 'Window' : 'Crossing';
@@ -1406,7 +1412,12 @@
                 }
             }
             
-            function worldToScreen3D(x, y, z, container) {
+            // Secim degisince SAHNEYI YENIDEN KURMAK gerekmez: degisen tek sey
+        // renk ve dugum boyu. update3DScene() 497 nesneyi bastan yaratiyor ve
+        // bu makinede 118 ms suruyor - kutuyla secip fareyi biraktiginizda
+        // hissedilen takilma buydu, ayrica her tek tiklamada da oluyordu.
+        // Burada malzeme ve olcek yerinde degistirilir.
+        function worldToScreen3D(x, y, z, container) {
                 const vector = new THREE.Vector3(x, y, z);
                 vector.project(threeCamera);
                 
@@ -1454,12 +1465,12 @@
                     selectedNodes.clear();
                     selectedElements.clear();
                     selectedNodes.add(clickedNode);
-                    update3DScene();
+                    secimVurgusunuTazele();
                 } else if (clickedElement && !selectedElements.has(clickedElement)) {
                     selectedNodes.clear();
                     selectedElements.clear();
                     selectedElements.add(clickedElement);
-                    update3DScene();
+                    secimVurgusunuTazele();
                 }
                 
                 // Position and show context menu
@@ -1541,6 +1552,52 @@
             };
         }
         
+        function secimVurgusunuTazele() {
+            if (typeof threeScene === 'undefined' || !threeScene) return;
+
+            // Sahne henuz bir kez kurulmadiysa malzemeler yok; tam kurulum.
+            if (!vurguMalzeme) { update3DScene(); return; }
+            const M = vurguMalzeme;
+
+            // Bir tasiyicinin (dugum mesh'i ya da kiris grubu) butun
+            // malzemeli parcalarini boyar. Secim kalkinca her parca kendi
+            // temelMalzeme'sine doner - kirisin govdesi, plakasi ve bulbu
+            // ayri malzemeler kullandigi icin hepsine tek renk basilamaz.
+            const boya = (kok, secili, secimMalzemesi) => {
+                kok.traverse(o => {
+                    if (!o.material) return;
+                    if (!secili) {
+                        if (o.userData.temelMalzeme) o.material = o.userData.temelMalzeme;
+                        return;
+                    }
+                    o.material = (o.userData.vurguRolu === 'plaka' && M.plateSelectedMaterial)
+                        ? M.plateSelectedMaterial : secimMalzemesi;
+                });
+            };
+
+            threeScene.traverse(o => {
+                if (o.userData.nodeId !== undefined) {
+                    const id = o.userData.nodeId;
+                    const secili = selectedNodes.has(id);
+                    boya(o, secili, M.nodeSelectedMaterial);
+                    o.scale.setScalar(secili ? 1.5 : (model.constraints[id] ? 1.3 : 1));
+                    // Calisma duzlemi hayaleti malzemeyi klonluyor; malzemeyi
+                    // degistirince yeniden uygulanmali, yoksa sonuk kalmasi
+                    // gereken oge birden parlak oluyor.
+                    const n = model.nodes[id];
+                    if (n) applyWorkPlaneGhost(o, n, n);
+
+                } else if (o.userData.elemId !== undefined) {
+                    const id = o.userData.elemId;
+                    const elem = model.elements[id];
+                    if (!elem) return;
+                    boya(o, selectedElements.has(id), M.beamSelectedMaterial);
+                    const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
+                    if (n1 && n2) applyWorkPlaneGhost(o, n1, n2);
+                }
+            });
+        }
+
         function update3DScene() {
             if (!threeInitialized) return;
             
@@ -1789,6 +1846,24 @@
                 const sectionType = sectionName ? sectionName.match(/^(HP|FB|T|L)/)?.[1] || 'default' : 'default';
                 return sectionMaterials[sectionType] || sectionMaterials['default'];
             }
+
+            // Secim vurgusu bu malzemelerle sahneyi yeniden kurmadan
+            // guncellenir (bkz. secimVurgusunuTazele).
+            vurguMalzeme = {
+                nodeMaterial, nodeSelectedMaterial,
+                beamSelectedMaterial, plateMaterial, plateSelectedMaterial
+            };
+
+            // Her parca kendi "normal" malzemesini saklar; secim kalkinca
+            // buna geri donulur. Kirisin govdesi, plakasi ve bulbu farkli
+            // malzemeler kullaniyor - hepsine tek renk basmak yanlis olurdu.
+            function vurguIcinEtiketle(kok) {
+                kok.traverse(o => {
+                    if (!o.material) return;
+                    o.userData.temelMalzeme = o.material;
+                    if (o.material === plateMaterial) o.userData.vurguRolu = 'plaka';
+                });
+            }
             
             function getStressColorHex(stress, maxStress) {
                 if (!maxStress || maxStress === 0) return 0x22c55e;
@@ -1894,7 +1969,11 @@
                 if (!n1 || !n2) return;
                 
                 // Check if element is selected
-                const isSelected = selectedElements.has(elemId);
+                // Sahne her zaman SECILMEMIS hali kurar; vurguyu sonradan
+                // secimVurgusunuTazele() basar. Boylece secim degisince
+                // sahneyi yeniden kurmak gerekmez ve her parcanin "normal"
+                // malzemesi temelMalzeme olarak saklanabilir.
+                const isSelected = false;
                 
                 let z1 = (n1.z || 0), z2 = (n2.z || 0);
                 if (deformScale > 0 && results && results.displacements) {
@@ -2025,6 +2104,7 @@
                         beamGroup.rotateX(orientation * Math.PI / 180);
                     }
                     
+                    vurguIcinEtiketle(beamGroup);
                     applyWorkPlaneGhost(beamGroup, n1, n2);
                     threeScene.add(beamGroup);
                     
@@ -2097,6 +2177,7 @@
                         beamGroup.lookAt(end);
                         beamGroup.rotateX(Math.PI / 2);
                         
+                        vurguIcinEtiketle(beamGroup);
                         applyWorkPlaneGhost(beamGroup, n1, n2);
                         threeScene.add(beamGroup);
                     } else {
@@ -2129,6 +2210,7 @@
                         
                         beam.userData.isModelObject = true;
                         beam.userData.elemId = elemId;
+                        vurguIcinEtiketle(beam);
                         applyWorkPlaneGhost(beam, n1, n2);
                         threeScene.add(beam);
                     }
@@ -2147,12 +2229,16 @@
                     }
                     
                     // Check if node is selected
-                    const isNodeSelected = selectedNodes.has(nodeId);
+                    const isNodeSelected = false;   // vurgu sonradan basilir
                     
                     const isConstrained = model.constraints[nodeId];
                     // Node size based on model size and display multiplier
                     const baseNodeSize = modelSize * 0.025 * nodeDisplaySize;  // Larger nodes
-                    const nodeSize = isNodeSelected ? baseNodeSize * 1.5 : (isConstrained ? baseNodeSize * 1.3 : baseNodeSize);
+                    // Buyutme GEOMETRIYE degil mesh olcegine uygulanir:
+                    // boylece secim degisince yeni geometri kurmak gerekmez,
+                    // secimVurgusunuTazele() yalnizca olcegi degistirir.
+                    const nodeSize = baseNodeSize;
+                    const nodeOlcek = isNodeSelected ? 1.5 : (isConstrained ? 1.3 : 1);
                     
                     // Diamond shape (octahedron) for premium look
                     const nodeGeometry = new THREE.OctahedronGeometry(nodeSize);
@@ -2164,9 +2250,11 @@
                     }
                     
                     const nodeMesh = new THREE.Mesh(nodeGeometry, nMat);
+                    nodeMesh.scale.setScalar(nodeOlcek);
                     nodeMesh.position.set(node.x, node.y, z);
                     nodeMesh.userData.isModelObject = true;
                     nodeMesh.userData.nodeId = nodeId;
+                    vurguIcinEtiketle(nodeMesh);
                     applyWorkPlaneGhost(nodeMesh, node, node);
                     threeScene.add(nodeMesh);
                     
@@ -2820,6 +2908,9 @@
                     threeScene.add(labelSprite);
                 });
             }
+
+            // Sahne SECIMSIZ kuruldu; mevcut secimi simdi bas.
+            secimVurgusunuTazele();
         }
         
         // Helper function to create text sprite
