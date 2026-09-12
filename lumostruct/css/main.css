@@ -3581,8 +3581,10 @@
         }
         
         .entity-section {
-            background: var(--bg-main);
-            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.03);
+            /* Sag panel de sol panelle ayni dili konussun: bolumler
+               cerceveyle degil zemin tonu ve bosluklarla ayrilir. */
+            border: 1px solid transparent;
             border-radius: var(--r-md);
         }
         
@@ -3995,8 +3997,10 @@
         }
         
         .panel-resize-handle.right-resize {
-            margin-left: -3px;
-            margin-right: -3px;
+            /* Sagdaki tutamak -3px ile iceri cekiliyordu, soldaki degil:
+               iki kenar farkli yerde bitiyordu. Ikisi de ayni. */
+            margin: 0;
+
         }
         
         .panel-resize-handle::before {
@@ -4491,3 +4495,12 @@
         /* Tarayici <strong> icin 700 kullanir; arayuzde uc agirlik yeterli,
            dordunculer sadece govde metninde beliriyordu. */
         strong, b { font-weight: 600; }
+        /* Sol panelin son alanlari (b/t girisleri) komut cubugunun altina
+           giriyordu: "b (mm)" ile "READY" ust uste biniyordu. Panel kendi
+           son satirini gorebilsin diye alt dolgu. */
+        .main-tab-content { padding-bottom: var(--space-6); }
+
+        /* Durum cubugu eylemleri 1px araliktaydi - dort dugme birbirine
+           yapisikti. Bosluk olcege oturtuldu. */
+        .status-actions { gap: var(--space-2) !important; }
+        .status-actions button { padding: 2px var(--space-2); }

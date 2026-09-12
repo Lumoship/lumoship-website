@@ -477,9 +477,10 @@
             flex-shrink: 0;
         }
         
+        /* Sagdaki tutamak -3px ile iceri cekiliyordu, soldaki cekilmiyordu:
+           iki panel kenari farkli yerde bitiyordu. Artik ikisi de ayni. */
         .panel-resize-handle.right-resize {
-            margin-left: -3px;
-            margin-right: -3px;
+            margin: 0;
         }
         
         .panel-resize-handle::before {

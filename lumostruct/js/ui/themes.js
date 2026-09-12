@@ -3,7 +3,7 @@
         // Color theme state (current applied theme)
         window.colorTheme = {
             bg: '#0f172a',
-            beam: 'var(--primary)',
+            beam: '#3b82f6',
             node: '#22d3ee',
             grid: '#1e3a5f',
             selection: '#fef08a'
@@ -168,7 +168,7 @@
         function resetColorTheme() {
             const defaults = {
                 bg: '#0f172a',
-                beam: 'var(--primary)',
+                beam: '#3b82f6',
                 node: '#22d3ee',
                 grid: '#1e3a5f',
                 selection: '#fef08a'

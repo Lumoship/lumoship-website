@@ -28,6 +28,40 @@
             coord: 1.0      // Node coordinate labels
         };
         
+        // Tema rengini THREE'nin anladigi tam sayiya cevirir.
+        //
+        // Tema degerleri '#3b82f6' olabilecegi gibi 'var(--primary)' de olabilir -
+        // ikincisi renk tokenlarini birlestirirken buraya sizmis, ve
+        // parseInt('var(--primary)', 16) NaN veriyor. THREE.Color(NaN) SIYAH cizer,
+        // yani cizilen her kiris siyah cikiyordu. Artik CSS degiskeni gercekten
+        // cozuluyor; cozulemezse yedek renge dusulur, hicbir kosulda NaN gecmez.
+        function temaRenginiInt(deger, yedek) {
+            const y = parseInt(String(yedek).replace('#', ''), 16);
+            if (!deger) return y;
+            let v = String(deger).trim();
+
+            const m = v.match(/^var\(\s*(--[\w-]+)\s*(?:,([^)]*))?\)$/);
+            if (m) {
+                const cozulen = getComputedStyle(document.documentElement)
+                    .getPropertyValue(m[1]).trim();
+                v = cozulen || (m[2] ? m[2].trim() : '');
+                if (!v) return y;
+            }
+
+            if (v[0] === '#') {
+                let h = v.slice(1);
+                if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+                const n = parseInt(h, 16);
+                return Number.isFinite(n) ? n : y;
+            }
+
+            const rgb = v.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i);
+            if (rgb) {
+                return (Number(rgb[1]) << 16) | (Number(rgb[2]) << 8) | Number(rgb[3]);
+            }
+            return y;
+        }
+
         function previewDisplaySize(type, value) {
             const val = parseFloat(value);
             window.displaySizes[type] = val;
@@ -662,18 +696,43 @@
             raycaster.params.Points.threshold = 0.05; // Point selection tolerance (50mm)
             const mouse = new THREE.Vector2();
             
+            // XY / XZ / YZ gorunumleri TAM 2B olmali. Once yalnizca perspektif
+            // kamera dondurulyordu: 60 derecelik gorus acisiyla paralel kirisler
+            // yine birbirine yaklasiyor, uzaktaki dugumler kuculuyordu - plan
+            // gorunumu "biraz 3B" hissi veriyordu.
+            //
+            // Gorus acisini daraltip kamerayi ayni oranda geri cekmek perspektifi
+            // pratikte sifirlar, cerceveleme ise hic degismez cunku
+            // tan(fov/2) * mesafe sabit tutuluyor. Ortografik kameraya gecmek de
+            // bir secenekti; bu yol zoom, kaydirma ve fare ile secim kodunun
+            // hicbirine dokunmadigi icin tercih edildi.
+            const FOV_3B = 60;
+            const FOV_2B = 2;
+            const OLCEK_2B = Math.tan(FOV_3B * Math.PI / 360) / Math.tan(FOV_2B * Math.PI / 360);
+
             function updateCameraPosition() {
-                const x = spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
-                const y = spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
-                const z = spherical.radius * Math.cos(spherical.phi);
-                
-                threeCamera.position.set(
-                    target.x + x,
-                    target.y + y,
-                    target.z + z
-                );
+                const ikiBoyut = (typeof currentViewMode !== 'undefined' && currentViewMode !== '3d');
+                const fov = ikiBoyut ? FOV_2B : FOV_3B;
+                const r = spherical.radius * (ikiBoyut ? OLCEK_2B : 1);
+
+                const x = r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+                const y = r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+                const z = r * Math.cos(spherical.phi);
+
+                threeCamera.position.set(target.x + x, target.y + y, target.z + z);
                 threeCamera.lookAt(target);
                 threeCamera.up.set(0, 0, 1);
+
+                // Kamera 33 kat uzaga gidince sabit near/far derinlik hassasiyetini
+                // bitirir (z-fighting). Ikisi de mesafeyle olceklenir.
+                const near = Math.max(0.01, r * 0.01);
+                const far = r * 10;
+                if (threeCamera.fov !== fov || threeCamera.near !== near || threeCamera.far !== far) {
+                    threeCamera.fov = fov;
+                    threeCamera.near = near;
+                    threeCamera.far = far;
+                    threeCamera.updateProjectionMatrix();
+                }
             }
             
             container.addEventListener('mousedown', (e) => {
@@ -1557,7 +1616,7 @@
             // Premium Materials - Section type colors (use theme color as base)
             const beamColorHex = window.colorTheme?.beam || '#60a5fa';
             // Convert hex string to integer for THREE.Color
-            const beamColorInt = parseInt(beamColorHex.replace('#', ''), 16);
+            const beamColorInt = temaRenginiInt(beamColorHex, '#60a5fa');
             const beamThemeColor = new THREE.Color(beamColorInt);
             const sectionMaterials = {
                 'HP': new THREE.MeshStandardMaterial({ 
@@ -1604,7 +1663,7 @@
             
             // Selected material with strong emissive glow - use theme color
             const selectionColorHex = window.colorTheme?.selection || '#fef08a';
-            const selectionColorInt = parseInt(selectionColorHex.replace('#', ''), 16);
+            const selectionColorInt = temaRenginiInt(selectionColorHex, '#fef08a');
             const selectionThemeColor = new THREE.Color(selectionColorInt);
             const beamSelectedMaterial = new THREE.MeshStandardMaterial({ 
                 color: selectionThemeColor,
@@ -1644,7 +1703,7 @@
             
             // Node materials - use color from theme
             const nodeColorHex = window.colorTheme?.node || '#22d3ee';
-            const nodeColorInt = parseInt(nodeColorHex.replace('#', ''), 16);
+            const nodeColorInt = temaRenginiInt(nodeColorHex, '#22d3ee');
             const nodeThemeColor = new THREE.Color(nodeColorInt);
             const nodeMaterial = new THREE.MeshStandardMaterial({ 
                 color: nodeThemeColor,
