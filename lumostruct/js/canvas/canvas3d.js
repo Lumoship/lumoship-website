@@ -434,10 +434,14 @@
                 
                 if (progress < 1) {
                     requestAnimationFrame(animateStep);
-                } else {
-                    // Fit view after animation completes
-                    fit3DView();
                 }
+                // Animasyon bitince fit3DView() cagriliyordu: gorunus yumusakca
+                // donuyor, sonra birden yakinlik degisiyordu - "smooth gecis
+                // ama sonunda bir zoom" tam olarak buydu. setViewMode'daki
+                // ayni cagriyi kaldirmistim, buradaki kalmis.
+                // Yakinlik zaten korunur: 2B'ye gecerken updateCameraPosition
+                // mesafeyi OLCEK_2B ile carpip FOV'u kisiyor, model ekranda
+                // ayni boyda kaliyor.
             }
             
             animateStep();
@@ -766,9 +770,9 @@
                 let foundNodeId = null, foundElemId = null;
                 for (const intersect of intersects) {
                     let obj = intersect.object;
-                    while (obj && !obj.userData.nodeId && !obj.userData.elemId) obj = obj.parent;
-                    if (obj && obj.userData.nodeId && !foundNodeId) foundNodeId = obj.userData.nodeId;
-                    if (obj && obj.userData.elemId && !foundElemId) foundElemId = obj.userData.elemId;
+                    while (obj && obj.userData.nodeId === undefined && obj.userData.elemId === undefined) obj = obj.parent;
+                    if (obj && obj.userData.nodeId !== undefined && foundNodeId == null) foundNodeId = obj.userData.nodeId;
+                    if (obj && obj.userData.elemId !== undefined && foundElemId == null) foundElemId = obj.userData.elemId;
                 }
                 
                 // Check if command is active and NOT in select phase
@@ -779,7 +783,7 @@
                 if (e.button === 0) {
                     // Left click
                     // Node drag start - only with Ctrl key
-                    if (foundNodeId && !cmdActiveNotSelect && cmdState.active === CMD.NONE && e.ctrlKey) {
+                    if (foundNodeId != null && !cmdActiveNotSelect && cmdState.active === CMD.NONE && e.ctrlKey) {
                         const node = model.nodes[foundNodeId];
                         if (node) {
                             saveState();
@@ -938,11 +942,18 @@
                     let foundNodeId = null;
                     for (const intersect of intersects) {
                         let obj = intersect.object;
-                        while (obj && !obj.userData.nodeId) obj = obj.parent;
-                        if (obj && obj.userData.nodeId) { foundNodeId = obj.userData.nodeId; break; }
+                        while (obj && obj.userData.nodeId === undefined) obj = obj.parent;
+                        if (obj && obj.userData.nodeId !== undefined) { foundNodeId = obj.userData.nodeId; break; }
                     }
                     
-                    if (foundNodeId) {
+                    // Tiklama ile ayni tolerans: imlec dugume yakinsa balon
+                    // gorunsun ki ne secilecegi belli olsun.
+                    if (foundNodeId == null) {
+                        const y = ekrandaEnYakin(e.clientX, e.clientY, container);
+                        if (y && y.nodeId !== undefined) foundNodeId = y.nodeId;
+                    }
+
+                    if (foundNodeId != null) {
                         const node = model.nodes[foundNodeId];
                         if (node) {
                             cmdState.hoverNode = { nodeId: foundNodeId, x: node.x, y: node.y };
@@ -1098,14 +1109,14 @@
                 if (intersects.length > 0) {
                     for (const intersect of intersects) {
                         let obj = intersect.object;
-                        while (obj && !obj.userData.nodeId && !obj.userData.elemId) {
+                        while (obj && obj.userData.nodeId === undefined && obj.userData.elemId === undefined) {
                             obj = obj.parent;
                         }
                         
-                        if (obj && obj.userData.nodeId && !foundNode) {
+                        if (obj && obj.userData.nodeId !== undefined && foundNode == null) {
                             foundNode = obj.userData.nodeId;
                         }
-                        if (obj && obj.userData.elemId && !foundElem) {
+                        if (obj && obj.userData.elemId !== undefined && foundElem == null) {
                             foundElem = obj.userData.elemId;
                         }
                     }
@@ -1182,14 +1193,14 @@
                         let obj = intersect.object;
                         
                         // Walk up to find parent with userData
-                        while (obj && !obj.userData.nodeId && !obj.userData.elemId) {
+                        while (obj && obj.userData.nodeId === undefined && obj.userData.elemId === undefined) {
                             obj = obj.parent;
                         }
                         
-                        if (obj && obj.userData.nodeId && !foundNodes.includes(obj.userData.nodeId)) {
+                        if (obj && obj.userData.nodeId !== undefined && !foundNodes.includes(obj.userData.nodeId)) {
                             foundNodes.push(obj.userData.nodeId);
                         }
-                        if (obj && obj.userData.elemId && !foundElements.includes(obj.userData.elemId)) {
+                        if (obj && obj.userData.elemId !== undefined && !foundElements.includes(obj.userData.elemId)) {
                             foundElements.push(obj.userData.elemId);
                         }
                     }
@@ -1260,6 +1271,35 @@
                     }
                 }
                 
+                // Isin hicbir seye carpmadi. Kirisler ince oldugu icin bir
+                // iki piksel sapinca secim kaciyordu; once yakindakine bak.
+                const yakin = ekrandaEnYakin(e.clientX, e.clientY, container);
+                if (yakin) {
+                    const dugumMu = yakin.nodeId !== undefined;
+                    const id = dugumMu ? yakin.nodeId : yakin.elemId;
+                    const kipUygun = selectionMode === 'all' ||
+                        (dugumMu ? selectionMode === 'nodes' : selectionMode === 'beams');
+
+                    if (kipUygun) {
+                        if (!e.ctrlKey) { selectedNodes.clear(); selectedElements.clear(); }
+                        if (dugumMu) {
+                            selectedNodes.add(id);
+                            selectedNode = { ...model.nodes[id], id };
+                            selectedElement = null;
+                            if (typeof showNodeDetails === 'function') showNodeDetails(selectedNode);
+                        } else {
+                            selectedElements.add(id);
+                            selectedElement = { ...model.elements[id], id };
+                            selectedNode = null;
+                            if (typeof showElementDetails === 'function') showElementDetails(selectedElement);
+                        }
+                        updateEntityInfoPanel();
+                        updateStatusBar();
+                        secimVurgusunuTazele();
+                        return;
+                    }
+                }
+
                 // Clicked on nothing - clear selection (unless Ctrl held)
                 if (!e.ctrlKey) {
                     selectedNodes.clear();
@@ -1417,6 +1457,70 @@
         // bu makinede 118 ms suruyor - kutuyla secip fareyi biraktiginizda
         // hissedilen takilma buydu, ayrica her tek tiklamada da oluyordu.
         // Burada malzeme ve olcek yerinde degistirilir.
+
+        // Isin tam ustune gelmeyi sart kosuyordu: kirisler ince oldugu icin
+        // bir iki piksel sapinca secim olmuyordu. Isin bos donerse ekranda
+        // tiklanan noktaya en yakin ogeye bakilir.
+        const SECIM_TOLERANSI = 10;   // piksel
+
+        function ekrandaEnYakin(tiklamaX, tiklamaY, container, tolerans = SECIM_TOLERANSI) {
+            if (!threeCamera || !model) return null;
+
+            const r = container.getBoundingClientRect();
+            const px = tiklamaX - r.left, py = tiklamaY - r.top;
+
+            // Dunya noktasini ekrana tasir. Kamera arkasinda kalan noktalar
+            // izdusumde one katlanir; onlari elemek gerekir.
+            const v = new THREE.Vector3();
+            const ekrana = (x, y, z) => {
+                v.set(x, y, z).project(threeCamera);
+                if (v.z > 1) return null;              // kamera arkasi
+                return { x: (v.x * 0.5 + 0.5) * r.width, y: (-v.y * 0.5 + 0.5) * r.height };
+            };
+
+            // Nokta - dogru parcasi uzakligi (ekran duzleminde).
+            const parcayaUzaklik = (p, a, b) => {
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const uz2 = dx * dx + dy * dy;
+                if (uz2 < 1e-6) return Math.hypot(p.x - a.x, p.y - a.y);
+                let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / uz2;
+                t = Math.max(0, Math.min(1, t));
+                return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+            };
+
+            const tiklama = { x: px, y: py };
+            let enIyiDugum = null, dugumUzak = Infinity;
+            let enIyiKiris = null, kirisUzak = Infinity;
+
+            if (view.showNodes !== false) {
+                Object.entries(model.nodes).forEach(([id, n]) => {
+                    const e = ekrana(n.x, n.y, n.z || 0);
+                    if (!e) return;
+                    const u = Math.hypot(px - e.x, py - e.y);
+                    if (u < dugumUzak) { dugumUzak = u; enIyiDugum = parseInt(id, 10); }
+                });
+            }
+
+            if (view.showBeams !== false) {
+                Object.entries(model.elements).forEach(([id, el]) => {
+                    const n1 = model.nodes[el.n1], n2 = model.nodes[el.n2];
+                    if (!n1 || !n2) return;
+                    const a = ekrana(n1.x, n1.y, n1.z || 0);
+                    const b = ekrana(n2.x, n2.y, n2.z || 0);
+                    if (!a || !b) return;
+                    const u = parcayaUzaklik(tiklama, a, b);
+                    if (u < kirisUzak) { kirisUzak = u; enIyiKiris = parseInt(id, 10); }
+                });
+            }
+
+            // Dugum daha kucuk bir hedef; esit yakinlikta o kazanir.
+            if (enIyiDugum !== null && dugumUzak <= tolerans && dugumUzak <= kirisUzak + 4)
+                return { nodeId: enIyiDugum, uzaklik: dugumUzak };
+            if (enIyiKiris !== null && kirisUzak <= tolerans)
+                return { elemId: enIyiKiris, uzaklik: kirisUzak };
+            return null;
+        }
+
         function worldToScreen3D(x, y, z, container) {
                 const vector = new THREE.Vector3(x, y, z);
                 vector.project(threeCamera);
@@ -1447,14 +1551,14 @@
                 
                 for (const hit of intersects) {
                     let obj = hit.object;
-                    while (obj && !obj.userData.nodeId && !obj.userData.elemId) {
+                    while (obj && obj.userData.nodeId === undefined && obj.userData.elemId === undefined) {
                         obj = obj.parent;
                     }
-                    if (obj && obj.userData.nodeId) {
+                    if (obj && obj.userData.nodeId !== undefined) {
                         clickedNode = obj.userData.nodeId;
                         break;
                     }
-                    if (obj && obj.userData.elemId) {
+                    if (obj && obj.userData.elemId !== undefined) {
                         clickedElement = obj.userData.elemId;
                         break;
                     }
