@@ -27,7 +27,14 @@
             // Show/hide results bottom panel
             const bottomPanel = document.getElementById('resultsBottomPanel');
             if (bottomPanel) {
-                bottomPanel.style.display = (tabName === 'results' && results) ? 'block' : 'none';
+                // Panel COZUMDEN ONCE de acilir: Beams / Nodes / Profiles /
+                // Beam loads / Node loads sekmeleri modelin kendisini listeler,
+                // bunlar icin analiz gerekmiyor. Yanit sekmeleri cozum yoksa
+                // "Run Solve" der.
+                bottomPanel.style.display = (tabName === 'results') ? 'block' : 'none';
+                if (tabName === 'results' && typeof updateResultsBottomPanel === 'function') {
+                    updateResultsBottomPanel();
+                }
                 if (typeof syncResultsPanelSpace === 'function') syncResultsPanelSpace();
             }
             

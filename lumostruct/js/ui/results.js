@@ -251,18 +251,12 @@
             }
         }
         
-        let resultsBottomSortColumn = 'id';
-        let resultsBottomSortAsc = true;
         let resultsBottomPanelMinimized = false;
         
-        function updateResultsBottomPanel() {
-            if (!results) return;
-            
-            updateResultsBeamTable();
-            updateResultsNodeTable();
-        }
         
-        // Kiris tablosunun satirlari. Tablo ve CSV ayni yerden beslenir - eskiden ayni
+        // Kiris tablosunun satirlari. Alt paneldeki tablolar artik
+        // js/ui/tables.js'te uretiliyor; bu fonksiyon raporun (js/ui/report.js)
+        // kullandigi ozet satirlari icin duruyor. Tablo ve CSV ayni yerden beslenir - eskiden ayni
         // ifadeler iki yerde tekrarliyordu ve ikisi birlikte yanlisti: "M_max" sutunu
         // sol uc momentini (M1) gosteriyordu, gercek Mmax'i degil.
         function beamTableRows() {
@@ -302,111 +296,7 @@
             return rows;
         }
 
-        function updateResultsBeamTable() {
-            const tbody = document.getElementById('resultsBeamTableBody');
-            if (!tbody || !results) return;
-
-            const beamData = beamTableRows();
-
-            // Sort
-            beamData.sort((a, b) => {
-                const aVal = a[resultsBottomSortColumn];
-                const bVal = b[resultsBottomSortColumn];
-                if (typeof aVal === 'string') {
-                    return resultsBottomSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-                }
-                return resultsBottomSortAsc ? aVal - bVal : bVal - aVal;
-            });
-            
-            // Render
-            tbody.innerHTML = beamData.map(b => {
-                const utilClass = b.util > 100 ? 'stress-fail' : (b.util > 80 ? 'stress-warn' : 'stress-ok');
-                const selected = selectedElements.has(b.id) ? 'selected' : '';
-                return `<tr class="${selected}" onclick="selectBeamFromTable(${b.id})" ondblclick="openBeamDetailModal(${b.id})" title="Double-click for details">
-                    <td style="color:var(--accent-info); font-weight:600;">${b.id}</td>
-                    <td>${b.section}</td>
-                    <td>${b.length.toFixed(3)}</td>
-                    <td class="${utilClass}">${b.sigmaMax.toFixed(1)}</td>
-                    <td>${b.sigmaMin.toFixed(1)}</td>
-                    <td>${b.tauMax.toFixed(1)}</td>
-                    <td class="${utilClass}">${b.vmMax.toFixed(1)}</td>
-                    <td>${b.mMax.toFixed(2)}</td>
-                    <td>${b.vMax.toFixed(2)}</td>
-                    <td class="${utilClass}">${b.util.toFixed(1)}</td>
-                </tr>`;
-            }).join('');
-        }
         
-        function updateResultsNodeTable() {
-            const tbody = document.getElementById('resultsNodeTableBody');
-            if (!tbody || !results) return;
-            
-            // Collect node data
-            const nodeData = [];
-            Object.entries(model.nodes).forEach(([nodeId, node]) => {
-                const disp = results.displacements[nodeId] || {};
-                const bc = model.constraints[nodeId];
-                const loads = model.loads.filter(l => l.nodeId == nodeId);
-                
-                let bcStr = '-';
-                if (bc) {
-                    const fixed = [];
-                    if (bc.Ux) fixed.push('Ux');
-                    if (bc.Uy) fixed.push('Uy');
-                    if (bc.Uz) fixed.push('Uz');
-                    if (bc.Rx) fixed.push('Rx');
-                    if (bc.Ry) fixed.push('Ry');
-                    if (bc.Rz) fixed.push('Rz');
-                    bcStr = fixed.length > 0 ? fixed.join(',') : '-';
-                }
-                
-                let loadStr = '-';
-                if (loads.length > 0) {
-                    loadStr = loads.map(l => `Fz=${l.Fz}`).join('; ');
-                }
-                
-                nodeData.push({
-                    id: parseInt(nodeId),
-                    x: node.x,
-                    y: node.y,
-                    uz: (disp.Uz || 0) * 1000,
-                    ux: (disp.Ux || 0) * 1000,
-                    uy: (disp.Uy || 0) * 1000,
-                    rx: disp.Rx || 0,
-                    ry: disp.Ry || 0,
-                    bc: bcStr,
-                    loads: loadStr
-                });
-            });
-            
-            // Sort
-            nodeData.sort((a, b) => {
-                const aVal = a[resultsBottomSortColumn];
-                const bVal = b[resultsBottomSortColumn];
-                if (typeof aVal === 'string') {
-                    return resultsBottomSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-                }
-                return resultsBottomSortAsc ? aVal - bVal : bVal - aVal;
-            });
-            
-            // Render
-            tbody.innerHTML = nodeData.map(n => {
-                const selected = selectedNodes.has(n.id) ? 'selected' : '';
-                const uzColor = Math.abs(n.uz) > 10 ? 'color:var(--warning);' : '';
-                return `<tr class="${selected}" onclick="selectNodeFromTable(${n.id})">
-                    <td style="color:var(--accent-info); font-weight:600;">${n.id}</td>
-                    <td>${n.x.toFixed(3)}</td>
-                    <td>${n.y.toFixed(3)}</td>
-                    <td style="${uzColor} font-weight:600;">${n.uz.toFixed(2)}</td>
-                    <td>${n.ux.toFixed(3)}</td>
-                    <td>${n.uy.toFixed(3)}</td>
-                    <td>${n.rx.toFixed(5)}</td>
-                    <td>${n.ry.toFixed(5)}</td>
-                    <td style="color:var(--success); font-size:var(--fs-xs);">${n.bc}</td>
-                    <td style="color:var(--danger); font-size:var(--fs-xs);">${n.loads}</td>
-                </tr>`;
-            }).join('');
-        }
         
         function selectBeamFromTable(elemId) {
             selectedNodes.clear();
@@ -434,36 +324,7 @@
             updateResultsBottomPanel();
         }
         
-        function switchResultsBottomTab(tab) {
-            // Update tabs
-            // Aktif sekme ARGUMANDAN bulunur (bkz. switchBeamDiagramTab).
-            document.querySelectorAll('.results-bottom-tab').forEach(t => {
-                t.classList.toggle('active', t.dataset.tab === tab);
-            });
-            
-            // Show correct content
-            document.getElementById('resultsBottomBeams').style.display = tab === 'beams' ? 'block' : 'none';
-            document.getElementById('resultsBottomNodes').style.display = tab === 'nodes' ? 'block' : 'none';
-            
-            // Reset sort
-            resultsBottomSortColumn = 'id';
-            resultsBottomSortAsc = true;
-        }
         
-        function sortResultsTable(tableType, column) {
-            if (resultsBottomSortColumn === column) {
-                resultsBottomSortAsc = !resultsBottomSortAsc;
-            } else {
-                resultsBottomSortColumn = column;
-                resultsBottomSortAsc = true;
-            }
-            
-            if (tableType === 'beams') {
-                updateResultsBeamTable();
-            } else {
-                updateResultsNodeTable();
-            }
-        }
         
         // Sonuc panelinin kapladigi yeri kanvasa bildirir. Tek yerden yonetilir ki
         // panel acilinca/kapaninca/suruklenince kanvas ve 3B render birlikte gunlensin.
@@ -501,59 +362,6 @@
             }
         }
         
-        function exportResultsTable() {
-            if (!results) return;
-            
-            const activeTab = document.querySelector('.results-bottom-tab.active')?.textContent.includes('Beams') ? 'beams' : 'nodes';
-            let csv = '';
-            
-            if (activeTab === 'beams') {
-                csv = 'ID,Section,Length(m),σ_max(MPa),σ_min(MPa),τ_max(MPa),σ_vm(MPa),M_max(kNm),V_max(kN),Util(%)\n';
-                // Tabloyla ayni kaynak - iki yerde tekrarlanan ifadeler birlikte yanlisti
-                beamTableRows().forEach(b => {
-                    csv += b.id + ',' + b.section + ',' + b.length.toFixed(3) + ',' +
-                           b.sigmaMax.toFixed(1) + ',' + b.sigmaMin.toFixed(1) + ',' +
-                           b.tauMax.toFixed(1) + ',' + b.vmMax.toFixed(1) + ',' +
-                           b.mMax.toFixed(2) + ',' + b.vMax.toFixed(2) + ',' +
-                           b.util.toFixed(1) + '\n';
-                });
-            } else {
-                csv = 'ID,X(m),Y(m),Uz(mm),Ux(mm),Uy(mm),Rx(rad),Ry(rad),BC,Loads\n';
-                
-                Object.entries(model.nodes).forEach(([nodeId, node]) => {
-                    const disp = results.displacements[nodeId] || {};
-                    const bc = model.constraints[nodeId];
-                    const loads = model.loads.filter(l => l.nodeId == nodeId);
-                    
-                    let bcStr = '-';
-                    if (bc) {
-                        const fixed = [];
-                        if (bc.Ux) fixed.push('Ux');
-                        if (bc.Uy) fixed.push('Uy');
-                        if (bc.Uz) fixed.push('Uz');
-                        bcStr = fixed.length > 0 ? fixed.join('+') : '-';
-                    }
-                    
-                    let loadStr = '-';
-                    if (loads.length > 0) {
-                        loadStr = loads.map(l => `Fz=${l.Fz}`).join(';');
-                    }
-                    
-                    csv += `${nodeId},${node.x.toFixed(3)},${node.y.toFixed(3)},${((disp.Uz||0)*1000).toFixed(2)},${((disp.Ux||0)*1000).toFixed(3)},${((disp.Uy||0)*1000).toFixed(3)},${(disp.Rx||0).toFixed(5)},${(disp.Ry||0).toFixed(5)},${bcStr},${loadStr}\n`;
-                });
-            }
-            
-            // Download
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `results_${activeTab}_${new Date().toISOString().slice(0,10)}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            showToast(`Exported ${activeTab} results to CSV`);
-        }
         
         // ============== RESULTS PANEL RESIZE ==============
         (function initResultsResize() {

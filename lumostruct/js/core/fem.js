@@ -130,6 +130,23 @@
             }
         }
 
+        // Burulma sabiti TEK yerde. Rijitlik montaji ile ic kuvvet geri
+        // kazanimi ayni degeri kullanmak ZORUNDA: iki ayri kopya zamanla
+        // birbirinden ayrilir ve burulma moment cikti ile rijitlik farkli
+        // kesitten hesaplanmis olur.
+        function torsiyonSabiti(sec, Iy, Iz, kesitAdi) {
+            let J = sec.J;
+            if (J > 0) return J;
+            // Ince cidarli acik kesit yaklasimi: (1/3) h tw^3. O da yoksa
+            // cozumu bozmayacak kadar kucuk ama sifir olmayan bir deger.
+            J = (sec.h > 0 && sec.tw > 0)
+                ? sec.h * Math.pow(sec.tw, 3) / 3
+                : Math.min(Iy, Iz) * 1e-3;
+            debugWarn('Section ' + kesitAdi + ' has no torsion constant J; ' +
+                      'estimated ' + J.toExponential(3) + ' m4');
+            return J;
+        }
+
         function partialUdlFactors(L, a, b) {
             const L2 = L * L, L3 = L2 * L;
             const I1 = x => L2 * x * x / 2 - 2 * L * x * x * x / 3 + x * x * x * x / 4;
@@ -214,16 +231,7 @@
                 // A missing or zero property here poisons the whole stiffness matrix with
                 // NaN, and the NaN guard further down then reports it as a displacement of
                 // exactly zero. Catch it at the source and say so instead.
-                let J = sec.J;
-                if (!(J > 0)) {
-                    // Open thin-walled fallback: (1/3) * h * tw^3, else a soft but non-zero
-                    // torsional stiffness so the model still solves.
-                    J = (sec.h > 0 && sec.tw > 0)
-                        ? sec.h * Math.pow(sec.tw, 3) / 3
-                        : Math.min(Iy, Iz) * 1e-3;
-                    debugWarn('Section ' + elem.section + ' has no torsion constant J; ' +
-                              'estimated ' + J.toExponential(3) + ' m4');
-                }
+                const J = torsiyonSabiti(sec, Iy, Iz, elem.section);
                 if (!(A > 0) || !(Iy > 0) || !(Iz > 0)) {
                     debugError('Section ' + elem.section + ' has invalid A/Iy/Iz - element skipped');
                     return;
@@ -893,6 +901,16 @@
                 });
                 Mz_max = Math.abs(Mz_max);
 
+                // --- Burulma ---
+                // Eskiden HIC hesaplanmiyordu: tablo ve rapor kirisin burulma
+                // momentini gosteremiyordu, oysa bir izgarada ana kirisin
+                // egilmesi enine kirise BURULMA olarak giriyor - grillage
+                // davranisinin yarisi budur. Sabit kesitli, acikligi boyunca
+                // burulma yuku olmayan elemanda T sabittir.
+                const thx1 = uLocal[3], thx2 = uLocal[9];
+                const Jtor = torsiyonSabiti(sec, sec.Iy, sec.Iz || sec.Iy, elem.section);
+                const T = mat.G * Jtor * (thx2 - thx1) / L;      // N·m
+
                 // --- Gerilmeler ---
                 // Iki uc lif ayri ayri hesaplanir. Simetrik kesitte ikisi birbirinin
                 // aynasi ve sonuc eskisiyle ayni; plaka+profil gibi asimetrik kesitlerde
@@ -940,7 +958,18 @@
                     Mz: Mz_max / 1e3,
                     V1: V1 / 1e3,        // kN
                     V2: Vfun(L) / 1e3,
-                    V: Vmax / 1e3
+                    V: Vmax / 1e3,
+                    // Zayif eksen kesmesi (yerel y) ve burulma. Ikisi de
+                    // zaten hesaplaniyordu ama disari verilmiyordu; DNV 3D
+                    // Beam ciktisinda Qy ve Mx sutunlari var, LumoStruct
+                    // tablosunda yoktu.
+                    Vz1: Vz1 / 1e3,      // kN
+                    Vz2: VzFun(L) / 1e3,
+                    Vz: Math.max(Math.abs(Vz1), Math.abs(VzFun(L))) / 1e3,
+                    T: T / 1e3,          // kN·m  (burulma, aciklik boyunca sabit)
+                    // Aciklik boyunca en buyuk sehim (mm) - dugum sehimleri
+                    // uclari verir, aradaki maksimumu vermez.
+                    dmax: diagram.d ? diagram.d.reduce((m, v) => Math.abs(v) > Math.abs(m) ? v : m, 0) : 0
                 };
                 
                 if (Math.abs(sigma) > maxSigma) maxSigma = Math.abs(sigma);

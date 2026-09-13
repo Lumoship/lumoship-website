@@ -2916,12 +2916,13 @@
             <div class="resize-grip">⋮⋮⋮</div>
         </div>
         <div class="results-bottom-header">
-            <div class="results-bottom-tabs">
-                <button class="results-bottom-tab active" data-tab="beams" onclick="switchResultsBottomTab('beams')"><span class="icon"><svg viewBox="0 0 24 24"><path d="M16 3H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><line x1="6" y1="7" x2="10" y2="7"/><line x1="6" y1="12" x2="8" y2="12"/><line x1="6" y1="17" x2="10" y2="17"/></svg></span> Beams</button>
-                <button class="results-bottom-tab" data-tab="nodes" onclick="switchResultsBottomTab('nodes')"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span> Nodes</button>
-            </div>
+            <!-- Sekmeler js/ui/tables.js icindeki tanim listesinden uretilir;
+                 yeni bir tablo eklemek icin yalnizca orasi degisir. -->
+            <div class="results-bottom-tabs" id="resultsBottomTabs"></div>
             <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:var(--fs-xs); color:var(--text-3);">Click header to sort</span>
+                <!-- "Click header to sort" ipucu kaldirildi: on bir sekme varken
+                     seridi dugmelerin uzerine itiyordu, ustelik sutun basliklarinda
+                     zaten siralama oku duruyor. -->
                 <button class="btn-secondary btn-small" onclick="generateReport()" title="Printable calculation report">
                     <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Report
                 </button>
@@ -2930,49 +2931,7 @@
             </div>
         </div>
         
-        <!-- Beams Tab -->
-        <div id="resultsBottomBeams" class="results-bottom-content">
-            <table class="results-data-table" id="resultsBeamTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortResultsTable('beams', 'id')">ID <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'section')">Section <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'length')">Length (m) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'sigmaMax')">σ_max (MPa) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'sigmaMin')">σ_min (MPa) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'tauMax')">τ_max (MPa) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'vmMax')">σ_vm (MPa) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'mMax')">M_max (kNm) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'vMax')">V_max (kN) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('beams', 'util')">Util (%) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBeamTableBody">
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Nodes Tab -->
-        <div id="resultsBottomNodes" class="results-bottom-content" style="display:none;">
-            <table class="results-data-table" id="resultsNodeTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortResultsTable('nodes', 'id')">ID <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'x')">X (m) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'y')">Y (m) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'uz')">Uz (mm) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'ux')">Ux (mm) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'uy')">Uy (mm) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'rx')">Rx (rad) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th onclick="sortResultsTable('nodes', 'ry')">Ry (rad) <span class="icon" style="width:12px;height:12px;"><svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg></span></th>
-                        <th>BC</th>
-                        <th>Loads</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsNodeTableBody">
-                </tbody>
-            </table>
-        </div>
+        <div id="resultsBottomContent" class="results-bottom-content"></div>
     </div>
     
     <!-- Beam Detail Modal -->
@@ -3131,6 +3090,7 @@
     <script src="js/ui/themes.js"></script>
     <script src="js/ui/modals.js"></script>
     <script src="js/ui/results.js"></script>
+    <script src="js/ui/tables.js"></script>
     <script src="js/ui/layout.js"></script>
     <script src="js/ui/measurement.js"></script>
     <script src="js/ui/solver-ui.js"></script>

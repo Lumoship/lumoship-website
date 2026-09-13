@@ -5070,3 +5070,83 @@
         body.light-mode .plane-chip.active { background: var(--primary-fill); }
         body.light-mode .plane-chip.active .plane-chip-name,
         body.light-mode .plane-chip.active .plane-chip-del { color: #ffffff; }
+
+        /* ================================================================
+           SAYI KUTUSU: OK TUSLARI YAZININ USTUNE BINIYORDU
+           .num-wrap input[type=number] sag dolguyu 16px veriyor ki 15px'lik
+           .num-stepper rakamlarin ustune gelmesin. Ama bu kutularin cogunda
+           satir ici style="padding:4px" var; satir ici stil yazar kurallarini
+           EZER, dolayisiyla sag dolgu 4px'e dusuyor ve sayi ok tuslarinin
+           altinda kaliyordu. Alan odaklanincaysa (focus-within) stepper
+           opaklasip son basamagi tamamen ortuyor: "100" yazip "10" mu "100" mu
+           yazdigini goremiyordunuz. Satir ici dolguyu gecmek icin !important
+           sart - kutu kutu satir ici stil temizlemek yerine tek kural.
+           ================================================================ */
+        .num-wrap input[type="number"] {
+            padding-right: 19px !important;
+        }
+
+        /* ================================================================
+           ALT PANEL TABLOLARI
+           On bir sekme var; serit dar ekranda yatay kayar, dikey buyumez.
+           ================================================================ */
+        .results-bottom-tabs {
+            display: flex;
+            gap: 2px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex: 1;
+            min-width: 0;
+            scrollbar-width: thin;
+        }
+        .results-bottom-tabs .results-bottom-tab {
+            white-space: nowrap;
+            flex: 0 0 auto;
+            padding: 6px 10px;
+        }
+
+        /* Sagdaki dugme grubu (Report / Export / Katla) KUCULMEZ. Sekme seridi
+           flex:1 oldugu icin genisleyip bu grubun uzerine biniyordu: "Combined
+           stresses" sekmesi ile "Report" dugmesi ic ice geciyordu. */
+        .results-bottom-header > div:last-child {
+            flex: 0 0 auto;
+        }
+
+        /* Output sekmesi duz metin: hizalamanin bozulmamasi icin tek aralikli. */
+        .results-output-text {
+            margin: 0;
+            padding: var(--space-3) var(--space-4);
+            font-family: var(--font-mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+            font-size: var(--fs-sm);
+            line-height: 1.55;
+            color: var(--text-2);
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .results-notes {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 120px;
+            box-sizing: border-box;
+            border: 0;
+            resize: none;
+            background: transparent;
+            color: var(--text);
+            font-family: inherit;
+            font-size: var(--fs-sm);
+            line-height: 1.6;
+            padding: var(--space-3) var(--space-4);
+        }
+        .results-notes:focus { outline: none; }
+
+        .results-empty-note {
+            padding: var(--space-5) var(--space-4);
+            color: var(--text-3);
+            font-size: var(--fs-sm);
+        }
+
+        /* Siralanan sutun belli olsun - hangi sutuna gore siralandigi
+           gorunmuyordu, ayni tablo iki farkli sirada ayni gorunuyordu. */
+        .results-data-table th.sorted { color: var(--text); }
