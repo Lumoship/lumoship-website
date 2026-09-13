@@ -389,6 +389,41 @@
         }
 
         // ---------------------------------------------------------------- ozet metni
+        // ELEMAN NARINLIGI L/h. LumoStruct bir KIRIS cozucusu: duzlem kesitler
+        // duz kalir varsayimi, boyu yuksekliginin birkac kati olan elemanlar
+        // icin gecerli. Yaygin kabul L/h >= 3; altinda kayma ve kesit carpilmasi
+        // baskin hale gelir ve kiris teorisi - kayma deformasyonu eklenmis olsa
+        // bile - dogru cevabi vermez.
+        //
+        // Bu, akademik bir uyari degil. Steel 4.4.4 ile karsilastirmada tam da
+        // L/h'si kucuk eleman gruplarinda ayrildik: CCL311 model 5'te bp19
+        // (ortanca L/h 0,90) ve bp21 (2,26) hem mukavemet momentinde hem yanal
+        // rijitlikte %16-29 fark verdi, oysa bp4 (L/h 5,55) %0,6 ile tutuyor.
+        // Ayni sey BV 2091/2094 modellerinde de olmustu.
+        //
+        // Kullanici bunu GORMELI: modelinin ne kadari cozucunun gecerlilik
+        // alaninin disinda, ve hangi profiller.
+        function tabloNarinlik() {
+            const d = { toplam: 0, k3: 0, k2: 0, k1: 0, enKucuk: Infinity, enKucukKiris: null, profil: {} };
+            Object.entries(model.elements).forEach(([id, e]) => {
+                const sec = tabloKesit(e);
+                const L = tabloKirisBoyu(e);
+                const h = (sec && sec.h > 0) ? sec.h : 0;
+                if (!(h > 0) || !(L > 0)) return;
+                const r = L / h;
+                d.toplam++;
+                if (r < 3) d.k3++;
+                if (r < 2) d.k2++;
+                if (r < 1) d.k1++;
+                if (r < d.enKucuk) { d.enKucuk = r; d.enKucukKiris = id; }
+                if (r < 3) {
+                    const ad = e.section || '-';
+                    d.profil[ad] = (d.profil[ad] || 0) + 1;
+                }
+            });
+            return d;
+        }
+
         function tabloOzetMetni() {
             const dugum = Object.keys(model.nodes).length;
             const kiris = Object.keys(model.elements).length;
@@ -414,6 +449,28 @@
             s.push('  Point loads          ' + yuk);
             s.push('  Line loads           ' + yayili);
             s.push('');
+
+            // Gecerlilik alani. Sessiz kalmak, kullaniciya cozucunun ne zaman
+            // guvenilir oldugunu soylememek olurdu.
+            const nar = tabloNarinlik();
+            if (nar.toplam) {
+                s.push('BEAM THEORY VALIDITY  (L/h)');
+                s.push('  Members measured     ' + nar.toplam);
+                s.push('  L/h < 3              ' + nar.k3 +
+                       '  (' + (100 * nar.k3 / nar.toplam).toFixed(0) + ' %)  outside usual beam range');
+                s.push('  L/h < 1              ' + nar.k1 +
+                       '  (' + (100 * nar.k1 / nar.toplam).toFixed(0) + ' %)  deeper than long');
+                s.push('  Shortest member      L/h = ' + nar.enKucuk.toFixed(2) +
+                       '  (beam ' + nar.enKucukKiris + ')');
+                if (nar.k3) {
+                    const liste = Object.entries(nar.profil).sort((a, b) => b[1] - a[1]).slice(0, 4);
+                    s.push('  Mostly              ' + liste.map(x => x[0] + ' x' + x[1]).join(', '));
+                    s.push('  NOTE  Below L/h = 3 plane sections no longer stay plane. Shear');
+                    s.push('        deformation is included, but results for those members are');
+                    s.push('        an idealisation - two beam programs can differ by 20 % there.');
+                }
+                s.push('');
+            }
 
             if (!results) {
                 s.push('ANALYSIS');
