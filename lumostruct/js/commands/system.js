@@ -547,9 +547,20 @@
                 // Try to parse as coordinate (X,Y or X,Y,Z format in mm)
                 const coordMatch = value.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)(?:\s*[,;\s]\s*(-?\d+(?:\.\d+)?))?$/);
                 if (coordMatch) {
-                    const x = parseFloat(coordMatch[1]) / 1000; // mm to m
-                    const y = parseFloat(coordMatch[2]) / 1000;
-                    const z = coordMatch[3] !== undefined ? parseFloat(coordMatch[3]) / 1000 : 0;
+                    // Iki sayi AKTIF DUZLEMIN iki eksenidir: XY'de x,y - XZ'de
+                    // x,z - YZ'de y,z. Ucuncu sayi verilirse her zaman tam
+                    // x,y,z olarak okunur. Eskiden iki sayi hep x,y sayiliyor,
+                    // XZ gorunusunde yazdiginiz nokta baska yere dusuyordu.
+                    const a1 = parseFloat(coordMatch[1]) / 1000;   // mm -> m
+                    const a2 = parseFloat(coordMatch[2]) / 1000;
+                    let x, y, z;
+                    if (coordMatch[3] !== undefined) {
+                        x = a1; y = a2; z = parseFloat(coordMatch[3]) / 1000;
+                    } else {
+                        const np = (typeof duzlemNokta === 'function')
+                            ? duzlemNokta(a1, a2) : { x: a1, y: a2, z: 0 };
+                        x = np.x; y = np.y; z = np.z;
+                    }
                     
                     // Add point at coordinate
                     cmdState.linePoints.push({ x, y, z });
@@ -562,10 +573,10 @@
                         const p2 = pts[pts.length - 1];
                         
                         let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                        if (!n1Id) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
+                        if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
                         
                         let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                        if (!n2Id) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
+                        if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
                         
                         const beamId = nextElementId++;
                         model.elements[beamId] = { n1: n1Id, n2: n2Id, section: (document.getElementById('addBeamSection')?.value) || 'HP200x10' };
@@ -622,10 +633,10 @@
                     const p2 = { x, y };
                     
                     let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                    if (!n1Id) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y }; }
+                    if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y }; }
                     
                     let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                    if (!n2Id) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y }; }
+                    if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y }; }
                     
                     const beamId = nextElementId++;
                     model.elements[beamId] = { n1: n1Id, n2: n2Id, section: (document.getElementById('addBeamSection')?.value) || 'HP200x10' };
@@ -729,10 +740,10 @@
             
             // Find or create nodes (10mm tolerance)
             let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-            if (!n1Id) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
+            if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
             
             let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-            if (!n2Id) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p1.z || 0 }; }
+            if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p1.z || 0 }; }
             
             const elemId = nextElementId++;
             const section = (document.getElementById('addBeamSection')?.value) || 'HP200x10';

@@ -30,7 +30,7 @@
         function processDisplacementInput(value) {
             if (!cmdState.basePoint) return;
             
-            let offsetX = 0, offsetY = 0;
+            let offsetX = 0, offsetY = 0, offsetZ = 0;
             
             // Parse input
             if (value.includes(',')) {
@@ -52,6 +52,7 @@
                 if (cmdState.previewData && cmdState.previewData.direction) {
                     offsetX = dist * cmdState.previewData.direction.x;
                     offsetY = dist * cmdState.previewData.direction.y;
+                    offsetZ = dist * (cmdState.previewData.direction.z || 0);
                 } else {
                     // Default to X direction
                     offsetX = dist;
@@ -60,9 +61,9 @@
             
             // Execute the command
             if (cmdState.active === CMD.COPY) {
-                executeCopyWithOffset(offsetX, offsetY);
+                executeCopyWithOffset(offsetX, offsetY, offsetZ);
             } else if (cmdState.active === CMD.MOVE) {
-                executeMoveWithOffset(offsetX, offsetY);
+                executeMoveWithOffset(offsetX, offsetY, offsetZ);
             }
         }
         
@@ -221,7 +222,8 @@
         // ============== COMMAND EXECUTION FUNCTIONS ==============
         
         // Execute Copy with offset (simplified like test file)
-        function executeCopyWithOffset(offsetX, offsetY) {
+        // offsetZ eklendi: XZ/YZ duzleminde kopyalama Z'de olur.
+        function executeCopyWithOffset(offsetX, offsetY, offsetZ = 0) {
             if (cmdState.selectedBeamIds.length === 0) {
                 showToast('No beams selected', 'warning');
                 cancelCommand();
@@ -248,7 +250,8 @@
                 const oldNode = model.nodes[oldNodeId];
                 if (oldNode) {
                     const newId = nextNodeId++;
-                    model.nodes[newId] = { id: newId, x: oldNode.x + offsetX, y: oldNode.y + offsetY };
+                    model.nodes[newId] = { id: newId, x: oldNode.x + offsetX, y: oldNode.y + offsetY,
+                                               z: (oldNode.z || 0) + offsetZ };
                     nodeMap[oldNodeId] = newId;
                 }
             });
@@ -272,7 +275,7 @@
             // Auto-split at intersections (this handles both cross and endpoint splits)
             autoSplitAtIntersections(newBeamIds);
             
-            const distMM = Math.sqrt(offsetX * offsetX + offsetY * offsetY) * 1000;
+            const distMM = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ) * 1000;
             showToast(`Copied ${cmdState.selectedBeamIds.length} beam(s) (${distMM.toFixed(0)}mm)`);
             
             // End command
@@ -285,7 +288,8 @@
         }
         
         // Execute Move with offset
-        function executeMoveWithOffset(offsetX, offsetY) {
+        // offsetZ eklendi: XZ/YZ duzleminde tasima Z'de olur.
+        function executeMoveWithOffset(offsetX, offsetY, offsetZ = 0) {
             if (cmdState.selectedBeamIds.length === 0) {
                 showToast('No beams selected', 'warning');
                 cancelCommand();
@@ -310,6 +314,7 @@
                 if (node) {
                     node.x += offsetX;
                     node.y += offsetY;
+                    node.z = (node.z || 0) + offsetZ;
                 }
             });
             
@@ -319,7 +324,7 @@
             
             updateEntityInfoPanel();
             
-            const distMM = Math.sqrt(offsetX * offsetX + offsetY * offsetY) * 1000;
+            const distMM = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ) * 1000;
             showToast(`Moved ${cmdState.selectedBeamIds.length} beams (${distMM.toFixed(0)}mm)`);
             
             cancelCommand();

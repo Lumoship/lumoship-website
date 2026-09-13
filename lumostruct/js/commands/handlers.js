@@ -81,9 +81,20 @@
                         // Try coordinate format: X,Y or X,Y,Z (mm)
                         const coordMatch = val.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)(?:\s*[,;\s]\s*(-?\d+(?:\.\d+)?))?$/);
                         if (coordMatch) {
-                            const x = parseFloat(coordMatch[1]) / 1000;
-                            const y = parseFloat(coordMatch[2]) / 1000;
-                            const z = coordMatch[3] !== undefined ? parseFloat(coordMatch[3]) / 1000 : 0;
+                            // Iki sayi AKTIF DUZLEMIN iki eksenidir: XY'de x,y - XZ'de
+                            // x,z - YZ'de y,z. Ucuncu sayi verilirse her zaman tam
+                            // x,y,z olarak okunur. Eskiden iki sayi hep x,y sayiliyor,
+                            // XZ gorunusunde yazdiginiz nokta baska yere dusuyordu.
+                            const a1 = parseFloat(coordMatch[1]) / 1000;   // mm -> m
+                            const a2 = parseFloat(coordMatch[2]) / 1000;
+                            let x, y, z;
+                            if (coordMatch[3] !== undefined) {
+                                x = a1; y = a2; z = parseFloat(coordMatch[3]) / 1000;
+                            } else {
+                                const np = (typeof duzlemNokta === 'function')
+                                    ? duzlemNokta(a1, a2) : { x: a1, y: a2, z: 0 };
+                                x = np.x; y = np.y; z = np.z;
+                            }
                             
                             cmdState.linePoints.push({ x, y, z });
                             
@@ -102,10 +113,10 @@
                                 }
                                 
                                 let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                                if (!n1Id) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
+                                if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
                                 
                                 let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                                if (!n2Id) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
+                                if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
                                 
                                 const beamId = nextElementId++;
                                 model.elements[beamId] = { n1: n1Id, n2: n2Id, section: (document.getElementById('addBeamSection')?.value) || 'HP200x10' };
@@ -155,10 +166,10 @@
                                 
                                 saveState();
                                 let n1Id = findNodeAt(lastPt.x, lastPt.y, 0.01, lastPt.z || 0);
-                                if (!n1Id) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: lastPt.x, y: lastPt.y, z: lastPt.z || 0 }; }
+                                if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: lastPt.x, y: lastPt.y, z: lastPt.z || 0 }; }
                                 
                                 let n2Id = findNodeAt(x, y, 0.01, z);
-                                if (!n2Id) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: x, y: y, z: z }; }
+                                if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: x, y: y, z: z }; }
                                 
                                 const beamId = nextElementId++;
                                 model.elements[beamId] = { n1: n1Id, n2: n2Id, section: (document.getElementById('addBeamSection')?.value) || 'HP200x10' };
@@ -222,7 +233,7 @@
                         processSplitInput(val);
                     }
                     else if ((cmdState.active === CMD.COPY || cmdState.active === CMD.MOVE) && cmdState.phase === PHASE.DESTINATION) {
-                        let dx = 0, dy = 0;
+                        let dx = 0, dy = 0, dz = 0;
                         if (val.includes(',')) {
                             // Format: X,Y or @X,Y (mm)
                             const isRel = val.startsWith('@');
@@ -243,14 +254,15 @@
                             if (cmdState.previewData && cmdState.previewData.direction) {
                                 dx = d * cmdState.previewData.direction.x;
                                 dy = d * cmdState.previewData.direction.y;
+                                dz = d * (cmdState.previewData.direction.z || 0);
                             } else {
                                 dx = d; // Default to X direction
                             }
                         }
                         if (cmdState.active === CMD.COPY) {
-                            executeCopyWithOffset(dx, dy);
+                            executeCopyWithOffset(dx, dy, dz);
                         } else {
-                            executeMoveWithOffset(dx, dy);
+                            executeMoveWithOffset(dx, dy, dz);
                         }
                     }
                     else if (cmdState.active === CMD.ROTATE && cmdState.phase === PHASE.DESTINATION) {
@@ -367,34 +379,11 @@
                 orthoBase = cmdState.linePoints[cmdState.linePoints.length - 1];
             }
             
-            // Apply ortho constraint if base point is set
-            if (orthoBase && cmdState.orthoMode) {
-                const constrained = applyOrtho(
-                    orthoBase.x, orthoBase.y,
-                    modelPos.x, modelPos.y
-                );
-                modelPos.x = constrained.x;
-                modelPos.y = constrained.y;
-            }
-            
-            // Apply snap (but respect ortho constraint)
-            const snapPoint = findSnapPoint(modelPos.x, modelPos.y);
+            // Ortho ve snap AKTIF DUZLEMIN iki ekseninde uygulanir
+            // (XY: x-y, XZ: x-z, YZ: y-z). Ikisi de yalnizca x,y biliyordu;
+            // bu yuzden XZ ve YZ gorunuslerinde cizim yapilamiyordu.
+            const snapPoint = duzlemeOturt(modelPos, orthoBase);
             cmdState.currentSnapPoint = snapPoint || null;
-            if (snapPoint) {
-                if (orthoBase && cmdState.orthoMode) {
-                    // In ortho mode, only apply snap in the ortho direction
-                    if (Math.abs(modelPos.x - orthoBase.x) > Math.abs(modelPos.y - orthoBase.y)) {
-                        modelPos.x = snapPoint.x;
-                        // Keep Y constrained to ortho
-                    } else {
-                        modelPos.y = snapPoint.y;
-                        // Keep X constrained to ortho
-                    }
-                } else {
-                    modelPos.x = snapPoint.x;
-                    modelPos.y = snapPoint.y;
-                }
-            }
             
             // Handle based on command and phase
             if (cmdState.active === CMD.COPY || cmdState.active === CMD.MOVE) {
@@ -410,11 +399,12 @@
                     // Calculate offset and execute
                     const offsetX = modelPos.x - cmdState.basePoint.x;
                     const offsetY = modelPos.y - cmdState.basePoint.y;
+                    const offsetZ = (modelPos.z || 0) - (cmdState.basePoint.z || 0);
                     
                     if (cmdState.active === CMD.COPY) {
-                        executeCopyWithOffset(offsetX, offsetY);
+                        executeCopyWithOffset(offsetX, offsetY, offsetZ);
                     } else {
-                        executeMoveWithOffset(offsetX, offsetY);
+                        executeMoveWithOffset(offsetX, offsetY, offsetZ);
                     }
                     return true;
                 }
@@ -488,19 +478,22 @@
                     const p2 = pts[pts.length - 1];
                     
                     // Update direction for next distance input
+                    // Yon dz'yi de sayar: XZ/YZ duzleminde cizerken yon
+                    // sifir cikiyor ve uzunluk girdisi calismiyordu.
                     const dx = p2.x - p1.x;
                     const dy = p2.y - p1.y;
-                    const len = Math.sqrt(dx*dx + dy*dy);
+                    const dz = (p2.z || 0) - (p1.z || 0);
+                    const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
                     if (len > 0.001) {
-                        cmdState.lastCursorDir = { x: dx/len, y: dy/len };
+                        cmdState.lastCursorDir = { x: dx/len, y: dy/len, z: dz/len };
                     }
                     
                     // Find or create nodes (use 10mm tolerance for finding existing nodes)
                     let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                    if (!n1Id) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
+                    if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
                     
                     let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                    if (!n2Id) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
+                    if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
                     
                     // Create beam
                     const beamId = nextElementId++;
@@ -836,20 +829,13 @@
                 orthoBase = cmdState.linePoints[cmdState.linePoints.length - 1];
             }
             
-            // Apply ortho constraint if base point is set
-            if (orthoBase && cmdState.orthoMode) {
-                const constrained = applyOrtho(
-                    orthoBase.x, orthoBase.y,
-                    modelPos.x, modelPos.y
-                );
-                modelPos.x = constrained.x;
-                modelPos.y = constrained.y;
-            }
-            
-            // Apply snap (but respect ortho constraint)
-            const snapPoint = findSnapPoint(modelPos.x, modelPos.y);
+            // Ortho ve snap AKTIF DUZLEMIN iki ekseninde uygulanir
+            // (XY: x-y, XZ: x-z, YZ: y-z). Ikisi de yalnizca x,y biliyordu;
+            // bu yuzden XZ ve YZ gorunuslerinde cizim yapilamiyordu.
+            const snapPoint = duzlemeOturt(modelPos, orthoBase);
             cmdState.currentSnapPoint = snapPoint || null;
-            // Visual object-snap marker (container-relative position)
+            
+            // Gorsel snap isaretcisi (kapsayiciya gore konum).
             if (snapPoint && typeof modelToScreen3D === 'function') {
                 const sp = modelToScreen3D(snapPoint.x, snapPoint.y, container, snapPoint.z || 0);
                 if (sp) {
@@ -858,21 +844,6 @@
                 }
             } else {
                 hideSnapMarker();
-            }
-            if (snapPoint) {
-                if (orthoBase && cmdState.orthoMode) {
-                    // In ortho mode, only apply snap in the ortho direction
-                    if (Math.abs(modelPos.x - orthoBase.x) > Math.abs(modelPos.y - orthoBase.y)) {
-                        modelPos.x = snapPoint.x;
-                        // Keep Y constrained to ortho
-                    } else {
-                        modelPos.y = snapPoint.y;
-                        // Keep X constrained to ortho
-                    }
-                } else {
-                    modelPos.x = snapPoint.x;
-                    modelPos.y = snapPoint.y;
-                }
             }
             
             // Handle based on command

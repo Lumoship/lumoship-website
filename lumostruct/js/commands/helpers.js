@@ -144,15 +144,19 @@
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, threeCamera);
             
-            // Project onto the active work plane (or Z=0 by default)
+            // Fare hangi duzleme dusecek? Izgarayla AYNI kaynak - eskiden
+            // burasi gorunusten bagimsiz olarak hep z=0'a dusuruyordu, yani
+            // XZ/YZ gorunusune gecince izgara donuyor ama tiklama hala XY'ye
+            // iniyordu: o duzlemlerde calisilamiyordu.
             let normal, constant;
-            if (typeof activeWorkPlane !== 'undefined' && activeWorkPlane) {
-                const o = activeWorkPlane.offset;
-                if (activeWorkPlane.axis === 'X') { normal = new THREE.Vector3(1, 0, 0); constant = -o; }
-                else if (activeWorkPlane.axis === 'Y') { normal = new THREE.Vector3(0, 1, 0); constant = -o; }
+            const d = (typeof aktifCalismaDuzlemi === 'function')
+                ? aktifCalismaDuzlemi()
+                : { axis: 'Z', offset: 0 };
+            {
+                const o = d.offset;
+                if (d.axis === 'X') { normal = new THREE.Vector3(1, 0, 0); constant = -o; }
+                else if (d.axis === 'Y') { normal = new THREE.Vector3(0, 1, 0); constant = -o; }
                 else { normal = new THREE.Vector3(0, 0, 1); constant = -o; }
-            } else {
-                normal = new THREE.Vector3(0, 0, 1); constant = 0;
             }
             const plane = new THREE.Plane(normal, constant);
             const intersection = new THREE.Vector3();
@@ -179,6 +183,54 @@
             };
         }
         
+        // ---- Duzlem ici koordinatlar ----
+        // Aktif duzlemin iki ekseni: XY'de (x,y), XZ'de (x,z), YZ'de (y,z).
+        // Ortho ve snap bu ikilide calisir; boylece ayni kod XZ ve YZ'de de
+        // XY'deki gibi davranir.
+        function duzlemUV(p) {
+            const d = (typeof aktifCalismaDuzlemi === 'function')
+                ? aktifCalismaDuzlemi() : { axis: 'Z', offset: 0 };
+            if (d.axis === 'Y') return { u: p.x, v: p.z || 0 };
+            if (d.axis === 'X') return { u: p.y, v: p.z || 0 };
+            return { u: p.x, v: p.y };
+        }
+
+        function duzlemNokta(u, v) {
+            const d = (typeof aktifCalismaDuzlemi === 'function')
+                ? aktifCalismaDuzlemi() : { axis: 'Z', offset: 0 };
+            if (d.axis === 'Y') return { x: u, y: d.offset, z: v };
+            if (d.axis === 'X') return { x: d.offset, y: u, z: v };
+            return { x: u, y: v, z: d.offset };
+        }
+
+        // Fare konumuna ortho ve snap uygular. Iki cizim yolunda da ayni is
+        // yapiliyordu ve ikisi de yalnizca x,y biliyordu.
+        function duzlemeOturt(modelPos, orthoBase) {
+            let uv = duzlemUV(modelPos);
+            const taban = orthoBase ? duzlemUV(orthoBase) : null;
+
+            if (taban && cmdState.orthoMode) {
+                const c = applyOrtho(taban.u, taban.v, uv.u, uv.v);
+                uv = { u: c.x, v: c.y };
+            }
+
+            const snapPoint = findSnapPoint(uv.u, uv.v);
+            if (snapPoint) {
+                const s = duzlemUV(snapPoint);
+                if (taban && cmdState.orthoMode) {
+                    // Ortho yonunde yalnizca o ekseni yapistir.
+                    if (Math.abs(uv.u - taban.u) > Math.abs(uv.v - taban.v)) uv.u = s.u;
+                    else uv.v = s.v;
+                } else {
+                    uv = { u: s.u, v: s.v };
+                }
+            }
+
+            const np = duzlemNokta(uv.u, uv.v);
+            modelPos.x = np.x; modelPos.y = np.y; modelPos.z = np.z;
+            return snapPoint || null;
+        }
+
         // Apply Ortho constraint
         function applyOrtho(baseX, baseY, currentX, currentY) {
             if (!cmdState.orthoMode) return { x: currentX, y: currentY };
@@ -210,15 +262,32 @@
             return null;
         }
         
+        // Govde iki koordinatla calisir. Aktif duzlem XY degilse model o
+        // duzleme yansitilir (XZ'de x,z; YZ'de y,z), ayni govde calistirilir
+        // ve sonuc geri cevrilir. Eskiden yalnizca x,y okundugu icin XZ ve
+        // YZ gorunuslerinde snap yanlis noktalari buluyordu.
         function findSnapPoint(modelX, modelY, tolerance = 0.15) {
             if (!cmdState.snapMode) return null;
+
+            const duzlem = (typeof aktifCalismaDuzlemi === 'function')
+                ? aktifCalismaDuzlemi() : { axis: 'Z', offset: 0 };
+            const uv = n => duzlem.axis === 'Y' ? { x: n.x, y: n.z || 0 }
+                          : duzlem.axis === 'X' ? { x: n.y, y: n.z || 0 }
+                          : { x: n.x, y: n.y };
+            const geri = p => duzlem.axis === 'Y' ? { x: p.x, y: duzlem.offset, z: p.y }
+                            : duzlem.axis === 'X' ? { x: duzlem.offset, y: p.x, z: p.y }
+                            : { x: p.x, y: p.y, z: duzlem.offset };
+
+            const D = { nodes: {}, elements: model.elements };
+            Object.entries(model.nodes).forEach(([id, n]) => { D.nodes[id] = uv(n); });
+            const taban = cmdState.basePoint ? uv(cmdState.basePoint) : { x: 0, y: 0 };
             
             let best = null;
             let minDist = tolerance;
             let snapType = '';
             
             // 1. Endpoint snap (highest priority)
-            Object.values(model.nodes).forEach(node => {
+            Object.values(D.nodes).forEach(node => {
                 const dist = Math.sqrt((node.x - modelX) ** 2 + (node.y - modelY) ** 2);
                 if (dist < minDist) {
                     minDist = dist;
@@ -228,9 +297,9 @@
             });
             
             // 2. Midpoint snap
-            Object.values(model.elements).forEach(elem => {
-                const n1 = model.nodes[elem.n1];
-                const n2 = model.nodes[elem.n2];
+            Object.values(D.elements).forEach(elem => {
+                const n1 = D.nodes[elem.n1];
+                const n2 = D.nodes[elem.n2];
                 if (n1 && n2) {
                     const midX = (n1.x + n2.x) / 2;
                     const midY = (n1.y + n2.y) / 2;
@@ -245,12 +314,12 @@
             
             // 3. Intersection snap
             if (cmdState.snapIntersection) {
-                const elems = Object.values(model.elements);
+                const elems = Object.values(D.elements);
                 for (let i = 0; i < elems.length; i++) {
                     for (let j = i + 1; j < elems.length; j++) {
                         const e1 = elems[i], e2 = elems[j];
-                        const n1 = model.nodes[e1.n1], n2 = model.nodes[e1.n2];
-                        const n3 = model.nodes[e2.n1], n4 = model.nodes[e2.n2];
+                        const n1 = D.nodes[e1.n1], n2 = D.nodes[e1.n2];
+                        const n3 = D.nodes[e2.n1], n4 = D.nodes[e2.n2];
                         if (!n1 || !n2 || !n3 || !n4) continue;
                         const inter = segmentIntersect(n1, n2, n3, n4);
                         if (inter) {
@@ -267,14 +336,14 @@
             
             // 4. Perpendicular snap (when drawing line from base point)
             if (cmdState.snapPerpendicular && cmdState.basePoint) {
-                Object.values(model.elements).forEach(elem => {
-                    const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
+                Object.values(D.elements).forEach(elem => {
+                    const n1 = D.nodes[elem.n1], n2 = D.nodes[elem.n2];
                     if (!n1 || !n2) return;
                     const dx = n2.x - n1.x, dy = n2.y - n1.y;
                     const len = Math.sqrt(dx*dx + dy*dy);
                     if (len < SNAP_EPSILON) return;
                     // Project basePoint onto line
-                    const t = ((cmdState.basePoint.x - n1.x) * dx + (cmdState.basePoint.y - n1.y) * dy) / (len * len);
+                    const t = ((taban.x - n1.x) * dx + (taban.y - n1.y) * dy) / (len * len);
                     if (t < 0 || t > 1) return;
                     const perpX = n1.x + t * dx, perpY = n1.y + t * dy;
                     const dist = Math.sqrt((perpX - modelX) ** 2 + (perpY - modelY) ** 2);
@@ -288,8 +357,8 @@
             
             // 5. Nearest snap - closest point on any beam
             if (cmdState.snapNearest && !best) {
-                Object.values(model.elements).forEach(elem => {
-                    const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
+                Object.values(D.elements).forEach(elem => {
+                    const n1 = D.nodes[elem.n1], n2 = D.nodes[elem.n2];
                     if (!n1 || !n2) return;
                     
                     const dx = n2.x - n1.x, dy = n2.y - n1.y;
@@ -324,7 +393,9 @@
             }
             
             if (best) best.type = snapType;
-            return best;
+            if (!best) return null;
+            const g = geri(best);
+            return { x: g.x, y: g.y, z: g.z, type: snapType };
         }
         
         // ============== OBJECT SNAP MARKER (visual) ==============

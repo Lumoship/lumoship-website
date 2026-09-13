@@ -862,7 +862,11 @@
                 const statusCoords = document.getElementById('statusCoords');
                 if (statusCoords && modelPos) {
                     let txt = `X: ${(modelPos.x * 1000).toFixed(0)} Y: ${(modelPos.y * 1000).toFixed(0)}`;
-                    if (activeWorkPlane || Math.abs(modelPos.z || 0) > 1e-6) {
+                    // XZ/YZ duzlemlerinde Z asil calisilan eksen; degeri sifir
+                    // olsa bile gosterilmeli.
+                    const aktif = (typeof aktifCalismaDuzlemi === 'function')
+                        ? aktifCalismaDuzlemi() : { axis: 'Z' };
+                    if (aktif.axis !== 'Z' || Math.abs(modelPos.z || 0) > 1e-6) {
                         txt += ` Z: ${((modelPos.z || 0) * 1000).toFixed(0)}`;
                     }
                     statusCoords.textContent = txt;
@@ -1740,25 +1744,13 @@
                 centerY = (minY + maxY) / 2;
             }
             
-            // Update grid - the custom grid (recreateGrid) already lies in the XY plane,
-            // so XY needs NO rotation; only work planes rotate it.
+            // Izgarayi duzleme oturtma isi TEK yerde: izgarayiDuzlemeGore().
+            // Burada ikinci bir kopya vardi ve yalnizca calisma duzlemine
+            // bakiyordu; gorunus XZ/YZ iken donmeyi sifirlayip izgarayi XY'ye
+            // geri ceviriyordu - komut baslatmak bile yetiyordu.
             if (window.gridHelper) {
-                const gs = window.gridSettings || { originX: centerX, originY: centerY };
                 window.gridHelper.visible = (view.showGrid !== false);
-                const wp = activeWorkPlane;
-                if (wp && wp.axis === 'Y') {
-                    // XZ plane: rotate the XY grid 90° about X
-                    window.gridHelper.rotation.set(Math.PI / 2, 0, 0);
-                    window.gridHelper.position.set(gs.originX, wp.offset, 0);
-                } else if (wp && wp.axis === 'X') {
-                    // YZ plane: rotate the XY grid 90° about Y
-                    window.gridHelper.rotation.set(0, Math.PI / 2, 0);
-                    window.gridHelper.position.set(wp.offset, gs.originY, 0);
-                } else {
-                    // XY plane (default / axis Z): no rotation — grid is already XY
-                    window.gridHelper.rotation.set(0, 0, 0);
-                    window.gridHelper.position.set(gs.originX, gs.originY, (wp && wp.axis === 'Z') ? wp.offset : 0);
-                }
+                izgarayiDuzlemeGore();
             }
             
             // Axes now live in the corner gizmo scene → fixed size (no model scaling)
@@ -3084,6 +3076,23 @@
         //
         // Serbest 3B gorunuste izgara zeminde (XY) kalir - referans duzlem odur.
         // Bir calisma duzlemi etkinse izgara onun uzerine oturur.
+        // Uzerinde calisilan duzlem TEK yerden belirlenir: izgara ile fare
+        // girdisi ayri ayri karar verirse birbirini tutmaz - izgara XZ'de
+        // gorunurken tiklama XY'ye dusuyordu.
+        //
+        // Acik bir calisma duzlemi varsa o gecerlidir; yoksa gorunus belirler.
+        // Serbest 3B'de zemin (XY) kullanilir.
+        function aktifCalismaDuzlemi() {
+            if (typeof activeWorkPlane !== 'undefined' && activeWorkPlane) {
+                return { axis: activeWorkPlane.axis, offset: activeWorkPlane.offset || 0 };
+            }
+            if (typeof currentViewMode !== 'undefined') {
+                if (currentViewMode === 'front') return { axis: 'Y', offset: 0 };
+                if (currentViewMode === 'side') return { axis: 'X', offset: 0 };
+            }
+            return { axis: 'Z', offset: 0 };
+        }
+
         function izgarayiDuzlemeGore() {
             const g = window.gridHelper;
             if (!g || !window.gridSettings) return;
@@ -3091,16 +3100,8 @@
             const { originX, originY } = window.gridSettings;
             const AYIRMA = 0.01;   // z-fighting olmasin diye kilpayi geri cek
 
-            // Hangi duzlem? Once calisma duzlemi, yoksa gorunus.
-            let eksen = 'Z', kayma = 0;
-            if (activeWorkPlane) {
-                eksen = activeWorkPlane.axis;
-                kayma = activeWorkPlane.offset || 0;
-            } else if (currentViewMode === 'front') {
-                eksen = 'Y';
-            } else if (currentViewMode === 'side') {
-                eksen = 'X';
-            }
+            const duzlem = aktifCalismaDuzlemi();
+            const eksen = duzlem.axis, kayma = duzlem.offset;
 
             if (eksen === 'Z') {
                 // XY duzlemi: grup zaten boyle kuruldu.
