@@ -2638,18 +2638,23 @@
                     // da dugumun oteki tarafina dusuyordu: yazi dugum isaretinin
                     // ve mesnet simgesinin ustune biniyor, rakam okunmuyordu.
                     // Yerel +y iki durumda ters yone baktigi icin isaretler de ters.
-                    labelSprite.position.y = isDownward
-                        ? -loadArrowScale * 0.55
-                        : arrowLength + loadArrowScale * 0.55;
+                    // Etiket her iki durumda da okun dugumden UZAK ucunda:
+                    // yerel +y artik ikisinde de yukari.
+                    labelSprite.position.y = arrowLength + loadArrowScale * 0.55;
                     loadGroup.add(labelSprite);
                     
-                    loadGroup.rotation.x = isDownward ? -Math.PI / 2 : Math.PI / 2;
-                    
-                    if (isDownward) {
-                        loadGroup.position.set(node.x, node.y, z + arrowLength + 0.02);
-                    } else {
-                        loadGroup.position.set(node.x, node.y, z + 0.02);
-                    }
+                    // Asagi yuk icin grup HEM arrowLength kadar yukari
+                    // kaydiriliyor HEM de yerel eksen ters cevriliyordu; ikisi
+                    // birbirini goturuyor ve ok, yukari yukle AYNI yerde ayni
+                    // yone bakiyordu. Olculdu: Fz=-10 ve Fz=+10 icin koninin
+                    // dunya z'si ikisinde de 0.226.
+                    //
+                    // Artik yerel +y her iki durumda da dunya +z: grup dugumde
+                    // durur, yonu koninin kendi yerlesimi belirler. Asagi yukte
+                    // koni dugumun hemen ustunde ve asagi bakar, govde yukari
+                    // uzanir; yukari yukte koni tepede ve yukari bakar.
+                    loadGroup.rotation.x = Math.PI / 2;
+                    loadGroup.position.set(node.x, node.y, z + 0.02);
                     
                     threeScene.add(loadGroup);
                 });
@@ -2725,26 +2730,26 @@
                         const stemGeometry = new THREE.CylinderGeometry(stemR, stemR * 0.8, stemLen, 8);
                         const stem = new THREE.Mesh(stemGeometry, lineLoadMat);
                         
+                        // Tekil yukteki hatanin aynisi: asagi yukte grup
+                        // -90 derece donduruluyordu, yerel +y dunya -z oluyor
+                        // ve ok kirisin ALTINDA YUKARI bakar halde ciziliyordu.
+                        // Yerel +y her iki durumda da dunya +z; yonu koninin
+                        // kendi yerlesimi belirler.
                         if (isLineLoadDownward) {
-                            // Arrow points down - tip near beam, stem above
-                            arrow.rotation.x = Math.PI;  // Flip cone to point down
-                            arrow.position.y = coneH / 2;  // Tip at y=0
-                            stem.position.y = coneH + stemLen / 2;  // Stem above cone
-                            arrowGroup.add(arrow);
-                            arrowGroup.add(stem);
-                            arrowGroup.rotation.x = -Math.PI / 2;  // Y becomes Z
-                            // Position so tip is just above beam (small clearance)
-                            const beamClearance = 0.06;
-                            arrowGroup.position.set(x, y, zBase + beamClearance);
+                            // Koni kirisin hemen ustunde ve asagi bakar,
+                            // govde yukari uzanir.
+                            arrow.rotation.x = Math.PI;
+                            arrow.position.y = coneH / 2;
+                            stem.position.y = coneH + stemLen / 2;
                         } else {
-                            // Arrow points up - tip at top
+                            // Koni tepede ve yukari bakar.
                             arrow.position.y = stemLen + coneH / 2;
                             stem.position.y = stemLen / 2;
-                            arrowGroup.add(arrow);
-                            arrowGroup.add(stem);
-                            arrowGroup.rotation.x = Math.PI / 2;
-                            arrowGroup.position.set(x, y, zBase + 0.06);
                         }
+                        arrowGroup.add(arrow);
+                        arrowGroup.add(stem);
+                        arrowGroup.rotation.x = Math.PI / 2;
+                        arrowGroup.position.set(x, y, zBase + 0.06);
                         
                         threeScene.add(arrowGroup);
                     }

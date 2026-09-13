@@ -802,6 +802,10 @@
             
             // Update profile list if visible
             updateProfileTableFromSections();
+            // Kiris ekleme seciciler de tazelenmeli: profil olusuyor ama
+            // "Add Beam" bolumu "No profiles - create in General tab"
+            // demeye devam ediyordu.
+            if (typeof updateSectionDropdowns === "function") updateSectionDropdowns();
         }
         
         function updateProfileTableFromSections() {
@@ -855,6 +859,10 @@
             };
             
             showToast(`Custom section "${name}" added`, 'success');
+            // Kiris ekleme seciciler de tazelenmeli: profil olusuyor ama
+            // "Add Beam" bolumu "No profiles - create in General tab"
+            // demeye devam ediyordu.
+            if (typeof updateSectionDropdowns === "function") updateSectionDropdowns();
             
             // Clear form
             document.getElementById('customSectionName').value = '';
