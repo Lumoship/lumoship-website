@@ -269,6 +269,24 @@
             };
         }
 
+        // DAIRESEL BORU. DNV 3D Beam varsayilan kesiti bu.
+        // Burulmada KAPALI kesit: J = 2*I, acik kesit formulu degil.
+        // Kayma alani ince cidarli boruda yaklasik A/2'dir (kappa = 0,5).
+        function pipeProperties(dMM, tMM) {
+            const D = dMM / 10, T = Math.min(tMM / 10, dMM / 20);   // cm, cidar yaricapi gecemez
+            const Di = Math.max(D - 2 * T, 0);
+            const A = Math.PI * (D * D - Di * Di) / 4;
+            const I = Math.PI * (Math.pow(D, 4) - Math.pow(Di, 4)) / 64;
+            const J = 2 * I;
+            const W = I / (D / 2);
+            return {
+                type: 'PIPE', A: A, Aweb: A / 2, Aflange: A / 2, Iy: I, Iz: I, J: J,
+                Wt: J / (D / 2),
+                Wy: W, WyTop: W, WyBot: W, Wz: W,
+                height: D, tw: T, centroidY: D / 2
+            };
+        }
+
         // Ortak giris. dims mm cinsinden. kor (istege bagli) mm cinsinden pay.
         function profileProperties(type, dims, kor) {
             const cw = korozyonPayi(kor, 'web');
@@ -277,6 +295,7 @@
             switch (String(type).toUpperCase()) {
                 case 'HP': return bulbFlatProperties(dims.b, dims.t, cw);
                 case 'FB': return flatBarProperties(dims.h, kalan(dims.t, cw));
+                case 'PIPE': return pipeProperties(dims.d, kalan(dims.t, cw));
                 case 'T':  return teeProperties(dims.h, kalan(dims.tw, cw),
                                                 dims.bf, kalan(dims.tf, cf));
                 case 'L':  return angleProperties(dims.a, dims.b, kalan(dims.t, cw),

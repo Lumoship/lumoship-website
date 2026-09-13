@@ -229,6 +229,17 @@
         //
         // Flans alani bilinmiyorsa eski davranis (govde alani) korunur; boylece
         // Aflange tasimayan eski kesitlerde sonuc degismez.
+        // Kayma alani GOVDE alanidir, tum kesit alani degil. Bu bir tercih
+        // degil, OLCULMUS bir secim: kappa = 1 (tum alan) denendiginde DNV
+        // 3D Beam karsilastirmasi 29/29 -> 24/29, Steel portal vinc 34/34 ->
+        // 23/34 dusuyor. Yani iki bagimsiz referans da govde alanini
+        // gerektiriyor.
+        //
+        // Bunu CCL311 OpenTop boslugunu ararken denedim: tum alan o modelin
+        // medyanini 1,191 -> 1,081 getiriyordu, analiz 1'i de 1,0075 ->
+        // 1,0006. Cazip gorunuyordu ve YANLIS olurdu - ayni programin
+        // (Steel) portal vinc modeli govde alanini sart kosuyor. Bir sayiyi
+        // duzeltip iki referansi bozmak ilerleme degil.
         function kaymaKappalari(sec) {
             const z = (sec.Aweb && sec.Aweb > 0 && sec.A > 0)
                 ? sec.Aweb / sec.A

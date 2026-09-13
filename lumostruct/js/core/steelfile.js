@@ -72,6 +72,9 @@
     const cocuklar = (d, ad) => d.cocuk.filter(c => c.ad === ad);
     const cocuk = (d, ad) => d.cocuk.find(c => c.ad === ad) || null;
     const sayi = v => { const x = parseFloat(v); return isFinite(x) ? x : null; };
+    // XML nitelikleri METIN gelir. Dugum/eleman kimliklerini sayiya ceviriyoruz:
+    // "1" === 1 yanlis, ve bu tur bir karsilastirma sessizce bos sonuc verir.
+    const kimlik = v => { const n = parseInt(v, 10); return (isFinite(n) && String(n) === String(v).trim()) ? n : v; };
 
     // "1,4-9,14" -> [1,4,5,6,7,8,9,14]
     function araliklariAc(metin) {
@@ -158,14 +161,14 @@
         const dn = cocuk(m, 'nodes');
         if (dn) cocuklar(dn, 'node').forEach(n => {
             const p = String(n.nitelik.p || '').split(';').map(parseFloat);
-            model.dugumler[n.nitelik.id] = { x: p[0] || 0, y: p[1] || 0, z: p[2] || 0 };
+            model.dugumler[kimlik(n.nitelik.id)] = { x: p[0] || 0, y: p[1] || 0, z: p[2] || 0 };
         });
 
         const kr = cocuk(m, 'beams');
         if (kr) cocuklar(kr, 'beam').forEach(b => {
             const z = String(b.nitelik.z || '').split(';').map(parseFloat);
-            model.kirisler[b.nitelik.id] = {
-                n1: b.nitelik.n1, n2: b.nitelik.n2, bp: b.nitelik.bp,
+            model.kirisler[kimlik(b.nitelik.id)] = {
+                n1: kimlik(b.nitelik.n1), n2: kimlik(b.nitelik.n2), bp: b.nitelik.bp,
                 z: (z.length === 3 && z.every(isFinite)) ? z : null
             };
         });
@@ -323,7 +326,7 @@
                 if (!s) { uyarilar.push('kesit kurulamadi: bp ' + b.bp); return; }
                 sections[ad] = s;
             }
-            elements[id] = {
+            elements[kimlik(id)] = {
                 n1: b.n1, n2: b.n2, section: ad,
                 orientation: yerelZdenAci(n1, n2, b.z)
             };
@@ -412,6 +415,9 @@
     }
 
     window.steelXmlAyristir = steelXmlAyristir;
+    // Ayristirici .steel'e ozgu degil; DNV okuyucusu da bunu kullaniyor.
+    // Iki kopya tutmak, birinde duzeltilen bir hatanin otekinde kalmasi demek.
+    window.basitXmlAyristir = steelXmlAyristir;
     window.steelDosyasiOku = steelDosyasiOku;
     window.steelModeliKur = steelModeliKur;
     window.steelKesitiKur = steelKesitiKur;
