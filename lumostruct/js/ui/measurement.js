@@ -247,8 +247,8 @@
                 
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:16px;">
                     <div style="background:var(--bg-elev); padding:8px; border-radius:var(--r-ctl); text-align:center;">
-                        <div style="color:var(--danger); font-size:var(--fs-xs);">ΔX</div>
-                        <div style="color:var(--danger); font-weight:600;">${dxMm} mm</div>
+                        <div style="color:var(--danger-text); font-size:var(--fs-xs);">ΔX</div>
+                        <div style="color:var(--danger-text); font-weight:600;">${dxMm} mm</div>
                     </div>
                     <div style="background:var(--bg-elev); padding:8px; border-radius:var(--r-ctl); text-align:center;">
                         <div style="color:var(--success); font-size:var(--fs-xs);">ΔY</div>

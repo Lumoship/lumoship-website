@@ -509,7 +509,7 @@
         }
         
         .cmd-tooltip .distance {
-            color: var(--primary);
+            color: var(--primary-text);
             margin-left: 8px;
         }
         
@@ -527,7 +527,7 @@
         
         body.light-mode .results-bottom-panel {
             background: #ffffff;
-            border-top-color: var(--primary);
+            border-top-color: var(--primary-text);
         }
         
         body.light-mode .results-bottom-header {
@@ -568,7 +568,7 @@
         }
         
         body.light-mode #viewInfoOverlay span:first-child {
-            color: var(--primary);
+            color: var(--primary-text);
         }
         
         /* Smooth transitions for interactive elements */
@@ -1349,7 +1349,7 @@
         }
         
         .status-bar .status-message.success { color: var(--success); }
-        .status-bar .status-message.error { color: var(--danger); }
+        .status-bar .status-message.error { color: var(--danger-text); }
         .status-bar .status-message.warning { color: var(--warning); }
         
         .status-bar .status-info {
@@ -1377,7 +1377,7 @@
         
         .status-bar .selection-mode button.active {
             background: var(--primary-fill);
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             color: white;
         }
         
@@ -1607,13 +1607,13 @@
         
         .view-mode-btn:hover {
             background: rgba(51, 65, 85, 0.9);
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             color: #e2e8f0;
         }
         
         .view-mode-btn.active {
             background: var(--primary-fill);
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             color: white;
             box-shadow: none;
         }
@@ -2015,15 +2015,18 @@
             overflow-y: auto;
         }
         
+        /* Bos durum 445 px yer tutuyordu - iki satir yazi icin. Sag panelin
+           yarisindan fazlasi, ve altindaki Model ozeti asagi itiliyordu.
+           Bos durum bir DURUM bildirimidir, bir bolum degil. */
         .entity-info-empty {
             text-align: center;
-            padding: var(--space-10) var(--space-5);
+            padding: var(--space-4) var(--space-3);
             color: var(--text-muted);
         }
         
         .entity-info-empty .icon {
-            font-size:var(--fs-lg);
-            margin-bottom: var(--space-4);
+            font-size:var(--fs-md);
+            margin-bottom: var(--space-2);
             opacity: 0.5;
         }
         
@@ -2662,7 +2665,7 @@
         
         .tree-item.selected {
             background: rgba(56, 189, 248, 0.2);
-            color: var(--primary);
+            color: var(--primary-text);
         }
         
         /* Compact Solve Button */
@@ -2920,7 +2923,17 @@
             --success: #22c55e;          /* Positive, solve button */
             --success-hover: #16a34a;
             --warning: #eab308;          /* Warnings, caution */
-            --danger: #ef4444;           /* Errors, delete */
+            --danger: #ef4444;           /* Errors, delete - DOLGU/CERCEVE icin */
+
+            /* METIN varyantlari. Dolgu rengiyle metin rengi ayni olamaz:
+               #ef4444 koyu zeminde 4.08, #3b82f6 4.18 kontrast veriyor,
+               metin icin gereken 4.5. Dolguda sorun yok (grafik esigi 3.0),
+               sorun bu renklerin `color:` olarak kullanilmasiydi - ui-audit
+               yuk tablosundaki "-10.0" uzerinde yakaladi.
+               Olculdu (uc koyu zeminde de): danger 5.55-6.45, primary
+               6.04-7.02. */
+            --danger-text: #f87171;
+            --primary-text: #60a5fa;
             
             /* Spacing Scale */
             --s-1: 4px;
@@ -3044,8 +3057,8 @@
         }
         
         .main-tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
+            color: var(--primary-text);
+            border-bottom-color: var(--primary-text);
             background: transparent;
         }
         
@@ -3111,7 +3124,7 @@
         
         input:focus, select:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             box-shadow: var(--ring);
         }
         
@@ -3195,13 +3208,13 @@
         .btn-secondary.active {
             background: var(--primary-fill);
             color: white;
-            border-color: var(--primary);
+            border-color: var(--primary-text);
         }
         
         /* GHOST/DANGER: Delete, cancel */
         .btn-danger {
             background: transparent;
-            color: var(--danger);
+            color: var(--danger-text);
             border: 1px solid var(--danger);
         }
         
@@ -3310,7 +3323,7 @@
         }
         
         .context-menu-danger {
-            color: var(--danger);
+            color: var(--danger-text);
         }
         
         .context-menu-danger:hover {
@@ -3368,7 +3381,7 @@
         .dropdown-item input[type="checkbox"] {
             width: 14px;
             height: 14px;
-            accent-color: var(--primary);
+            accent-color: var(--primary-text);
         }
         
         /* -------- ACTION MODALS -------- */
@@ -3421,7 +3434,7 @@
         
         .modal-field input:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
         }
         
@@ -3444,16 +3457,16 @@
         }
         
         .modal-radio-item:hover {
-            border-color: var(--primary);
+            border-color: var(--primary-text);
         }
         
         .modal-radio-item.selected {
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             background: rgba(99,102,241,0.1);
         }
         
         .modal-radio-item input[type="radio"] {
-            accent-color: var(--primary);
+            accent-color: var(--primary-text);
         }
         
         .modal-radio-item .radio-content {
@@ -3486,7 +3499,7 @@
         }
         
         .modal-checkbox input {
-            accent-color: var(--primary);
+            accent-color: var(--primary-text);
         }
         
         /* -------- TABS -------- */
@@ -3597,7 +3610,7 @@
         
         .result-card.success .value { color: var(--success); }
         .result-card.warning .value { color: var(--warning); }
-        .result-card.danger .value { color: var(--danger); }
+        .result-card.danger .value { color: var(--danger-text); }
         
         /* -------- ENTITY INFO PANEL -------- */
         
@@ -3663,7 +3676,7 @@
         }
         
         .section-diagram:hover {
-            border-color: var(--primary);
+            border-color: var(--primary-text);
         }
         
         .section-diagram svg {
@@ -3744,7 +3757,7 @@
         
         .status-ok { color: var(--success); }
         .status-warning { color: var(--warning); }
-        .status-error { color: var(--danger); }
+        .status-error { color: var(--danger-text); }
         
         /* -------- DIVIDER -------- */
         
@@ -3782,9 +3795,9 @@
         .toast.info { border-left: 3px solid var(--primary); }
         
         .toast.success .toast-icon { color: var(--success); }
-        .toast.error .toast-icon { color: var(--danger); }
+        .toast.error .toast-icon { color: var(--danger-text); }
         .toast.warning .toast-icon { color: var(--warning); }
-        .toast.info .toast-icon { color: var(--primary); }
+        .toast.info .toast-icon { color: var(--primary-text); }
         
         /* -------- LOADING OVERLAY -------- */
         
@@ -3794,7 +3807,7 @@
         
         .loading-spinner {
             border-color: var(--border);
-            border-top-color: var(--primary);
+            border-top-color: var(--primary-text);
         }
         
         .loading-text {
@@ -3880,7 +3893,7 @@
         
         .tree-item.selected {
             background: rgba(59, 130, 246, 0.15);
-            color: var(--primary);
+            color: var(--primary-text);
         }
         
         /* -------- PROFILE PREVIEW -------- */
@@ -3895,7 +3908,7 @@
         
         input[type="checkbox"],
         input[type="radio"] {
-            accent-color: var(--primary);
+            accent-color: var(--primary-text);
         }
         
         /* -------- SCROLLBAR -------- */
@@ -3943,7 +3956,7 @@
         
         .import-type-btn.active {
             background: rgba(59, 130, 246, 0.2);
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             color: #e2e8f0;
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
         }
@@ -3971,7 +3984,7 @@
         
         .orient-btn.active {
             background: var(--primary-fill);
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             color: white;
         }
         
@@ -4106,7 +4119,7 @@
         .results-bottom-tab.active {
             background: var(--primary-fill);
             color: white;
-            border-color: var(--primary);
+            border-color: var(--primary-text);
         }
         
         .results-bottom-content {
@@ -4137,7 +4150,7 @@
         
         .results-data-table th:hover {
             background: #2d4a6f;
-            color: var(--primary);
+            color: var(--primary-text);
         }
         
         .results-data-table td {
@@ -4157,7 +4170,7 @@
         
         .results-data-table .stress-ok { color: var(--success); }
         .results-data-table .stress-warn { color: var(--warning); }
-        .results-data-table .stress-fail { color: var(--danger); font-weight: 600; }
+        .results-data-table .stress-fail { color: var(--danger-text); font-weight: 600; }
         
         @media (max-width: 1200px) {
             .results-bottom-panel {
@@ -4214,16 +4227,20 @@
                ekranda gereginden ufak duruyordu.
 
                --fs-taban pencere GENISLIGIYLE dogrusal buyur ve iki ucta durur:
-                 1280 px -> 12.0    1600 px -> 13.0
-                 1920 px -> 14.0    2560 px ve ustu -> 16.0
-               1280 px'te dort deger de eski sabit degerlerin TAM AYNISI cikar
-               (11 / 12 / 14 / 18), yani mevcut tasarim bozulmaz; daha genis
-               ekranlarda oranlar korunarak buyur.
+                 1280 px -> 11.5    1600 px -> 12.0
+                 1920 px -> 12.5    2560 px ve ustu -> 14.0
+
+               ILK EGIM COK DIKTI (0.3125vw): 1280'de 12, 1920'de 14, 2560'ta
+               16 px veriyordu. Buyuk monitorde istenen sey daha buyuk harf
+               degil DAHA COK BILGI; 1920'de 14 px taban, yogun bir muhendislik
+               aracinda sayi girisini 16.3 px'e, tablo satirini 36 px'e
+               cikariyordu. Yeni egim ekran buyudukce yine buyutuyor ama
+               okunabilirlik icin gereken kadar.
 
                --ui-olcek kullanicinin Settings'ten verdigi carpan (varsayilan 1).
                Ikisi carpilir: ekran otomatigi + kisisel tercih. */
             --ui-olcek: 1;
-            --fs-taban: clamp(11px, calc(0.3125vw + 8px), 16px);
+            --fs-taban: clamp(11px, calc(0.15625vw + 9.5px), 14px);
             --fs-xs: calc(var(--fs-taban) * var(--ui-olcek) * 0.9167);  /* mikro etiket, tablo basligi */
             --fs-sm: calc(var(--fs-taban) * var(--ui-olcek));           /* govde, ikincil */
             --fs-md: calc(var(--fs-taban) * var(--ui-olcek) * 1.1667);  /* birincil deger, baslik */
@@ -4390,7 +4407,7 @@
             cursor: pointer;
         }
         .status-actions button:hover { background: var(--bg-hover); color: var(--text); }
-        .status-actions button.danger:hover { color: var(--danger); }
+        .status-actions button.danger:hover { color: var(--danger-text); }
 
 
         /* ---- Ikonlar yalnizca TEK etiket olduklari yerde ----
@@ -4683,7 +4700,14 @@
            sekme iceriginin DOGRUDAN cocuklari. */
         .main-tab-content > * {
             margin-top: 0 !important;
-            margin-bottom: var(--space-3) !important;
+            /* 12 -> 8 px. Her sekmede HER blogun altina 12 px koyuyordu;
+               sekiz bloklu bir sekmede tek basina 84 px. Bloklarin kendi ic
+               dolgusu duruyor, degisen yalnizca ARALARINDAKI mesafe - yogun
+               gorunsun diye kartin ici degil kartlar arasi kisilir.
+               6 px denendi ve GERI ALINDI: olcek 4/8/12/16, 6 disarida kalir
+               ve ui-audit.js bunu 15 ritim bulgusu olarak yakaladi. Iki
+               piksel goze gorunmez, olcek disi bir deger sisteme girer. */
+            margin-bottom: var(--space-2) !important;
         }
 
         .main-tab-content > *:last-child {
@@ -4691,8 +4715,11 @@
         }
 
         .main-tab-content > h3.panel-title {
-            margin-top: var(--space-4) !important;
-            margin-bottom: var(--space-3) !important;
+            /* Bolum basliginin USTUNDEKI bosluk, ALTINDAKINDEN buyuk kalmali -
+               baslik kendinden sonrakine ait gorunsun. Oranlar korunarak
+               kisildi (16/12 -> 12/4), yani gruplama okunurlugu bozulmuyor. */
+            margin-top: var(--space-3) !important;
+            margin-bottom: var(--space-1) !important;
         }
 
         /* Her sekmenin ILK cocugu gizli bir <h2>'dir (ekran okuyucu basligi),
@@ -5054,7 +5081,7 @@
             backdrop-filter: blur(8px);
         }
         .plane-chip.active {
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             background: var(--primary-fill);
         }
         .plane-chip-name,
@@ -5075,7 +5102,7 @@
             padding: 4px 7px;
             line-height: 1;
         }
-        .plane-chip-del:hover { color: var(--danger); background: rgba(239, 68, 68, 0.12); }
+        .plane-chip-del:hover { color: var(--danger-text); background: rgba(239, 68, 68, 0.12); }
         body.light-mode .plane-chip {
             background: rgba(255, 255, 255, 0.92);
             border-color: var(--text-2);
@@ -5186,3 +5213,144 @@
             font-size: var(--fs-xs);
             white-space: nowrap;
         }
+
+
+/* ================================================================
+   PANEL YOGUNLUGU
+   ----------------------------------------------------------------
+   Olculdu (1920x945, model yuklu): sol panelin gorunen yuksekligi
+   775 px, icerigi 1709 px - yani iki katindan fazlasi kaydirmayla
+   geliyordu. Nereye gittigi:
+
+     Material Properties  361 px   BES veri icin
+       baslik 45 - dolgu 12 - uc datasheet satiri 59 + 63 + 38
+       (etiketler dar sutunda iki satira sariyordu)
+     Beam Profiles       1182 px
+       baslik 47 - bos onizleme 190 - form 163
+       - etkin plaka bolumu 452 - kutuphane 76 - profiller 132
+
+   Karsilastirma noktasi DNV 3D Beam: her seyi tek ekrana
+   sigdiriyor. Fark yazi boyutundan cok CHROME'dan geliyordu -
+   baslik yuksekligi, dolgu, satir araligi.
+
+   Asagisi yalnizca PANEL kromunu sikistirir; tuval, arac cubugu ve
+   kip cubugu ellenmiyor - orada dokunma hedefi boyutu onemli.
+   ================================================================ */
+
+/* Kart basligi: 45 -> 28 px. Baslik bir SATIR, bolum degil. */
+.collapsible-header {
+    padding: var(--space-1) var(--space-2);
+}
+/* Kart govdesi kendi icinde kaydirir, PANEL kaydirmaz.
+   Sorunun asli buydu: tek bir kart (Beam Profiles, 920 px) butun paneli
+   asagi itiyor, oteki bolumlerin BASLIKLARI bile gorunmez oluyordu -
+   "her sey nerede" hissi buradan geliyor. Tavan koyunca basliklar her
+   zaman yerinde kalir, yalnizca uzun icerik kendi icinde kayar. VS Code
+   kenar cubugu, Rhino ozellik paneli ayni sekilde calisir.
+   min() ile: kisa dizustu ekranlarda bile ekranin yarisini gecmez. */
+.collapsible-content {
+    padding: var(--space-2);
+    max-height: min(44vh, 400px);
+    overflow-y: auto;
+}
+
+/* Veri satiri: 59 -> ~24 px. Etiket kucuk ve tek satir; uzun adlar
+   (E - Young's Modulus) dar sutunda sarmasin diye satir araligi da
+   kisildi. Deger ve birim zaten sagda hizali. */
+.datasheet-row {
+    padding: 3px 0;
+    gap: var(--space-2);
+    align-items: center;
+}
+.datasheet-row .ds-key {
+    font-size: var(--fs-xs);
+    line-height: 1.25;
+}
+.datasheet-row .ds-val {
+    font-size: var(--fs-sm);
+}
+
+/* Alan araligi ve onay satiri */
+.field-group { gap: var(--space-2); }
+.check-row { padding: 4px var(--space-2); }
+
+/* Kontroller: 36-37 px yukseklik yogun bir arayuzde fazla.
+   Sayi girisindeki sag dolgu KORUNUYOR - artirma oklari rakamin
+   ustune binmesin diye ozellikle konmustu. */
+.panel input[type="text"], .panel input[type="number"], .panel select,
+#leftPanel input[type="text"], #leftPanel input[type="number"], #leftPanel select,
+#rightPanel input[type="text"], #rightPanel input[type="number"], #rightPanel select {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-size: var(--fs-sm);
+}
+
+/* Profil onizlemesi: SVG 280x180 oraninda cizilir ama kutu 190 px
+   yer tutuyordu ve secim yokken tamami bostu. 128 px hem cizime
+   yetiyor hem 62 px geri veriyor. */
+#profilePreviewArea {
+    height: 128px;
+}
+
+/* Kartlar arasi bosluk 12 -> 6 px. Yedi kartli bir sekmede bu tek basina
+   42 px. Kartin KENDI ic dolgusu korunuyor - sikisik gorunmesin diye
+   kisilmasi gereken sey kartlar ARASI mesafe, kartin ici degil. */
+#leftPanel .collapsible-panel, #rightPanel .collapsible-panel,
+.main-tab-content .collapsible-panel { margin-bottom: 6px; }
+#leftPanel .panel-card, #rightPanel .panel-card { margin-bottom: var(--space-2); padding: var(--space-2); }
+
+/* Ipucu kutulari: 62-80 px'lik bir kutu tek cumlelik bir not icin fazla.
+   Not KALIYOR - kucuk ve sakin, ama okunur. */
+#leftPanel .info-box, #rightPanel .info-box {
+    padding: var(--space-1) var(--space-2);
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-xs);
+    line-height: 1.35;
+}
+
+/* Liste kutulari (dugum/kiris listeleri) sabit 150 px tutuyordu.
+   Kendi icinde kaydiriyorlar zaten; 118 px alti satiri gosteriyor ve
+   panele 64 px geri veriyor. */
+#nodeList, #beamList, #elementList, [id$="List"].scroll-list {
+    max-height: 118px;
+}
+
+/* Ayarlar sayfasindaki aciklama paragraflari: 113 px'lik bir metin blogu
+   tek bir dugmeyi anlatiyordu. Metin KALIYOR - ikincil boyutta ve daha sik
+   satirla; ayar sayfasi bir okuma metni degil, bir kontrol listesi. */
+#tabContentSettings p, #tabContentSettings .form-group > small {
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    margin-bottom: var(--space-2);
+}
+#tabContentSettings .form-group { padding: var(--space-2) !important; }
+
+/* Sag panel satir yogunlugu. Kiris secilince panel 1033 px oluyordu
+   (gorunen 777): Beam 135 + Section 107 + cizim 150 + Section Properties
+   279 + Add Line Load 213. Satirlar 28 px'ti - okunurluk 20 px'te de
+   bozulmuyor, ustelik bir bakista daha cok satir goruluyor.
+   Bolum ARALIGI da kisildi; bolumlerin kendi ic dolgusu duruyor. */
+#rightPanel .entity-property {
+    padding: 1px 0;
+}
+#rightPanel .entity-section {
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+}
+#rightPanel .entity-section-title {
+    margin-bottom: var(--space-1);
+}
+
+/* Alt-indis ve ust-indis TABANI. Tarayici bunlari 0.76em cizer; 12.5 px
+   tabanda f(y) indisi 9.5 px'e duser. Sembol okunmaz olursa formul de
+   okunmaz - 10.5 px'in altina inmesinler. */
+.panel sub, .panel sup, #leftPanel sub, #leftPanel sup,
+#rightPanel sub, #rightPanel sup, .datasheet sub, .datasheet sup {
+    font-size: max(10.5px, 0.78em);
+}
+
+/* Tablo satirlari: 36 -> ~24 px */
+.data-table td, .data-table th,
+.results-data-table td, .results-data-table th {
+    padding: 3px var(--space-2);
+}

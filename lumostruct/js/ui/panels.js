@@ -54,7 +54,7 @@
                 
                 const utilEl = document.getElementById('beamDetailUtil');
                 utilEl.textContent = util.toFixed(1) + '%';
-                utilEl.style.color = util > 100 ? 'var(--danger)' : (util > 80 ? 'var(--warning)' : 'var(--success)');
+                utilEl.style.color = util > 100 ? 'var(--danger-text)' : (util > 80 ? 'var(--warning)' : 'var(--success)');
             } else {
                 document.getElementById('beamDetailStress').textContent = '-';
                 document.getElementById('beamDetailUtil').textContent = '-';
@@ -514,7 +514,7 @@
                     
                     <!-- Point Load Section -->
                     <div style="border-top:1px solid var(--border); margin-top:12px; padding-top:8px;">
-                        <div style="color:var(--danger); font-weight:600; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Point Load (P)</div>
+                        <div style="color:var(--danger-text); font-weight:600; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Point Load (P)</div>
                         
                         <div class="form-group">
                             <label>Force Components (kN)</label>
@@ -528,7 +528,7 @@
                                     <input type="number" id="nodeLoadFy" value="0" step="1">
                                 </div>
                                 <div>
-                                    <small style="color:var(--danger);">Fz ↓</small>
+                                    <small style="color:var(--danger-text);">Fz ↓</small>
                                     <input type="number" id="nodeLoadFz" value="-10" step="1">
                                 </div>
                             </div>
@@ -560,7 +560,7 @@
                         
                         ${existingLoads.length > 0 ? `
                         <div style="margin-top:8px; padding:8px; background:rgba(239,68,68,0.1); border-radius:var(--r-ctl);">
-                            <small style="color:var(--danger);">Current loads:<br>
+                            <small style="color:var(--danger-text);">Current loads:<br>
                             F: (${existingFx.toFixed(1)}, ${existingFy.toFixed(1)}, ${existingFz.toFixed(1)}) kN<br>
                             M: (${existingMx.toFixed(1)}, ${existingMy.toFixed(1)}, ${existingMz.toFixed(1)}) kN·m</small>
                         </div>
@@ -1003,7 +1003,7 @@
                             <div style="display:flex; gap:8px; align-items:center;">
                                 <input type="range" id="editOrientation" min="-180" max="180" step="5" 
                                        value="${elem.orientation || 0}" 
-                                       style="flex:1; accent-color:var(--primary);"
+                                       style="flex:1; accent-color:var(--primary-text);"
                                        oninput="document.getElementById('orientationValue').textContent = this.value + '°'; previewOrientation(${elem.id});">
                                 <span id="orientationValue" style="min-width:45px; color:var(--accent-info); font-weight:600;">${elem.orientation || 0}°</span>
                             </div>
@@ -1052,7 +1052,7 @@
                     
                     <!-- Line Load Section -->
                     <div style="border-top:1px solid var(--border); margin-top:12px; padding-top:8px;">
-                        <div style="color:var(--danger); font-weight:600; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A1 1 0 0 0 22 15V6a1 1 0 0 0-.29-.71l-4-4A1 1 0 0 0 17 1H8a1 1 0 0 0-.71.29l-4 4A1 1 0 0 0 3 6v9a1 1 0 0 0 .79.98l8 2a1 1 0 0 0 .42 0l8-2z"/><line x1="7" y1="6" x2="7" y2="10"/><line x1="11" y1="6" x2="11" y2="8"/><line x1="15" y1="6" x2="15" y2="10"/></svg></span> Line Load</div>
+                        <div style="color:var(--danger-text); font-weight:600; margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A1 1 0 0 0 22 15V6a1 1 0 0 0-.29-.71l-4-4A1 1 0 0 0 17 1H8a1 1 0 0 0-.71.29l-4 4A1 1 0 0 0 3 6v9a1 1 0 0 0 .79.98l8 2a1 1 0 0 0 .42 0l8-2z"/><line x1="7" y1="6" x2="7" y2="10"/><line x1="11" y1="6" x2="11" y2="8"/><line x1="15" y1="6" x2="15" y2="10"/></svg></span> Line Load</div>
                         
                         <div class="form-group">
                             <label>Load Value (kN/m)</label>
@@ -2136,7 +2136,7 @@
             
             let loadInfo = '';
             if (nLineLoads > 0) loadInfo += `<br><span style="color:var(--warning);">Line loads: ${nLineLoads}</span>`;
-            if (nPointLoads > 0) loadInfo += `<br><span style="color:var(--danger);">Point loads: ${nPointLoads}</span>`;
+            if (nPointLoads > 0) loadInfo += `<br><span style="color:var(--danger-text);">Point loads: ${nPointLoads}</span>`;
             
             // Model ozeti karti kaldirildi (sag panel tek kaynak). Eleman hala
             // varsa doldur - baska bir yerden geri konursa calismaya devam etsin.

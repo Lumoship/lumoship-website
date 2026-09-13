@@ -152,7 +152,7 @@ function analizOnizlemeTazele() {
         el.style.color = k.uyarilar.length ? 'var(--warning)' : 'var(--text-2)';
     } catch (err) {
         el.textContent = 'Cannot build: ' + err.message;
-        el.style.color = 'var(--danger)';
+        el.style.color = 'var(--danger-text)';
     }
 }
 

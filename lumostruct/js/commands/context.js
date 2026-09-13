@@ -144,7 +144,7 @@
                         </div>
                         <div style="background:var(--bg-main); padding:12px; border-radius:var(--r-ovl);">
                             <div style="color:var(--text-3); font-size:var(--fs-sm); margin-bottom:4px;">Utilization</div>
-                            <div style="color:${utilization > 100 ? 'var(--danger)' : utilization > 80 ? 'var(--warning)' : 'var(--success)'}; font-size:var(--fs-lg); font-weight:600;">${utilization.toFixed(1)}%</div>
+                            <div style="color:${utilization > 100 ? 'var(--danger-text)' : utilization > 80 ? 'var(--warning)' : 'var(--success)'}; font-size:var(--fs-lg); font-weight:600;">${utilization.toFixed(1)}%</div>
                         </div>
                     </div>
                     
@@ -158,7 +158,7 @@
                     </div>
                     
                     <div style="margin-top:16px; padding:8px; border:1px solid ${utilization > 100 ? 'var(--danger)' : 'var(--success)'}; border-radius:var(--r-ovl); text-align:center;">
-                        <span style="color:${utilization > 100 ? 'var(--danger)' : 'var(--success)'}; font-weight:600;">
+                        <span style="color:${utilization > 100 ? 'var(--danger-text)' : 'var(--success)'}; font-weight:600;">
                             ${utilization > 100 ? '<span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span> OVERSTRESSED' : '<span class="icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> OK'}
                         </span>
                     </div>

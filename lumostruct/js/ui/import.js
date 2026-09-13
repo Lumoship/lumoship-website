@@ -1184,7 +1184,9 @@
                 } else {
                     loadTable.innerHTML = model.loads.map((load, idx) => {
                         const fmt = (v) => v ? v.toFixed(1) : '0';
-                        const clr = (v) => v && v !== 0 ? 'var(--danger)' : 'var(--text-3)';
+                        // METIN varyanti: --danger bir DOLGU rengi; koyu zeminde metin
+                        // olarak 4.08 kontrast veriyor, gereken 4.5.
+                        const clr = (v) => v && v !== 0 ? 'var(--danger-text)' : 'var(--text-3)';
                         const editStyle = 'cursor:pointer; text-decoration:underline; text-decoration-style:dotted;';
                         return `<tr>
                             <td style="color:var(--accent-info); font-weight:600;">${load.nodeId}</td>

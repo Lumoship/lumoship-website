@@ -329,11 +329,16 @@
             if (!svg) return;
 
             if (!profilSecildi) {
+                // font-size viewBox BIRIMINDE. Kutu 128 px, viewBox yuksekligi 180,
+                // yani olcek 0.71: buraya 12 yazarsam ekranda 8.5 px cikar.
+                // Ekranda ~12 ve ~11 px gorunsun diye olcege bolunuyor.
+                const olcek = 128 / 180;
+                const y1 = Math.round(12 / olcek), y2 = Math.round(11 / olcek);
                 svg.innerHTML =
-                    '<text x="140" y="82" text-anchor="middle" fill="currentColor" ' +
-                    'opacity="0.45" font-size="12">No profile selected</text>' +
-                    '<text x="140" y="102" text-anchor="middle" fill="currentColor" ' +
-                    'opacity="0.3" font-size="11">Pick one from the catalog, or enter dimensions</text>';
+                    '<text x="140" y="78" text-anchor="middle" fill="currentColor" ' +
+                    'opacity="0.45" font-size="' + y1 + '">No profile selected</text>' +
+                    '<text x="140" y="104" text-anchor="middle" fill="currentColor" ' +
+                    'opacity="0.3" font-size="' + y2 + '">Pick one from the catalog</text>';
                 return;
             }
             

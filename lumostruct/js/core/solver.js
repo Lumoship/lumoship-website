@@ -299,14 +299,14 @@
             
             if (hasErrors) {
                 html += `<div style="margin-bottom:20px;">
-                    <div style="color:var(--danger); font-weight:600; margin-bottom:8px; font-size:var(--fs-md);">
+                    <div style="color:var(--danger-text); font-weight:600; margin-bottom:8px; font-size:var(--fs-md);">
                         <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span> Errors (Must fix before solving)
                     </div>`;
                 issues.errors.forEach(err => {
                     html += `
                         <div style="background:var(--bg-main); border-left:3px solid var(--danger); padding:12px; margin-bottom:8px; border-radius:0 6px 6px 0;">
-                            <div style="color:var(--danger); font-weight:600; margin-bottom:4px;">${err.icon} ${err.title}</div>
-                            <div style="color:var(--danger); font-size:var(--fs-md);">${err.message}</div>
+                            <div style="color:var(--danger-text); font-weight:600; margin-bottom:4px;">${err.icon} ${err.title}</div>
+                            <div style="color:var(--danger-text); font-size:var(--fs-md);">${err.message}</div>
                             <div style="color:#a8a29e; font-size:var(--fs-sm); margin-top:4px;">${err.details}</div>
                         </div>`;
                 });
@@ -426,8 +426,8 @@
                 if (errorCount > 0) {
                     html += `
                         <div style="background:#450a0a; border:1px solid var(--danger); border-radius:var(--r-ctl); padding:8px; margin-bottom:8px;">
-                            <div style="color:var(--danger); font-weight:600; font-size:var(--fs-md);"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span> ${errorCount} Error${errorCount > 1 ? 's' : ''}</div>
-                            <div style="color:var(--danger); font-size:var(--fs-sm); margin-top:4px;">
+                            <div style="color:var(--danger-text); font-weight:600; font-size:var(--fs-md);"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span> ${errorCount} Error${errorCount > 1 ? 's' : ''}</div>
+                            <div style="color:var(--danger-text); font-size:var(--fs-sm); margin-top:4px;">
                                 ${issues.errors.map(e => e.title).join(', ')}
                             </div>
                         </div>

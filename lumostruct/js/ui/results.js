@@ -60,7 +60,7 @@
             if (stressTable) {
                 stressTable.innerHTML = '';
                 Object.entries(results.elementResults).forEach(([elemId, res]) => {
-                    const color = res.vonMises > sigmaLimit ? 'color:var(--danger);font-weight:600;' : '';
+                    const color = res.vonMises > sigmaLimit ? 'color:var(--danger-text);font-weight:600;' : '';
                     stressTable.innerHTML += `<tr style="${color}">
                         <td>${elemId}</td>
                         <td>${res.sigma.toFixed(1)}</td>
@@ -87,7 +87,7 @@
             // rakami boyamak: ekranda tek bir renkli sayi olur ve gozden kacmaz.
             const utilDeger = document.getElementById('utilizationLeft');
             if (utilDeger) {
-                utilDeger.style.color = utilization > 100 ? 'var(--danger)'
+                utilDeger.style.color = utilization > 100 ? 'var(--danger-text)'
                                       : utilization > 80 ? 'var(--warning)'
                                       : 'var(--text)';
             }
@@ -127,7 +127,7 @@
                     eqStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> Balanced</span>';
                     eqCard.className = 'result-card success';
                 } else {
-                    eqStatus.innerHTML = '<span style="color:var(--danger);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> OFF BY ' + Math.abs(eq.error * 100).toFixed(2) + '%</span>';
+                    eqStatus.innerHTML = '<span style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> OFF BY ' + Math.abs(eq.error * 100).toFixed(2) + '%</span>';
                     eqCard.className = 'result-card danger';
                 }
                 eqDetail.textContent = 'Applied ' + eq.appliedFz.toFixed(2) +
@@ -219,7 +219,7 @@
                         : 'hw/tw and bf/tf OK on ' + checked + ' element(s). Member buckling is NOT checked.';
                     bucklingCard.className = unchecked ? 'result-card warning' : 'result-card success';
                 } else {
-                    bucklingStatus.innerHTML = '<span style="color:var(--danger);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> FAIL</span>';
+                    bucklingStatus.innerHTML = '<span style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> FAIL</span>';
                     bucklingDetail.textContent = bucklingMsg.trim();
                     bucklingCard.className = 'result-card danger';
                 }

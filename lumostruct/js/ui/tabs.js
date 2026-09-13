@@ -213,12 +213,12 @@
                 loadsContainer.innerHTML = `
                     <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:var(--r-ctl); padding:8px; margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:var(--danger); font-weight:600; font-size:var(--fs-md);">Current Load:</span>
+                            <span style="color:var(--danger-text); font-weight:600; font-size:var(--fs-md);">Current Load:</span>
                         </div>
                         <div style="display:flex; gap:8px; margin-top:4px; font-size:var(--fs-sm);">
-                            ${load.Fx ? `<span style="color:var(--text-3);">Fx: <b style="color:var(--danger);">${load.Fx}</b></span>` : ''}
-                            ${load.Fy ? `<span style="color:var(--text-3);">Fy: <b style="color:var(--danger);">${load.Fy}</b></span>` : ''}
-                            ${load.Fz ? `<span style="color:var(--text-3);">Fz: <b style="color:var(--danger);">${load.Fz}</b></span>` : ''}
+                            ${load.Fx ? `<span style="color:var(--text-3);">Fx: <b style="color:var(--danger-text);">${load.Fx}</b></span>` : ''}
+                            ${load.Fy ? `<span style="color:var(--text-3);">Fy: <b style="color:var(--danger-text);">${load.Fy}</b></span>` : ''}
+                            ${load.Fz ? `<span style="color:var(--text-3);">Fz: <b style="color:var(--danger-text);">${load.Fz}</b></span>` : ''}
                             ${!load.Fx && !load.Fy && !load.Fz ? '<span style="color:var(--text-3);">No values set</span>' : ''}
                         </div>
                     </div>
@@ -1166,7 +1166,7 @@
                 const end = (ll.endPct !== undefined ? ll.endPct : (ll.end || 1) * 100).toFixed(0);
                 return `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl); margin-bottom:4px;">
-                        <span style="color:var(--danger);">q=${q} kN/m</span>
+                        <span style="color:var(--danger-text);">q=${q} kN/m</span>
                         <span style="color:var(--text-3);">${start}-${end}%</span>
                         <button onclick="removeInfoLineLoad(${idx})" style="background:var(--danger); border:none; color:white; width:18px; height:18px; border-radius:var(--r-ctl); cursor:pointer; font-size:var(--fs-xs);">✕</button>
                     </div>
