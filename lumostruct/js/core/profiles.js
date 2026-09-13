@@ -219,6 +219,56 @@
             return (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0;
         }
 
+        // KAPALI KUTU. Iki dusey govde, ustte ve altta birer plaka.
+        //
+        // h DIS OLCUDUR (govdeler tam boy, plakalar aralarina oturur) - T
+        // profilindeki h govde yuksekligiyken burada oyle degil. Bu, tahmin
+        // degil olcum: tests/verify-steel.js ayni okumayla Steel 4.4.7 portal
+        // vinc vakasini 34 kontrolde tutturuyor.
+        //
+        // Burulma BREDT ile: kapali kesitte J acik kesittekinin binlerce kati
+        // olabilir, openJ ile hesaplamak kutuyu acik kanal sanmak olurdu.
+        function boxProperties(hMM, twMM, ustWMM, ustTMM, altWMM, altTMM) {
+            const H = hMM / 10, TW = twMM / 10;
+            const UW = ustWMM / 10, UT = ustTMM / 10;
+            const AW = (altWMM > 0 ? altWMM : ustWMM) / 10;
+            const AT = (altTMM > 0 ? altTMM : ustTMM) / 10;
+            const W = Math.max(UW, AW);                  // dis genislik
+            const icU = Math.max(UW - 2 * TW, 0), icA = Math.max(AW - 2 * TW, 0);
+
+            // [alan, y(alt yuzden), kendi ataleti]
+            const par = [
+                [H * TW, H / 2, TW * Math.pow(H, 3) / 12],
+                [H * TW, H / 2, TW * Math.pow(H, 3) / 12],
+                [icU * UT, H - UT / 2, icU * Math.pow(UT, 3) / 12],
+                [icA * AT, AT / 2, icA * Math.pow(AT, 3) / 12]
+            ];
+            const A = par.reduce((t, q) => t + q[0], 0);
+            const yc = par.reduce((t, q) => t + q[0] * q[1], 0) / A;
+            const Iy = par.reduce((t, q) => t + q[2] + q[0] * Math.pow(q[1] - yc, 2), 0);
+            const Iz = 2 * (H * Math.pow(TW, 3) / 12 + H * TW * Math.pow((W - TW) / 2, 2))
+                     + UT * Math.pow(icU, 3) / 12 + AT * Math.pow(icA, 3) / 12;
+
+            // Bredt: orta cizgi cevresi ve kapali alan
+            const bOrta = W - TW, hOrta = H - (UT + AT) / 2;
+            const Am = Math.max(bOrta * hOrta, 1e-9);
+            const cevre = 2 * hOrta / TW + (UT > 0 ? bOrta / UT : 0) + (AT > 0 ? bOrta / AT : 0);
+            const J = cevre > 0 ? 4 * Am * Am / cevre : 0;
+            const tMin = Math.min(TW, UT > 0 ? UT : TW, AT > 0 ? AT : TW);
+
+            const yUst = Math.max(H - yc, 1e-9), yAlt = Math.max(yc, 1e-9);
+            return {
+                type: 'BOX', A: A, Aweb: 2 * H * TW, Aflange: icU * UT + icA * AT,
+                Iy: Iy, Iz: Iz, J: J,
+                Wt: 2 * Am * tMin,
+                Wy: Iy / Math.max(yUst, yAlt), WyTop: Iy / yUst, WyBot: Iy / yAlt,
+                Wz: Iz / (W / 2),
+                // centroidY ALT yuzden olculur; plakaliKesitSI plakayi alt
+                // yuze oturtur (o taraf "height - centroidY" kadar uzakta).
+                height: H, tw: TW, centroidY: yc, width: W
+            };
+        }
+
         // Ortak giris. dims mm cinsinden. kor (istege bagli) mm cinsinden pay.
         function profileProperties(type, dims, kor) {
             const cw = korozyonPayi(kor, 'web');
@@ -231,6 +281,11 @@
                                                 dims.bf, kalan(dims.tf, cf));
                 case 'L':  return angleProperties(dims.a, dims.b, kalan(dims.t, cw),
                                                   kalan(dims.tf !== undefined ? dims.tf : dims.t, cf));
+                // Kutuda uc pay da dogrudan yerini bulur - .steel dosyasindaki
+                // web/top/bottom uclusu zaten bu sekli tarif ediyor.
+                case 'BOX': return boxProperties(dims.h, kalan(dims.tw, cw),
+                                                 dims.ustW, kalan(dims.ustT, cf),
+                                                 dims.altW, kalan(dims.altT, korozyonPayi(kor, 'plate')));
                 default:   return null;
             }
         }
@@ -277,14 +332,25 @@
         // kendi paylari profileProperties icinde uygulanir; burada yalnizca
         // plaka kalir - plaka genisligi DEGISMEZ, kurallar payi kalinliktan
         // duser.
-        function plakaliKesitSI(props, plakaGenislikMm, plakaKalinlikMm, plakaKorozyonMm) {
+        //
+        // altPlaka (istege bagli): { w, t, kor } mm. Profilin OTEKI ucuna
+        // oturan ikinci plaka. Lama + iki plaka = yigma I kirisi; CCL311
+        // modelinde dort kesit grubu boyle kurulmus. Verilmezse hicbir sey
+        // degismez - tek plakali hesap oldugu gibi kalir.
+        function plakaliKesitSI(props, plakaGenislikMm, plakaKalinlikMm, plakaKorozyonMm, altPlaka) {
             if (!props) return null;
             const plakaPay = (typeof plakaKorozyonMm === 'number' && isFinite(plakaKorozyonMm)
                               && plakaKorozyonMm > 0) ? plakaKorozyonMm : 0;
             const plateWCm = plakaGenislikMm / 10;
             const plateTCm = Math.max(plakaKalinlikMm - plakaPay, 0.5) / 10;
             const plateArea = plateWCm * plateTCm;
-            const totalArea = props.A + plateArea;
+
+            const altVar = !!(altPlaka && altPlaka.w > 0 && altPlaka.t > 0);
+            const altWCm = altVar ? altPlaka.w / 10 : 0;
+            const altTCm = altVar ? Math.max(altPlaka.t - (altPlaka.kor > 0 ? altPlaka.kor : 0), 0.5) / 10 : 0;
+            const altArea = altWCm * altTCm;
+
+            const totalArea = props.A + plateArea + altArea;
 
             const plateCentroidY = plateTCm / 2;
             // HP'de centroidY zaten USTTEN olculur (katalogdaki dx); diger
@@ -293,26 +359,34 @@
                 ? plateTCm + props.centroidY
                 : plateTCm + (props.height - props.centroidY);
 
+            const totalHeight = plateTCm + props.height + altTCm;
+            const altCentroidY = plateTCm + props.height + altTCm / 2;
+
             const combinedCentroidY =
-                (plateArea * plateCentroidY + props.A * profileCentroidY) / totalArea;
-            const totalHeight = plateTCm + props.height;
+                (plateArea * plateCentroidY + props.A * profileCentroidY
+                 + altArea * altCentroidY) / totalArea;
 
             const d1 = plateCentroidY - combinedCentroidY;
             const d2 = profileCentroidY - combinedCentroidY;
+            const d3 = altCentroidY - combinedCentroidY;
             const plateIxx = plateWCm * Math.pow(plateTCm, 3) / 12;
-            const combinedIxx = props.Iy + props.A * d2 * d2 + plateIxx + plateArea * d1 * d1;
+            const altIxx = altWCm * Math.pow(altTCm, 3) / 12;
+            const combinedIxx = props.Iy + props.A * d2 * d2 + plateIxx + plateArea * d1 * d1
+                              + altIxx + altArea * d3 * d3;
 
             const plateIyy = plateTCm * Math.pow(plateWCm, 3) / 12;
-            const combinedIyy = props.Iz + plateIyy;
+            const altIyy = altTCm * Math.pow(altWCm, 3) / 12;
+            const combinedIyy = props.Iz + plateIyy + altIyy;
 
             const yTop = combinedCentroidY;                 // plaka ust yuzeyine
             const yBot = totalHeight - combinedCentroidY;   // profil alt ucuna
             const WxxTop = combinedIxx / yTop;
             const WxxBot = combinedIxx / yBot;
-            const Wyy = combinedIyy / (plateWCm / 2);
+            const Wyy = combinedIyy / (Math.max(plateWCm, altWCm) / 2);
 
             const webThickCm = props.tw || 0;
-            const J_cm4 = props.J + openJ([[plateWCm, plateTCm]]);
+            const J_cm4 = props.J + openJ([[plateWCm, plateTCm]])
+                        + (altVar ? openJ([[altWCm, altTCm]]) : 0);
 
             return {
                 // SI - cozucu icin
