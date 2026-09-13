@@ -14,17 +14,80 @@
             return J;
         }
 
+        // Bulb flat icin BV esdeger yigma kesiti.
+        //   BV NR467 Part B, Ch 4, Sec 6, [1.4.1]
+        // Bulbun kendisi parametrik degildir - yuvarlatilmis, haddelenmis bir
+        // sismedir - o yuzden ondan dogrudan kalinlik dusulemez. Kural tam bu
+        // sorunu cozmek icin bulbu bir T kesite cevirir: govde + flans.
+        // Olculer NET (korozyon dusulmus) bulb olculerinden hesaplanir.
+        //
+        //   h  = h'w - h'w/9,2 + 2
+        //   bf = alfa * (t'w + h'w/6,7 - 2)
+        //   tf = h'w/9,2 - 2
+        //   tw = t'w
+        //   alfa = 1,1 + (120 - h'w)^2 / 3000   (h'w <= 120)   ;  1,0   (h'w > 120)
+        function bulbEsdegerOlculer(hwMM, twMM) {
+            const alfa = hwMM <= 120 ? 1.1 + Math.pow(120 - hwMM, 2) / 3000 : 1.0;
+            return {
+                h:  hwMM - hwMM / 9.2 + 2,
+                tw: twMM,
+                bf: alfa * (twMM + hwMM / 6.7 - 2),
+                tf: hwMM / 9.2 - 2
+            };
+        }
+
+        // Esdeger kesitin alani, ataleti ve agirlik merkezi. Merkez GOVDE
+        // DIBINDEN (plakanin oturdugu yuzden) olculur - katalogdaki dx ile ayni
+        // referans. mm girer, cm/cm2/cm4 cikar.
+        function bulbEsdegerOzellik(e) {
+            const Aw = e.h * e.tw, Af = Math.max(e.bf, 0) * Math.max(e.tf, 0);
+            const A = Aw + Af;
+            if (!(A > 0)) return { A: 0, I: 0, yc: 0 };
+            const yw = e.h / 2, yf = e.h + e.tf / 2;
+            const yc = (Aw * yw + Af * yf) / A;
+            const I = e.tw * Math.pow(e.h, 3) / 12 + Aw * Math.pow(yw - yc, 2)
+                    + Math.max(e.bf, 0) * Math.pow(Math.max(e.tf, 0), 3) / 12
+                    + Af * Math.pow(yf - yc, 2);
+            return { A: A / 100, I: I / 1e4, yc: yc / 10 };
+        }
+
         // Bulb flat: govde + bulb. Bulb, esit alanli bir daire olarak modelleniyor -
         // katalogdaki genislikle (c) tutarli cikan, savunulabilir bir yaklasim.
         // HP200x10 icin Iz = 4.03 cm4 verir; yayinlanmis deger 3.2-4 cm4 araligindadir.
-        function bulbFlatProperties(bMM, tMM) {
-            const B = bMM / 10, T = tMM / 10;                     // cm
+        //
+        // KOROZYON (korMM, govde kalinligindan dusulecek pay):
+        // Esdeger kesit KATALOGUN YERINE GECMEZ, yalnizca DEGISIMI verir.
+        // Olculdu: BV esdegeri gercek geometriye gore plaka lifi mukavemet
+        // momentinde ortalama %8, serbest kenarda %14 sapiyor. Onu bruet kesit
+        // icin kullanmak her HP profilinde bu hatayi ustlenmek olurdu. Bunun
+        // yerine esdeger kesit brut ve net olculerle iki kez kurulur ve ORAN
+        // katalog degerlerine uygulanir: korozyon sifirken oran tam olarak 1,
+        // yani bugunku sonuc kili kilina korunur.
+        function bulbFlatProperties(bMM, tMM, korMM) {
+            const B = bMM / 10;                                  // cm
+            let T = tMM / 10;
             const cat = (typeof HP_CATALOG !== 'undefined')
                 ? HP_CATALOG.find(hp => hp.b === bMM && hp.t === tMM) : null;
 
-            const A = cat ? cat.A : B * T * 1.2;                  // cm2
-            const Iy = cat ? cat.Ixx : T * Math.pow(B, 3) / 12 * 1.3;
-            const centroidY = cat ? cat.dx : B / 2;               // cm, bulb ucundan
+            let A = cat ? cat.A : B * T * 1.2;                    // cm2
+            let Iy = cat ? cat.Ixx : T * Math.pow(B, 3) / 12 * 1.3;
+            // Katalogdaki dx GOVDE DIBINDEN (plakanin oturdugu yuz) olculur:
+            // HP200x10 icin 11,54 cm, elle hesapla 11,89 cm - bulb ucundan
+            // olcseydi 10 cm'in altinda olurdu. plakaliKesitSI de boyle okuyor.
+            let centroidY = cat ? cat.dx : B / 2;                 // cm
+
+            const kor = (typeof korMM === 'number' && isFinite(korMM) && korMM > 0) ? korMM : 0;
+            if (kor > 0) {
+                const brut = bulbEsdegerOzellik(bulbEsdegerOlculer(bMM, tMM));
+                const net  = bulbEsdegerOzellik(bulbEsdegerOlculer(bMM, Math.max(tMM - kor, 0.5)));
+                if (brut.A > 0 && brut.I > 0 && brut.yc > 0) {
+                    A *= net.A / brut.A;
+                    Iy *= net.I / brut.I;
+                    centroidY *= net.yc / brut.yc;
+                }
+                T = Math.max(T - kor / 10, 0.05);
+            }
+
             const Aweb = B * T;                                   // duz govde
 
             let d = Math.sqrt(Math.max(A - Aweb, 0) * 4 / Math.PI);   // esdeger bulb capi
@@ -131,13 +194,39 @@
             };
         }
 
-        // Ortak giris. dims mm cinsinden.
-        function profileProperties(type, dims) {
+        // ---- KOROZYON PAYLARI ----
+        // Gemi kurallarinda korozyon KALINLIKTAN dusulur; yukseklikler ve
+        // genislikler degismez.
+        //
+        // Steel dosyasi uc pay veriyor: web / top / bottom. Bunlar YON degil
+        // ROL bildirir - govde, profilin kendi flansi, baglanti plakasi. Steel
+        // profili yukari dogru cizer (plaka altta), biz asagi sarkitiriz (plaka
+        // ustte); "top" ve "bottom" diye tasimak aynadan gelen karisikligi
+        // sonsuza kadar surdururdu. Rolle adlandirmak onu bastan keser.
+        //
+        //   kor = { web, flange, plate }   mm
+        //
+        // SINIR: kosebentte iki kolun kalinligi ayni tutuluyor (angleProperties
+        // tek kalinlik aliyor), o yuzden kosebende yalnizca `web` uygulanir.
+        // Steel dosyasinda kollari farkli kalinlikta kosebentler var; onlar
+        // ayri bir is (bkz. .steel alicisi).
+        function korozyonPayi(kor, ad) {
+            if (!kor) return 0;
+            const v = kor[ad];
+            return (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0;
+        }
+
+        // Ortak giris. dims mm cinsinden. kor (istege bagli) mm cinsinden pay.
+        function profileProperties(type, dims, kor) {
+            const cw = korozyonPayi(kor, 'web');
+            const cf = korozyonPayi(kor, 'flange');
+            const kalan = (t, c) => Math.max(t - c, 0.5);   // 0,5 mm taban: kesit yok olmasin
             switch (String(type).toUpperCase()) {
-                case 'HP': return bulbFlatProperties(dims.b, dims.t);
-                case 'FB': return flatBarProperties(dims.h, dims.t);
-                case 'T':  return teeProperties(dims.h, dims.tw, dims.bf, dims.tf);
-                case 'L':  return angleProperties(dims.a, dims.b, dims.t);
+                case 'HP': return bulbFlatProperties(dims.b, dims.t, cw);
+                case 'FB': return flatBarProperties(dims.h, kalan(dims.t, cw));
+                case 'T':  return teeProperties(dims.h, kalan(dims.tw, cw),
+                                                dims.bf, kalan(dims.tf, cf));
+                case 'L':  return angleProperties(dims.a, dims.b, kalan(dims.t, cw));
                 default:   return null;
             }
         }
@@ -180,10 +269,16 @@
         //
         // Konvansiyon: plaka USTTE, profil altta sarkar. y = 0 plakanin ust
         // yuzeyinde, asagi dogru pozitif.
-        function plakaliKesitSI(props, plakaGenislikMm, plakaKalinlikMm) {
+        // plakaKorozyonMm: baglanti plakasindan dusulecek pay (mm). Profilin
+        // kendi paylari profileProperties icinde uygulanir; burada yalnizca
+        // plaka kalir - plaka genisligi DEGISMEZ, kurallar payi kalinliktan
+        // duser.
+        function plakaliKesitSI(props, plakaGenislikMm, plakaKalinlikMm, plakaKorozyonMm) {
             if (!props) return null;
+            const plakaPay = (typeof plakaKorozyonMm === 'number' && isFinite(plakaKorozyonMm)
+                              && plakaKorozyonMm > 0) ? plakaKorozyonMm : 0;
             const plateWCm = plakaGenislikMm / 10;
-            const plateTCm = plakaKalinlikMm / 10;
+            const plateTCm = Math.max(plakaKalinlikMm - plakaPay, 0.5) / 10;
             const plateArea = plateWCm * plateTCm;
             const totalArea = props.A + plateArea;
 
