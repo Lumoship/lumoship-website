@@ -115,6 +115,7 @@
         const setText = (id, val) => { const el = $(id); if (el) el.textContent = val; };
         const setHtml = (id, val) => { const el = $(id); if (el) el.innerHTML = val; };
         const setChecked = (id, val) => { const el = $(id); if (el) el.checked = val; };
+        const setValue = (id, val) => { const el = $(id); if (el) el.value = val; };
         const getChecked = (id) => { const el = $(id); return el ? el.checked : false; };
         
         const MATERIALS = {

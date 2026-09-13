@@ -532,10 +532,36 @@
             });
             
             // Apply constraints
+            //
+            // ZORLANMIS YER DEGISTIRME. Tutulu bir serbestligin degeri sifir
+            // olmak zorunda degil: bir enine cerceveye govde kirisinin dayattigi
+            // yanal oteleme, oturan bir mesnet, kaldirma sirasinda verilen bir
+            // yukseklik farki - hepsi "bu dugum SU KADAR gitsin" demek.
+            // model.constraints[id].prescribed = { Uy: 0.08 } seklinde verilir;
+            // birim metre ve radyan, YALNIZCA tutulu tutulan serbestlikte
+            // anlamli (serbest birakilmis bir yone deger vermek celiskidir).
+            //
+            // Donmelerde isaret: global donme serbestlikleri fiziksel donmenin
+            // TERSINI tutuyor (bkz. yukaridaki isaret notu), bu yuzden
+            // kullanicinin verdigi fiziksel deger negatifleniyor.
             const fixedDofs = [];
+            const zorlanan = [];            // { dof, deger }  - ic isaret kuralinda
+            const ZORLANAN_ANAHTAR = ['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'];
             Object.entries(model.constraints).forEach(([nodeId, bc]) => {
                 const dofs = nodeDofs[nodeId];
                 if (!dofs) return;
+                if (bc && typeof bc === 'object' && bc.prescribed) {
+                    ZORLANAN_ANAHTAR.forEach((ad, k) => {
+                        const v = bc.prescribed[ad];
+                        if (typeof v !== 'number' || !isFinite(v) || v === 0) return;
+                        if (!bc[ad]) {
+                            debugWarn('Node ' + nodeId + ': prescribed ' + ad +
+                                      ' ignored - that DOF is not restrained');
+                            return;
+                        }
+                        zorlanan.push({ dof: dofs[k], deger: k < 3 ? v : -v });
+                    });
+                }
                 
                 // Handle both string format (legacy) and object format
                 if (typeof bc === 'string') {
@@ -564,10 +590,30 @@
                 if (!isFixedDof[i]) freeDofs.push(i);
             }
 
+            // Zorlanmis yer degistirmeler sag tarafa tasinir:
+            //     K_ss u_s = F_s - K_sz u_z
+            // K simetrik oldugu icin z sutunu = z satiri; ayri bir sutun
+            // gezintisi gerekmiyor. F'nin KENDISI degistirilmez - tepkiler
+            // R = K u - F ile geri kazaniliyor ve orada asil yuk vektoru lazim.
+            let Fcoz = F;
+            if (zorlanan.length) {
+                Fcoz = Float64Array.from(F);
+                zorlanan.forEach(z => {
+                    K.rows[z.dof].forEach((v, j) => {
+                        if (!isFixedDof[j]) Fcoz[j] -= v * z.deger;
+                    });
+                });
+            }
+
             // Solve K * U = F over the free DOFs. The solver reduces, renumbers and
             // factorises on its own - no second copy of the matrix is needed.
-            const solution = solveStiffnessSystem(K, F, freeDofs);
+            const solution = solveStiffnessSystem(K, Fcoz, freeDofs);
             const U = solution.U;
+
+            // Cozucu tutulu serbestlikleri sifir birakir; zorlanan degerler
+            // buraya yazilir ki hem sehimler hem de tepki hesabi (K u - F)
+            // dogru olsun.
+            zorlanan.forEach(z => { U[z.dof] = z.deger; });
 
             if (solution.singularDofs.length > 0) {
                 // DOFs nothing supports - a floating in-plane direction, say. They are

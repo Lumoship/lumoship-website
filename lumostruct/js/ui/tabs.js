@@ -184,6 +184,11 @@
                     setChecked('infoBcRx', bc.Rx || false);
                     setChecked('infoBcRy', bc.Ry || false);
                     setChecked('infoBcRz', bc.Rz || false);
+                    // Zorlanmis yer degistirme kutulari (m -> mm).
+                    const zr = bc.prescribed || {};
+                    setValue('infoBcSetX', ((zr.Ux || 0) * 1000).toFixed(0));
+                    setValue('infoBcSetY', ((zr.Uy || 0) * 1000).toFixed(0));
+                    setValue('infoBcSetZ', ((zr.Uz || 0) * 1000).toFixed(0));
                 } else {
                     setText('infoNodeBC', bc);
                     setStyle('infoNodeBC', 'color', 'var(--success)');
@@ -194,6 +199,7 @@
                 ['infoBcUx', 'infoBcUy', 'infoBcUz', 'infoBcRx', 'infoBcRy', 'infoBcRz'].forEach(id => {
                     setChecked(id, false);
                 });
+                ['infoBcSetX', 'infoBcSetY', 'infoBcSetZ'].forEach(id => setValue(id, '0'));
             }
             
             // Loads - show in container and populate inputs
@@ -961,8 +967,34 @@
                 Rz: document.getElementById('infoBcRz').checked
             };
             
+            // Zorlanmis yer degistirme (mm -> m). Yalnizca TUTULU yonde anlamli:
+            // serbest birakilmis bir yone deger vermek celiski olur, cozucu de
+            // onu yok sayip uyariyor. Sifirdan farkli deger yoksa alan hic
+            // yazilmaz - eski modeller aynen calisir.
+            const setAl = (id) => {
+                const el = document.getElementById(id);
+                const v = el ? parseFloat(el.value) : 0;
+                return (isFinite(v) && v !== 0) ? v / 1000 : 0;
+            };
+            const zorla = {};
+            if (bc.Ux && setAl('infoBcSetX')) zorla.Ux = setAl('infoBcSetX');
+            if (bc.Uy && setAl('infoBcSetY')) zorla.Uy = setAl('infoBcSetY');
+            if (bc.Uz && setAl('infoBcSetZ')) zorla.Uz = setAl('infoBcSetZ');
+            if (Object.keys(zorla).length) bc.prescribed = zorla;
+            
+            // Tutulmayan yone yazilmis bir deger sessizce kaybolmasin.
+            const kayip = [['Ux', 'infoBcSetX'], ['Uy', 'infoBcSetY'], ['Uz', 'infoBcSetZ']]
+                .filter(([k, id]) => !bc[k] && setAl(id)).map(([k]) => k);
+            const not = document.getElementById('infoBcSetNot');
+            if (not) {
+                not.textContent = kayip.length
+                    ? kayip.join(', ') + ' is free - that value is ignored. Hold the direction first.'
+                    : 'Only applies to directions that are held.';
+                not.style.color = kayip.length ? 'var(--warning)' : 'var(--text-3)';
+            }
+            
             // Check if any DOF is constrained
-            const hasConstraint = Object.values(bc).some(v => v);
+            const hasConstraint = ['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'].some(k => bc[k]);
             
             if (hasConstraint) {
                 model.constraints[currentInfoNode] = bc;

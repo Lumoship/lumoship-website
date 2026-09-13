@@ -108,8 +108,20 @@
                     { a: 'Rz', b: 'Z rot.', m: true }
                 ],
                 satirlar: () => Object.entries(model.nodes).map(([id, n]) => {
-                    const b = tabloMesnetBayraklari(model.constraints[id]);
-                    const ad = k => b[k] ? 'Fixed' : 'Free';
+                    const bc = model.constraints[id];
+                    const b = tabloMesnetBayraklari(bc);
+                    // Zorlanmis yer degistirme varsa tutulu yonun yaninda yazar:
+                    // "Fixed" ile "Fixed 4 mm" ayni sey degil ve tabloda
+                    // ayirt edilemezse model yanlis okunur.
+                    const z = (bc && typeof bc === 'object' && bc.prescribed) ? bc.prescribed : null;
+                    const ad = k => {
+                        if (!b[k]) return 'Free';
+                        const v = z ? z[k] : null;
+                        if (typeof v !== 'number' || v === 0) return 'Fixed';
+                        const birim = k[0] === 'U' ? ' mm' : ' deg';
+                        const olcek = k[0] === 'U' ? 1000 : 180 / Math.PI;
+                        return 'Fixed ' + (v * olcek).toFixed(k[0] === 'U' ? 1 : 3) + birim;
+                    };
                     return {
                         id: parseInt(id, 10),
                         x: n.x * 1000, y: n.y * 1000, z: (n.z || 0) * 1000,
