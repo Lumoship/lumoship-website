@@ -57,6 +57,47 @@
         //
         // Cizim bunu bilmiyordu ve "q < 0 ise asagi" varsayiyordu, bu yuzden her normal
         // asagi yuk yukari-kaldirma renginde ve yonunde ciziliyordu.
+        // Yayili yukun yonu. Uc kip var ve hepsi AYNI yerden okunur - montaj da,
+        // ic kuvvet geri kazanimi da, cizim de. Ikisi ayrilirsa diyagram ile
+        // rijitlik ayni yuku anlatmaz.
+        //
+        //   yok / 'global' : aci kurali. 90 derece tam asagi (global -Z), 0
+        //                    derece kirise dik yatay (yerel y). Egik elemanda
+        //                    yercekimi yercekimi kalir.
+        //   'localZ'       : siddet dogrudan elemanin YEREL z ekseninde.
+        //   'localY'       : yerel y ekseninde.
+        //
+        // Yerel kipler .steel dosyalarindan geliyor: CCL311'deki 336 yayili
+        // yukun tamami d="LocalZ". Deniz basinci kirise dik etkir, kirisin
+        // egimi ne olursa olsun - global asagi ile ifade edilemez.
+        //
+        // Donen:
+        //   vec : global kuvvet vektoru (montaj icin)
+        //   wz  : geri kazanimin dusey duzlem siddeti. ISARET TERS: bu dosyada
+        //         asagi yuk POZITIF wz veriyor (aci kipi boyle kalibre edildi),
+        //         yerel z ekseni ise yukari bakiyor.
+        //   wy  : yerel y ekseni siddeti, isaret +y yonunde.
+        function yayiliYukYonu(load, frame, wf) {
+            const kip = load.dir || load.direction;
+            if (frame && (kip === 'localZ' || kip === 'localY')) {
+                const eksen = (kip === 'localZ') ? frame.z : frame.y;
+                return {
+                    vec: [wf * eksen[0], wf * eksen[1], wf * eksen[2]],
+                    wz: (kip === 'localZ') ? -wf : 0,
+                    wy: (kip === 'localY') ? wf : 0
+                };
+            }
+            const a = ((load.angle !== undefined) ? load.angle : 90) * Math.PI / 180;
+            const sinA = Math.sin(a), cosA = Math.cos(a);
+            const y = frame ? frame.y : [0, 1, 0];
+            const zc = frame ? frame.z[2] : 1;
+            return {
+                vec: [wf * cosA * y[0], wf * cosA * y[1], wf * cosA * y[2] - wf * sinA],
+                wz: wf * sinA * zc,
+                wy: wf * cosA
+            };
+        }
+
         function lineLoadDirection(load) {
             const q = load.value ?? load.q ?? 0;
             const angleRad = ((load.angle !== undefined) ? load.angle : 90) * Math.PI / 180;
@@ -551,7 +592,12 @@
                 
                 const n1 = model.nodes[elem.n1];
                 const n2 = model.nodes[elem.n2];
-                const frame = elementFrame(n1, n2);
+                // DONDURULMUS cerceve - rijitlik montaji da oyle kuruluyor.
+                // Eskiden burada donmesiz cerceve vardi: yerel ekseni cevrilmis
+                // bir kirise yayili yuk bindiginde yuk bir cerceveye, rijitlik
+                // baska bir cerceveye gore hesaplaniyordu. Yerel yonlu yuklerde
+                // (d="LocalZ") bu dogrudan yanlis yon demek.
+                const frame = elementFrame(n1, n2, elem.orientation || 0);
 
                 // Skip zero-length elements
                 if (!frame) return;
@@ -562,13 +608,7 @@
                     const qValue = load.value ?? load.q ?? 0;
                     const w = qValue * 1000;  // kN/m to N/m
                     
-                    // Handle direction/angle - 'z' means global Z (perpendicular to plate)
-                    let angleRad = Math.PI / 2; // Default: vertical (Z direction)
-                    if (load.angle !== undefined) {
-                        angleRad = load.angle * Math.PI / 180;
-                    } else if (load.direction === 'local') {
-                        angleRad = Math.PI / 2; // Local still acts perpendicular to beam
-                    }
+                    // Yon (aci ya da yerel eksen) yayiliYukYonu icinde cozuluyor.
                     
                     // Load length - support both percentage and decimal formats
                     const startPct = (load.startPct !== undefined) ? load.startPct : (load.start !== undefined ? load.start * 100 : 0);
@@ -592,10 +632,7 @@
                     // applied - dropping the sideways one silently loses load. Intensity is
                     // per unit length of the member itself.
                     const wf = w * (loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L);
-                    const sinA = Math.sin(angleRad), cosA = Math.cos(angleRad);
-                    const wVec = [wf * cosA * frame.y[0],
-                                  wf * cosA * frame.y[1],
-                                  wf * cosA * frame.y[2] - wf * sinA];
+                    const wVec = yayiliYukYonu(load, frame, wf).vec;
 
                     addDistributedLoad(F, dofs1, dofs2, frame, wVec, loadStart, loadEnd);
                 });
@@ -609,7 +646,7 @@
                     if (!n1 || !n2) return;
                     const sec = SECTIONS[elem.section];
                     if (!sec || !(sec.A > 0)) return;
-                    const frame = elementFrame(n1, n2);
+                    const frame = elementFrame(n1, n2, elem.orientation || 0);
                     if (!frame) return;
                     const dofs1 = nodeDofs[elem.n1], dofs2 = nodeDofs[elem.n2];
                     if (!dofs1 || !dofs2) return;
@@ -922,12 +959,11 @@
                         const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
                         const a = L * sPct / 100, b = L * ePct / 100;
                         const ll = b - a;
-                        const angR = ((load.angle !== undefined) ? load.angle : 90) * Math.PI / 180;
-                        // Component that bends the member in its vertical plane. On a
-                        // horizontal beam this is just q*sin; on a sloped one only the
-                        // part along z' does the bending, matching the assembly.
-                        const frameR = elementFrame(n1, n2);
-                        const wv = q * Math.sin(angR) * (frameR ? frameR.z[2] : 1);
+                        // Elemani kendi dusey duzleminde egen bilesen. Yatay kiriste
+                        // q*sin; egik olanda yalnizca z' boyunca olan kismi eger -
+                        // montajla ayni yerden okunuyor.
+                        const frameR = elementFrame(n1, n2, elem.orientation);
+                        const wv = yayiliYukYonu(load, frameR, q).wz;
                         if (ll > 1e-9 && Math.abs(wv) > 1e-12) {
                             spanLoads.push({ a, b, w: wv });
                             // Same factors the assembly uses, so the diagram and the
@@ -1067,15 +1103,14 @@
                 const spanLoadsZ = [];
                 let fefVz = 0, fefMz = 0;
                 if (elem.lineLoads && elem.lineLoads.length > 0) {
-                    const frameZ = elementFrame(n1, n2);
+                    const frameZ = elementFrame(n1, n2, elem.orientation);
                     elem.lineLoads.forEach(load => {
                         const q = (load.value ?? load.q ?? 0) * 1000; // N/m
                         const sPct = (load.startPct !== undefined) ? load.startPct : (load.start !== undefined ? load.start * 100 : 0);
                         const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
                         const a = L * sPct / 100, b = L * ePct / 100;
-                        const angR = ((load.angle !== undefined) ? load.angle : 90) * Math.PI / 180;
-                        // montajla aynı: yanal bileşen local y ekseni boyunca
-                        const wl = q * Math.cos(angR);
+                        // montajla ayni: yanal bilesen local y ekseni boyunca
+                        const wl = yayiliYukYonu(load, frameZ, q).wy;
                         if (b - a > 1e-9 && Math.abs(wl) > 1e-12 && frameZ) {
                             spanLoadsZ.push({ a: a, b: b, w: wl });
                             const sh = partialUdlFactors(L, a, b);
