@@ -150,21 +150,28 @@
             };
         }
 
-        // Kose: dusey kol a, yatay kol b, kalinlik t.
-        function angleProperties(aMM, bMM, tMM) {
+        // Kose: dusey kol a, yatay kol b, govde kalinligi t, yatay kol
+        // kalinligi tf (verilmezse t - esit kalinlikli kosebent).
+        //
+        // Iki kalinlik gerekiyor cunku gemi cizimlerinde kollari farkli
+        // kalinlikta kosebent yaygin (.steel dosyasinda <a h t><flange w t>
+        // ikisini ayri veriyor) ve korozyon paylari da govdeye ve flansa ayri
+        // dusuyor. Tek kalinlikla zorlamak ikisini birden yanlis yapardi.
+        function angleProperties(aMM, bMM, tMM, tfMM) {
             const A_ = aMM / 10, B_ = bMM / 10, T = tMM / 10;
-            const A1 = A_ * T, A2 = Math.max(B_ - T, 0) * T;
+            const TF = (typeof tfMM === 'number' && isFinite(tfMM) && tfMM > 0) ? tfMM / 10 : T;
+            const A1 = A_ * T, A2 = Math.max(B_ - T, 0) * TF;
             const A = A1 + A2;
 
-            const y1 = A_ / 2, y2 = T / 2;
+            const y1 = A_ / 2, y2 = TF / 2;
             const cy = (A1 * y1 + A2 * y2) / A;
             const Iy = T * Math.pow(A_, 3) / 12 + A1 * Math.pow(y1 - cy, 2) +
-                       Math.max(B_ - T, 0) * Math.pow(T, 3) / 12 + A2 * Math.pow(y2 - cy, 2);
+                       Math.max(B_ - T, 0) * Math.pow(TF, 3) / 12 + A2 * Math.pow(y2 - cy, 2);
 
             const x1 = T / 2, x2 = T + Math.max(B_ - T, 0) / 2;
             const cx = (A1 * x1 + A2 * x2) / A;
             const Iz = A_ * Math.pow(T, 3) / 12 + A1 * Math.pow(x1 - cx, 2) +
-                       T * Math.pow(Math.max(B_ - T, 0), 3) / 12 + A2 * Math.pow(x2 - cx, 2);
+                       TF * Math.pow(Math.max(B_ - T, 0), 3) / 12 + A2 * Math.pow(x2 - cx, 2);
 
             // Kosebentte asal eksenler geometrik eksenlerle CAKISMAZ: carpim atalet
             // momenti Ixy sifir degildir. Izgaraya hizali takviyelerde geometrik eksenlerle
@@ -186,8 +193,8 @@
                     ? 'Geometric axes; principal axes rotated ' +
                       Math.abs(principalAngle).toFixed(1) + ' deg'
                     : null,
-                J: openJ([[A_, T], [Math.max(B_ - T, 0), T]]),
-                Wt: openJ([[A_, T], [Math.max(B_ - T, 0), T]]) / T,
+                J: openJ([[A_, T], [Math.max(B_ - T, 0), TF]]),
+                Wt: openJ([[A_, T], [Math.max(B_ - T, 0), TF]]) / Math.max(T, TF),
                 Wy: Iy / Math.max(yTop, yBot), WyTop: Iy / yTop, WyBot: Iy / yBot,
                 Wz: Iz / Math.max(cx, B_ - cx),
                 height: A_, tw: T, centroidY: cy
@@ -206,10 +213,6 @@
         //
         //   kor = { web, flange, plate }   mm
         //
-        // SINIR: kosebentte iki kolun kalinligi ayni tutuluyor (angleProperties
-        // tek kalinlik aliyor), o yuzden kosebende yalnizca `web` uygulanir.
-        // Steel dosyasinda kollari farkli kalinlikta kosebentler var; onlar
-        // ayri bir is (bkz. .steel alicisi).
         function korozyonPayi(kor, ad) {
             if (!kor) return 0;
             const v = kor[ad];
@@ -226,7 +229,8 @@
                 case 'FB': return flatBarProperties(dims.h, kalan(dims.t, cw));
                 case 'T':  return teeProperties(dims.h, kalan(dims.tw, cw),
                                                 dims.bf, kalan(dims.tf, cf));
-                case 'L':  return angleProperties(dims.a, dims.b, kalan(dims.t, cw));
+                case 'L':  return angleProperties(dims.a, dims.b, kalan(dims.t, cw),
+                                                  kalan(dims.tf !== undefined ? dims.tf : dims.t, cf));
                 default:   return null;
             }
         }
