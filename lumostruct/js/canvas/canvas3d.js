@@ -2536,9 +2536,14 @@
                 
                 // Find max load value for proportional scaling
                 let maxLoadValue = 0;
+                // Olcek UC bilesene de bakar. Yalnizca Fz'ye bakinca yatay
+                // yuklu bir modelde maxLoadValue 0 kaliyor, ok boylari sacma
+                // ciktiyordu.
                 model.loads.forEach(load => {
-                    const Fz = Math.abs(load.Fz !== undefined ? load.Fz : 10);
-                    if (Fz > maxLoadValue) maxLoadValue = Fz;
+                    ['Fx', 'Fy', 'Fz'].forEach(ad => {
+                        const v = Math.abs(load[ad] || 0);
+                        if (v > maxLoadValue) maxLoadValue = v;
+                    });
                 });
                 // Also check line loads
                 Object.values(model.elements).forEach(elem => {
@@ -2552,111 +2557,112 @@
                 if (maxLoadValue === 0) maxLoadValue = 10; // Default
                 
                 // Point loads on nodes
+                //
+                // Her BILESEN icin ayri ok. Eskiden yalnizca Fz ciziliyordu ve
+                // Fz tanimsizsa -10 varsayiliyordu: {Fx: 10} gibi yatay bir yuk
+                // ekranda OLMAYAN bir "10 kN asagi" oku olarak gorunuyor, asil
+                // yatay yuk ise hic gorunmuyordu. Cozucu uc bileseni de dogru
+                // uyguluyordu (denge testleri gecerdi); yanlis olan gosterimdi.
+                const YUK_EKSENLERI = [
+                    { ad: 'Fx', eksen: 'x' },
+                    { ad: 'Fy', eksen: 'y' },
+                    { ad: 'Fz', eksen: 'z' }
+                ];
+
                 model.loads.forEach(load => {
                     const node = model.nodes[load.nodeId];
                     if (!node) return;
-                    
+
                     let z = 0;
                     if (deformScale > 0 && results && results.displacements) {
                         const d = results.displacements[load.nodeId];
                         if (d) z = -d.Uz * deformScale;
                     }
-                    
-                    // Get load value (default Fz = -10 kN)
-                    const Fz = load.Fz !== undefined ? load.Fz : -10;
-                    const isDownward = Fz < 0;
-                    
-                    // Proportional scaling: min 0.4x, max 1.0x of base scale
-                    // Uses sqrt for better visual differentiation
-                    const loadRatio = Math.sqrt(Math.abs(Fz) / maxLoadValue);
-                    const scaleFactor = 0.4 + loadRatio * 0.6; // Range: 0.4 to 1.0
-                    const loadArrowScale = baseLoadArrowScale * scaleFactor;
-                    
-                    const arrowLength = loadArrowScale;
-                    const coneHeight = loadArrowScale * 0.35;
-                    const coneRadius = loadArrowScale * 0.12;
-                    const stemRadius = loadArrowScale * 0.04;
-                    
-                    // Select material based on direction
-                    const lMat = isDownward ? loadDownMaterial : loadUpMaterial;
-                    
-                    // Create load arrow group
-                    const loadGroup = new THREE.Group();
-                    loadGroup.userData.isModelObject = true;
-                    
-                    // Arrow head (cone) - premium quality
-                    const arrowGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 16);
-                    const arrow = new THREE.Mesh(arrowGeometry, lMat);
-                    
-                    // Arrow stem (cylinder)
-                    const stemLength = arrowLength - coneHeight;
-                    const stemGeometry = new THREE.CylinderGeometry(stemRadius, stemRadius * 0.8, stemLength, 12);
-                    const stem = new THREE.Mesh(stemGeometry, lMat);
-                    
-                    if (isDownward) {
-                        arrow.rotation.x = Math.PI;
-                        arrow.position.y = coneHeight / 2;
-                        stem.position.y = coneHeight + stemLength / 2;
-                    } else {
-                        arrow.position.y = stemLength + coneHeight / 2;
-                        stem.position.y = stemLength / 2;
-                    }
-                    
-                    loadGroup.add(arrow);
-                    loadGroup.add(stem);
-                    
-                    // Value label sprite - larger canvas for better visibility
-                    const labelCanvas = document.createElement('canvas');
-                    labelCanvas.width = 256;
-                    labelCanvas.height = 128;
-                    const labelCtx = labelCanvas.getContext('2d');
-                    
-                    // No background mask - transparent
-                    labelCtx.clearRect(0, 0, 256, 128);
-                    
-                    // Text with dark outline for readability
-                    labelCtx.font = 'bold 56px Inter, Arial, sans-serif';
-                    labelCtx.textAlign = 'center';
-                    labelCtx.textBaseline = 'middle';
-                    
-                    // Dark stroke/outline
-                    labelCtx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
-                    labelCtx.lineWidth = 6;
-                    labelCtx.strokeText(`${Math.abs(Fz).toFixed(1)} kN`, 128, 64);
-                    
-                    // Colored fill
-                    labelCtx.fillStyle = isDownward ? '#ef4444' : '#22c55e';
-                    labelCtx.fillText(`${Math.abs(Fz).toFixed(1)} kN`, 128, 64);
-                    
-                    const labelTexture = new THREE.CanvasTexture(labelCanvas);
-                    const labelMaterial = new THREE.SpriteMaterial({ map: labelTexture, transparent: true });
-                    const labelSprite = new THREE.Sprite(labelMaterial);
-                    const loadLabelMult = window.labelSizes?.load || 1.0;
-                    // Label size based on base scale (uniform for all loads)
-                    labelSprite.scale.set(baseLoadArrowScale * 1.8 * loadLabelMult, baseLoadArrowScale * 0.9 * loadLabelMult, 1);
-                    // Etiket okun DUGUMDEN UZAK ucuna konur. Eskiden iki durum
-                    // da dugumun oteki tarafina dusuyordu: yazi dugum isaretinin
-                    // ve mesnet simgesinin ustune biniyor, rakam okunmuyordu.
-                    // Yerel +y iki durumda ters yone baktigi icin isaretler de ters.
-                    // Etiket her iki durumda da okun dugumden UZAK ucunda:
-                    // yerel +y artik ikisinde de yukari.
-                    labelSprite.position.y = arrowLength + loadArrowScale * 0.55;
-                    loadGroup.add(labelSprite);
-                    
-                    // Asagi yuk icin grup HEM arrowLength kadar yukari
-                    // kaydiriliyor HEM de yerel eksen ters cevriliyordu; ikisi
-                    // birbirini goturuyor ve ok, yukari yukle AYNI yerde ayni
-                    // yone bakiyordu. Olculdu: Fz=-10 ve Fz=+10 icin koninin
-                    // dunya z'si ikisinde de 0.226.
-                    //
-                    // Artik yerel +y her iki durumda da dunya +z: grup dugumde
-                    // durur, yonu koninin kendi yerlesimi belirler. Asagi yukte
-                    // koni dugumun hemen ustunde ve asagi bakar, govde yukari
-                    // uzanir; yukari yukte koni tepede ve yukari bakar.
-                    loadGroup.rotation.x = Math.PI / 2;
-                    loadGroup.position.set(node.x, node.y, z + 0.02);
-                    
-                    threeScene.add(loadGroup);
+
+                    YUK_EKSENLERI.forEach(({ ad, eksen }) => {
+                        const F = load[ad];
+                        if (!F) return;              // 0 ya da tanimsiz: ok yok
+
+                        const negatif = F < 0;
+
+                        // Proportional scaling: min 0.4x, max 1.0x of base scale
+                        const loadRatio = Math.sqrt(Math.abs(F) / maxLoadValue);
+                        const scaleFactor = 0.4 + loadRatio * 0.6;
+                        const loadArrowScale = baseLoadArrowScale * scaleFactor;
+
+                        const arrowLength = loadArrowScale;
+                        const coneHeight = loadArrowScale * 0.35;
+                        const coneRadius = loadArrowScale * 0.12;
+                        const stemRadius = loadArrowScale * 0.04;
+
+                        const lMat = negatif ? loadDownMaterial : loadUpMaterial;
+
+                        const loadGroup = new THREE.Group();
+                        loadGroup.userData.isModelObject = true;
+
+                        const arrowGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 16);
+                        const arrow = new THREE.Mesh(arrowGeometry, lMat);
+
+                        const stemLength = arrowLength - coneHeight;
+                        const stemGeometry = new THREE.CylinderGeometry(stemRadius, stemRadius * 0.8, stemLength, 12);
+                        const stem = new THREE.Mesh(stemGeometry, lMat);
+
+                        // Yerel +y her zaman eksenin ARTI yonu. Yonu koninin
+                        // kendi yerlesimi belirler: negatifse koni dugumun
+                        // yaninda ve geriye bakar, govde disari uzanir.
+                        if (negatif) {
+                            arrow.rotation.x = Math.PI;
+                            arrow.position.y = coneHeight / 2;
+                            stem.position.y = coneHeight + stemLength / 2;
+                        } else {
+                            arrow.position.y = stemLength + coneHeight / 2;
+                            stem.position.y = stemLength / 2;
+                        }
+
+                        loadGroup.add(arrow);
+                        loadGroup.add(stem);
+
+                        // Value label sprite - larger canvas for better visibility
+                        const labelCanvas = document.createElement('canvas');
+                        labelCanvas.width = 256;
+                        labelCanvas.height = 128;
+                        const labelCtx = labelCanvas.getContext('2d');
+                        labelCtx.clearRect(0, 0, 256, 128);
+
+                        labelCtx.font = 'bold 52px Inter, Arial, sans-serif';
+                        labelCtx.textAlign = 'center';
+                        labelCtx.textBaseline = 'middle';
+
+                        // Etikette hangi bilesen oldugu yazar: ayni dugumde
+                        // birden fazla ok olabilir, "10.0 kN" tek basina hangisi
+                        // oldugunu soylemiyordu.
+                        const yazi = ad + ' ' + Math.abs(F).toFixed(1) + ' kN';
+
+                        labelCtx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+                        labelCtx.lineWidth = 6;
+                        labelCtx.strokeText(yazi, 128, 64);
+
+                        labelCtx.fillStyle = negatif ? '#ef4444' : '#22c55e';
+                        labelCtx.fillText(yazi, 128, 64);
+
+                        const labelTexture = new THREE.CanvasTexture(labelCanvas);
+                        const labelMaterial = new THREE.SpriteMaterial({ map: labelTexture, transparent: true });
+                        const labelSprite = new THREE.Sprite(labelMaterial);
+                        const loadLabelMult = window.labelSizes?.load || 1.0;
+                        labelSprite.scale.set(baseLoadArrowScale * 1.8 * loadLabelMult, baseLoadArrowScale * 0.9 * loadLabelMult, 1);
+                        // Etiket okun dugumden UZAK ucunda.
+                        labelSprite.position.y = arrowLength + loadArrowScale * 0.55;
+                        loadGroup.add(labelSprite);
+
+                        // Yerel +y'yi ilgili dunya eksenine cevir.
+                        if (eksen === 'z') loadGroup.rotation.x = Math.PI / 2;
+                        else if (eksen === 'x') loadGroup.rotation.z = -Math.PI / 2;
+                        // 'y' icin donme yok: yerel +y zaten dunya +y.
+
+                        loadGroup.position.set(node.x, node.y, z + 0.02);
+
+                        threeScene.add(loadGroup);
+                    });
                 });
                 
                 // Line loads on elements - distributed arrows with gradient
@@ -2677,6 +2683,18 @@
                     // bu yuzden her normal asagi yuk yukari yonde ciziliyordu.
                     const firstLoad = elem.lineLoads[0];
                     const dir = lineLoadDirection(firstLoad);
+
+                    // Cizim, cozucunun kullandigi yon vektorunun AYNISINI kurar:
+                    // wVec = cosA * frame.y - sinA * z  (bkz. fem.js).
+                    const frame = (typeof elementFrame === 'function')
+                        ? elementFrame(n1, n2) : null;
+                    const angleRad = (firstLoad.angle !== undefined ? firstLoad.angle : 90)
+                        * Math.PI / 180;
+                    // Cozucude wf butun bilesenleri carpar; isareti dusurmek
+                    // value=-8 (yukari) yuku asagi cizdiriyordu.
+                    const qIsaret = (firstLoad.value ?? firstLoad.q ?? 0) < 0 ? -1 : 1;
+                    const sinA = Math.sin(angleRad) * qIsaret;
+                    const cosA = Math.cos(angleRad) * qIsaret;
                     const q = dir.magnitude;
                     const isLineLoadDownward = dir.isDownward;
                     const lineLoadRatio = Math.sqrt(q / maxLoadValue);
@@ -2730,25 +2748,32 @@
                         const stemGeometry = new THREE.CylinderGeometry(stemR, stemR * 0.8, stemLen, 8);
                         const stem = new THREE.Mesh(stemGeometry, lineLoadMat);
                         
-                        // Tekil yukteki hatanin aynisi: asagi yukte grup
-                        // -90 derece donduruluyordu, yerel +y dunya -z oluyor
-                        // ve ok kirisin ALTINDA YUKARI bakar halde ciziliyordu.
-                        // Yerel +y her iki durumda da dunya +z; yonu koninin
-                        // kendi yerlesimi belirler.
-                        if (isLineLoadDownward) {
-                            // Koni kirisin hemen ustunde ve asagi bakar,
-                            // govde yukari uzanir.
-                            arrow.rotation.x = Math.PI;
-                            arrow.position.y = coneH / 2;
-                            stem.position.y = coneH + stemLen / 2;
-                        } else {
-                            // Koni tepede ve yukari bakar.
-                            arrow.position.y = stemLen + coneH / 2;
-                            stem.position.y = stemLen / 2;
-                        }
+                        // Ok, yukun GERCEK yonunde cizilir. Eskiden her zaman
+                        // dunya z ekseninde ciziliyordu: angle=0 (saf yanal)
+                        // bir yuk dusey gorunuyor, angle=45'te yanal yarisi
+                        // hic gorunmuyordu. Cozucu ikisini de dogru uyguluyor
+                        // (wVec = cosA*frame.y - sinA*z), gosterim yanlisti.
+                        //
+                        // Koni yerel -y'de ve o yone bakar; govde +y'ye uzanir.
+                        // Sonra yerel -y, yuk yonune dondurulur: ok kirisin
+                        // uzerinde durup yukun ittigi yone bakar.
+                        arrow.rotation.x = Math.PI;
+                        arrow.position.y = coneH / 2;
+                        stem.position.y = coneH + stemLen / 2;
                         arrowGroup.add(arrow);
                         arrowGroup.add(stem);
-                        arrowGroup.rotation.x = Math.PI / 2;
+
+                        const yukYonu = frame
+                            ? new THREE.Vector3(
+                                cosA * frame.y[0],
+                                cosA * frame.y[1],
+                                cosA * frame.y[2] - sinA)
+                            : new THREE.Vector3(0, 0, -sinA);
+                        if (yukYonu.lengthSq() < 1e-12) yukYonu.set(0, 0, -1);
+                        yukYonu.normalize();
+
+                        arrowGroup.quaternion.setFromUnitVectors(
+                            new THREE.Vector3(0, -1, 0), yukYonu);
                         arrowGroup.position.set(x, y, zBase + 0.06);
                         
                         threeScene.add(arrowGroup);
