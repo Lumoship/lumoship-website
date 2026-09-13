@@ -131,39 +131,67 @@
         // Put a uniform load of global intensity wVec (N/m) on the stretch of a member
         // between a and b. Used by line loads and by self weight, so both are placed the
         // same consistent way.
-        function addDistributedLoad(F, dofs1, dofs2, frame, wVec, a, b) {
+        // wVec2 (istege bagli): [a,b] araliginin SONUNDAKI siddet vektoru.
+        // Verilmezse yuk sabit siddetlidir ve hesap eskisiyle birebir ayni yolu
+        // izler. Iki vektorun ayni dogrultuda oldugu varsayilir - trapez yuk
+        // siddeti degistirir, yonu degil.
+        function addDistributedLoad(F, dofs1, dofs2, frame, wVec, a, b, wVec2) {
             const L = frame.L;
             if (b - a < 1e-12) return;
-            const sh = partialUdlFactors(L, a, b);
+            const w2 = wVec2 || wVec;
+            const trapez = wVec2 && (wVec2[0] !== wVec[0] || wVec2[1] !== wVec[1] || wVec2[2] !== wVec[2]);
 
             // Split into the part along the member and the part across it: they are carried
             // in completely different ways.
-            const wAxial = wVec[0] * frame.x[0] + wVec[1] * frame.x[1] + wVec[2] * frame.x[2];
-            const wPerp = [wVec[0] - wAxial * frame.x[0],
-                           wVec[1] - wAxial * frame.x[1],
-                           wVec[2] - wAxial * frame.x[2]];
-            const wp = Math.sqrt(wPerp[0] * wPerp[0] + wPerp[1] * wPerp[1] + wPerp[2] * wPerp[2]);
+            const eks = v => v[0] * frame.x[0] + v[1] * frame.x[1] + v[2] * frame.x[2];
+            const dik = (v, ax) => [v[0] - ax * frame.x[0], v[1] - ax * frame.x[1], v[2] - ax * frame.x[2]];
+            const wAxial1 = eks(wVec), wAxial2 = eks(w2);
+            const wPerp1 = dik(wVec, wAxial1), wPerp2 = dik(w2, wAxial2);
 
-            // Across the member: bending. A load along d bends about x' x d, so the moment
-            // vector is -(x' x d) - which reduces to "beam along X bends about Y" as before.
-            if (wp > 1e-12) {
-                const u = [wPerp[0] / wp, wPerp[1] / wp, wPerp[2] / wp];
-                const axis = [frame.x[1] * u[2] - frame.x[2] * u[1],
-                              frame.x[2] * u[0] - frame.x[0] * u[2],
-                              frame.x[0] * u[1] - frame.x[1] * u[0]];
-                for (let i = 0; i < 3; i++) {
-                    F[dofs1[i]] += wp * sh.V1 * u[i];
-                    F[dofs2[i]] += wp * sh.V2 * u[i];
-                    F[dofs1[3 + i]] += -wp * sh.M1 * axis[i];
-                    F[dofs2[3 + i]] += -wp * sh.M2 * axis[i];
+            // Ortak birim yon: ikisinin TOPLAMINDAN alinir, cunku biri sifir
+            // olabilir (ucgen yuk) ama ikisi birden degil.
+            const top = [wPerp1[0] + wPerp2[0], wPerp1[1] + wPerp2[1], wPerp1[2] + wPerp2[2]];
+            let tn = Math.sqrt(top[0] * top[0] + top[1] * top[1] + top[2] * top[2]);
+            let u = null;
+            if (tn > 1e-12) u = [top[0] / tn, top[1] / tn, top[2] / tn];
+            else {
+                const n1 = Math.sqrt(wPerp1[0] * wPerp1[0] + wPerp1[1] * wPerp1[1] + wPerp1[2] * wPerp1[2]);
+                if (n1 > 1e-12) u = [wPerp1[0] / n1, wPerp1[1] / n1, wPerp1[2] / n1];
+            }
+
+            if (u) {
+                const wp1 = wPerp1[0] * u[0] + wPerp1[1] * u[1] + wPerp1[2] * u[2];
+                const wp2 = wPerp2[0] * u[0] + wPerp2[1] * u[1] + wPerp2[2] * u[2];
+                if (Math.abs(wp1) > 1e-12 || Math.abs(wp2) > 1e-12) {
+                    const sh = trapez ? partialLinearFactors(L, a, b, wp1, wp2) : null;
+                    const su = trapez ? null : partialUdlFactors(L, a, b);
+                    const V1 = trapez ? sh.V1 : wp1 * su.V1;
+                    const V2 = trapez ? sh.V2 : wp1 * su.V2;
+                    const M1 = trapez ? sh.M1 : wp1 * su.M1;
+                    const M2 = trapez ? sh.M2 : wp1 * su.M2;
+                    const axis = [frame.x[1] * u[2] - frame.x[2] * u[1],
+                                  frame.x[2] * u[0] - frame.x[0] * u[2],
+                                  frame.x[0] * u[1] - frame.x[1] * u[0]];
+                    for (let i = 0; i < 3; i++) {
+                        F[dofs1[i]] += V1 * u[i];
+                        F[dofs2[i]] += V2 * u[i];
+                        F[dofs1[3 + i]] += -M1 * axis[i];
+                        F[dofs2[3 + i]] += -M2 * axis[i];
+                    }
                 }
             }
 
             // Along the member: pure axial, shared by the bar shape functions.
-            if (Math.abs(wAxial) > 1e-12) {
+            // Trapez halde siddetin agirlik merkezi kayar; ucgen yuk icin
+            // dagitim 1/3 - 2/3 olur, sabit yukte 1/2 - 1/2 olan yerine.
+            if (Math.abs(wAxial1) > 1e-12 || Math.abs(wAxial2) > 1e-12) {
                 const span = b - a;
-                const mid = (b * b - a * a) / (2 * L);
-                const A1 = wAxial * (span - mid), A2 = wAxial * mid;
+                const beta = span > 1e-12 ? (wAxial2 - wAxial1) / span : 0;
+                const alfa = wAxial1 - beta * a;
+                // Toplam yuk ve N2 = (1/L) * integral( w(x) * x dx )
+                const P = alfa * span + beta * (b * b - a * a) / 2;
+                const Sx = alfa * (b * b - a * a) / 2 + beta * (b * b * b - a * a * a) / 3;
+                const A2 = Sx / L, A1 = P - A2;
                 for (let i = 0; i < 3; i++) {
                     F[dofs1[i]] += A1 * frame.x[i];
                     F[dofs2[i]] += A2 * frame.x[i];
@@ -315,6 +343,87 @@
                 M1: (I1(b) - I1(a)) / L2,        // end 1 moment
                 M2: -(I2(b) - I2(a)) / L2        // end 2 moment
             };
+        }
+
+        // DOGRUSAL DEGISEN (trapez) yayili yuk katsayilari.
+        //
+        // partialUdlFactors tekil yuk ankastre uc kuvvetlerini [a,b] uzerinde
+        // BIRIM siddetle integre ediyor. Siddet dogrusal degisiyorsa ayni
+        // integralin bir de x ile agirliklandirilmis hali gerekiyor:
+        //     w(x) = alfa + beta x   ->   FEF = alfa * I(f) + beta * I(x f)
+        // Asagidaki A* fonksiyonlari x f(x) icin ilkel fonksiyonlar; dJ1/dx vs.
+        // partialUdlFactors'in kendi turevleri, yani iki hesap AYNI tekil yuk
+        // formulunden turuyor. Sinamasi da bu: w1 === w2 oldugunda sonuc
+        // partialUdlFactors * w ile makine hassasiyetinde ayni cikmali.
+        //
+        // Neden gerekti: su basinci. CCL311'de bordanin yan yuku 79,5 kN/m'den
+        // baslayip 6,2 m'de 3,5 kN/m'ye iniyor ve orada BITIYOR (Steel'in kendi
+        // kesme kuvveti egrisi 6200 mm'den sonra sabit). Sabit siddet almak
+        // sehimleri ortalama %13 sisiriyordu.
+        function partialLinearFactors(L, a, b, w1, w2) {
+            const L2 = L * L, L3 = L2 * L;
+            // Birim siddet integralleri (partialUdlFactors ile ayni)
+            const I1 = x => L2 * x * x / 2 - 2 * L * x * x * x / 3 + x * x * x * x / 4;
+            const I2 = x => L * x * x * x / 3 - x * x * x * x / 4;
+            const J1 = x => L3 * x - L * x * x * x + x * x * x * x / 2;
+            const J2 = x => L * x * x * x - x * x * x * x / 2;
+            // x ile agirliklandirilmis integraller
+            const A_I1 = x => L2 * x * x * x / 3 - L * x * x * x * x / 2 + x * x * x * x * x / 5;
+            const A_I2 = x => L * x * x * x * x / 4 - x * x * x * x * x / 5;
+            const A_J1 = x => L3 * x * x / 2 - 3 * L * x * x * x * x / 4 + 2 * x * x * x * x * x / 5;
+            const A_J2 = x => 3 * L * x * x * x * x / 4 - 2 * x * x * x * x * x / 5;
+
+            const span = b - a;
+            const beta = (span > 1e-12) ? (w2 - w1) / span : 0;
+            const alfa = w1 - beta * a;
+            const kar = (F, AF, bol) => (alfa * (F(b) - F(a)) + beta * (AF(b) - AF(a))) / bol;
+            return {
+                V1: kar(J1, A_J1, L3),
+                V2: kar(J2, A_J2, L3),
+                M1: kar(I1, A_I1, L2),
+                M2: -kar(I2, A_I2, L2)
+            };
+        }
+
+        // Trapez yuklu bir aralikin serbest cisim katkilari.
+        //   par = { a, b, w1, w2 }   (w1 = a'daki siddet, w2 = b'deki)
+        // yukKuvvet: [a, x] arasindaki toplam yuk
+        // yukMoment: ayni yukun x noktasina gore momenti
+        // Sabit yukte (w1 === w2) ikisi de eski ifadelere iner.
+        function yukKuvvet(par, x) {
+            if (x <= par.a) return 0;
+            const son = Math.min(x, par.b);
+            const span = par.b - par.a;
+            const beta = span > 1e-12 ? (par.w2 - par.w1) / span : 0;
+            const s1 = son - par.a;
+            const P = par.w1 * s1 + beta * s1 * s1 / 2;
+            return P;
+        }
+        function yukMoment(par, x) {
+            if (x <= par.a) return 0;
+            const son = Math.min(x, par.b);
+            const span = par.b - par.a;
+            const beta = span > 1e-12 ? (par.w2 - par.w1) / span : 0;
+            const s1 = son - par.a;
+            // Aralik icindeki kismin x'e gore momenti:
+            //   integral( w(a+t) * (x - a - t) dt , t = 0..s1 )
+            const d = x - par.a;
+            return par.w1 * (d * s1 - s1 * s1 / 2) + beta * (d * s1 * s1 / 2 - s1 * s1 * s1 / 3);
+        }
+        // V(x) = 0 noktasi: w1*s + beta*s^2/2 = V0  ->  ikinci derece.
+        function kesmeSifiri(par, V0) {
+            const span = par.b - par.a;
+            const beta = span > 1e-12 ? (par.w2 - par.w1) / span : 0;
+            if (Math.abs(beta) < 1e-12) {
+                if (Math.abs(par.w1) < 1e-12) return null;
+                return par.a + V0 / par.w1;
+            }
+            const disk = par.w1 * par.w1 + 2 * beta * V0;
+            if (disk < 0) return null;
+            const k = Math.sqrt(disk);
+            const s1 = (-par.w1 + k) / beta, s2 = (-par.w1 - k) / beta;
+            const uygun = [s1, s2].filter(v => v > 0 && v < span);
+            return uygun.length ? par.a + uygun[0] : null;
         }
 
         function solve() {
@@ -631,10 +740,17 @@
                     // sloped member); 0 degrees is sideways across the member. Both parts are
                     // applied - dropping the sideways one silently loses load. Intensity is
                     // per unit length of the member itself.
-                    const wf = w * (loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L);
+                    const kat = (loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L);
+                    const wf = w * kat;
                     const wVec = yayiliYukYonu(load, frame, wf).vec;
 
-                    addDistributedLoad(F, dofs1, dofs2, frame, wVec, loadStart, loadEnd);
+                    // value2: aralik SONUNDAKI siddet (kN/m). Verilmezse yuk
+                    // sabit ve hesap eskisiyle ayni yolu izler.
+                    const q2 = load.value2;
+                    const wVec2 = (typeof q2 === 'number' && isFinite(q2) && q2 !== qValue)
+                        ? yayiliYukYonu(load, frame, q2 * 1000 * kat).vec : null;
+
+                    addDistributedLoad(F, dofs1, dofs2, frame, wVec, loadStart, loadEnd, wVec2);
                 });
             });
 
@@ -964,13 +1080,18 @@
                         // montajla ayni yerden okunuyor.
                         const frameR = elementFrame(n1, n2, elem.orientation);
                         const wv = yayiliYukYonu(load, frameR, q).wz;
-                        if (ll > 1e-9 && Math.abs(wv) > 1e-12) {
-                            spanLoads.push({ a, b, w: wv });
+                        const q2 = load.value2;
+                        const wv2 = (typeof q2 === 'number' && isFinite(q2) && q2 * 1000 !== q)
+                            ? yayiliYukYonu(load, frameR, q2 * 1000).wz : wv;
+                        if (ll > 1e-9 && (Math.abs(wv) > 1e-12 || Math.abs(wv2) > 1e-12)) {
+                            spanLoads.push({ a, b, w: wv, w1: wv, w2: wv2 });
                             // Same factors the assembly uses, so the diagram and the
                             // displacements always describe the same beam.
-                            const sh = partialUdlFactors(L, a, b);
-                            fefV_i += wv * sh.V1;
-                            fefM_i += wv * sh.M1;
+                            const sh = (wv2 === wv)
+                                ? { V1: wv * partialUdlFactors(L, a, b).V1, M1: wv * partialUdlFactors(L, a, b).M1 }
+                                : partialLinearFactors(L, a, b, wv, wv2);
+                            fefV_i += sh.V1;
+                            fefM_i += sh.M1;
                         }
                     });
                 }
@@ -986,18 +1107,12 @@
                 // --- Eleman boyunca kesme & moment (serbest cisim) ---
                 const Vfun = (x) => {
                     let V = V1;
-                    spanLoads.forEach(l => {
-                        if (x >= l.b) V -= l.w * (l.b - l.a);
-                        else if (x > l.a) V -= l.w * (x - l.a);
-                    });
+                    spanLoads.forEach(l => { V -= yukKuvvet(l, x); });
                     return V;
                 };
                 const Mfun = (x) => {
                     let M = M1 + V1 * x;
-                    spanLoads.forEach(l => {
-                        if (x >= l.b) M -= l.w * (l.b - l.a) * (x - (l.a + l.b) / 2);
-                        else if (x > l.a) M -= l.w * (x - l.a) * (x - l.a) / 2;
-                    });
+                    spanLoads.forEach(l => { M -= yukMoment(l, x); });
                     return M;
                 };
 
@@ -1009,11 +1124,8 @@
                 const samplePts = [xA, xB];
                 spanLoads.forEach(l => {
                     samplePts.push(l.a, l.b);
-                    const Va = Vfun(l.a);
-                    if (Math.abs(l.w) > 1e-12) {
-                        const xz = l.a + Va / l.w;   // segment içi V=0 noktası
-                        if (xz > l.a && xz < l.b) samplePts.push(xz);
-                    }
+                    const xz = kesmeSifiri(l, Vfun(l.a));   // segment ici V=0 noktasi
+                    if (xz !== null) samplePts.push(xz);
                 });
                 for (let kk = 0; kk <= 20; kk++) samplePts.push(xA + (xB - xA) * kk / 20);
                 samplePts.forEach(x => {
@@ -1111,11 +1223,16 @@
                         const a = L * sPct / 100, b = L * ePct / 100;
                         // montajla ayni: yanal bilesen local y ekseni boyunca
                         const wl = yayiliYukYonu(load, frameZ, q).wy;
-                        if (b - a > 1e-9 && Math.abs(wl) > 1e-12 && frameZ) {
-                            spanLoadsZ.push({ a: a, b: b, w: wl });
-                            const sh = partialUdlFactors(L, a, b);
-                            fefVz += wl * sh.V1;
-                            fefMz += wl * sh.M1;
+                        const q2z = load.value2;
+                        const wl2 = (typeof q2z === 'number' && isFinite(q2z) && q2z * 1000 !== q)
+                            ? yayiliYukYonu(load, frameZ, q2z * 1000).wy : wl;
+                        if (b - a > 1e-9 && (Math.abs(wl) > 1e-12 || Math.abs(wl2) > 1e-12) && frameZ) {
+                            spanLoadsZ.push({ a: a, b: b, w: wl, w1: wl, w2: wl2 });
+                            const sh = (wl2 === wl)
+                                ? { V1: wl * partialUdlFactors(L, a, b).V1, M1: wl * partialUdlFactors(L, a, b).M1 }
+                                : partialLinearFactors(L, a, b, wl, wl2);
+                            fefVz += sh.V1;
+                            fefMz += sh.M1;
                         }
                     });
                 }
@@ -1125,18 +1242,12 @@
 
                 const VzFun = (x) => {
                     let V = Vz1;
-                    spanLoadsZ.forEach(l => {
-                        if (x >= l.b) V -= l.w * (l.b - l.a);
-                        else if (x > l.a) V -= l.w * (x - l.a);
-                    });
+                    spanLoadsZ.forEach(l => { V -= yukKuvvet(l, x); });
                     return V;
                 };
                 const MzFun = (x) => {
                     let M = Mz1 + Vz1 * x;
-                    spanLoadsZ.forEach(l => {
-                        if (x >= l.b) M -= l.w * (l.b - l.a) * (x - (l.a + l.b) / 2);
-                        else if (x > l.a) M -= l.w * (x - l.a) * (x - l.a) / 2;
-                    });
+                    spanLoadsZ.forEach(l => { M -= yukMoment(l, x); });
                     return M;
                 };
 
@@ -1144,10 +1255,8 @@
                 const zPts = [xA, xB];
                 spanLoadsZ.forEach(l => {
                     zPts.push(l.a, l.b);
-                    if (Math.abs(l.w) > 1e-12) {
-                        const xz = l.a + VzFun(l.a) / l.w;
-                        if (xz > l.a && xz < l.b) zPts.push(xz);
-                    }
+                    const xz = kesmeSifiri(l, VzFun(l.a));
+                    if (xz !== null) zPts.push(xz);
                 });
                 for (let kk = 0; kk <= 20; kk++) zPts.push(xA + (xB - xA) * kk / 20);
                 zPts.forEach(x => {
