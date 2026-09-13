@@ -169,3 +169,76 @@
                 note: props.note
             };
         }
+
+        // ---- Profil + etkin plaka (kompozit kesit) ----
+        // Bu hesap yalnizca js/ui/sections.js icinde, DOM alanlarini okuyan bir
+        // fonksiyonun ortasinda duruyordu; dogrulama testleri ayni matematigi
+        // kopyalamak zorunda kalirdi ve iki kopya zamanla birbirinden ayrilir
+        // (bu projede daha once tam olarak bu olmustu). Saf fonksiyon olarak
+        // burada: girdisi profileProperties() ciktisi (cm tabanli) ve plaka
+        // olculeri (mm), ciktisi cozucunun bekledigi SI kesit nesnesi.
+        //
+        // Konvansiyon: plaka USTTE, profil altta sarkar. y = 0 plakanin ust
+        // yuzeyinde, asagi dogru pozitif.
+        function plakaliKesitSI(props, plakaGenislikMm, plakaKalinlikMm) {
+            if (!props) return null;
+            const plateWCm = plakaGenislikMm / 10;
+            const plateTCm = plakaKalinlikMm / 10;
+            const plateArea = plateWCm * plateTCm;
+            const totalArea = props.A + plateArea;
+
+            const plateCentroidY = plateTCm / 2;
+            // HP'de centroidY zaten USTTEN olculur (katalogdaki dx); diger
+            // profillerde alttan.
+            const profileCentroidY = (props.type === 'HP')
+                ? plateTCm + props.centroidY
+                : plateTCm + (props.height - props.centroidY);
+
+            const combinedCentroidY =
+                (plateArea * plateCentroidY + props.A * profileCentroidY) / totalArea;
+            const totalHeight = plateTCm + props.height;
+
+            const d1 = plateCentroidY - combinedCentroidY;
+            const d2 = profileCentroidY - combinedCentroidY;
+            const plateIxx = plateWCm * Math.pow(plateTCm, 3) / 12;
+            const combinedIxx = props.Iy + props.A * d2 * d2 + plateIxx + plateArea * d1 * d1;
+
+            const plateIyy = plateTCm * Math.pow(plateWCm, 3) / 12;
+            const combinedIyy = props.Iz + plateIyy;
+
+            const yTop = combinedCentroidY;                 // plaka ust yuzeyine
+            const yBot = totalHeight - combinedCentroidY;   // profil alt ucuna
+            const WxxTop = combinedIxx / yTop;
+            const WxxBot = combinedIxx / yBot;
+            const Wyy = combinedIyy / (plateWCm / 2);
+
+            const webThickCm = props.tw || 0;
+            const J_cm4 = props.J + openJ([[plateWCm, plateTCm]]);
+
+            return {
+                // SI - cozucu icin
+                A: totalArea * 1e-4,
+                J: J_cm4 * 1e-8,
+                Wt: J_cm4 / Math.max(plateTCm, webThickCm || plateTCm) * 1e-6,
+                tw: webThickCm / 100,
+                Aweb: (props.Aweb || props.A * 0.6) * 1e-4,     // plaka haric govde
+                Aflange: plateArea * 1e-4,                      // yanal kesmeyi plaka tasir
+                Iy: combinedIxx * 1e-8,
+                Iz: combinedIyy * 1e-8,
+                Wy: Math.min(WxxTop, WxxBot) * 1e-6,
+                WyTop: WxxTop * 1e-6,
+                WyBot: WxxBot * 1e-6,
+                Wz: Wyy * 1e-6,
+                h: totalHeight / 100,
+                centroidY: combinedCentroidY / 100,
+                // gosterim (cm)
+                A_cm2: totalArea,
+                Iy_cm4: combinedIxx,
+                Iz_cm4: combinedIyy,
+                Wy_cm3: Math.min(WxxTop, WxxBot),
+                WyTop_cm3: WxxTop,
+                WyBot_cm3: WxxBot,
+                Wz_cm3: Wyy,
+                J_cm4: J_cm4
+            };
+        }

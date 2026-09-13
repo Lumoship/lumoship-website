@@ -677,19 +677,9 @@
                 return;
             }
 
-            // Kompozit hesabinin bekledigi eski alan adlari
-            const profileData = {
-                type: props.type,
-                area: props.A,               // cm²
-                webArea: props.Aweb,         // cm²
-                centroidY: props.centroidY,  // cm
-                Ixx: props.Iy,               // cm⁴
-                Iyy: props.Iz,               // cm⁴
-                height: props.height,        // cm
-                webThick: props.tw           // cm
-            };
+            // Kompozit hesap artik profileProperties ciktisini DOGRUDAN aliyor
+            // (plakaliKesitSI); arada alan adi ceviren bir kopya yok.
 
-            
             // Check if profile already exists
             if (SECTIONS[name]) {
                 showToast(`Profile ${name} already exists!`, true);
@@ -709,97 +699,24 @@
                 // Coordinate: Y=0 at plate TOP, positive downward
                 // ═══════════════════════════════════════════════════════════════
                 
-                const plateWCm = plateW / 10;
-                const plateTCm = plateT / 10;
-                const plateArea = plateWCm * plateTCm;
-                const totalArea = profileData.area + plateArea;
-                
-                // Plate centroid from plate TOP
-                const plateCentroidY = plateTCm / 2;
-                
-                // Profile centroid from plate TOP
-                // HP: centroidY is already from TOP (dx), so just add plate thickness
-                // Others: centroidY is from BOTTOM, need to convert to from-TOP
-                let profileCentroidY;
-                if (profileData.type === 'HP') {
-                    profileCentroidY = plateTCm + profileData.centroidY;
-                } else {
-                    profileCentroidY = plateTCm + (profileData.height - profileData.centroidY);
-                }
-                
-                // Combined centroid from plate TOP
-                const combinedCentroidY = (plateArea * plateCentroidY + profileData.area * profileCentroidY) / totalArea;
-                
-                // Total height
-                const totalHeight = plateTCm + profileData.height;
-                
-                // Combined Ixx using parallel axis theorem
-                const d1 = plateCentroidY - combinedCentroidY;
-                const d2 = profileCentroidY - combinedCentroidY;
-                const plateIxx = plateWCm * Math.pow(plateTCm, 3) / 12;
-                const combinedIxx = profileData.Ixx + profileData.area * d2 * d2 + plateIxx + plateArea * d1 * d1;
-                
-                // Combined Iyy (weak axis)
-                const plateIyy = plateTCm * Math.pow(plateWCm, 3) / 12;
-                const combinedIyy = profileData.Iyy + plateIyy;
-                
-                // Section moduli (Y=0 at plate top)
-                const yTop = combinedCentroidY;                    // distance to plate top
-                const yBot = totalHeight - combinedCentroidY;      // distance to profile bottom
-                const WxxTop = combinedIxx / yTop;
-                const WxxBot = combinedIxx / yBot;
-                const Wyy = combinedIyy / (plateWCm / 2);
-                
+                // Kompozit kesit matematigi js/core/profiles.js icinde
+                // (plakaliKesitSI): ayni hesap dogrulama testlerinde de
+                // kullaniliyor, iki kopya tutmuyoruz.
                 const fullName = `${name}_${plateW}x${plateT}`;
-                
-                // Store in SECTIONS
-                // Convert: cm² → m², cm⁴ → m⁴, cm³ → m³, cm → m
-                // Govde kalinligi profil kutuphanesinden gelir; webArea/height turetmesi
-                // T profilinde yanlisti (flans da yuksekligin icinde). Kompozit burulma
-                // sabiti = profilin kendi J'si + plakanin katkisi.
-                const webThickCm = props.tw || 0;
-                const J_cm4 = props.J + openJ([[plateWCm, plateTCm]]);
+                const kompozit = plakaliKesitSI(props, plateW, plateT);
+                if (!kompozit) {
+                    showToast('Composite section could not be computed', true);
+                    return;
+                }
 
-                SECTIONS[fullName] = {
-                    // SI units for FEM
-                    A: totalArea * 1e-4,                    // m²
-                    J: J_cm4 * 1e-8,                        // m⁴ (burulma)
-                    // Burulma kesit modulu: acik kesitte J/t_max. Profil ve
-                    // plakanin en kalin parcasi hangisiyse o belirler.
-                    Wt: J_cm4 / Math.max(plateTCm, webThickCm || plateTCm) * 1e-6,
-                    tw: webThickCm / 100,                   // m
-                    Aweb: (profileData.webArea || profileData.area * 0.6) * 1e-4, // m² (gövde kesme alanı, plaka hariç)
-                    // Zayif eksen kesme alani: yanal kesmeyi PLAKA tasir, govde
-                    // degil. Bu ayrim olmadan kesit yanal yonde gereginden rijit
-                    // cikiyordu (bkz. fem.js kaymaKappalari).
-                    Aflange: plateWCm * plateTCm * 1e-4,
-                    Iy: combinedIxx * 1e-8,                 // m⁴
-                    Iz: combinedIyy * 1e-8,                 // m⁴
-                    Wy: Math.min(WxxTop, WxxBot) * 1e-6,    // m³ (critical)
-                    WyTop: WxxTop * 1e-6,
-                    WyBot: WxxBot * 1e-6,
-                    Wz: Wyy * 1e-6,
-                    h: totalHeight / 100,                   // m
-                    centroidY: combinedCentroidY / 100,     // m from plate top
-                    
-                    // Display units (cm)
-                    A_cm2: totalArea,
-                    Iy_cm4: combinedIxx,
-                    Iz_cm4: combinedIyy,
-                    Wy_cm3: Math.min(WxxTop, WxxBot),
-                    WyTop_cm3: WxxTop,
-                    WyBot_cm3: WxxBot,
-                    Wz_cm3: Wyy,
-                    J_cm4: J_cm4,
-                    
-                    // Metadata
+                SECTIONS[fullName] = Object.assign(kompozit, {
                     profileName: name,
                     plateWidth: plateW,
                     plateThick: plateT,
                     isComposite: true,
                     type: currentProfileType
-                };
-                
+                });
+
                 updateProfilesTable();
                 updateSectionDropdowns();
                 showToast(`Profile ${fullName} created successfully!`);
