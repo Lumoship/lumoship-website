@@ -485,9 +485,19 @@
                 // okunmuyordu: veri modeli Mx/My/Mz tasiyor, cozucu gormuyordu.
                 // Arayuzde giris alani olmadigi icin elle fark edilmiyordu; ICE
                 // AKTARILAN bir modelde tanimli moment sessizce dusuyordu.
-                if (load.Mx) F[dofs[3]] += load.Mx * 1000 * lf;
-                if (load.My) F[dofs[4]] += load.My * 1000 * lf;
-                if (load.Mz) F[dofs[5]] += load.Mz * 1000 * lf;
+                if (load.Mx) F[dofs[3]] -= load.Mx * 1000 * lf;
+                // ISARET: global donme serbestliklerinin UCU DE (3,4,5) fiziksel
+                // donmenin TERSINI tutuyor. Bu, kirisin ic
+                // tutarliliginda sorun degil - sehim, kuvvet ve gerilme dogru
+                // cikiyor - ama disaridan gelen FIZIKSEL bir moment o kurala
+                // cevrilmeden konursa ters yone etki eder.
+                //
+                // Olculdu: kuvvetlerden yapilmis gercek bir moment cifti ile
+                // ayni buyuklukteki My/Mz, basit kirisin mesnet tepkilerini
+                // TERS isaretle veriyordu. Burulma (Mx) etkilenmiyor; o
+                // serbestlik fizikseldir ve TL/GJ ile birebir uyusuyor.
+                if (load.My) F[dofs[4]] -= load.My * 1000 * lf;
+                if (load.Mz) F[dofs[5]] -= load.Mz * 1000 * lf;
             });
             
             // Apply constraints
@@ -546,9 +556,12 @@
                     Ux: U[dofs[0]],
                     Uy: U[dofs[1]],
                     Uz: U[dofs[2]],
-                    Rx: U[dofs[3]],
-                    Ry: U[dofs[4]],
-                    Rz: U[dofs[5]]
+                    Rx: -U[dofs[3]],
+                    // Disariya FIZIKSEL donme verilir (bkz. yukaridaki isaret
+                    // notu). Elemanin kendi hesabi ic kurali kullanir; asagida
+                    // geri cevriliyor.
+                    Ry: -U[dofs[4]],
+                    Rz: -U[dofs[5]]
                 };
                 
                 if (Math.abs(U[dofs[2]]) > Math.abs(maxDeflection)) {
@@ -610,8 +623,10 @@
                 
                 // Global displacement vector for this element
                 const uGlobal = [
-                    d1.Ux, d1.Uy, d1.Uz, d1.Rx, d1.Ry, d1.Rz,
-                    d2.Ux, d2.Uy, d2.Uz, d2.Rx, d2.Ry, d2.Rz
+                    // Ry/Rz disariya fiziksel isaretle veriliyor; eleman
+                    // matrisi ic kurali bekledigi icin burada geri cevrilir.
+                    d1.Ux, d1.Uy, d1.Uz, -d1.Rx, -d1.Ry, -d1.Rz,
+                    d2.Ux, d2.Uy, d2.Uz, -d2.Rx, -d2.Ry, -d2.Rz
                 ];
                 
                 // 3D direction cosine matrix (same convention as assembly)
@@ -987,18 +1002,20 @@
                     // bolunuyor; moment de 1000'e bolunmeli. Burada 1e6 yaziyordu
                     // ("Nmm to kNm" varsayimi), yani bildirilen TUM mesnet momentleri
                     // 1000 kat kucuktu - tepki tablosunda 0.000 gorunmelerinin sebebi.
-                    RMx = (K.rowDot(dofs[3], U) - F[dofs[3]]) / 1000; // N*m -> kN*m
+                    RMx = -(K.rowDot(dofs[3], U) - F[dofs[3]]) / 1000; // N*m -> kN*m
                 }
                 
                 // Calculate My reaction (moment about Y)
                 if (isFixed(4)) {
-                    RMy = (K.rowDot(dofs[4], U) - F[dofs[4]]) / 1000; // N*m -> kN*m
+                    // Eksi: serbestlik 4 fiziksel donmenin tersi oldugu icin
+                    // eslenik tepki momenti de terstir.
+                    RMy = -(K.rowDot(dofs[4], U) - F[dofs[4]]) / 1000; // N*m -> kN*m
                 }
                 
                 // Mz hic hesaplanmiyordu: duzlem ici yanal yuklu bir grillajda
                 // Rz mesnetlenmisse o tepki raporda eksik kaliyordu.
                 if (isFixed(5)) {
-                    RMz = (K.rowDot(dofs[5], U) - F[dofs[5]]) / 1000; // N*m -> kN*m
+                    RMz = -(K.rowDot(dofs[5], U) - F[dofs[5]]) / 1000; // N*m -> kN*m
                 }
 
                 reactions[nodeId] = {

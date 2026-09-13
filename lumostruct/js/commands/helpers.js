@@ -278,8 +278,15 @@
                             : duzlem.axis === 'X' ? { x: duzlem.offset, y: p.x, z: p.y }
                             : { x: p.x, y: p.y, z: duzlem.offset };
 
+            // Yansitilmis kopya, GERCEK 3B konumu da tasir. Dugume yapisinca
+            // duzleme geri yansitilmis noktayi dondurmek, o dugumden gecmeyen
+            // bir kiris uretiyordu: ekranda ust uste gorunuyor ama baglanmiyor.
             const D = { nodes: {}, elements: model.elements };
-            Object.entries(model.nodes).forEach(([id, n]) => { D.nodes[id] = uv(n); });
+            Object.entries(model.nodes).forEach(([id, n]) => {
+                const q = uv(n);
+                q.gercek = { x: n.x, y: n.y, z: n.z || 0 };
+                D.nodes[id] = q;
+            });
             const taban = cmdState.basePoint ? uv(cmdState.basePoint) : { x: 0, y: 0 };
             
             let best = null;
@@ -291,7 +298,7 @@
                 const dist = Math.sqrt((node.x - modelX) ** 2 + (node.y - modelY) ** 2);
                 if (dist < minDist) {
                     minDist = dist;
-                    best = { x: node.x, y: node.y };
+                    best = { x: node.x, y: node.y, gercek: node.gercek };
                     snapType = 'END';
                 }
             });
@@ -306,7 +313,11 @@
                     const dist = Math.sqrt((midX - modelX) ** 2 + (midY - modelY) ** 2);
                     if (dist < minDist) {
                         minDist = dist;
-                        best = { x: midX, y: midY };
+                        best = { x: midX, y: midY, gercek: (n1.gercek && n2.gercek) ? {
+                            x: (n1.gercek.x + n2.gercek.x) / 2,
+                            y: (n1.gercek.y + n2.gercek.y) / 2,
+                            z: (n1.gercek.z + n2.gercek.z) / 2
+                        } : null };
                         snapType = 'MID';
                     }
                 }
@@ -394,7 +405,10 @@
             
             if (best) best.type = snapType;
             if (!best) return null;
-            const g = geri(best);
+            // Model uzerindeki gercek bir noktaya yapisildiysa o noktanin
+            // kendisi dondurulur; boylece cizilen kiris ona baglanir.
+            // Izgara gibi duzlem uzerindeki yapismalarda duzleme dusurulur.
+            const g = best.gercek || geri(best);
             return { x: g.x, y: g.y, z: g.z, type: snapType };
         }
         

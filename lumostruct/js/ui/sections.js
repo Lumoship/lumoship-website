@@ -963,7 +963,10 @@
             function kur() {
                 const alan = document.getElementById('profilePreviewArea');
                 const kap = alan && alan.parentElement;
-                if (!kap) return;
+                // Test kosumundaki DOM taklidinde parentElement tam bir DOM
+                // nesnesi degil; korumasiz birakinca dosya hic yuklenmiyor
+                // ve icindeki kod testsiz kaliyordu.
+                if (!kap || typeof kap.addEventListener !== 'function') return;
                 ['change', 'input'].forEach(tur =>
                     kap.addEventListener(tur, e => {
                         if (e.target && /^(INPUT|SELECT)$/.test(e.target.tagName)) profilSecimiBasladi();

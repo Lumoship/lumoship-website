@@ -207,8 +207,11 @@
         (function acilirMenuKonumu() {
             function bagla() {
                 document.querySelectorAll('.toolbar-dropdown').forEach(function (kap) {
+                    // Test kosumundaki DOM taklidinde bunlar tam DOM nesnesi
+                    // degil; korumasiz birakinca dosya hic yuklenmiyordu.
+                    if (!kap || typeof kap.querySelector !== 'function') return;
                     var menu = kap.querySelector('.toolbar-dropdown-menu');
-                    if (!menu) return;
+                    if (!menu || typeof kap.addEventListener !== 'function') return;
 
                     kap.addEventListener('mouseenter', function () {
                         var d = kap.getBoundingClientRect();
@@ -243,7 +246,10 @@
                 const solPanel = document.querySelector('.panel');
                 const sagPanel = document.querySelector('.entity-info-panel');
                 const tuval = document.querySelector('.canvas-area');
-                if (!tuval) return;
+                // Test kosumundaki DOM taklidinde bu elemanlar tam DOM
+                // nesnesi degil; dinleyici takmaya calisinca dosya hic
+                // yuklenmiyor ve icindeki her sey sessizce testsiz kaliyordu.
+                if (!tuval || typeof document.addEventListener !== 'function') return;
 
                 syncPanelLayout();
 

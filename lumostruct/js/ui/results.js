@@ -124,7 +124,7 @@
             if (eqStatus && eqCard && results.equilibrium) {
                 const eq = results.equilibrium;
                 if (eq.ok) {
-                    eqStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> BALANCED</span>';
+                    eqStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> Balanced</span>';
                     eqCard.className = 'result-card success';
                 } else {
                     eqStatus.innerHTML = '<span style="color:var(--danger);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> OFF BY ' + Math.abs(eq.error * 100).toFixed(2) + '%</span>';
@@ -207,13 +207,13 @@
                 if (checked === 0) {
                     // Nothing was actually verified. Saying PASS here is worse than saying
                     // nothing - it is a green light nobody earned.
-                    bucklingStatus.innerHTML = '<span style="color:var(--warning);"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> NOT CHECKED</span>';
+                    bucklingStatus.innerHTML = '<span style="color:var(--warning);"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> Not checked</span>';
                     bucklingDetail.textContent = unchecked
                         ? unchecked + ' element(s) have no usable web geometry'
                         : 'No elements to check';
                     bucklingCard.className = 'result-card warning';
                 } else if (bucklingOK) {
-                    bucklingStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> PASS</span>';
+                    bucklingStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> Pass</span>';
                     bucklingDetail.textContent = unchecked
                         ? checked + ' checked OK, ' + unchecked + ' skipped (no web geometry)'
                         : 'hw/tw and bf/tf OK on ' + checked + ' element(s). Member buckling is NOT checked.';

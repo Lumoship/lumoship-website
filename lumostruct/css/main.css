@@ -5008,3 +5008,18 @@
             color: var(--danger-text);
             border-color: var(--danger-text);
         }
+
+        /* Sonuc panelinde deger tablolari, gorunum anahtarlari ve notlar
+           kendi marjlariyla farkli bosluklar veriyordu (8, 12, 16px).
+           Sekme icerigindekiyle ayni ritim.
+           !important gerekiyor: bu bloklarin bir kismi satir ici
+           margin-bottom tasiyor ve satir ici bildirimi normal kural yenemez
+           (sekme icerigindeki ritim katmaniyla ayni sebep). */
+        #resultsContent > * {
+            margin-top: 0 !important;
+            margin-bottom: var(--space-3) !important;
+        }
+
+        #resultsContent > *:last-child {
+            margin-bottom: 0 !important;
+        }

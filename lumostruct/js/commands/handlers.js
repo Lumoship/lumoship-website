@@ -873,7 +873,7 @@
                     showTooltipAt(e.clientX, e.clientY, tipText);
                     
                     // Update 3D preview
-                    updateCopyMovePreview3D(dx, dy);
+                    updateCopyMovePreview3D(dx, dy, (modelPos.z || 0) - (cmdState.basePoint.z || 0));
                 }
             } else if (cmdState.active === CMD.ROTATE) {
                 if (cmdState.phase === PHASE.DESTINATION && cmdState.basePoint) {
@@ -1054,7 +1054,9 @@
         
         let previewGroup = null;
         
-        function updateCopyMovePreview3D(offsetX, offsetY) {
+        // offsetZ eklendi: XZ/YZ duzleminde tasima/kopyalama onizlemesi
+        // z'yi gostermezse ne yaptiginiz gorunmuyor.
+        function updateCopyMovePreview3D(offsetX, offsetY, offsetZ = 0) {
             if (!threeScene) return;
             
             // Remove existing preview
@@ -1074,8 +1076,8 @@
                 
                 const geometry = new THREE.BufferGeometry();
                 const positions = new Float32Array([
-                    n1.x + offsetX, n1.y + offsetY, 0,
-                    n2.x + offsetX, n2.y + offsetY, 0
+                    n1.x + offsetX, n1.y + offsetY, (n1.z || 0) + (offsetZ || 0),
+                    n2.x + offsetX, n2.y + offsetY, (n2.z || 0) + (offsetZ || 0)
                 ]);
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
                 
@@ -1129,8 +1131,8 @@
                 
                 const geometry = new THREE.BufferGeometry();
                 const positions = new Float32Array([
-                    rn1.x, rn1.y, 0,
-                    rn2.x, rn2.y, 0
+                    rn1.x, rn1.y, rn1.z || 0,
+                    rn2.x, rn2.y, rn2.z || 0
                 ]);
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
                 
@@ -1191,8 +1193,8 @@
                 
                 const geometry = new THREE.BufferGeometry();
                 const positions = new Float32Array([
-                    mn1.x, mn1.y, 0,
-                    mn2.x, mn2.y, 0
+                    mn1.x, mn1.y, mn1.z || 0,
+                    mn2.x, mn2.y, mn2.z || 0
                 ]);
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
                 
@@ -1234,8 +1236,8 @@
             
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array([
-                lastPt.x, lastPt.y, 0.01,
-                currentPos.x, currentPos.y, 0.01
+                lastPt.x, lastPt.y, (lastPt.z || 0) + 0.01,
+                currentPos.x, currentPos.y, (currentPos.z || 0) + 0.01
             ]);
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             
@@ -1273,8 +1275,8 @@
             
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array([
-                n1.x + nx, n1.y + ny, 0.01,
-                n2.x + nx, n2.y + ny, 0.01
+                n1.x + nx, n1.y + ny, (n1.z || 0) + 0.01,
+                n2.x + nx, n2.y + ny, (n2.z || 0) + 0.01
             ]);
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             
