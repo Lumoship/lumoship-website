@@ -764,8 +764,15 @@
                     // SI units for FEM
                     A: totalArea * 1e-4,                    // m²
                     J: J_cm4 * 1e-8,                        // m⁴ (burulma)
+                    // Burulma kesit modulu: acik kesitte J/t_max. Profil ve
+                    // plakanin en kalin parcasi hangisiyse o belirler.
+                    Wt: J_cm4 / Math.max(plateTCm, webThickCm || plateTCm) * 1e-6,
                     tw: webThickCm / 100,                   // m
                     Aweb: (profileData.webArea || profileData.area * 0.6) * 1e-4, // m² (gövde kesme alanı, plaka hariç)
+                    // Zayif eksen kesme alani: yanal kesmeyi PLAKA tasir, govde
+                    // degil. Bu ayrim olmadan kesit yanal yonde gereginden rijit
+                    // cikiyordu (bkz. fem.js kaymaKappalari).
+                    Aflange: plateWCm * plateTCm * 1e-4,
                     Iy: combinedIxx * 1e-8,                 // m⁴
                     Iz: combinedIyy * 1e-8,                 // m⁴
                     Wy: Math.min(WxxTop, WxxBot) * 1e-6,    // m³ (critical)

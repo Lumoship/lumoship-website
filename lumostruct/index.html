@@ -1644,6 +1644,22 @@
             <div class="main-tab-content" id="tabContentSettings">
                 <h2><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Settings</h2>
                 
+                <h3 class="panel-title">Interface</h3>
+                <div class="form-group">
+                    <label for="uiScaleSelect">Text size</label>
+                    <select id="uiScaleSelect" onchange="arayuzOlceginiUygula(this.value, true)">
+                        <option value="0.85">Compact</option>
+                        <option value="0.925">Small</option>
+                        <option value="1" selected>Normal</option>
+                        <option value="1.1">Large</option>
+                        <option value="1.25">Larger</option>
+                    </select>
+                    <small style="color:var(--text-3); display:block; margin-top:4px;">
+                        Text already scales with the window; this is on top of that.
+                    </small>
+                    <small id="uiScaleInfo" style="color:var(--text-3); display:block; margin-top:2px;"></small>
+                </div>
+
                 <h3 class="panel-title">Solver Validation</h3>
                 <div class="form-group" style="background:var(--bg-tertiary,#1a2332); border-radius:var(--r-ovl); padding:16px; margin-bottom:16px;">
                     <p style="font-size:var(--fs-sm); color:var(--text-secondary,var(--text-2)); margin:0 0 12px 0; line-height:1.5;">
@@ -2482,11 +2498,14 @@
                             </label>
                         </div>
                         
-                        <div style="display:flex; gap:4px; margin-top:8px;">
-                            <button class="btn-secondary btn-small" style="flex:1; font-size:var(--fs-xs);" onclick="setInfoBC('fixed')">Fixed</button>
-                            <button class="btn-secondary btn-small" style="flex:1; font-size:var(--fs-xs);" onclick="setInfoBC('pinned')">Pinned</button>
-                            <button class="btn-secondary btn-small" style="flex:1; font-size:var(--fs-xs);" onclick="setInfoBC('simply')">Simply</button>
-                            <button class="btn-secondary btn-small" style="flex:1; font-size:var(--fs-xs);" onclick="setInfoBC('free')">Free</button>
+                        <!-- Dort dugme tek satira sigmayabilir: yazi boyu ekrana ve
+                             kullanicinin olcegine gore buyuyor. Satir ici flex:1 yerine
+                             .preset-row sinifi; sigmadiginda alt satira sarar. -->
+                        <div class="preset-row">
+                            <button class="btn-secondary btn-small" onclick="setInfoBC('fixed')">Fixed</button>
+                            <button class="btn-secondary btn-small" onclick="setInfoBC('pinned')">Pinned</button>
+                            <button class="btn-secondary btn-small" onclick="setInfoBC('simply')">Simply</button>
+                            <button class="btn-secondary btn-small" onclick="setInfoBC('free')">Free</button>
                         </div>
                     </div>
                     

@@ -35,8 +35,13 @@
 
             const yTop = centroidY, yBot = Math.max(B - centroidY, 1e-9);
             return {
-                type: 'HP', A: A, Aweb: Aweb, Iy: Iy, Iz: Iz,
+                // Aflange: ZAYIF eksen kesme alani. Bulb flat aslinda bir levha,
+                // yanal kesme butun kesitten gecer - dikdortgen icin 5/6 A.
+                type: 'HP', A: A, Aweb: Aweb, Aflange: A * 5 / 6, Iy: Iy, Iz: Iz,
                 J: openJ([[webW, T]]) + Math.PI * Math.pow(d, 4) / 32,
+                // Burulma kesit modulu: acik kesitte J/t_max (en kalin parcada
+                // kayma en buyuktur). Bulbda esdeger cap kalinlik sayilir.
+                Wt: (openJ([[webW, T]]) + Math.PI * Math.pow(d, 4) / 32) / Math.max(T, d),
                 Wy: Iy / Math.max(yTop, yBot), WyTop: Iy / yTop, WyBot: Iy / yBot,
                 Wz: Iz / (d / 2),
                 height: B, tw: T, centroidY: centroidY, bulbDia: d, fromCatalog: !!cat
@@ -49,7 +54,8 @@
             const Iy = T * Math.pow(H, 3) / 12;
             const Iz = H * Math.pow(T, 3) / 12;
             return {
-                type: 'FB', A: A, Aweb: A, Iy: Iy, Iz: Iz, J: openJ([[H, T]]),
+                type: 'FB', A: A, Aweb: A, Aflange: A * 5 / 6, Iy: Iy, Iz: Iz, J: openJ([[H, T]]),
+                Wt: openJ([[H, T]]) / T,
                 Wy: Iy / (H / 2), WyTop: Iy / (H / 2), WyBot: Iy / (H / 2),
                 Wz: Iz / (T / 2),
                 height: H, tw: T, centroidY: H / 2
@@ -72,7 +78,9 @@
 
             const yTop = Math.max(total - c, 1e-9), yBot = Math.max(c, 1e-9);
             return {
-                type: 'T', A: A, Aweb: Aw, Iy: Iy, Iz: Iz, J: openJ([[BF, TF], [H, TW]]),
+                // T kesitte yanal kesmeyi FLANS tasir, govde degil.
+                type: 'T', A: A, Aweb: Aw, Aflange: Af, Iy: Iy, Iz: Iz, J: openJ([[BF, TF], [H, TW]]),
+                Wt: openJ([[BF, TF], [H, TW]]) / Math.max(TF, TW),
                 Wy: Iy / Math.max(yTop, yBot), WyTop: Iy / yTop, WyBot: Iy / yBot,
                 Wz: Iz / (BF / 2),                     // en genis boyutun yarisi
                 height: total, tw: TW, centroidY: c
@@ -106,7 +114,9 @@
 
             const yTop = Math.max(A_ - cy, 1e-9), yBot = Math.max(cy, 1e-9);
             return {
-                type: 'L', A: A, Aweb: A1, Iy: Iy, Iz: Iz,
+                // Kosebentte yanal kesmeyi yatay kol tasir; dejenere halde
+                // (b ~ t) dikdortgen degerine duser.
+                type: 'L', A: A, Aweb: A1, Aflange: (A2 > 0 ? A2 : A * 5 / 6), Iy: Iy, Iz: Iz,
                 Ixy: Ixy,
                 principalAngle: principalAngle,
                 note: Math.abs(principalAngle) > 1
@@ -114,6 +124,7 @@
                       Math.abs(principalAngle).toFixed(1) + ' deg'
                     : null,
                 J: openJ([[A_, T], [Math.max(B_ - T, 0), T]]),
+                Wt: openJ([[A_, T], [Math.max(B_ - T, 0), T]]) / T,
                 Wy: Iy / Math.max(yTop, yBot), WyTop: Iy / yTop, WyBot: Iy / yBot,
                 Wz: Iz / Math.max(cx, B_ - cx),
                 height: A_, tw: T, centroidY: cy
@@ -137,9 +148,11 @@
             return {
                 A: props.A * 1e-4,          // cm2 -> m2
                 Aweb: props.Aweb * 1e-4,
+                Aflange: (props.Aflange > 0 ? props.Aflange : props.Aweb) * 1e-4,
                 Iy: props.Iy * 1e-8,        // cm4 -> m4
                 Iz: props.Iz * 1e-8,
                 J: props.J * 1e-8,
+                Wt: (props.Wt > 0 ? props.Wt : 0) * 1e-6,   // cm3 -> m3
                 Wy: props.Wy * 1e-6,        // cm3 -> m3
                 WyTop: props.WyTop * 1e-6,
                 WyBot: props.WyBot * 1e-6,

@@ -147,6 +147,29 @@
             return J;
         }
 
+        // Kayma alani EGILME DUZLEMINE gore degisir: guclu eksen egilmesinde
+        // (yerel z yonunde sehim) kesme GOVDEDEN gecer, zayif eksende
+        // FLANSLARDAN. Ikisinde de govde alanini kullanmak zayif eksende kirisi
+        // gereginden rijit yapiyordu.
+        //
+        // Olculdu (Steel 4.4.7 "gantry crane cradle", kapali kutu kesit): duzlem
+        // disi buyuklukler %0.05 tutarken yanal tepki %2, duzlem ici mesnet
+        // momenti %5.2, yatay sehim %4.6 sapiyordu. Kayma alanini flanslara
+        // cevirince yanal sapmalar %1-2'ye iniyor ama bu sefer dusey bozuluyor -
+        // yani tek alan kullanmak dogru degil, duzleme gore SECMEK gerekiyor.
+        //
+        // Flans alani bilinmiyorsa eski davranis (govde alani) korunur; boylece
+        // Aflange tasimayan eski kesitlerde sonuc degismez.
+        function kaymaKappalari(sec) {
+            const z = (sec.Aweb && sec.Aweb > 0 && sec.A > 0)
+                ? sec.Aweb / sec.A
+                : (sec.h && sec.A ? 5 / 6 : 0.85);
+            const y = (sec.Aflange && sec.Aflange > 0 && sec.A > 0)
+                ? sec.Aflange / sec.A
+                : z;
+            return { z: z, y: y };
+        }
+
         function partialUdlFactors(L, a, b) {
             const L2 = L * L, L3 = L2 * L;
             const I1 = x => L2 * x * x / 2 - 2 * L * x * x * x / 3 + x * x * x * x / 4;
@@ -241,13 +264,13 @@
                 // Shear travels through the web, so the effective shear area is Aweb, not the
                 // gross area - the same Aweb the stress recovery already uses. Falling back to
                 // 5/6 (the rectangular value) only when no web area is known.
-                const kappa = (sec.Aweb && sec.Aweb > 0 && sec.A > 0)
-                    ? sec.Aweb / sec.A
-                    : (sec.h && sec.A ? 5 / 6 : 0.85);
+                const kappa = kaymaKappalari(sec);
                 
                 // Shear deformation parameter: Φ = 12EI / (κAGL²)
-                const phi_y = 12 * E * Iy / (kappa * A * G * L * L);
-                const phi_z = 12 * E * Iz / (kappa * A * G * L * L);
+                // Iy guclu eksen (yerel z sehimi) -> govde alani;
+                // Iz zayif eksen (yerel y sehimi) -> flans alani.
+                const phi_y = 12 * E * Iy / (kappa.z * A * G * L * L);
+                const phi_z = 12 * E * Iz / (kappa.y * A * G * L * L);
                 
                 // Local stiffness with Timoshenko correction
                 const EA_L = E * A / L;
@@ -677,11 +700,9 @@
                 // kayma deformasyonu iceren bir yer degistirme alanina uygulamak, kaymayi
                 // egilme sanip statik olarak belirli bir kiriste bile momenti sasirtiyordu
                 // (ankastre + UDL: 180 yerine 181.3 kNm).
-                const kappaR = (sec.Aweb && sec.Aweb > 0 && sec.A > 0)
-                    ? sec.Aweb / sec.A
-                    : (sec.h && sec.A ? 5 / 6 : 0.85);
-                const timoshenko = (EI) => {
-                    const phi = 12 * EI / (kappaR * sec.A * mat.G * L * L);
+                const kappaR = kaymaKappalari(sec);
+                const timoshenko = (EI, kap) => {
+                    const phi = 12 * EI / (kap * sec.A * mat.G * L * L);
                     const d = 1 + phi;
                     return {
                         k11: 12 * EI / (L * L * L * d),
@@ -693,7 +714,7 @@
 
                 // --- Güçlü eksen eğilme (düşey: Uz, Ry): k·u kısmı (FEF hariç) ---
                 const EIy = mat.E * sec.Iy;
-                const kY = timoshenko(EIy);
+                const kY = timoshenko(EIy, kappaR.z);
                 const dwY = w1 - w2;
                 const Vi_keu = kY.k11 * dwY + kY.k12 * (θy1 + θy2);
                 const Mi_keu = kY.k12 * dwY + kY.k22 * θy1 + kY.k24 * θy2;
@@ -796,7 +817,7 @@
                 // iceriyor, egri ile yer degistirmeler ayni kirisi anlatmali.
                 const NFINE = 200;
                 const hf = L / NFINE;
-                const GAs = kappaR * sec.A * mat.G;
+                const GAs = kappaR.z * sec.A * mat.G;   // dusey sehim egrisi: govde kaymasi
                 let thPrev = 0, vbPrev = 0, vsPrev = 0;
                 const vRaw = new Float64Array(NFINE + 1);
                 for (let i = 1; i <= NFINE; i++) {
@@ -832,7 +853,7 @@
                 // açıklık taraması. Önceden yalnızca k·u alınıyordu ve işaret de tersti,
                 // bu yüzden yanal yüklü elemanda moment 2.8 katına çıkıyordu.
                 const EIz = mat.E * (sec.Iz || sec.Iy);
-                const kZ = timoshenko(EIz);
+                const kZ = timoshenko(EIz, kappaR.y);
 
                 // x-y düzleminde eğilme, x-z düzleminin işaretçe aynasıdır (montajda da
                 // k[1][5] = -k12_z şeklinde). Bu yüzden dönme farkı ters yönde alınır;
@@ -923,13 +944,41 @@
 
                 const sigmaAxialSigned = (sec.A > 0) ? N / sec.A : 0;
                 const sigmaBendZ = Wz ? Math.abs(Mz_max) / Wz : 0;
-                const sigmaTop = (sigmaAxialSigned - (WyT ? Mmax / WyT : 0) - sigmaBendZ) / 1e6;
-                const sigmaBot = (sigmaAxialSigned + (WyB ? Mmax / WyB : 0) + sigmaBendZ) / 1e6;
+
+                // Iki eksenli egilme: yanal katki lifi SIFIRDAN UZAKLASTIRACAK
+                // yonde eklenir. Eskiden ust liften hep cikariliyor, alt life
+                // hep ekleniyordu; My ile Mz'nin isaretleri ters dustugunde
+                // terimler birbirini GOTURUYOR ve kose gerilmesi oldugundan
+                // kucuk cikiyordu. Olculdu (Steel 4.4.7, ana kiris uc kesiti):
+                // gercek kose gerilmesi 66 MPa iken eski kural 39 MPa
+                // veriyordu - guvenli tarafta degil.
+                const uzaklastir = (v, ek) => v + (v < 0 ? -ek : ek);
+                const sigmaTop = uzaklastir(sigmaAxialSigned - (WyT ? Mmax / WyT : 0), sigmaBendZ) / 1e6;
+                const sigmaBot = uzaklastir(sigmaAxialSigned + (WyB ? Mmax / WyB : 0), sigmaBendZ) / 1e6;
                 const sigma = Math.max(Math.abs(sigmaTop), Math.abs(sigmaBot));   // MPa
                 const Aweb = (sec.Aweb && sec.Aweb > 0) ? sec.Aweb
                            : (sec.h && sec.tw && sec.h < 5 && sec.tw < 1) ? sec.h * sec.tw
                            : sec.A * 0.6;
-                const tau = (Aweb > 0) ? Math.abs(Vmax) / Aweb / 1e6 : 0; // MPa
+                const tauV = (Aweb > 0) ? Math.abs(Vmax) / Aweb / 1e6 : 0; // MPa
+
+                // BURULMA KAYMA GERILMESI. Eskiden hic yoktu: tau yalnizca
+                // kesme kuvvetindendi. Izgarada enine kiris ana kirisin
+                // egilmesini BURULMA olarak alir; o eleman icin burulma
+                // kaymasi kesme kaymasindan buyuk olabilir. Karsilastirmada
+                // olculdu (Steel 4.4.7, kapali kutu kesit): ana kiriste
+                // tau_Mx = 25 MPa, tau_Fz = 1 MPa. Bunu atlamak GUVENLI
+                // TARAFTA DEGIL.
+                //
+                // Wt burulma kesit modulu: acik kesitte J/t_max, kapali
+                // kesitte 2*Am*t (Bredt). Kesit onu tasimiyorsa burulma
+                // gerilmesi eklenmez - eski davranis korunur, ama sessizce
+                // sifir saymak yerine kesit uretimine Wt eklendi.
+                const Wt = (sec.Wt && sec.Wt > 0) ? sec.Wt : null;
+                const tauT = Wt ? Math.abs(T) / Wt / 1e6 : 0;      // MPa
+
+                // Ikisi kesitin ayni noktasinda tepe yapmaz; toplamak
+                // KORUMACI bir yaklasimdir ve kural kontrollerinde yaygindir.
+                const tau = tauV + tauT;
                 const vonMises = Math.sqrt(sigma * sigma + 3 * tau * tau);
 
                 // --- Gerilme egrisi: egilme gerilmesi M(x)'i izler ---
@@ -949,6 +998,8 @@
                     sigmaTop: sigmaTop,          // MPa, ust lif (isaretli)
                     sigmaBot: sigmaBot,          // MPa, alt lif (isaretli)
                     tau: Math.abs(tau),
+                    tauV: tauV,          // MPa, kesme kuvvetinden
+                    tauT: tauT,          // MPa, burulmadan
                     vonMises,
                     N: N / 1e3,          // kN
                     M1: M1 / 1e3,        // kN·m
@@ -956,6 +1007,14 @@
                     Mmid: Mmid / 1e3,
                     Mmax: Mmax / 1e3,
                     Mz: Mz_max / 1e3,
+                    // Zayif eksen momenti UC ISTASYONDA. Yalnizca maksimum
+                    // veriliyordu; gerilme tablosu istasyon istasyon yazilinca
+                    // yanal egilme katkisi hicbir satirda gorunmuyor, ama
+                    // ozetteki sigma'ya giriyordu - tablo ile kullanim orani
+                    // birbirini tutmuyordu.
+                    Mz1: MzFun(0) / 1e3,
+                    Mzmid: MzFun(L / 2) / 1e3,
+                    Mz2: MzFun(L) / 1e3,
                     V1: V1 / 1e3,        // kN
                     V2: Vfun(L) / 1e3,
                     V: Vmax / 1e3,

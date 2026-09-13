@@ -108,6 +108,10 @@
             updateEmptyState();
         }
 
+        // Kullanicinin arayuz olcegi (Settings > Interface)
+        if (typeof arayuzOlceginiYukle === 'function') arayuzOlceginiYukle();
+        if (typeof arayuzOlcekBilgisi === 'function') arayuzOlcekBilgisi();
+
         console.log('LumoStruct v65 - Ready');
     });
     

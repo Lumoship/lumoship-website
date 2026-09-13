@@ -4208,11 +4208,26 @@
            degil agirlik tasir.
            ================================================================ */
         :root {
-            /* dort adim, baska yok */
-            --fs-xs: 11px;   /* mikro etiket, tablo basligi */
-            --fs-sm: 12px;   /* govde, ikincil */
-            --fs-md: 14px;   /* birincil deger, baslik */
-            --fs-lg: 18px;   /* tek one cikan sayi */
+            /* dort adim, baska yok - ama SABIT DEGIL.
+               Dort boy da px olarak sabitti: 13 inclik bir dizustunde ile 27
+               inclik monitorde ayni 11-12 px. Kucuk ekranda sikisik, buyuk
+               ekranda gereginden ufak duruyordu.
+
+               --fs-taban pencere GENISLIGIYLE dogrusal buyur ve iki ucta durur:
+                 1280 px -> 12.0    1600 px -> 13.0
+                 1920 px -> 14.0    2560 px ve ustu -> 16.0
+               1280 px'te dort deger de eski sabit degerlerin TAM AYNISI cikar
+               (11 / 12 / 14 / 18), yani mevcut tasarim bozulmaz; daha genis
+               ekranlarda oranlar korunarak buyur.
+
+               --ui-olcek kullanicinin Settings'ten verdigi carpan (varsayilan 1).
+               Ikisi carpilir: ekran otomatigi + kisisel tercih. */
+            --ui-olcek: 1;
+            --fs-taban: clamp(11px, calc(0.3125vw + 8px), 16px);
+            --fs-xs: calc(var(--fs-taban) * var(--ui-olcek) * 0.9167);  /* mikro etiket, tablo basligi */
+            --fs-sm: calc(var(--fs-taban) * var(--ui-olcek));           /* govde, ikincil */
+            --fs-md: calc(var(--fs-taban) * var(--ui-olcek) * 1.1667);  /* birincil deger, baslik */
+            --fs-lg: calc(var(--fs-taban) * var(--ui-olcek) * 1.5);     /* tek one cikan sayi */
 
             /* iki yaricap */
             --r-ctl: 4px;    /* kontroller */
@@ -5150,3 +5165,24 @@
         /* Siralanan sutun belli olsun - hangi sutuna gore siralandigi
            gorunmuyordu, ayni tablo iki farkli sirada ayni gorunuyordu. */
         .results-data-table th.sorted { color: var(--text); }
+
+        /* ================================================================
+           HAZIR AYAR DUGME SATIRI (Fixed / Pinned / Simply / Free)
+           flex:1 ile tek satira zorlaniyordu; yazi boyu ekrana gore buyuyunce
+           dort dugme panel genisligini asiyor ve sonuncusu disari tasiyordu.
+           min-width:0 + sarma: sigdigi kadari yan yana, kalani alt satira.
+           ================================================================ */
+        .preset-row {
+            /* Sabit 2x2. "Sigdigi kadar sutun" (auto-fit) panel genisligine
+               gore 3+1 gibi dengesiz bir dizilim birakabiliyordu; dort hazir
+               ayar icin 2x2 her yazi boyunda ayni ve dengeli duruyor. */
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 4px;
+            margin-top: var(--space-2, 8px);
+        }
+        .preset-row > button {
+            min-width: 0;
+            font-size: var(--fs-xs);
+            white-space: nowrap;
+        }

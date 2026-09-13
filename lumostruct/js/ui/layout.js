@@ -278,3 +278,56 @@
                 kur();
             }
         })();
+
+        // ============== ARAYUZ OLCEGI ==============
+        // Yazi boylari ekran genisligine gore kendiliginden olcekleniyor
+        // (css: --fs-taban). Bunun uzerine kullanicinin kendi carpani gelir:
+        // ayni ekranda daha buyuk ya da daha sik bir arayuz isteyebilir.
+        // Deger localStorage'da durur, acilista geri yuklenir.
+        const ARAYUZ_OLCEK_ANAHTAR = 'lumostruct_ui_olcek';
+
+        function arayuzOlceginiUygula(carpan, kaydet) {
+            const v = Math.min(1.4, Math.max(0.8, parseFloat(carpan) || 1));
+            document.documentElement.style.setProperty('--ui-olcek', String(v));
+            const secici = document.getElementById('uiScaleSelect');
+            if (secici && parseFloat(secici.value) !== v) secici.value = String(v);
+            if (kaydet) {
+                try { localStorage.setItem(ARAYUZ_OLCEK_ANAHTAR, String(v)); } catch (e) {}
+            }
+            // Panel genislikleri ve 3B goruntu orani yazi boyuna bagli
+            // olcularla hesaplaniyor; olcek degisince birlikte guncellenmeli.
+            if (typeof syncPanelLayout === 'function') syncPanelLayout();
+            if (typeof arayuzOlcekBilgisi === 'function') arayuzOlcekBilgisi();
+        }
+
+        function arayuzOlceginiYukle() {
+            let v = 1;
+            try {
+                const kayitli = localStorage.getItem(ARAYUZ_OLCEK_ANAHTAR);
+                if (kayitli) v = parseFloat(kayitli) || 1;
+            } catch (e) {}
+            arayuzOlceginiUygula(v, false);
+        }
+
+        // Ekranin su anki taban yazi boyu - Settings'te gosterilir ki
+        // "otomatik" olcegin ne yaptigi gorunsun.
+        function arayuzOlcekBilgisi() {
+            const el = document.getElementById('uiScaleInfo');
+            if (!el) return;
+            // --fs-taban degeri bir clamp() IFADESI olarak okunur; kullaniciya
+            // ham ifadeyi gostermek anlamsiz. Gecici bir ogeye uygulayip
+            // hesaplanmis pikseli olcuyoruz.
+            const d = document.createElement('div');
+            d.style.position = 'absolute';
+            d.style.visibility = 'hidden';
+            d.style.fontSize = 'var(--fs-sm)';
+            document.body.appendChild(d);
+            const govde = parseFloat(getComputedStyle(d).fontSize);
+            d.style.fontSize = 'var(--fs-md)';
+            const baslik = parseFloat(getComputedStyle(d).fontSize);
+            d.remove();
+            el.textContent = 'Window ' + window.innerWidth + ' px  ->  body ' +
+                             govde.toFixed(1) + ' px, headings ' + baslik.toFixed(1) + ' px';
+        }
+
+        window.addEventListener('resize', arayuzOlcekBilgisi);

@@ -267,9 +267,13 @@
                     { a: 'pos', b: 'x/L', m: true },
                     { a: 'profil', b: 'Profile', m: true },
                     { a: 'M', b: 'My [kNm]', o: 3 },
+                    { a: 'Mz', b: 'Mz [kNm]', o: 3 },
                     { a: 'sigN', b: 'sigma_Nx [MPa]', o: 3 },
+                    { a: 'sigMz', b: 'sigma_Mz [MPa]', o: 3 },
                     { a: 'sigTop', b: 'sigma_top [MPa]', o: 3 },
                     { a: 'sigBot', b: 'sigma_bot [MPa]', o: 3 },
+                    { a: 'tauV', b: 'tau_Qz [MPa]', o: 3 },
+                    { a: 'tauT', b: 'tau_Mx [MPa]', o: 3 },
                     { a: 'tau', b: 'tau [MPa]', o: 3 }
                 ],
                 satirlar: () => {
@@ -284,21 +288,34 @@
                         const A = sec && sec.A ? sec.A : null;
                         const Wt = sec ? (sec.WyTop || sec.Wy) : null;
                         const Wb = sec ? (sec.WyBot || sec.Wy) : null;
+                        const Wzk = sec ? sec.Wz : null;
                         const sigN = A ? (e.N || 0) * 1000 / A / 1e6 : null;
-                        [['0', e.M1], ['0.5', e.Mmid], ['1', e.M2]].forEach(([pos, Mk]) => {
+                        [['0', e.M1, e.Mz1], ['0.5', e.Mmid, e.Mzmid], ['1', e.M2, e.Mz2]].forEach(([pos, Mk, Mzk]) => {
                             const M = (Mk || 0) * 1000;          // kNm -> Nm
+                            const Mz = (Mzk || 0) * 1000;
+                            // Yanal egilme katkisi cozucudeki kuralla AYNI:
+                            // lifi sifirdan uzaklastiracak yonde eklenir
+                            // (kesit kosesindeki en kotu hal). Tablo ile
+                            // kullanim orani ayni sayiyi gostermeli.
+                            const sMz = (Wzk && Wzk > 0) ? Math.abs(Mz) / Wzk / 1e6 : 0;
+                            const uzaklastir = (v, ek) => v + (v < 0 ? -ek : ek);
                             r.push({
                                 id: parseInt(id, 10),
                                 pos: pos,
                                 profil: elem.section || '-',
                                 M: Mk || 0,
+                                Mz: Mzk || 0,
                                 sigN: sigN,
-                                sigTop: (sigN !== null && Wt) ? sigN - M / Wt / 1e6 : null,
-                                sigBot: (sigN !== null && Wb) ? sigN + M / Wb / 1e6 : null,
+                                sigMz: sMz,
+                                sigTop: (sigN !== null && Wt) ? uzaklastir(sigN - M / Wt / 1e6, sMz) : null,
+                                sigBot: (sigN !== null && Wb) ? uzaklastir(sigN + M / Wb / 1e6, sMz) : null,
                                 // Kesme gerilmesi aciklik boyunca degisir; cozucu
                                 // yalnizca en buyugunu tutuyor, uc istasyon icin
                                 // ayri deger YOK - bu yuzden her satirda ayni
-                                // maksimum yazar.
+                                // maksimum yazar. Burulma zaten aciklik boyunca
+                                // sabit.
+                                tauV: e.tauV || 0,
+                                tauT: e.tauT || 0,
                                 tau: e.tau || 0
                             });
                         });
@@ -311,6 +328,8 @@
                 sut: [
                     { a: 'id', b: 'Beam', o: 0 },
                     { a: 'sig', b: 'sigma [MPa]', o: 2 },
+                    { a: 'tauV', b: 'tau_Qz [MPa]', o: 2 },
+                    { a: 'tauT', b: 'tau_Mx [MPa]', o: 2 },
                     { a: 'tau', b: 'tau [MPa]', o: 2 },
                     { a: 'vm', b: 'sigma_vm [MPa]', o: 2 },
                     { a: 'sinir', b: 'Limit [MPa]', o: 0 },
@@ -324,6 +343,8 @@
                         return {
                             id: parseInt(id, 10),
                             sig: e.sigma || 0,
+                            tauV: e.tauV || 0,
+                            tauT: e.tauT || 0,
                             tau: e.tau || 0,
                             vm: e.vonMises || 0,
                             sinir: sinir,
