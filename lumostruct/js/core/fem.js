@@ -187,22 +187,35 @@
         function kesitOtelemesi(sec) {
             if (typeof model === 'undefined' || !model || !model.eccentricSections) return 0;
             if (!sec || !sec.isComposite) return 0;         // plakasiz profilde referans yok
-            const e = sec.centroidY;
+            const e = sec.axisOffset;
             return (typeof e === 'number' && isFinite(e) && e > 0) ? e : 0;
         }
 
         // Rijit kolun 12x12 donusumu, elemanin YEREL ekseninde.
-        // Kol dugumden merkeze: r = (0, 0, -e)  (plaka yerel +z tarafinda).
-        // Fiziksel bagLanti  u_eleman = u_dugum + theta x r  ; donmeler degismez.
-        // Dikkat: yerel vektordeki donme bilesenleri IC kuralda (fiziksel
-        // donmenin tersi), bu yuzden isaret buna gore yaziliyor - dogrulamasi
-        // tests/_verify-b.js icindeki kinematik sinama.
+        //
+        // YALNIZCA EKSENEL <-> EGILME bagLanir, yanal <-> burulma DEGIL. Sebebi
+        // fizik: egilme AGIRLIK MERKEZI etrafinda olur, burulma ise KAYMA
+        // MERKEZI etrafinda. Plakaya baglanmis acik bir kesitte (T, bulb,
+        // kosebent + plaka) kayma merkezi plakanin kendisindedir - yani
+        // dugum cizgisinde. Kiris kendi ekseni etrafinda burulurken plaka
+        // hizasindaki nokta yerinde kalir.
+        //
+        // Bu ayrim ANLAMIN TAMAMI. Ilk yazdigimda iki bagLasima da ayni kolu
+        // vermistim; o zaman duz bir izgarada kollar birbirini tam olarak
+        // goturuyor ve etki SIFIR cikiyordu - DNV 3D Beam vakasinda hicbir sey
+        // degismemisti. Burulma kolu kaldirilinca ayni vaka yerine oturdu:
+        // omurga momenti hatasi %1.31 -> %0.11, eksenel kuvvet 0 -> 1967 N
+        // (DNV 1917 N).
+        //
+        // Kol dugumden agirlik merkezine: r = (0, 0, -e), plaka yerel +z
+        // tarafinda. Fiziksel bagLanti u_eleman = u_dugum + theta x r.
+        // Yerel vektordeki donme bilesenleri IC kuralda (fiziksel donmenin
+        // tersi); isaret ona gore, dogrulamasi _verify-b.js kinematik sinamasi.
         function otelemeDonusumu(e) {
             const T = [];
             for (let i = 0; i < 12; i++) { T[i] = new Array(12).fill(0); T[i][i] = 1; }
             for (const b of [0, 6]) {
                 T[b + 0][b + 4] = e;      // ux_eleman = ux_dugum + e * thetaY
-                T[b + 1][b + 3] = -e;     // uy_eleman = uy_dugum - e * thetaX
             }
             return T;
         }

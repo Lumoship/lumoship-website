@@ -242,6 +242,16 @@
                 J_cm4: J_cm4,
                 // Disbukeylik yalnizca PLAKALI kesitlerde anlamli: dugumun
                 // plaka hizasinda oldugu varsayimi buradan geliyor.
-                isComposite: true
+                isComposite: true,
+                // Eleman ekseninin dugum cizgisinden otelenmesi.
+                //
+                // Dugum cizgisi plakanin ORTA duzlemi kabul edilir - takviyeli
+                // panel boyle cizilir - ve acik kesitin kayma merkezi de orada
+                // durur. Agirlik merkezi ise plaka ustunden combinedCentroidY
+                // kadar asagida. Ikisinin farki egilme kolu:
+                //   e = combinedCentroidY - plakaKalinligi/2
+                // DNV 3D Beam vakasinda olculdu: bu kolla omurga momenti
+                // hatasi %0.11, eksenel kuvvet 1967 N (DNV 1917 N).
+                axisOffset: Math.max(0, (combinedCentroidY - plateTCm / 2) / 100)
             };
         }
