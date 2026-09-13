@@ -239,6 +239,9 @@
                 WyTop_cm3: WxxTop,
                 WyBot_cm3: WxxBot,
                 Wz_cm3: Wyy,
-                J_cm4: J_cm4
+                J_cm4: J_cm4,
+                // Disbukeylik yalnizca PLAKALI kesitlerde anlamli: dugumun
+                // plaka hizasinda oldugu varsayimi buradan geliyor.
+                isComposite: true
             };
         }

@@ -170,6 +170,43 @@
             return { z: z, y: y };
         }
 
+        // ---- KESIT DISBUKEYLIGI ----
+        // Plakali bir takviyede dugumler PLAKA duzleminde durur, kesitin
+        // agirlik merkezi ise ondan `centroidY` kadar otededir. Eleman ekseni
+        // merkezden gecer; dugumle arasindaki bu rijit kol, EGILME ile EKSENEL
+        // davranisi birbirine baglar. Mesnetler eksenel olarak da tutuluysa
+        // yapiya kemerlenme rijitligi ekler.
+        //
+        // Olculdu: DNV 3D Beam vakasinda (L/h = 7.7) omurga momentini %1.3,
+        // Steel 4.4.6 vakasinda (L/h ortanca 1.16) sehimleri %20-36
+        // degistiriyor. Ikisi de bu kolu modelliyor.
+        //
+        // KAPALI GELIR. Acmak modelin ne demek oldugunu degistirir: dugumler
+        // plaka hizasinda mi, agirlik merkezi hizasinda mi cizildi? Ikincisiyse
+        // acmak YANLIS olur. model.eccentricSections = true ile acilir.
+        function kesitOtelemesi(sec) {
+            if (typeof model === 'undefined' || !model || !model.eccentricSections) return 0;
+            if (!sec || !sec.isComposite) return 0;         // plakasiz profilde referans yok
+            const e = sec.centroidY;
+            return (typeof e === 'number' && isFinite(e) && e > 0) ? e : 0;
+        }
+
+        // Rijit kolun 12x12 donusumu, elemanin YEREL ekseninde.
+        // Kol dugumden merkeze: r = (0, 0, -e)  (plaka yerel +z tarafinda).
+        // Fiziksel bagLanti  u_eleman = u_dugum + theta x r  ; donmeler degismez.
+        // Dikkat: yerel vektordeki donme bilesenleri IC kuralda (fiziksel
+        // donmenin tersi), bu yuzden isaret buna gore yaziliyor - dogrulamasi
+        // tests/_verify-b.js icindeki kinematik sinama.
+        function otelemeDonusumu(e) {
+            const T = [];
+            for (let i = 0; i < 12; i++) { T[i] = new Array(12).fill(0); T[i][i] = 1; }
+            for (const b of [0, 6]) {
+                T[b + 0][b + 4] = e;      // ux_eleman = ux_dugum + e * thetaY
+                T[b + 1][b + 3] = -e;     // uy_eleman = uy_dugum - e * thetaX
+            }
+            return T;
+        }
+
         function partialUdlFactors(L, a, b) {
             const L2 = L * L, L3 = L2 * L;
             const I1 = x => L2 * x * x / 2 - 2 * L * x * x * x / 3 + x * x * x * x / 4;
@@ -361,6 +398,20 @@
                 // bending differently, so orientation has to reach the stiffness, not just
                 // the 3D view.
                 const frame = elementFrame(n1, n2, elem.orientation || 0);
+                // Kesit disbukeyligi: eleman rijitligi once rijit kolla
+                // dugum serbestliklerine tasinir, sonra global donusum.
+                //
+                // Yayili yuk yolu DEGISMEZ ve bu bir eksiklik degil: plakali
+                // takviyede yuk plakadan gelir, yani DUGUM hizasinda etkir.
+                // Elemanin sekil fonksiyonlari rijit koldan etkilenmedigi icin
+                // esdeger dugum kuvvetleri oldugu gibi dogrudur.
+                const eOtele = kesitOtelemesi(sec);
+                let kSon = k;
+                if (eOtele) {
+                    const To = otelemeDonusumu(eOtele);
+                    kSon = matMult(transpose(To), matMult(k, To));
+                }
+
                 const R = [frame.x, frame.y, frame.z];
                 
                 for (let block = 0; block < 4; block++) {
@@ -372,7 +423,7 @@
                 }
                 
                 // K_global = T' * k * T
-                const kTemp = matMult(k, T);
+                const kTemp = matMult(kSon, T);
                 const kGlobal = matMult(transpose(T), kTemp);
                 
                 // Assemble
@@ -736,6 +787,20 @@
                     }
                 }
                 
+                // Kesit disbukeyligi: ic kuvvetler ELEMANIN kendi ekseninde
+                // hesaplanir, dugum hizasinda degil. Rijit kol burada da
+                // uygulanmazsa eksenel kuvvet (kemerlenme) hic gorunmez.
+                const eGeri = kesitOtelemesi(sec);
+                if (eGeri) {
+                    const To = otelemeDonusumu(eGeri);
+                    const uD = uLocal.slice();
+                    for (let i = 0; i < 12; i++) {
+                        let toplam = 0;
+                        for (let j = 0; j < 12; j++) toplam += To[i][j] * uD[j];
+                        uLocal[i] = toplam;
+                    }
+                }
+
                 // Local displacements: [ux1,uy1,uz1,θx1,θy1,θz1, ux2,uy2,uz2,θx2,θy2,θz2]
                 const ux1 = uLocal[0], uy1 = uLocal[1], w1 = uLocal[2];
                 const θy1 = uLocal[4], θz1 = uLocal[5];
