@@ -1017,6 +1017,31 @@
                                 Rotation around beam axis. 0° = web vertical (default for grillage)
                             </small>
                         </div>
+
+                        <!-- Rijit uclar. Kiris buyuk bir baglanti govdesinin icine
+                             giriyorsa (kalin boru, kutu, mesnet blogu) o bolgede
+                             egilmez: esnek boy kisalir, uc rijit kolla dugume baglanir.
+                             Denge tam kolu gormeye devam eder - mesnet momenti
+                             degismez - degisen kirisin ne kadarinin esnedigidir. -->
+                        <div class="form-group">
+                            <label style="color:var(--accent-info); font-weight:600;">Rigid ends (mm)</label>
+                            <div style="display:flex; gap:8px;">
+                                <div style="flex:1;">
+                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Start (node ${elem.n1})</small>
+                                    <input type="number" id="editRigidStart" min="0" step="10"
+                                           value="${Math.round((elem.rigidStart || 0) * 1000)}">
+                                </div>
+                                <div style="flex:1;">
+                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">End (node ${elem.n2})</small>
+                                    <input type="number" id="editRigidEnd" min="0" step="10"
+                                           value="${Math.round((elem.rigidEnd || 0) * 1000)}">
+                                </div>
+                            </div>
+                            <small style="color:var(--text-3); display:block; margin-top:4px;">
+                                Ignored on members that carry a line load or self weight.
+                                At most 90% of the span can be rigid.
+                            </small>
+                        </div>
                         
                         <!-- Action Buttons -->
                         <div class="btn-group" style="margin-top:16px;">
@@ -1200,7 +1225,16 @@
             const plateT = document.getElementById('editPlateT').value;
             const grade = document.getElementById('editGrade').value;
             const orientation = parseInt(document.getElementById('editOrientation').value) || 0;
-            
+
+            // Rijit uclar mm -> m. Sifir ise alan hic yazilmaz; eski modeller
+            // ve kayitlar aynen calisir.
+            const rijitOku = (id) => {
+                const el = document.getElementById(id);
+                const v = el ? parseFloat(el.value) : 0;
+                return (isFinite(v) && v > 0) ? v / 1000 : 0;
+            };
+            const rijitBas = rijitOku('editRigidStart'), rijitSon = rijitOku('editRigidEnd');
+
             // Build new section name
             let newSectionName = profile;
             if (plateW && plateT && parseInt(plateW) > 0 && parseInt(plateT) > 0) {
@@ -1215,6 +1249,8 @@
             elem.section = newSectionName;
             elem.grade = grade;
             elem.orientation = orientation;
+            if (rijitBas) elem.rigidStart = rijitBas; else delete elem.rigidStart;
+            if (rijitSon) elem.rigidEnd = rijitSon; else delete elem.rigidEnd;
             
             // Update display
             updateModelSummary();

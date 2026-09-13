@@ -78,6 +78,7 @@
                     { a: 'L', b: 'Length [mm]', o: 0 },
                     { a: 'profil', b: 'Profile', m: true },
                     { a: 'kutle', b: 'Mass [kg]', o: 1 },
+                    { a: 'rijit', b: 'Rigid ends [mm]', m: true },
                     { a: 'yuk', b: 'Line loads', m: true }
                 ],
                 satirlar: () => Object.entries(model.elements).map(([id, e]) => {
@@ -89,6 +90,13 @@
                         L: L * 1000,
                         profil: e.section || '-',
                         kutle: sec && sec.A ? sec.A * L * TABLO_CELIK_YOGUNLUK : null,
+                        // Rijit uclar yayili yuklu elemanda cozucu tarafindan
+                        // YOK SAYILIR; tablo bunu gizlemesin diye oyle yaziliyor.
+                        rijit: (e.rigidStart || e.rigidEnd)
+                            ? (Math.round((e.rigidStart || 0) * 1000) + ' / ' +
+                               Math.round((e.rigidEnd || 0) * 1000) +
+                               ((e.lineLoads && e.lineLoads.length) ? ' (ignored)' : ''))
+                            : '-',
                         yuk: (e.lineLoads && e.lineLoads.length)
                             ? e.lineLoads.map(l => (l.value ?? l.q ?? 0) + ' kN/m').join(', ')
                             : '-'

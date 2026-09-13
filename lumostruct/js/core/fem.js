@@ -211,13 +211,55 @@
         // tarafinda. Fiziksel bagLanti u_eleman = u_dugum + theta x r.
         // Yerel vektordeki donme bilesenleri IC kuralda (fiziksel donmenin
         // tersi); isaret ona gore, dogrulamasi _verify-b.js kinematik sinamasi.
-        function otelemeDonusumu(e) {
+        // Kol vektoru r = (rx, 0, rz), dugumden elemanin ucuna.
+        //   rz : kesit disbukeyligi (dugum cizgisinden agirlik merkezine)
+        //   rx : RIJIT UC (dugumden elemanin esnek kisminin basladigi yere)
+        // Ikisi ayni matriste, cunku ayni kinematik.
+        //
+        // Fiziksel bagLanti u_eleman = u_dugum + theta x r. Burulma terimi
+        // (thetaX'ten gelen) KASTEN yok: acik kesit kayma merkezi etrafinda
+        // burulur ve plakali takviyede kayma merkezi dugum cizgisindedir.
+        // Eksenel kol (rx) zaten thetaX'e hic bagli degil.
+        // Yerel vektordeki donmeler IC kuralda (fizikselin tersi).
+        function rijitKolDonusumu(rx1, rz1, rx2, rz2) {
             const T = [];
             for (let i = 0; i < 12; i++) { T[i] = new Array(12).fill(0); T[i][i] = 1; }
-            for (const b of [0, 6]) {
-                T[b + 0][b + 4] = e;      // ux_eleman = ux_dugum + e * thetaY
+            const uc = [[0, rx1, rz1], [6, rx2, rz2]];
+            for (const [b, rx, rz] of uc) {
+                T[b + 0][b + 4] = -rz;    // ux_eleman = ux_dugum - rz * thetaY
+                T[b + 1][b + 5] = -rx;    // uy_eleman = uy_dugum - rx * thetaZ
+                T[b + 2][b + 4] = rx;     // uz_eleman = uz_dugum + rx * thetaY
             }
             return T;
+        }
+
+        // Rijit uclar: elemanin uclarinda esnemeyen bolgeler. Buyuk bir
+        // baglanti govdesine (ornegin 660 mm capli bir borunun icine) giren
+        // kirisin o bolgede egilmedigini soyler; esnek boy kisalir ve uclar
+        // rijit kolla dugume baglanir.
+        //
+        // YAYILI YUKLU ELEMANDA YOK SAYILIR. Esnek boy kisalinca yayili
+        // yukun esdeger dugum kuvvetleri de o kisa elemana gore hesaplanmali;
+        // mevcut yuk yolu tam boy uzerinden calisiyor. Ikisini karistirmak
+        // sessizce yanlis moment verir - o yuzden yok sayilip uyariliyor.
+        // sessiz: ayni eleman icin ikinci kez cagrildiginda (ic kuvvet geri
+        // kazanimi) uyari tekrarlanmasin diye.
+        function rijitUclar(elem, L, yayiliVar, sessiz) {
+            const say = v => (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0;
+            const a = say(elem.rigidStart), b = say(elem.rigidEnd);
+            if (a + b === 0) return { a: 0, b: 0, Lf: L };
+            if (yayiliVar) {
+                if (!sessiz) debugWarn('Element has both a rigid end and a distributed load; ' +
+                          'the rigid ends are ignored for that element.');
+                return { a: 0, b: 0, Lf: L };
+            }
+            const enAz = 0.1 * L;
+            if (L - a - b < enAz) {
+                if (!sessiz) debugWarn('Rigid ends leave less than 10% of the element flexible; clamped.');
+                const olcek = (L - enAz) / (a + b);
+                return { a: a * olcek, b: b * olcek, Lf: enAz };
+            }
+            return { a: a, b: b, Lf: L - a - b };
         }
 
         function partialUdlFactors(L, a, b) {
@@ -258,6 +300,11 @@
             // Factors for the selected load combination - applied to every load below.
             const loadFactors = currentLoadFactors();
 
+            // Oz agirlik bayragi BURADA okunur, kullanildigi yerde degil: montaj
+            // dongusu rijit uclara karar verirken buna bakiyor ve o donguden
+            // sonra taniLanan bir const, TDZ yuzunden calisma hatasi verirdi.
+            const selfWeightOn = !!document.getElementById('includeSelfWeight')?.checked;
+
             // Assemble stiffness
             Object.values(model.elements).forEach(elem => {
                 const n1 = model.nodes[elem.n1];
@@ -294,6 +341,12 @@
                 
                 const cx = dx / L, cy = dy / L, cz = dz / L;
                 const c = cx, s = cy;  // legacy (in-plane load assembly)
+
+                // Rijitlik ESNEK boy uzerinden kurulur; dogrultu kosinusleri
+                // ve yayili yuk acikligi tam boyu kullanmaya devam eder.
+                const yayiliVar = !!(elem.lineLoads && elem.lineLoads.length) || selfWeightOn;
+                const rij = rijitUclar(elem, L, yayiliVar);
+                const Lk = rij.Lf;
                 
                 const E = mat.E;
                 const G = mat.G;
@@ -319,12 +372,12 @@
                 // Shear deformation parameter: Φ = 12EI / (κAGL²)
                 // Iy guclu eksen (yerel z sehimi) -> govde alani;
                 // Iz zayif eksen (yerel y sehimi) -> flans alani.
-                const phi_y = 12 * E * Iy / (kappa.z * A * G * L * L);
-                const phi_z = 12 * E * Iz / (kappa.y * A * G * L * L);
+                const phi_y = 12 * E * Iy / (kappa.z * A * G * Lk * Lk);
+                const phi_z = 12 * E * Iz / (kappa.y * A * G * Lk * Lk);
                 
                 // Local stiffness with Timoshenko correction
-                const EA_L = E * A / L;
-                const GJ_L = G * J / L;
+                const EA_L = E * A / Lk;
+                const GJ_L = G * J / Lk;
                 
                 // 6 DOF per node: Ux, Uy, Uz, Rx, Ry, Rz
                 // For 2D grillage in XY plane:
@@ -344,14 +397,14 @@
                 // Bending about local y (vertical displacement Uz, rotation Ry)
                 // Timoshenko beam stiffness coefficients
                 const EI_y = E * Iy;
-                const L2 = L * L;
-                const L3 = L2 * L;
+                const L2 = Lk * Lk;
+                const L3 = L2 * Lk;
                 const denom_y = 1 + phi_y;
                 
                 const k11_y = 12 * EI_y / (L3 * denom_y);
                 const k12_y = 6 * EI_y / (L2 * denom_y);
-                const k22_y = (4 + phi_y) * EI_y / (L * denom_y);
-                const k24_y = (2 - phi_y) * EI_y / (L * denom_y);
+                const k22_y = (4 + phi_y) * EI_y / (Lk * denom_y);
+                const k24_y = (2 - phi_y) * EI_y / (Lk * denom_y);
                 
                 k[2][2] = k11_y;
                 k[2][4] = k12_y;
@@ -379,8 +432,8 @@
                 
                 const k11_z = 12 * EI_z / (L3 * denom_z);
                 const k12_z = 6 * EI_z / (L2 * denom_z);
-                const k22_z = (4 + phi_z) * EI_z / (L * denom_z);
-                const k24_z = (2 - phi_z) * EI_z / (L * denom_z);
+                const k22_z = (4 + phi_z) * EI_z / (Lk * denom_z);
+                const k24_z = (2 - phi_z) * EI_z / (Lk * denom_z);
                 
                 k[1][1] = k11_z;
                 k[1][5] = -k12_z;
@@ -420,8 +473,8 @@
                 // esdeger dugum kuvvetleri oldugu gibi dogrudur.
                 const eOtele = kesitOtelemesi(sec);
                 let kSon = k;
-                if (eOtele) {
-                    const To = otelemeDonusumu(eOtele);
+                if (eOtele || rij.a || rij.b) {
+                    const To = rijitKolDonusumu(rij.a, -eOtele, -rij.b, -eOtele);
                     kSon = matMult(transpose(To), matMult(k, To));
                 }
 
@@ -550,7 +603,6 @@
 
             // Self weight, if asked for. Always a dead load, always straight down, spread
             // over the member's own length.
-            const selfWeightOn = document.getElementById('includeSelfWeight')?.checked;
             if (selfWeightOn) {
                 Object.values(model.elements).forEach(elem => {
                     const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
@@ -751,6 +803,17 @@
                 
                 const cx = dx / L, cy = dy / L, cz = dz / L;
                 const c = cx, s = cy;  // legacy
+
+                // Rijit uclar montajdakiyle AYNI kararla belirlenir. Ic kuvvetler
+                // de esnek boy uzerinden okunmali; yoksa rijitlik ile gerilme
+                // ayni kirisi anlatmaz.
+                //   xA..xB : elemanin gercekten egilen bolgesi
+                // Rijit uc yokken xA=0, xB=L, Lk=L - bugunku davranis birebir.
+                const yayiliVar = !!(elem.lineLoads && elem.lineLoads.length) || selfWeightOn;
+                const rij = rijitUclar(elem, L, yayiliVar, true);
+                const Lk = rij.Lf;
+                const xA = rij.a, xB = L - rij.b;
+                const esnekte = (x) => x >= xA - 1e-9 && x <= xB + 1e-9;
                 
                 const d1 = displacements[elem.n1];
                 const d2 = displacements[elem.n2];
@@ -800,12 +863,18 @@
                     }
                 }
                 
-                // Kesit disbukeyligi: ic kuvvetler ELEMANIN kendi ekseninde
-                // hesaplanir, dugum hizasinda degil. Rijit kol burada da
-                // uygulanmazsa eksenel kuvvet (kemerlenme) hic gorunmez.
+                // Sehim egrisinin uclari DUGUM yer degistirmesine oturur; asagidaki
+                // kol donusumu uLocal degerlerini elemanin esnek ucuna tasidigi
+                // icin ikisi rijit uc varken ayrisir.
+                const wDugum1 = uLocal[2], wDugum2 = uLocal[8];
+
+                // Kesit disbukeyligi + rijit uclar: ic kuvvetler ELEMANIN kendi
+                // ekseninde, esnek ucundan okunur - dugum hizasinda degil. Rijit
+                // kol burada da uygulanmazsa eksenel kuvvet (kemerlenme) hic
+                // gorunmez, rijit uclu elemanda da moment yanlis cikar.
                 const eGeri = kesitOtelemesi(sec);
-                if (eGeri) {
-                    const To = otelemeDonusumu(eGeri);
+                if (eGeri || rij.a || rij.b) {
+                    const To = rijitKolDonusumu(rij.a, -eGeri, -rij.b, -eGeri);
                     const uD = uLocal.slice();
                     for (let i = 0; i < 12; i++) {
                         let toplam = 0;
@@ -826,13 +895,13 @@
                 // (ankastre + UDL: 180 yerine 181.3 kNm).
                 const kappaR = kaymaKappalari(sec);
                 const timoshenko = (EI, kap) => {
-                    const phi = 12 * EI / (kap * sec.A * mat.G * L * L);
+                    const phi = 12 * EI / (kap * sec.A * mat.G * Lk * Lk);
                     const d = 1 + phi;
                     return {
-                        k11: 12 * EI / (L * L * L * d),
-                        k12: 6 * EI / (L * L * d),
-                        k22: (4 + phi) * EI / (L * d),
-                        k24: (2 - phi) * EI / (L * d)
+                        k11: 12 * EI / (Lk * Lk * Lk * d),
+                        k12: 6 * EI / (Lk * Lk * d),
+                        k22: (4 + phi) * EI / (Lk * d),
+                        k24: (2 - phi) * EI / (Lk * d)
                     };
                 };
 
@@ -873,7 +942,10 @@
                 // --- Gerçek eleman uç kuvvetleri: p = k·u + FEF ---
                 const V1 = Vi_keu + fefV_i;       // sol uç düşey kuvvet
                 const Mi_full = Mi_keu + fefM_i;  // sol uç eleman düğüm momenti
-                const M1 = -Mi_full;              // iç moment konvansiyonu (sol uç)
+                // Mi_full ESNEK ucun (x = xA) momenti; M(x) = M1 + V1*x bagintisi
+                // dugumden olculdugu icin rijit kol boyunca geri tasinir. V bu
+                // bolgede sabittir, cunku rijit uclu elemanda yayili yuk yok.
+                const M1 = -Mi_full - V1 * xA;    // iç moment konvansiyonu (sol uç)
 
                 // --- Eleman boyunca kesme & moment (serbest cisim) ---
                 const Vfun = (x) => {
@@ -894,8 +966,11 @@
                 };
 
                 // --- Gerçek Mmax: V=0 noktaları + uçlar + yük sınırları taranır ---
+                // Tarama ESNEK bolgede: rijit uc bir baglanti govdesini temsil
+                // eder, kirisin kesiti orada yoktur - o bolgedeki momenti kiris
+                // gerilmesine cevirmek anlamsiz olurdu.
                 let Mmax = 0;
-                const samplePts = [0, L];
+                const samplePts = [xA, xB];
                 spanLoads.forEach(l => {
                     samplePts.push(l.a, l.b);
                     const Va = Vfun(l.a);
@@ -904,14 +979,14 @@
                         if (xz > l.a && xz < l.b) samplePts.push(xz);
                     }
                 });
-                for (let kk = 0; kk <= 20; kk++) samplePts.push(L * kk / 20);
+                for (let kk = 0; kk <= 20; kk++) samplePts.push(xA + (xB - xA) * kk / 20);
                 samplePts.forEach(x => {
-                    if (x < -1e-9 || x > L + 1e-9) return;
+                    if (!esnekte(x)) return;
                     const M = Mfun(x);
                     if (Math.abs(M) > Math.abs(Mmax)) Mmax = M;
                 });
-                const M2 = Mfun(L);          // sağ uç iç moment
-                const Mmid = Mfun(L / 2);    // orta açıklık (bilgi)
+                const M2 = Mfun(xB);              // sağ uç iç moment
+                const Mmid = Mfun((xA + xB) / 2);  // orta açıklık (bilgi)
 
                 // Ornek diyagram. Cizimler eskiden M1/Mmid/M2 uzerinden parabol
                 // uyduruyordu: mutlak deger alindigi icin isaret degistiren moment sifiri
@@ -946,8 +1021,9 @@
                 const vRaw = new Float64Array(NFINE + 1);
                 for (let i = 1; i <= NFINE; i++) {
                     const x0 = (i - 1) * hf, x1 = i * hf;
-                    const c0 = EIy > 0 ? Mfun(x0) / EIy : 0;
-                    const c1 = EIy > 0 ? Mfun(x1) / EIy : 0;
+                    // Rijit bolgede egrilik SIFIR - tanimi bu.
+                    const c0 = (EIy > 0 && esnekte(x0)) ? Mfun(x0) / EIy : 0;
+                    const c1 = (EIy > 0 && esnekte(x1)) ? Mfun(x1) / EIy : 0;
                     const thNext = thPrev + (c0 + c1) * hf / 2;
                     vbPrev += (thPrev + thNext) * hf / 2;
                     thPrev = thNext;
@@ -955,8 +1031,8 @@
                     // vRaw isaret olarak dugum yer degistirmelerinin TERSI. Kayma payi
                     // da ayni konvansiyonda olsun diye eksi. Isaret, iki elemanli basit
                     // kiriste egrinin FEM dugum sehimine esitlenmesiyle sabitlendi.
-                    const g0 = GAs > 0 ? -Vfun(x0) / GAs : 0;
-                    const g1 = GAs > 0 ? -Vfun(x1) / GAs : 0;
+                    const g0 = (GAs > 0 && esnekte(x0)) ? -Vfun(x0) / GAs : 0;
+                    const g1 = (GAs > 0 && esnekte(x1)) ? -Vfun(x1) / GAs : 0;
                     vsPrev += (g0 + g1) * hf / 2;
                     vRaw[i] = vbPrev + vsPrev;
                 }
@@ -964,13 +1040,13 @@
                 diagram.d = [];
                 for (let ds = 0; ds < DIAGRAM_SAMPLES; ds++) {
                     const t = ds / (DIAGRAM_SAMPLES - 1);
-                    const v = vRaw[Math.round(t * NFINE)] + w1 + (w2 - w1 - vEnd) * t;
+                    const v = vRaw[Math.round(t * NFINE)] + wDugum1 + (wDugum2 - wDugum1 - vEnd) * t;
                     diagram.d.push(v * 1000);            // mm
                 }
-                const Vmax = Math.max(Math.abs(Vfun(0)), Math.abs(Vfun(L)));
+                const Vmax = Math.max(Math.abs(Vfun(xA)), Math.abs(Vfun(xB)));
 
                 // --- Eksenel kuvvet (local x) ---
-                const N = mat.E * sec.A / L * (ux2 - ux1);
+                const N = mat.E * sec.A / Lk * (ux2 - ux1);
 
                 // --- Zayıf eksen eğilme (local y: Uy, Rz) ---
                 // Aynı güçlü eksen gibi ele alınır: k·u + eşdeğer uç kuvvetler, sonra
@@ -1010,7 +1086,7 @@
                 }
 
                 const Vz1 = Vz_keu + fefVz;
-                const Mz1 = -(Mz_keu + fefMz);          // iç moment konvansiyonu (sol uç)
+                const Mz1 = -(Mz_keu + fefMz) - Vz1 * xA;   // iç moment konvansiyonu (sol uç)
 
                 const VzFun = (x) => {
                     let V = Vz1;
@@ -1030,7 +1106,7 @@
                 };
 
                 let Mz_max = 0;
-                const zPts = [0, L];
+                const zPts = [xA, xB];
                 spanLoadsZ.forEach(l => {
                     zPts.push(l.a, l.b);
                     if (Math.abs(l.w) > 1e-12) {
@@ -1038,9 +1114,9 @@
                         if (xz > l.a && xz < l.b) zPts.push(xz);
                     }
                 });
-                for (let kk = 0; kk <= 20; kk++) zPts.push(L * kk / 20);
+                for (let kk = 0; kk <= 20; kk++) zPts.push(xA + (xB - xA) * kk / 20);
                 zPts.forEach(x => {
-                    if (x < -1e-9 || x > L + 1e-9) return;
+                    if (!esnekte(x)) return;
                     const M = MzFun(x);
                     if (Math.abs(M) > Math.abs(Mz_max)) Mz_max = M;
                 });
@@ -1054,7 +1130,7 @@
                 // burulma yuku olmayan elemanda T sabittir.
                 const thx1 = uLocal[3], thx2 = uLocal[9];
                 const Jtor = torsiyonSabiti(sec, sec.Iy, sec.Iz || sec.Iy, elem.section);
-                const T = mat.G * Jtor * (thx2 - thx1) / L;      // N·m
+                const T = mat.G * Jtor * (thx2 - thx1) / Lk;     // N·m
 
                 // --- Gerilmeler ---
                 // Iki uc lif ayri ayri hesaplanir. Simetrik kesitte ikisi birbirinin
