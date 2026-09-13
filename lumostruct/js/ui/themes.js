@@ -222,32 +222,41 @@
         
         function fit3DView() {
             if (!threeInitialized) return;
-            
-            // If no nodes, center on origin
-            if (Object.keys(model.nodes).length === 0) {
+
+            // Z GOZ ARDI EDILMIYOR. Eskiden cerceve yalnizca x-y sinirlarindan
+            // hesaplaniyor, hedef de hep z = 0 aliniyordu: bu bir 3B kiris
+            // programi, z = 5000'deki bir kat ya da o yukseklikteki bir calisma
+            // duzlemi ekranin disinda kaliyordu.
+            const dugumler = Object.values(model.nodes);
+            const duzlemler = (typeof calismaDuzlemleri === 'function') ? calismaDuzlemleri() : [];
+
+            if (dugumler.length === 0 && duzlemler.length === 0) {
                 threeControls.setTarget(0, 0, 0);
                 threeControls.setRadius(10);
                 return;
             }
-            
-            // Calculate bounding box
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            Object.values(model.nodes).forEach(n => {
-                minX = Math.min(minX, n.x);
-                minY = Math.min(minY, n.y);
-                maxX = Math.max(maxX, n.x);
-                maxY = Math.max(maxY, n.y);
+
+            const enAz = { x: Infinity, y: Infinity, z: Infinity };
+            const enCok = { x: -Infinity, y: -Infinity, z: -Infinity };
+            const kat = (e, d) => { enAz[e] = Math.min(enAz[e], d); enCok[e] = Math.max(enCok[e], d); };
+
+            dugumler.forEach(n => { kat('x', n.x); kat('y', n.y); kat('z', n.z || 0); });
+
+            // Calisma duzlemleri de cerceveye girer: yeni bir duzlem
+            // olusturuldugunda "Fit" onu da gostersin.
+            const EKSEN = { X: 'x', Y: 'y', Z: 'z' };
+            duzlemler.forEach(d => { if (EKSEN[d.axis]) kat(EKSEN[d.axis], d.offset); });
+
+            ['x', 'y', 'z'].forEach(e => {
+                if (!isFinite(enAz[e])) { enAz[e] = 0; enCok[e] = 0; }
             });
-            
-            const centerX = (minX + maxX) / 2;
-            const centerY = (minY + maxY) / 2;
-            const sizeX = maxX - minX;
-            const sizeY = maxY - minY;
-            const size = Math.max(sizeX, sizeY);
-            
-            // Center camera target on model center
-            threeControls.setTarget(centerX, centerY, 0);
-            
+
+            const size = Math.max(enCok.x - enAz.x, enCok.y - enAz.y, enCok.z - enAz.z);
+
+            threeControls.setTarget((enAz.x + enCok.x) / 2,
+                                    (enAz.y + enCok.y) / 2,
+                                    (enAz.z + enCok.z) / 2);
+
             // Set radius with padding (1.5x for comfortable view)
             const radius = Math.max(size * 1.5, 2);
             threeControls.setRadius(radius);

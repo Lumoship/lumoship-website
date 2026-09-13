@@ -36,7 +36,8 @@
             { ad: 'EXTEND', kisa: ['EX'],      aciklama: 'Extend a beam to a boundary' },
             { ad: 'TRIM',   kisa: ['TR'],      aciklama: 'Trim a beam at a boundary' },
             { ad: 'JOIN',   kisa: ['J'],       aciklama: 'Merge collinear beams' },
-            { ad: 'PURGE',  kisa: ['PU'],      aciklama: 'Remove orphan nodes and duplicates' }
+            { ad: 'PURGE',  kisa: ['PU'],      aciklama: 'Remove orphan nodes and duplicates' },
+            { ad: 'PLANE',  kisa: ['PL'],      aciklama: 'New work plane at an offset' }
         ];
 
         // Yazilani bir komuta cevirir. Sirasiyla: tam ad, tam kisaltma, tek
@@ -795,6 +796,13 @@
             const hasSelection = selectedBeamIds.length > 0;
             
             switch (cmd) {
+                // Komut degil, kucuk bir kutu aciyor: cizim durumu kurmadigi
+                // icin hemen donuyor.
+                case 'PL':
+                case 'PLANE':
+                    if (typeof yeniDuzlemAc === 'function') yeniDuzlemAc();
+                    return;
+
                 case 'C':
                 case 'COPY':
                 case 'CO':

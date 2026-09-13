@@ -252,6 +252,7 @@
         function clearWorkPlane() {
             if (!activeWorkPlane) return;
             activeWorkPlane = null;
+            if (typeof duzlemSeritleriniTazele === 'function') duzlemSeritleriniTazele();
             if (typeof izgarayiDuzlemeGore === 'function') izgarayiDuzlemeGore();
             if (typeof update3DScene === 'function') update3DScene();
             if (typeof showToast === 'function') showToast('Work plane cleared', 'info');
@@ -276,6 +277,11 @@
 
         function applyWorkPlaneGhost(obj3d, n1, n2) {
             if (!activeWorkPlane || isOnActiveWorkPlane(n1, n2)) return;
+            // Serbest 3B'de soldurma YOK: orada calisma duzlemi 3B gorunusu
+            // birakmadan secilebiliyor ve modelin geri kalanini %10 opaklikta
+            // birakmak butun yapiyi yok ediyordu. Soldurma 2B duzlem
+            // gorunuslerinde anlamli - orada zaten tek bir dilimde calisiliyor.
+            if (typeof currentViewMode !== 'undefined' && currentViewMode === '3d') return;
             obj3d.traverse(o => {
                 if (o.material) {
                     o.material = o.material.clone();
@@ -346,9 +352,19 @@
             
             switch (mode) {
                 case 'plan':
-                    // XY Plane - Top-down view (looking down Z axis)
-                    targetTheta = 0;
-                    targetPhi = 0.01;  // Nearly straight down
+                    // XY duzlemi - tam tepeden.
+                    //
+                    // phi 0.01 idi (tam dik degil, yarim derece yatik). Ortografik
+                    // kamerada bu yatiklik derinligi ekrana KAYDIRIR: z=0 ve z=4
+                    // dugumleri ust uste gelmiyor, 4*tan(0.01) = 4 cm kayiyordu
+                    // (olculdu: 1.7 piksel). Tam dik bakista kayma sifir.
+                    //
+                    // theta 0 iken ekranin sagi +Y, asagisi +X oluyordu: plan
+                    // gorunusu 90 derece donuk, ustelik XZ gorunusuyle celisiyor
+                    // (orada +X saga gidiyor). theta = -90 ile +X saga, +Y yukari
+                    // gelir; XY, XZ ve YZ artik ayni X yonunu gosterir.
+                    targetTheta = -Math.PI / 2;
+                    targetPhi = 0;
                     break;
                 case 'front':
                     // XZ Plane - Front view (looking along Y axis from negative Y)
@@ -408,6 +424,14 @@
             
             const startTheta = threeControls.spherical.theta;
             const startPhi = threeControls.spherical.phi;
+
+            // Azimut acisi cemberseldir: -90 dereceye giderken +270 yerine -90
+            // yonune donmeli. Hedefi baslangica en yakin esdegerine tasi, yoksa
+            // gorunus degistirirken kamera modelin cevresinde uzun yoldan
+            // dolaniyor.
+            let hedefTheta = targetTheta;
+            while (hedefTheta - startTheta > Math.PI) hedefTheta -= 2 * Math.PI;
+            while (hedefTheta - startTheta < -Math.PI) hedefTheta += 2 * Math.PI;
             const startTargetX = threeControls.target.x;
             const startTargetY = threeControls.target.y;
             const startTargetZ = threeControls.target.z || 0;
@@ -425,7 +449,7 @@
                     : 1 - Math.pow(-2 * progress + 2, 3) / 2;
                 
                 // Interpolate angles
-                const currentTheta = startTheta + (targetTheta - startTheta) * eased;
+                const currentTheta = startTheta + (hedefTheta - startTheta) * eased;
                 const currentPhi = startPhi + (targetPhi - startPhi) * eased;
                 
                 // Interpolate target
@@ -637,12 +661,21 @@
             // Handle resize
             window.addEventListener('resize', () => {
                 const rect = container.parentElement.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) {
-                    threeCamera.aspect = rect.width / rect.height;
-                    threeCamera.updateProjectionMatrix();
-                    threeRenderer.setSize(rect.width, rect.height);
-                }
+                kamerayiYenidenOlcekle(rect.width, rect.height);
             });
+        }
+
+        // Renderer boyutu degisince kamera da guncellenmeli. Eskiden bes ayri
+        // yerde "threeCamera.aspect = w/h; updateProjectionMatrix()" yaziyordu;
+        // ortografik kamerada aspect diye bir alan YOKTUR, o satirlar sessizce
+        // hicbir sey yapmaz ve 2B gorunum pencere yeniden boyutlandikca
+        // gerinirdi. Tek giris noktasi: updateCameraPosition her iki kamerayi da
+        // dogru kurar.
+        function kamerayiYenidenOlcekle(genislik, yukseklik) {
+            if (typeof threeRenderer === 'undefined' || !threeRenderer) return;
+            if (!(genislik > 0) || !(yukseklik > 0)) return;
+            threeRenderer.setSize(genislik, yukseklik);
+            if (typeof threeControls !== 'undefined' && threeControls) threeControls.update();
         }
         
         // Stress legend drag functionality
@@ -720,42 +753,104 @@
             raycaster.params.Points.threshold = 0.05; // Point selection tolerance (50mm)
             const mouse = new THREE.Vector2();
             
-            // XY / XZ / YZ gorunumleri TAM 2B olmali. Once yalnizca perspektif
-            // kamera dondurulyordu: 60 derecelik gorus acisiyla paralel kirisler
-            // yine birbirine yaklasiyor, uzaktaki dugumler kuculuyordu - plan
-            // gorunumu "biraz 3B" hissi veriyordu.
+            // XY / XZ / YZ gorunumleri TAM 2B olmali: derinlikte ayri duran iki
+            // sey (ornegin y=0 ve y=3 cerceveleri) yandan bakinca ekranda TEK
+            // sey gorunmeli.
             //
-            // Gorus acisini daraltip kamerayi ayni oranda geri cekmek perspektifi
-            // pratikte sifirlar, cerceveleme ise hic degismez cunku
-            // tan(fov/2) * mesafe sabit tutuluyor. Ortografik kameraya gecmek de
-            // bir secenekti; bu yol zoom, kaydirma ve fare ile secim kodunun
-            // hicbirine dokunmadigi icin tercih edildi.
+            // Once perspektif kamerada gorus acisi 60'tan 2 dereceye kisiliyor,
+            // kamera da ayni oranda geri cekiliyordu. Bu perspektifi azaltir ama
+            // BITIRMEZ. Iki noktanin ekranda ayrisma miktari
+            //     kayma = (ekran merkezine uzaklik) * (derinlik farki) / (kamera mesafesi)
+            // ve kamera mesafesi yakinlastikca kuculdugu icin kayma buyur.
+            // Olculdu: y=0 / y=3 cerceveleri radius=15'te 1.3 piksel, radius=3'te
+            // ~20 piksel ayriliyordu - yani yakinlastikca her sey cift gorunuyor.
+            //
+            // Ortografik kamerada bu kayma tanim geregi SIFIR: butun izdusum
+            // isinlari paralel, derinlik ekran konumunu hic etkilemez. Dugum,
+            // kiris, yuk oku, mesnet, etiket - hepsi ayni izdusumden gectigi icin
+            // istisnasiz butun ogeler icin gecerli.
+            //
+            // Cerceveleme korunur: perspektif kamera hedef duzleminde yari
+            // yuksekligi r*tan(30) kadar gorur, ortografik kameranin yari
+            // yuksekligi de radius*tan(30) aliniyor. Boylece 3B <-> 2B gecisinde
+            // model ekranda ayni boyda kalir, yakinlik ziplamaz.
             const FOV_3B = 60;
-            const FOV_2B = 2;
-            const OLCEK_2B = Math.tan(FOV_3B * Math.PI / 360) / Math.tan(FOV_2B * Math.PI / 360);
+            const YARIM_TAN = Math.tan(FOV_3B * Math.PI / 360);
+
+            // Perspektif kamera initThreeJS'te kuruldu; ortografik esi burada.
+            // updateCameraPosition hangisinin etkin oldugunu secer ve global
+            // threeCamera'yi ona baglar - diger dosyalar hep o degiskeni okur.
+            const perspektifKamera = threeCamera;
+            const ortografikKamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 1000);
+            ortografikKamera.up.set(0, 0, 1);
+
+            const olcuVec = new THREE.Vector2();
+            function goruntuOrani() {
+                if (!threeRenderer) return perspektifKamera.aspect || 1;
+                threeRenderer.getSize(olcuVec);
+                return olcuVec.y > 0 ? olcuVec.x / olcuVec.y : (perspektifKamera.aspect || 1);
+            }
 
             function updateCameraPosition() {
                 const ikiBoyut = (typeof currentViewMode !== 'undefined' && currentViewMode !== '3d');
-                const fov = ikiBoyut ? FOV_2B : FOV_3B;
-                const r = spherical.radius * (ikiBoyut ? OLCEK_2B : 1);
+                const kamera = ikiBoyut ? ortografikKamera : perspektifKamera;
+                threeCamera = kamera;
+                const oran = goruntuOrani();
+
+                // Ortografik kamerada mesafe goruntuyu buyutup kucultmez; kamera
+                // yalnizca modelin tamami on kirpma duzleminin otesinde kalsin
+                // diye uzakta durur.
+                const r = ikiBoyut ? (spherical.radius * 20 + 50) : spherical.radius;
 
                 const x = r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
                 const y = r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
                 const z = r * Math.cos(spherical.phi);
 
-                threeCamera.position.set(target.x + x, target.y + y, target.z + z);
-                threeCamera.lookAt(target);
-                threeCamera.up.set(0, 0, 1);
+                kamera.position.set(target.x + x, target.y + y, target.z + z);
 
-                // Kamera 33 kat uzaga gidince sabit near/far derinlik hassasiyetini
-                // bitirir (z-fighting). Ikisi de mesafeyle olceklenir.
-                const near = Math.max(0.01, r * 0.01);
-                const far = r * 10;
-                if (threeCamera.fov !== fov || threeCamera.near !== near || threeCamera.far !== far) {
-                    threeCamera.fov = fov;
-                    threeCamera.near = near;
-                    threeCamera.far = far;
-                    threeCamera.updateProjectionMatrix();
+                // lookAt yukari yonu KULLANIR, bu yuzden ONCE kurulur.
+                //
+                // Tam tepeden bakista (phi = 0) dunya +Z'si bakis yonuyle
+                // cakisir; lookAt bu durumda bakis eksenini 0.0001 iteleyip
+                // rastgele bir yon secer - plan gorunusu 90 derece donuk cikardi.
+                // phi kucukken ekranin yukarisi (-cos(theta), -sin(theta), 0)
+                // yonune gider; tam tepede de ayni degeri veriyoruz, boylece
+                // donerken sicrama olmaz ve theta plan gorunusunun yonunu
+                // belirlemeye devam eder.
+                const sinPhi = Math.sin(spherical.phi);
+                if (Math.abs(sinPhi) < 1e-6) {
+                    kamera.up.set(-Math.cos(spherical.theta), -Math.sin(spherical.theta), 0);
+                } else {
+                    kamera.up.set(0, 0, 1);
+                }
+                kamera.lookAt(target);
+
+                if (ikiBoyut) {
+                    const yariY = Math.max(1e-4, spherical.radius * YARIM_TAN);
+                    const yariX = yariY * oran;
+                    const uzak = r * 2 + 200;
+                    if (kamera.right !== yariX || kamera.top !== yariY || kamera.far !== uzak) {
+                        kamera.left = -yariX;
+                        kamera.right = yariX;
+                        kamera.top = yariY;
+                        kamera.bottom = -yariY;
+                        kamera.near = 0.01;
+                        kamera.far = uzak;
+                        kamera.updateProjectionMatrix();
+                    }
+                } else {
+                    // Kamera uzaklastikca sabit near/far derinlik hassasiyetini
+                    // bitirir (z-fighting). Ikisi de mesafeyle olceklenir.
+                    const near = Math.max(0.01, r * 0.01);
+                    const far = r * 10;
+                    if (kamera.aspect !== oran || kamera.fov !== FOV_3B ||
+                        kamera.near !== near || kamera.far !== far) {
+                        kamera.aspect = oran;
+                        kamera.fov = FOV_3B;
+                        kamera.near = near;
+                        kamera.far = far;
+                        kamera.updateProjectionMatrix();
+                    }
                 }
             }
             
@@ -984,9 +1079,11 @@
                     spherical.theta -= deltaX * 0.01;
                     spherical.phi -= deltaY * 0.01;
                     spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
-                    updateCameraPosition();
-                    // Orbited away from an orthographic plane -> mark view as 3D
+                    // ONCE gorunus 3B'ye isaretlenir, SONRA kamera guncellenir:
+                    // ters sirada ilk kare hala ortografik kamerayla ciziliyor,
+                    // donusun basinda bir kare zipliyordu.
                     markViewAsFree3D();
+                    updateCameraPosition();
                 } else if (isPanning) {
                     // Middle mouse drag - Pan
                     // Use camera vectors for correct movement in any view angle
@@ -1178,7 +1275,11 @@
             
             // Double click to reset view
             container.addEventListener('dblclick', () => {
-                spherical = { theta: Math.PI / 4, phi: Math.PI / 4, radius: 8 };
+                // Nesne YENIDEN ATANMAZ, icerigi degisir: threeControls.spherical
+                // ve window.spherical ayni nesneyi tutuyor. Yeniden atandiginda
+                // onlar eski nesnede kaliyor, gorunus animasyonu da yanlis
+                // baslangic acisindan basliyordu.
+                Object.assign(spherical, { theta: Math.PI / 4, phi: Math.PI / 4, radius: 8 });
                 target.set(0, 0, 0);
                 fit3DView();
             });
@@ -1306,6 +1407,27 @@
                         updateEntityInfoPanel();
                         updateStatusBar();
                         secimVurgusunuTazele();
+                        return;
+                    }
+                }
+
+                // Model uzerinde bir sey yok ama bir calisma duzleminin
+                // yuzeyi varsa: o duzlemi etkinlestir. Duzlem kocaman bir
+                // yuzey oldugu icin bu kontrol EN SONA birakilir - yoksa
+                // arkasindaki kirisi secmek imkansiz olurdu.
+                for (const carpma of intersects) {
+                    let o = carpma.object;
+                    while (o && o.userData.planeId === undefined) o = o.parent;
+                    if (o && o.userData.planeId !== undefined) {
+                        if (!e.ctrlKey) {
+                            selectedNodes.clear();
+                            selectedElements.clear();
+                            selectedNode = null;
+                            selectedElement = null;
+                            updateStatusBar();
+                            secimVurgusunuTazele();
+                        }
+                        if (typeof duzlemeTiklandi === 'function') duzlemeTiklandi(o.userData.planeId);
                         return;
                     }
                 }
@@ -1646,7 +1768,7 @@
                 spherical: spherical,  // Expose spherical for state access
                 update: updateCameraPosition,
                 reset: () => {
-                    spherical = { theta: Math.PI / 4, phi: Math.PI / 4, radius: 8 };
+                    Object.assign(spherical, { theta: Math.PI / 4, phi: Math.PI / 4, radius: 8 });
                     target.set(0, 0, 0);
                     updateCameraPosition();
                 },
@@ -3040,6 +3162,11 @@
                     threeScene.add(labelSprite);
                 });
             }
+
+            // Kullanici calisma duzlemleri (planes.js). Model sinirlarini
+            // kullandiklari icin sahne kurulduktan SONRA cizilirler.
+            if (typeof calismaDuzlemleriniCiz === 'function') calismaDuzlemleriniCiz();
+            if (typeof duzlemSeritleriniTazele === 'function') duzlemSeritleriniTazele();
 
             // Sahne SECIMSIZ kuruldu; mevcut secimi simdi bas.
             secimVurgusunuTazele();

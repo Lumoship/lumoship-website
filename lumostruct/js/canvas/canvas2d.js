@@ -28,9 +28,7 @@
                 const container = document.getElementById('threeContainer');
                 if (container && container.parentElement) {
                     const rect = container.parentElement.getBoundingClientRect();
-                    threeRenderer.setSize(rect.width, rect.height);
-                    threeCamera.aspect = rect.width / rect.height;
-                    threeCamera.updateProjectionMatrix();
+                    kamerayiYenidenOlcekle(rect.width, rect.height);
                 }
             }
         });

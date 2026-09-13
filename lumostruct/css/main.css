@@ -5023,3 +5023,50 @@
         #resultsContent > *:last-child {
             margin-bottom: 0 !important;
         }
+
+        /* ================================================================
+           CALISMA DUZLEMI SERITLERI
+           Gorunum dugmelerinin hemen altinda durur; her serit bir duzlem.
+           Ad kismina tiklamak o duzleme gecer, x kismi duzlemi siler.
+           ================================================================ */
+        .plane-chip {
+            display: inline-flex;
+            align-items: stretch;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: var(--r-ctl);
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+        }
+        .plane-chip.active {
+            border-color: var(--primary);
+            background: var(--primary-fill);
+        }
+        .plane-chip-name,
+        .plane-chip-del {
+            background: none;
+            border: 0;
+            color: var(--text-2);
+            font-size: var(--fs-xs);
+            font-family: inherit;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .plane-chip.active .plane-chip-name,
+        .plane-chip.active .plane-chip-del { color: #ffffff; }
+        .plane-chip-name:hover { color: var(--text); }
+        .plane-chip-del {
+            border-left: 1px solid rgba(71, 85, 105, 0.5);
+            padding: 4px 7px;
+            line-height: 1;
+        }
+        .plane-chip-del:hover { color: var(--danger); background: rgba(239, 68, 68, 0.12); }
+        body.light-mode .plane-chip {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: var(--text-2);
+        }
+        body.light-mode .plane-chip-name,
+        body.light-mode .plane-chip-del { color: #334155; }
+        body.light-mode .plane-chip.active { background: var(--primary-fill); }
+        body.light-mode .plane-chip.active .plane-chip-name,
+        body.light-mode .plane-chip.active .plane-chip-del { color: #ffffff; }

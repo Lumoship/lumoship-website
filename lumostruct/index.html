@@ -2223,6 +2223,18 @@
                         3D
                     </button>
                     
+                    <!-- Yeni calisma duzlemi. XY/XZ/YZ dugmeleri yalnizca BAKISI
+                         degistirir; bu dugme z = 5000 gibi bir yerde uzerine
+                         cizilebilecek kalici bir duzlem olusturur. -->
+                    <button id="btnNewPlane" class="view-mode-btn" onclick="yeniDuzlemAc()" title="Create a work plane at a given offset">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-5 9 5-9 5-9-5z"/>
+                            <line x1="18" y1="16" x2="18" y2="22"/>
+                            <line x1="15" y1="19" x2="21" y2="19"/>
+                        </svg>
+                        Plane
+                    </button>
+                    
                     <div style="width:1px; background:var(--bg-hover); margin:0 4px;"></div>
                     
                     <!-- Display Size Slider -->
@@ -2242,6 +2254,27 @@
                         <span class="color-key" style="background:var(--success)"></span>
                         <input type="range" id="deformScale" min="1" max="500" value="50" style="width:60px; cursor:pointer;" oninput="updateDeformScale(this.value)">
                         <span id="deformScaleValue" style="min-width:34px; text-align:center; font-size:var(--fs-xs); color:var(--text-2);">50&times;</span>
+                    </div>
+                </div>
+                
+                <!-- Olusturulan duzlemler. Ada tiklamak o duzleme gecer, x siler.
+                     Silmek yalnizca duzlemi siler - uzerine cizilen kirisler modelin
+                     parcasi, onlara dokunulmaz. -->
+                <div id="planeChips" style="display:none; position:absolute; top:46px; left:50%; transform:translateX(-50%); gap:6px; z-index:100; flex-wrap:wrap; justify-content:center; max-width:76%;"></div>
+                
+                <!-- Yeni duzlem kutusu -->
+                <div id="newPlaneBox" style="display:none; position:absolute; top:46px; left:50%; transform:translateX(-50%); z-index:140; background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--r-ovl); padding:10px 12px; box-shadow:var(--shadow-2);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label for="newPlaneAxis" style="font-size:var(--fs-xs); color:var(--text-2);">Plane</label>
+                        <select id="newPlaneAxis" onchange="yeniDuzlemEkseniDegisti()" style="height:28px;">
+                            <option value="Z">XY (horizontal)</option>
+                            <option value="Y">XZ (front)</option>
+                            <option value="X">YZ (side)</option>
+                        </select>
+                        <label id="newPlaneOffsetLabel" for="newPlaneOffset" style="font-size:var(--fs-xs); color:var(--text-2);">Z (mm)</label>
+                        <input id="newPlaneOffset" type="number" step="1" placeholder="5000" onkeydown="yeniDuzlemTus(event)" style="width:96px; height:28px;">
+                        <button class="btn-primary btn-small" onclick="yeniDuzlemOnayla()">Create</button>
+                        <button class="btn-secondary btn-small" onclick="yeniDuzlemKapat()">Cancel</button>
                     </div>
                 </div>
                 
@@ -3092,6 +3125,7 @@
     <script src="js/canvas/snap.js"></script>
     <script src="js/canvas/canvas2d.js"></script>
     <script src="js/canvas/canvas3d.js"></script>
+    <script src="js/canvas/planes.js"></script>
     
     <!-- UI Modules -->
     <script src="js/ui/themes.js"></script>

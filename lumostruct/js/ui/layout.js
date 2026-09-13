@@ -76,11 +76,7 @@
             if (typeof threeRenderer !== 'undefined' && threeRenderer) {
                 const container = document.getElementById('threeContainer');
                 if (container) {
-                    threeRenderer.setSize(container.clientWidth, container.clientHeight);
-                    if (typeof threeCamera !== 'undefined' && threeCamera) {
-                        threeCamera.aspect = container.clientWidth / container.clientHeight;
-                        threeCamera.updateProjectionMatrix();
-                    }
+                    kamerayiYenidenOlcekle(container.clientWidth, container.clientHeight);
                 }
             }
             komutCubuguOlculeri();
