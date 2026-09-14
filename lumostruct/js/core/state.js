@@ -185,9 +185,9 @@
             if (!container) return;
             
             container.innerHTML = loadCases.map(lc => `
-                <div class="load-case-item ${lc.id === activeLoadCaseId ? 'active' : ''}" style="display:flex; align-items:center; gap:8px; padding:8px; background:${lc.id === activeLoadCaseId ? '#334155' : '#1e293b'}; border-radius:var(--r-ctl); margin-bottom:4px;">
+                <div class="load-case-item ${lc.id === activeLoadCaseId ? 'active' : ''}" style="display:flex; align-items:center; gap:8px; padding:8px; background:${lc.id === activeLoadCaseId ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'}; border-radius:var(--r-ctl); margin-bottom:4px;">
                     <input type="checkbox" ${lc.active ? 'checked' : ''} onchange="toggleLoadCaseActive(${lc.id})" title="Include in combination" style="cursor:pointer;">
-                    <span onclick="switchLoadCase(${lc.id})" style="flex:1; cursor:pointer; color:${lc.id === activeLoadCaseId ? 'var(--primary)' : '#e2e8f0'};">${lc.name}</span>
+                    <span onclick="switchLoadCase(${lc.id})" style="flex:1; cursor:pointer; color:${lc.id === activeLoadCaseId ? 'var(--primary-text)' : 'var(--text)'};">${lc.name}</span>
                     <input type="number" value="${lc.factor}" onchange="setLoadCaseFactor(${lc.id}, this.value)" style="width:50px; background:var(--bg-main); border:1px solid var(--border); color:var(--text); border-radius:var(--r-ctl); padding:2px 4px; text-align:center;" title="Factor">
                     ${loadCases.length > 1 ? `<button onclick="deleteLoadCase(${lc.id})" style="background:none; border:none; color:var(--danger-text); cursor:pointer;" title="Delete">×</button>` : ''}
                 </div>

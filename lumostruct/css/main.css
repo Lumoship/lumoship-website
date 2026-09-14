@@ -5341,6 +5341,49 @@
     margin-bottom: var(--space-1);
 }
 
+/* Modal govdeleri de temali kaydirma cubugu kullansin. Dinamik olusturulan
+   pencerelerde (Help, Section library) tarayici varsayilani cikiyordu:
+   acik gri, kalin, temanin disinda. */
+.modal-body::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar,
+[id$="Modal"] div::-webkit-scrollbar { width: 6px; height: 6px; }
+.modal-body::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track,
+[id$="Modal"] div::-webkit-scrollbar-track { background: var(--bg-primary); }
+.modal-body::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb,
+[id$="Modal"] div::-webkit-scrollbar-thumb {
+    background: var(--bg-elevated); border-radius: var(--r-ctl);
+}
+.modal-body::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover,
+[id$="Modal"] div::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* Sag paneldeki ozellik satirlari: bir kismi 8 px arali, bir kismi bitisikti.
+   Bitisik olmalari kasitli (cizgiyle ayrilan veri satirlari), ama KARISIK
+   olmasi degil - denetim ritim bulgusu olarak yakaladi. */
+#rightPanel .entity-property { margin: 0; }
+#rightPanel #sectionDiagram { margin-bottom: var(--space-2); }
+/* Ara baslik altindaki bosluk, bolum basliginin altindakiyle AYNI
+   olmali (4 px): ikisi de bir grup aciyor. Farkli olmasi denetimde
+   ritim bulgusu veriyordu ve gozle de kararsiz duruyor. */
+#rightPanel .entity-subtitle { margin-bottom: var(--space-1) !important; }
+
+/* Yardim pencerelerindeki tablo basliklari BUYUK HARF'e cevriliyordu;
+   arayuzun geri kalani normal yaziya gecti. Baslik ayrimini agirlik tasir. */
+#dxfHelpModal th, #helpModal th { text-transform: none; }
+
+/* Baslik agirligi. Tarayici h1-h6 icin 700 kullanir; bu arayuzun olcegi
+   400/500/600 ve hiyerarsiyi boyut degil agirlik tasiyor. Paneller icin
+   zaten ayarliydi, MODALLAR icin degildi - denetim modallara bakmadigi
+   surece de gorunmedi. */
+[id$="Modal"] h1, [id$="Modal"] h2, [id$="Modal"] h3, [id$="Modal"] h4,
+.modal-content h1, .modal-content h2, .modal-content h3, .modal-content h4,
+.modal-header h1, .modal-header h2, .modal-header h3 { font-weight: 600; }
+
+#helpModal strong, #sectionLibraryModal strong,
+#dxfHelpModal strong { font-weight: 600; }
+
 /* Alt-indis ve ust-indis TABANI. Tarayici bunlari 0.76em cizer; 12.5 px
    tabanda f(y) indisi 9.5 px'e duser. Sembol okunmaz olursa formul de
    okunmaz - 10.5 px'in altina inmesinler. */
