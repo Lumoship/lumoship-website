@@ -12,7 +12,24 @@
             { name: "HP100x8", b: 100, t: 8, c: 15.5, r: 4.5, A: 9.98, dx: 5.61, Ixx: 77.2 },
             { name: "HP120x6", b: 120, t: 6, c: 17, r: 5, A: 9.24, dx: 6.48, Ixx: 112 },
             { name: "HP120x7", b: 120, t: 7, c: 17, r: 5, A: 10.7, dx: 6.60, Ixx: 127 },
-            { name: "HP120x8", b: 120, t: 8, c: 17, r: 5, A: 11.72, dx: 6.96, Ixx: 165 },
+            // ---- TURETILMIS SATIR, EN 10067'den DEGIL ----
+            // Katalogdaki degerler (A 11,72  dx 6,96  Ixx 165) uc olcutte
+            // birden aile egilimini kiriyordu; bu dosyadaki oteki dokuz ailenin
+            // HEPSI ayni olcutleri %0,8 icinde sagliyor.
+            //   1) Alan bir aile icinde t ile DOGRUSALDIR (bulb ayni hadde
+            //      yuvasindan cikar, degisen yalnizca govde). HP120x6 ve x7'den
+            //      dogru: A(8) = 12,16. Aileler arasi egilimden: 12,14.
+            //   2) dIxx/dt ~ h^3/12 * dt: h = 12 cm icin 14,4 cm4/mm. Katalogun
+            //      x6 -> x7 adimi 15 (uyuyor), x7 -> x8 adimi 38 (uymuyor).
+            //      Ixx(8) = 127 + ~15 = 142.
+            //   3) dx adimi ailede 0,12; katalogda 0,12 sonra 0,36.
+            //      dx(8) = 6,60 + 0,12 = 6,72.
+            // Ayni yanlis sayilar SectionPro ve Midship Scantling'de de var -
+            // uc arac tek kaynaktan besleniyor, birbirini dogrulamiyor.
+            //
+            // EN 10067 tablosuna bakilip DOGRULANMALI. O zamana kadar bu satir
+            // turetilmis: kesit kurulurken uyari veriyor (bkz. profiles.js).
+            { name: "HP120x8", b: 120, t: 8, c: 17, r: 5, A: 12.15, dx: 6.72, Ixx: 142, turetilmis: true },
             { name: "HP140x7", b: 140, t: 7, c: 19, r: 5.5, A: 12.6, dx: 7.68, Ixx: 208 },
             { name: "HP140x8", b: 140, t: 8, c: 19, r: 5.5, A: 14.3, dx: 7.81, Ixx: 232 },
             { name: "HP140x9", b: 140, t: 9, c: 19, r: 5.5, A: 15.9, dx: 7.93, Ixx: 254 },

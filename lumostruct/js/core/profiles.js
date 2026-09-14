@@ -69,6 +69,12 @@
             const cat = (typeof HP_CATALOG !== 'undefined')
                 ? HP_CATALOG.find(hp => hp.b === bMM && hp.t === tMM) : null;
 
+            // Turetilmis katalog satiri sessizce kullanilmasin: degerler
+            // fiziksel olarak makul ama EN 10067 ile DOGRULANMADI.
+            if (cat && cat.turetilmis) {
+                debugWarn('Profile ' + cat.name + ' uses DERIVED catalogue values, not EN 10067 - the published row was inconsistent with its own family. See js/core/data.js.');
+            }
+
             let A = cat ? cat.A : B * T * 1.2;                    // cm2
             let Iy = cat ? cat.Ixx : T * Math.pow(B, 3) / 12 * 1.3;
             // Katalogdaki dx GOVDE DIBINDEN (plakanin oturdugu yuz) olculur:
@@ -307,6 +313,66 @@
                                                  dims.altW, kalan(dims.altT, korozyonPayi(kor, 'plate')));
                 default:   return null;
             }
+        }
+
+        // ---- KESIT ADINI COZ ----
+        // Kesit adlari olculeri TASIYOR:  HP200x10_600x12  ->  HP 200x10 +
+        // 600x12 plaka. js/ui/dxf.js icindeki layerToSection ayni adlari
+        // okuyor; buradaki ayristirici ONUNLA AYNI SONUCU VERMEK ZORUNDA ve
+        // tests/verify-korozyon.js bunu bir dizi ad uzerinde sinar. Iki
+        // ayristiriciyi ayri birakip "herhalde ayni" demek, bu projede daha
+        // once tam olarak yanlis giden sey.
+        //
+        // Neden gerekti: korozyon payi kesidi YENIDEN KURMAYI gerektiriyor,
+        // yani olculeri geri okumak lazim. Ozellikler nesnesinde olculer yok,
+        // adda var.
+        function kesitAdiniCoz(ad) {
+            if (!ad) return null;
+            const temiz = String(ad).trim().replace(/\s+/g, '');
+            const parca = temiz.split('_');
+            const profil = parca[0].toUpperCase();
+
+            let plaka = null;
+            if (parca.length > 1) {
+                const m = parca[1].match(/(\d+(?:\.\d+)?)[Xx](\d+(?:\.\d+)?)/);
+                if (m) plaka = { w: parseFloat(m[1]), t: parseFloat(m[2]) };   // mm
+            }
+
+            // Sira layerToSection ile AYNI: T'den once L denenirse L100x100x10
+            // yanlis eslesir diye degil, tersine - T kalibi iki olcu grubu
+            // ister, L uc tane. Yine de ayni sirayi koruyoruz ki davranis birebir olsun.
+            let m;
+            if ((m = profil.match(/^HP(\d+)[Xx](\d+)/)))
+                return { tur: 'HP', dims: { b: +m[1], t: +m[2] }, plaka: plaka, ad: 'HP' + m[1] + 'x' + m[2] };
+            if ((m = profil.match(/^FB(\d+)[Xx](\d+)/)))
+                return { tur: 'FB', dims: { h: +m[1], t: +m[2] }, plaka: plaka, ad: 'FB' + m[1] + 'x' + m[2] };
+            if ((m = profil.match(/^T(\d+)[Xx](\d+)[\/\+](\d+)[Xx](\d+)/)))
+                return { tur: 'T', dims: { h: +m[1], tw: +m[2], bf: +m[3], tf: +m[4] }, plaka: plaka,
+                         ad: 'T' + m[1] + 'x' + m[2] + '/' + m[3] + 'x' + m[4] };
+            if ((m = profil.match(/^L(\d+)[Xx](\d+)[Xx](\d+)/)))
+                return { tur: 'L', dims: { a: +m[1], b: +m[2], t: +m[3] }, plaka: plaka,
+                         ad: 'L' + m[1] + 'x' + m[2] + 'x' + m[3] };
+            return null;
+        }
+
+        // Adi bilinen bir kesidi KOROZYON PAYIYLA yeniden kurar.
+        //   kor = { web, flange, plate }  mm
+        // Ad cozulemezse null doner - uyduracagina soylesin.
+        function korozyonluKesitAdindan(ad, kor) {
+            const c = kesitAdiniCoz(ad);
+            if (!c) return null;
+            const props = profileProperties(c.tur, c.dims, kor);
+            if (!props) return null;
+            if (!c.plaka) return profilePropertiesSI(props);
+            return plakaliKesitSI(props, c.plaka.w, c.plaka.t, korozyonPayi(kor, 'plate'));
+        }
+
+        // Korozyonlu kesit icin ad. Paylar ada girer ki ayni profilin farkli
+        // korozyon gruplari AYRI kesitler olsun - Steel dosyasinda da oyle.
+        function korozyonluKesitAdi(taban, kor) {
+            const n = v => (v > 0 ? String(Math.round(v * 100) / 100) : '0');
+            return taban + '#c' + n(korozyonPayi(kor, 'web')) + '-' +
+                   n(korozyonPayi(kor, 'flange')) + '-' + n(korozyonPayi(kor, 'plate'));
         }
 
         // cm tabanli sonucu cozucunun bekledigi SI birimlerine cevirir.

@@ -139,8 +139,16 @@
                 h2: mm(sayi(n.h2)), t2: mm(sayi(n.t2))
             };
             if (fl) { tanim.fw = mm(sayi(fl.nitelik.w)); tanim.ft = mm(sayi(fl.nitelik.t)); }
-            if (tp) { tanim.ustW = mm(sayi(tp.nitelik.w)); tanim.ustT = mm(sayi(tp.nitelik.t)); }
-            if (bt) { tanim.altW = mm(sayi(bt.nitelik.w)); tanim.altT = mm(sayi(bt.nitelik.t)); }
+            // Konik profilde her olcunun bir de SON degeri var (w2/t2):
+            // kesit bir uctan otekine dogrusal degisir.
+            if (tp) {
+                tanim.ustW = mm(sayi(tp.nitelik.w)); tanim.ustT = mm(sayi(tp.nitelik.t));
+                tanim.ustW2 = mm(sayi(tp.nitelik.w2)); tanim.ustT2 = mm(sayi(tp.nitelik.t2));
+            }
+            if (bt) {
+                tanim.altW = mm(sayi(bt.nitelik.w)); tanim.altT = mm(sayi(bt.nitelik.t));
+                tanim.altW2 = mm(sayi(bt.nitelik.w2)); tanim.altT2 = mm(sayi(bt.nitelik.t2));
+            }
             veri.profiller[n.id] = tanim;
             // Profil dogrudan bir kirise atanabiliyor (assembly olmadan).
             if (!veri.kesitler[n.id]) veri.kesitler[n.id] = { id: n.id, tur: 'profil', profil: n.id };
@@ -231,7 +239,13 @@
     // ------------------------------------------------------- kesit kurma
     // Bir (kesit tanimi, korozyon) ciftini LumoStruct kesit nesnesine cevirir.
     // korozyon: { web, ust, alt } mm - .steel'in web/top/bottom paylari.
-    function steelKesitiKur(veri, bpId, korozyon) {
+    // KONIK ELEMAN kac parcaya bolunur. Steel'in kendi ayari tapC="10";
+    // ayni sayiyi kullanmak, ayni idealizasyonu kullanmak demek.
+    const KONIK_ADIM = 10;
+
+    // s: konik profilde eleman boyunca konum (0 = bas, 1 = son). Konik
+    // olmayan kesitlerde yok sayilir.
+    function steelKesitiKur(veri, bpId, korozyon, s) {
         const tanim = veri.kesitler[bpId];
         if (!tanim) return null;
         const p = veri.profiller[tanim.profil];
@@ -256,12 +270,23 @@
                 h: p.h, tw: p.t, ustW: p.ustW, ustT: p.ustT, altW: p.altW, altT: p.altT
             }, { web: kor.web, flange: kor.ust, plate: kor.alt }); break;
             case 'h': {
-                // Yigma I kirisi: govde + ust ve alt flans. Konikligi (tapered)
-                // henuz desteklemiyoruz; sabit kesit gibi, BAS olculeriyle
-                // kuruluyor ve arayan taraf uyariliyor.
-                const lama = profileProperties('FB', { h: p.h, t: p.t }, { web: kor.web });
-                return plakaliKesitSI(lama, p.ustW, p.ustT, kor.ust,
-                                      { w: p.altW, t: p.altT, kor: kor.alt });
+                // Yigma I kirisi: govde + ust ve alt flans.
+                // KONIK ise olculer bas ve son arasinda dogrusal degisir; s
+                // elemanin o noktadaki konumu. Bolme isini steelModeliKur
+                // yapiyor - burasi yalnizca "s noktasindaki kesit" sorusuna
+                // cevap verir.
+                const u = (typeof s === 'number' && isFinite(s)) ? Math.min(Math.max(s, 0), 1) : 0;
+                const ara = (a, b2) => (b2 === null || b2 === undefined) ? a : a + (b2 - a) * u;
+                const gh = p.tapered ? ara(p.h, p.h2) : p.h;
+                const gt = p.tapered ? ara(p.t, p.t2) : p.t;
+                const lama = profileProperties('FB', { h: gh, t: gt }, { web: kor.web });
+                return plakaliKesitSI(lama,
+                    p.tapered ? ara(p.ustW, p.ustW2) : p.ustW,
+                    p.tapered ? ara(p.ustT, p.ustT2) : p.ustT,
+                    kor.ust,
+                    { w: p.tapered ? ara(p.altW, p.altW2) : p.altW,
+                      t: p.tapered ? ara(p.altT, p.altT2) : p.altT,
+                      kor: kor.alt });
             }
             default: return null;
         }
@@ -313,23 +338,100 @@
         const korOf = {};
         m.korozyonlar.forEach(c => c.kirisler.forEach(k => { korOf[k] = c; }));
 
+        const konikMi = bp => {
+            const tanim = veri.kesitler[bp];
+            const pr = tanim ? veri.profiller[tanim.profil] : null;
+            return !!(pr && pr.tapered);
+        };
+
+        // Orijinal kiris -> uretilen eleman(lar). Yukler ve korozyon gruplari
+        // ORIJINAL kiris numarasina atif yapiyor; bolunmus elemanlara
+        // dagitabilmek icin harita tutuluyor.
+        const parcalar = {};
+        const eksikKesit = {};
+
+        // Kesitsiz kirisler icin rijit bag kesiti. Buyuklugu MODELDEKI en buyuk
+        // kesidin 10 kati: hem pratikte rijit hem de sayisal kosullanmayi
+        // bozacak kadar buyuk degil. Ilk cagrida hesaplanip saklanir.
+        let _rijit = null;
+        function rijitBag() {
+            if (_rijit) return _rijit;
+            let enBuyukI = 0, enBuyukA = 0;
+            Object.values(sections).forEach(x => {
+                if (x && x.Iy > enBuyukI) enBuyukI = x.Iy;
+                if (x && x.A > enBuyukA) enBuyukA = x.A;
+            });
+            if (!(enBuyukI > 0)) { enBuyukI = 1e-3; enBuyukA = 0.05; }
+            const k = 10;
+            _rijit = {
+                A: enBuyukA * k, Aweb: enBuyukA * k, Aflange: enBuyukA * k,
+                Iy: enBuyukI * k, Iz: enBuyukI * k, J: enBuyukI * k,
+                Wy: enBuyukI * k, WyTop: enBuyukI * k, WyBot: enBuyukI * k,
+                Wz: enBuyukI * k, Wt: enBuyukI * k,
+                h: 0.1, tw: 0.01, centroidY: 0.05, type: 'RIGID'
+            };
+            return _rijit;
+        }
+        let sonrakiEleman = Object.keys(m.kirisler)
+            .reduce((mx, x) => Math.max(mx, parseInt(x, 10) || 0), 0);
+        let sonrakiDugum = Object.keys(m.dugumler)
+            .reduce((mx, x) => Math.max(mx, parseInt(x, 10) || 0), 0);
+
         // Kesitler (bp, korozyon) ciftine gore uretilir: ayni profil farkli
-        // korozyon grubunda farkli kesittir.
+        // korozyon grubunda farkli kesittir. Konikte ayrica ADIM da ayirir.
         Object.keys(m.kirisler).forEach(id => {
             const b = m.kirisler[id];
             const n1 = nodes[b.n1], n2 = nodes[b.n2];
             if (!n1 || !n2) { uyarilar.push('kiris ' + id + ': dugum yok'); return; }
             const kor = korOf[id] || null;
-            const ad = 'bp' + b.bp + (kor ? '_k' + kor.id : '');
-            if (!sections[ad]) {
-                const s = steelKesitiKur(veri, b.bp, kor ? { web: kor.web, ust: kor.ust, alt: kor.alt } : null);
-                if (!s) { uyarilar.push('kesit kurulamadi: bp ' + b.bp); return; }
-                sections[ad] = s;
+            const korObj = kor ? { web: kor.web, ust: kor.ust, alt: kor.alt } : null;
+            const aci = yerelZdenAci(n1, n2, b.z);
+            const konik = konikMi(b.bp);
+            const adet = konik ? KONIK_ADIM : 1;
+
+            // KONIK ELEMAN: Steel tapC="10" ile on parcaya boluyor, biz de.
+            // Her parcanin kesiti kendi ORTA noktasindan aliniyor; boylece
+            // ortalama rijitlik dogru ve incelen uc gercekten zayif kalir.
+            // Ara dugumler YENI numara alir; ORIJINAL dugum numaralari
+            // dokunulmadan kalir - cikti karsilastirmasi buna bagli.
+            let oncekiDugum = b.n1;
+            const uretilen = [];
+            for (let k = 0; k < adet; k++) {
+                const oran = (k + 0.5) / adet;
+                const ad = 'bp' + b.bp + (kor ? '_k' + kor.id : '') + (konik ? '_a' + k : '');
+                if (!sections[ad]) {
+                    const sec = steelKesitiKur(veri, b.bp, korObj, oran);
+                    if (!sec) {
+                        // KESITSIZ KIRIS. Dosyada bp tanimi yok (CCL311'de bp="0").
+                        // Elemani ATMAK yapinin baglantisini sessizce degistirir -
+                        // iki dugum birbirine bagli sanilirken degildir. Bunun
+                        // yerine RIJIT BAG olarak kuruluyor ve uyariliyor.
+                        // Steel de bu elemanlar icin gerilme yazmiyor; portal vinc
+                        // vakasinda rijitlikleri 1/3/10/30/100 kat denendi ve
+                        // tepkiler ucuncu haneden sonra degismedi (verify-steel.js).
+                        eksikKesit[b.bp] = (eksikKesit[b.bp] || 0) + 1;
+                        sections[ad] = rijitBag();
+                    } else {
+                        sections[ad] = sec;
+                    }
+                }
+                const sonUc = (k === adet - 1) ? b.n2 : ++sonrakiDugum;
+                if (sonUc !== b.n2) {
+                    const u = (k + 1) / adet;
+                    nodes[sonUc] = {
+                        x: n1.x + (n2.x - n1.x) * u,
+                        y: n1.y + (n2.y - n1.y) * u,
+                        z: (n1.z || 0) + ((n2.z || 0) - (n1.z || 0)) * u
+                    };
+                }
+                const elemanId = (k === 0) ? kimlik(id) : ++sonrakiEleman;
+                elements[elemanId] = { n1: oncekiDugum, n2: sonUc, section: ad, orientation: aci };
+                uretilen.push(elemanId);
+                oncekiDugum = sonUc;
             }
-            elements[kimlik(id)] = {
-                n1: b.n1, n2: b.n2, section: ad,
-                orientation: yerelZdenAci(n1, n2, b.z)
-            };
+            parcalar[id] = uretilen;
+            if (konik) uyarilar.push('kiris ' + id + ': konik kesit ' + adet +
+                ' parcaya bolundu (Steel tapC ile ayni)');
         });
 
         // Mesnetler
@@ -383,7 +485,9 @@
                 const f2 = (y.f2 === null || y.f2 === undefined) ? f1 : y.f2 / 1000;
 
                 y.kirisler.forEach(k => {
-                    const e = elements[k];
+                    // Konik kiris bolunmus olabilir: yuk butun parcalara gider.
+                    (parcalar[k] || [k]).forEach(pid => {
+                    const e = elements[pid];
                     if (!e) return;
                     const n1 = nodes[e.n1], n2 = nodes[e.n2];
                     const Lk = Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2) +
@@ -403,14 +507,20 @@
                         dir: y.yon === 'LocalZ' ? 'localZ' : 'localY',
                         case: 'L'
                     });
+                    });
                 });
             });
         }
 
+        Object.keys(eksikKesit).forEach(bp => uyarilar.push(
+            'bp ' + bp + ': kesit tanimi yok - ' + eksikKesit[bp] +
+            ' eleman RIJIT BAG olarak kuruldu (atilmadi)'));
+
         return {
             nodes: nodes, elements: elements, constraints: constraints,
             loads: loads, sections: sections, uyarilar: uyarilar,
-            model: { id: m.id, ad: m.ad }, lc: lcId, bc: bcId
+            model: { id: m.id, ad: m.ad },
+            lc: lc ? lc.id : null, bc: bc ? bc.id : null
         };
     }
 

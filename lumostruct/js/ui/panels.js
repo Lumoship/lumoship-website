@@ -1018,6 +1018,39 @@
                             </small>
                         </div>
 
+                        <!-- KOROZYON PAYLARI. Gemi kurallarinda pay KALINLIKTAN
+                             dusulur; yukseklik ve genislik degismez. Uc rol var ve
+                             bunlar YON degil: govde, profilin kendi flansi, baglanti
+                             plakasi. Pay verilince kesit YENIDEN KURULUR ve ayri bir
+                             ad alir (ornek: HP200x10_600x12#c2-1.5-1), boylece ayni
+                             profilin farkli korozyon gruplari ayri kesit olur. -->
+                        <div class="form-group">
+                            <label style="color:var(--warning); font-weight:600;">Corrosion allowance (mm)</label>
+                            <div style="display:flex; gap:8px;">
+                                <div style="flex:1;">
+                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Web</small>
+                                    <input type="number" id="editKorWeb" min="0" step="0.5"
+                                           value="${(elem.corrosion && elem.corrosion.web) || 0}"
+                                           onchange="korozyonOnizle(${elem.id})">
+                                </div>
+                                <div style="flex:1;">
+                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Flange</small>
+                                    <input type="number" id="editKorFlange" min="0" step="0.5"
+                                           value="${(elem.corrosion && elem.corrosion.flange) || 0}"
+                                           onchange="korozyonOnizle(${elem.id})">
+                                </div>
+                                <div style="flex:1;">
+                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Plate</small>
+                                    <input type="number" id="editKorPlate" min="0" step="0.5"
+                                           value="${(elem.corrosion && elem.corrosion.plate) || 0}"
+                                           onchange="korozyonOnizle(${elem.id})">
+                                </div>
+                            </div>
+                            <small id="korozyonOnizleme" style="color:var(--text-3); display:block; margin-top:4px;">
+                                Deducted from thickness. Heights and breadths are unchanged.
+                            </small>
+                        </div>
+
                         <!-- Rijit uclar. Kiris buyuk bir baglanti govdesinin icine
                              giriyorsa (kalin boru, kutu, mesnet blogu) o bolgede
                              egilmez: esnek boy kisalir, uc rijit kolla dugume baglanir.
@@ -1191,6 +1224,54 @@
             }
         }
         
+        // Korozyon paylarinin etkisini ANINDA gosterir. Sayilari girip
+        // "ne kadar kaybettim" diye merak etmek yerine orada yazsin -
+        // korozyon soyut bir ayar degil, kesidi kucuk<ten bir sey.
+        function korozyonOnizle(elemId) {
+            const not = document.getElementById('korozyonOnizleme');
+            if (!not) return;
+            const oku = id => { const e = document.getElementById(id); const v = e ? parseFloat(e.value) : 0;
+                                return (isFinite(v) && v > 0) ? v : 0; };
+            const kor = { web: oku('editKorWeb'), flange: oku('editKorFlange'), plate: oku('editKorPlate') };
+            if (!(kor.web || kor.flange || kor.plate)) {
+                not.textContent = 'Deducted from thickness. Heights and breadths are unchanged.';
+                not.style.color = 'var(--text-3)';
+                return;
+            }
+            const elem = model.elements[elemId];
+            // Onizleme, Apply'dan ONCE calisir: ekranda secili profil/plaka
+            // neyse ONU gosterir, elemanin kayitli kesidini degil.
+            let taban = elem ? elem.section : null;
+            const prof = document.getElementById('editProfile');
+            if (prof) {
+                let ad = prof.value === 'custom'
+                    ? (document.getElementById('customProfile') || {}).value : prof.value;
+                if (ad) {
+                    ad = String(ad).toUpperCase();
+                    const pw = (document.getElementById('editPlateW') || {}).value;
+                    const pt = (document.getElementById('editPlateT') || {}).value;
+                    if (pw && pt && parseFloat(pw) > 0 && parseFloat(pt) > 0) ad += '_' + pw + 'x' + pt;
+                    taban = ad;
+                }
+            }
+            const brut = korozyonluKesitAdindan(taban, null);
+            const net = korozyonluKesitAdindan(taban, kor);
+            if (!brut || !net) {
+                not.textContent = 'Cannot preview: "' + taban + '" is not a recognised section name.';
+                not.style.color = 'var(--warning)';
+                return;
+            }
+            const wB = Math.min(brut.WyTop, brut.WyBot) * 1e6;
+            const wN = Math.min(net.WyTop, net.WyBot) * 1e6;
+            const aB = brut.A * 1e4, aN = net.A * 1e4;
+            not.textContent =
+                'A ' + aB.toFixed(1) + ' → ' + aN.toFixed(1) + ' cm² (' +
+                ((aN / aB - 1) * 100).toFixed(1) + '%)   ' +
+                'W ' + wB.toFixed(0) + ' → ' + wN.toFixed(0) + ' cm³ (' +
+                ((wN / wB - 1) * 100).toFixed(1) + '%)';
+            not.style.color = 'var(--warning)';
+        }
+
         function applyElementChanges(elemId) {
             const elem = model.elements[elemId];
             if (!elem) return;
@@ -1235,6 +1316,16 @@
             };
             const rijitBas = rijitOku('editRigidStart'), rijitSon = rijitOku('editRigidEnd');
 
+            // Korozyon paylari mm olarak saklanir (profileProperties de mm bekler).
+            const korOku = (id) => {
+                const el = document.getElementById(id);
+                const v = el ? parseFloat(el.value) : 0;
+                return (isFinite(v) && v > 0) ? v : 0;
+            };
+            const kor = { web: korOku('editKorWeb'), flange: korOku('editKorFlange'),
+                          plate: korOku('editKorPlate') };
+            const korVar = kor.web > 0 || kor.flange > 0 || kor.plate > 0;
+
             // Build new section name
             let newSectionName = profile;
             if (plateW && plateT && parseInt(plateW) > 0 && parseInt(plateT) > 0) {
@@ -1243,10 +1334,32 @@
             
             // Ensure section exists
             layerToSection(newSectionName);
-            
+
+            // KOROZYON: brut kesit adindan net kesit turetilir ve AYRI bir ad
+            // alir. Brut kesit yerinde kalir - ayni profili korozyonsuz
+            // kullanan oteki elemanlar etkilenmez.
+            if (korVar) {
+                const netAd = korozyonluKesitAdi(newSectionName, kor);
+                if (!SECTIONS[netAd]) {
+                    const net = korozyonluKesitAdindan(newSectionName, kor);
+                    if (net) {
+                        SECTIONS[netAd] = net;
+                        SECTIONS[netAd].profileName = newSectionName;
+                        SECTIONS[netAd].corrosion = kor;
+                    }
+                }
+                if (SECTIONS[netAd]) {
+                    newSectionName = netAd;
+                } else {
+                    showToast('Corrosion could not be applied to "' + newSectionName +
+                              '" - section name not recognised', 'warning');
+                }
+            }
+
             // Update element
             const oldSection = elem.section;
             elem.section = newSectionName;
+            if (korVar) elem.corrosion = kor; else delete elem.corrosion;
             elem.grade = grade;
             elem.orientation = orientation;
             if (rijitBas) elem.rigidStart = rijitBas; else delete elem.rigidStart;

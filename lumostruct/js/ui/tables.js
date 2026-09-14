@@ -79,6 +79,7 @@
                     { a: 'profil', b: 'Profile', m: true },
                     { a: 'kutle', b: 'Mass [kg]', o: 1 },
                     { a: 'rijit', b: 'Rigid ends [mm]', m: true },
+                    { a: 'korozyon', b: 'Corrosion w/f/p [mm]', m: true },
                     { a: 'yuk', b: 'Line loads', m: true }
                 ],
                 satirlar: () => Object.entries(model.elements).map(([id, e]) => {
@@ -92,6 +93,11 @@
                         kutle: sec && sec.A ? sec.A * L * TABLO_CELIK_YOGUNLUK : null,
                         // Rijit uclar yayili yuklu elemanda cozucu tarafindan
                         // YOK SAYILIR; tablo bunu gizlemesin diye oyle yaziliyor.
+                        // Korozyon paylari: govde / flans / plaka.
+                        korozyon: e.corrosion
+                            ? [e.corrosion.web || 0, e.corrosion.flange || 0, e.corrosion.plate || 0]
+                                  .map(v => (Math.round(v * 100) / 100)).join(' / ')
+                            : '-',
                         rijit: (e.rigidStart || e.rigidEnd)
                             ? (Math.round((e.rigidStart || 0) * 1000) + ' / ' +
                                Math.round((e.rigidEnd || 0) * 1000) +

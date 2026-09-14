@@ -451,184 +451,60 @@
             return Math.abs(d1 + d2 - lineLen) < tol;
         }
         
+        // Katman adindan kesit uretir ve SECTIONS'a yazar.
+        //
+        // Adi COZME ve kesidi KURMA isi artik js/core/profiles.js'te:
+        // kesitAdiniCoz + profileProperties + plakaliKesitSI. Burada ayri bir
+        // kopya vardi (compositeFromPlateTop) ve SESSIZCE FARKLI CEVAP
+        // veriyordu: HP'de agirlik merkezini TERS taraftan aliyordu.
+        //
+        //   plakaliKesitSI:        yProfil = tp + centroidY          (HP)
+        //   compositeFromPlateTop: yProfil = tp + (h - centroidY)    (hepsi)
+        //
+        // HP'de centroidY govde dibinden - yani plaka tarafindan - olculur
+        // (katalogdaki dx; HP200x10 icin 11,54 cm, profil 20 cm). Ters taraftan
+        // almak merkezi 3,1 cm kaydiriyor ve HP200x10_600x12 kesidinde Iy
+        // 2,45e-5 yerine 3,69e-5 cikiyordu - yani DXF ile gelen her plakali HP
+        // yanlis atalet momentiyle cozuluyordu.
+        //
+        // Fark, iki ayristiricinin ayni sonucu vermesini sinayan bir kontrolle
+        // yakalandi (tests/verify-korozyon.js). Uc kopya yerine tek yol kaldi.
         function layerToSection(layer) {
-            // Parse layer name: PROFILE_PLATEWIDTHxPLATETHICKNESS
-            // Example: FB120x12_600x12 → FB 120×12 + Plate 600×12
-            // Example: HP200x10_600x12 → HP200x10 + Plate 600×12
-            
-            const layerClean = layer.trim().replace(/\s+/g, '');
-            
-            // Split by underscore to separate profile and plate
-            const parts = layerClean.split('_');
-            const profileStr = parts[0].toUpperCase();
-            const plateStr = parts.length > 1 ? parts[1] : null;
-            
-            // Parse plate dimensions
-            let plateWidth = 0, plateThick = 0;
-            if (plateStr) {
-                const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)[Xx](\d+(?:\.\d+)?)/);
-                if (plateMatch) {
-                    plateWidth = parseFloat(plateMatch[1]) / 1000;  // mm to m
-                    plateThick = parseFloat(plateMatch[2]) / 1000;  // mm to m
+            const cozum = kesitAdiniCoz(layer);
+
+            if (cozum) {
+                const props = profileProperties(cozum.tur, cozum.dims);
+                if (props) {
+                    if (cozum.plaka) {
+                        const tam = cozum.ad + '_' + Math.round(cozum.plaka.w) + 'x' +
+                                    (cozum.plaka.t % 1 ? cozum.plaka.t : Math.round(cozum.plaka.t));
+                        if (!SECTIONS[tam]) {
+                            SECTIONS[tam] = plakaliKesitSI(props, cozum.plaka.w, cozum.plaka.t, 0);
+                            SECTIONS[tam].plateWidth = cozum.plaka.w;    // gosterim icin mm
+                            SECTIONS[tam].plateThick = cozum.plaka.t;
+                            SECTIONS[tam].profileName = cozum.ad;
+                        }
+                        return tam;
+                    }
+                    if (!SECTIONS[cozum.ad]) SECTIONS[cozum.ad] = profilePropertiesSI(props);
+                    return cozum.ad;
                 }
             }
-            
-            // Parse profile
-            let profileName = '';
-            let profileProps = null;
-            
-            // HP Profile
-            // Ozellikler js/core/profiles.js'ten gelir - arayuzden uretilen ayni profille
-            // birebir ayni sayilar. Eskiden burada Iz = A x 0.001 gibi, boyutsal olarak
-            // atalet momenti bile olmayan degerler vardi (arayuz yolundan 100 kat farkli).
-            const hpMatch = profileStr.match(/HP\s*(\d+)\s*[Xx]\s*(\d+)/);
-            if (hpMatch) {
-                const b = parseInt(hpMatch[1]), t = parseInt(hpMatch[2]);
-                profileName = `HP${b}x${t}`;
-                profileProps = SECTIONS[profileName]
-                    ? { ...SECTIONS[profileName] }
-                    : profilePropertiesSI(profileProperties('HP', { b: b, t: t }));
+
+            // Cozulemeyen ad: eskiden oldugu gibi varsayilana duser, ama artik
+            // uyariyor - sessizce baska bir profil kullanmak en kotu hal.
+            debugWarn('Layer "' + layer + '" is not a recognised section name; using HP200x10.');
+            const varsayilan = 'HP200x10';
+            if (!SECTIONS[varsayilan]) {
+                SECTIONS[varsayilan] = profilePropertiesSI(profileProperties('HP', { b: 200, t: 10 }));
             }
-            
-            // FB Profile (Flat Bar)
-            const fbMatch = profileStr.match(/FB\s*(\d+)\s*[Xx]\s*(\d+)/);
-            if (fbMatch) {
-                const h = parseInt(fbMatch[1]), t = parseInt(fbMatch[2]);
-                profileName = `FB${h}x${t}`;
-                profileProps = profilePropertiesSI(profileProperties('FB', { h: h, t: t }));
-            }
-            
-            // T Profile: T100x10/100x10 or T100x10+100x10 or T400x12+150x20
-            // h = web height (flans HARIC)
-            const tMatch = profileStr.match(/T\s*(\d+)\s*[Xx]\s*(\d+)\s*[\/\+]\s*(\d+)\s*[Xx]\s*(\d+)/);
-            if (tMatch) {
-                const h_mm = parseInt(tMatch[1]), tw_mm = parseInt(tMatch[2]);
-                const bf_mm = parseInt(tMatch[3]), tf_mm = parseInt(tMatch[4]);
-                profileName = `T${h_mm}x${tw_mm}/${bf_mm}x${tf_mm}`;
-                profileProps = profilePropertiesSI(
-                    profileProperties('T', { h: h_mm, tw: tw_mm, bf: bf_mm, tf: tf_mm }));
-            }
-            
-            // L Profile: L100x100x10
-            const lMatch = profileStr.match(/L\s*(\d+)\s*[Xx]\s*(\d+)\s*[Xx]\s*(\d+)/);
-            if (lMatch) {
-                const a = parseInt(lMatch[1]), b = parseInt(lMatch[2]), t = parseInt(lMatch[3]);
-                profileName = `L${a}x${b}x${t}`;
-                profileProps = profilePropertiesSI(profileProperties('L', { a: a, b: b, t: t }));
-            }
-            
-            // Default if not parsed - use HP200x10 from catalog
-            if (!profileProps) {
-                profileName = 'HP200x10';
-                const defaultHP = HP_CATALOG.find(hp => hp.name === 'HP200x10');
-                if (defaultHP) {
-                    profileProps = {
-                        A: defaultHP.A * 1e-4,
-                        Iy: defaultHP.Ixx * 1e-8,
-                        Iz: defaultHP.A * 1e-4 * 0.001,
-                        J: defaultHP.A * 1e-4 * 0.0001,
-                        Wy: (defaultHP.Ixx * 1e-8) / (defaultHP.dx / 100),
-                        h: 0.2,
-                        centroidY: 0.2 - (defaultHP.dx / 100)
-                    };
-                } else {
-                    // Fallback approximation
-                    profileProps = {
-                        A: 25.7e-4,
-                        Iy: 886e-8,
-                        Iz: 1e-7,
-                        J: 1e-8,
-                        Wy: 88.6e-6,
-                        h: 0.2,
-                        centroidY: 0.085
-                    };
-                }
-            }
-            
-            // Calculate composite section if plate exists
-            if (plateWidth > 0 && plateThick > 0) {
-                const composite = compositeFromPlateTop(profileProps, plateWidth, plateThick);
-                const fullName = `${profileName}_${parts[1]}`;
-                
-                SECTIONS[fullName] = composite;
-                
-                // Store plate info for display
-                SECTIONS[fullName].plateWidth = plateWidth * 1000;  // back to mm for display
-                SECTIONS[fullName].plateThick = plateThick * 1000;
-                SECTIONS[fullName].profileName = profileName;
-                
-                return fullName;
-            }
-            
-            // Profile only
-            if (!SECTIONS[profileName]) {
-                SECTIONS[profileName] = profileProps;
-            }
-            return profileName;
+            return varsayilan;
         }
-        
-        // Plaka USTU referansli kompozit kesit (yNA / WyTop / WyBot dondurur).
-        // import.js'te ayni adla plaka ALTI referansli baska bir surum vardi; ikisi de
-        // global kapsamda oldugu icin sonra yuklenen otekini eziyordu ve import
-        // onizlemesi NaN gosteriyordu.
-        function compositeFromPlateTop(profile, plateWidth, plateThick) {
-            // Profile is below plate
-            // Coordinate: Y=0 at plate top, positive downward
-            // profile.centroidY is measured from BOTTOM of profile
-            // We need distance from plate TOP to profile centroid
-            
-            const Ap = profile.A;
-            const Apl = plateWidth * plateThick;
-            const Atotal = Ap + Apl;
-            
-            // Centroids from plate top
-            const yPlate = plateThick / 2;
-            // Profile centroid from plate top = plateThick + (profile height - centroid from bottom)
-            // = plateThick + distance from profile TOP to centroid
-            const profileCentFromTop = profile.h - (profile.centroidY || profile.h / 2);
-            const yProfile = plateThick + profileCentFromTop;
-            
-            // Combined centroid from plate top
-            const yNA = (Apl * yPlate + Ap * yProfile) / Atotal;
-            
-            // Plate Iy about own centroid
-            const IyPlate = plateWidth * Math.pow(plateThick, 3) / 12;
-            
-            // Combined Iy (parallel axis theorem)
-            const d1 = yPlate - yNA;
-            const d2 = yProfile - yNA;
-            const Iy = IyPlate + Apl * d1 * d1 + profile.Iy + Ap * d2 * d2;
-            
-            // Combined Iz
-            const IzPlate = plateThick * Math.pow(plateWidth, 3) / 12;
-            const Iz = IzPlate + (profile.Iz || 0);
-            
-            // Section moduli
-            const yTop = yNA;                           // distance from NA to plate top
-            const yBot = plateThick + profile.h - yNA;  // distance from NA to profile bottom
-            const WyTop = Iy / yTop;
-            const WyBot = Iy / yBot;
-            
-            // Wz for weak axis
-            const Wz = Iz / (plateWidth / 2);
-            
-            return {
-                A: Atotal,
-                Iy: Iy,
-                Iz: Iz,
-                J: (plateWidth * Math.pow(plateThick, 3) + profile.h * Math.pow(0.01, 3)) / 3,
-                Wy: Math.min(WyTop, WyBot),
-                Wz: Wz,
-                WyTop: WyTop,
-                WyBot: WyBot,
-                h: plateThick + profile.h,
-                yNA: yNA,
-                isComposite: true
-            };
-        }
-        
-        // ============== EFFECTIVE BREADTH FUNCTIONS (BV NR467) ==============
-        
+
+        // compositeFromPlateTop KALDIRILDI: plakali kesit hesabinin ucuncu
+        // kopyasiydi ve HP'de yanlis cevap veriyordu. Tek kaynak
+        // js/core/profiles.js -> plakaliKesitSI.
+
         function toggleEffectiveBreadth() {
             const enabled = $('plateEnabled')?.checked;
             const section = $('effectiveBreadthSection');
