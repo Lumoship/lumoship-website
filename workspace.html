@@ -699,12 +699,32 @@
             opacity: 0.55;
             cursor: default;
         }
+
+        /* "Coming Soon" karti: TIKLANMAZ ama OKUNUR.
+           Yukaridaki .disabled kurali 0.55 opaklik kullaniyor. Olculdu: aciklama
+           metnini 3.0 kontrasta, rozeti 3.4e dusuruyor - ikisi de okunur sinirin
+           altinda. Bir karti geri cekmenin yolu yaziyi soluklastirmak degil;
+           cercevesi kesik, zemini biraz daha derin, cagri satiri yok. Metin
+           renkleri oldugu gibi kaliyor. */
+        .tool-card.soon-card {
+            cursor: default;
+            border-style: dashed;
+            border-color: rgba(148, 163, 184, 0.24);
+            background: rgba(13, 18, 32, 0.45);
+        }
+
+        .tool-card.soon-card .tool-name {
+            color: var(--text-secondary);
+        }
         
         .tool-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 0.6rem;
+            /* Rozet basliga yapismasin: "Coming Soon" etiketi "Beta"dan
+               uzun ve uzun basliklarda son harfe bitisiyordu. */
+            gap: 0.75rem;
         }
         
         .tool-name {
@@ -723,6 +743,7 @@
             text-transform: uppercase;
             letter-spacing: 0.15em;
             font-weight: 500;
+            white-space: nowrap;
         }
         
         .tool-status.live { color: var(--success); }
@@ -1015,7 +1036,7 @@
                 <div class="section">
                     <div class="section-header">
                         <h2 class="section-title">Available Tools</h2>
-                        <span class="section-meta">2 Live · 2 In Development</span>
+                        <span class="section-meta">2 Live &middot; 1 Beta &middot; 5 Coming Soon</span>
                     </div>
                     <div class="tools-grid">
                         <a href="/beam/" class="tool-card clickable">
@@ -1042,46 +1063,41 @@
                             <div class="tool-desc">Grillage and frame analysis. 3D FEM solver, Timoshenko beams, EN 10067 sections.</div>
                             <div class="tool-cta">Open <span>&rarr;</span></div>
                         </a>
-                        <a href="/lumocad/" class="tool-card clickable">
+                        <div class="tool-card soon-card">
                             <div class="tool-header">
                                 <div class="tool-name">LumoCAD</div>
-                                <div class="tool-status beta">Beta</div>
+                                <div class="tool-status soon">Coming Soon</div>
                             </div>
                             <div class="tool-desc">2D drafting in the browser. DXF import and export, layers, blocks, dimensions.</div>
-                            <div class="tool-cta">Open <span>&rarr;</span></div>
-                        </a>
-                        <a href="/nr467/" class="tool-card clickable">
+                        </div>
+                        <div class="tool-card soon-card">
                             <div class="tool-header">
                                 <div class="tool-name">NR467 Scantlings</div>
-                                <div class="tool-status beta">Beta</div>
+                                <div class="tool-status soon">Coming Soon</div>
                             </div>
                             <div class="tool-desc">Local scantlings to BV NR467 &mdash; fore, aft, machinery space and deckhouse in one wizard.</div>
-                            <div class="tool-cta">Open <span>&rarr;</span></div>
-                        </a>
-                        <a href="/nr615/" class="tool-card clickable">
+                        </div>
+                        <div class="tool-card soon-card">
                             <div class="tool-header">
                                 <div class="tool-name">NR615 Buckling</div>
-                                <div class="tool-status beta">Beta</div>
+                                <div class="tool-status soon">Coming Soon</div>
                             </div>
                             <div class="tool-desc">Buckling of plated structures to BV NR615 R07. Prescriptive and advanced methods.</div>
-                            <div class="tool-cta">Open <span>&rarr;</span></div>
-                        </a>
-                        <a href="/midship/" class="tool-card clickable">
+                        </div>
+                        <div class="tool-card soon-card">
                             <div class="tool-header">
                                 <div class="tool-name">Midship Scantling</div>
-                                <div class="tool-status beta">Beta</div>
+                                <div class="tool-status soon">Coming Soon</div>
                             </div>
                             <div class="tool-desc">Rule-based midship section design with DNV, LR, BV and RINA support.</div>
-                            <div class="tool-cta">Open <span>&rarr;</span></div>
-                        </a>
-                        <a href="/shipstruct/" class="tool-card clickable">
+                        </div>
+                        <div class="tool-card soon-card">
                             <div class="tool-header">
                                 <div class="tool-name">ShipStruct Modeler</div>
-                                <div class="tool-status beta">Beta</div>
+                                <div class="tool-status soon">Coming Soon</div>
                             </div>
                             <div class="tool-desc">Quick structural model set-up for ship sections.</div>
-                            <div class="tool-cta">Open <span>&rarr;</span></div>
-                        </a>
+                        </div>
 
                     </div>
                 </div>
