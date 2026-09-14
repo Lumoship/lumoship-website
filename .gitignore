@@ -11,3 +11,7 @@ client_secret*.json
 # Isletim sistemi / editor artiklari
 .DS_Store
 Thumbs.db
+
+# Saglayici anahtari tasir - asla yayina/depoya girmez.
+clausefinder/config.json
+**/config.json
