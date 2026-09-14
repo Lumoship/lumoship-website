@@ -470,15 +470,19 @@
                 const mirrorModal = document.getElementById('mirrorModal');
                 const splitModal = document.getElementById('splitModal');
                 
-                if (copyModal && copyModal.style.display !== 'none') {
+                // Acik olmanin olcusu 'active' sinifi, display DEGIL.
+                // display'e bakan eski kontrol, pencere hic acilmamisken bile
+                // 'none' olmadigi icin "acik" sanip Escape'i yutacakti:
+                // secim temizlenmezdi.
+                if (copyModal && copyModal.classList.contains('active')) {
                     closeCopyModal();
                     return;
                 }
-                if (mirrorModal && mirrorModal.style.display !== 'none') {
+                if (mirrorModal && mirrorModal.classList.contains('active')) {
                     closeMirrorModal();
                     return;
                 }
-                if (splitModal && splitModal.style.display !== 'none') {
+                if (splitModal && splitModal.classList.contains('active')) {
                     closeSplitModal();
                     return;
                 }

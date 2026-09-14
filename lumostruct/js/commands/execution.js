@@ -410,13 +410,15 @@
                     const dy = oldNode.y - cy;
                     const newX = cx + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
                     const newY = cy + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
-                    
-                    const existingNodeId = findNodeAtLocation(newX, newY);
-                    if (existingNodeId) {
+                    // Dondurme XY duzleminde; kot degismez ama KORUNMALI.
+                    const newZ = (typeof oldNode.z === 'number' && isFinite(oldNode.z)) ? oldNode.z : 0;
+
+                    const existingNodeId = findNodeAtLocation(newX, newY, newZ);
+                    if (existingNodeId !== null) {
                         nodeMap[oldNodeId] = existingNodeId;
                     } else {
                         const newId = nextNodeId++;
-                        model.nodes[newId] = { id: newId, x: newX, y: newY };
+                        model.nodes[newId] = { id: newId, x: newX, y: newY, z: newZ };
                         nodeMap[oldNodeId] = newId;
                     }
                 }
@@ -507,13 +509,15 @@
                     // Mirror point
                     const newX = 2 * projX - oldNode.x;
                     const newY = 2 * projY - oldNode.y;
-                    
-                    const existingNodeId = findNodeAtLocation(newX, newY);
-                    if (existingNodeId) {
+                    // Ayna dogrusu XY duzleminde; kot degismez ama KORUNMALI.
+                    const newZ = (typeof oldNode.z === 'number' && isFinite(oldNode.z)) ? oldNode.z : 0;
+
+                    const existingNodeId = findNodeAtLocation(newX, newY, newZ);
+                    if (existingNodeId !== null) {
                         nodeMap[oldNodeId] = existingNodeId;
                     } else {
                         const newId = nextNodeId++;
-                        model.nodes[newId] = { id: newId, x: newX, y: newY };
+                        model.nodes[newId] = { id: newId, x: newX, y: newY, z: newZ };
                         nodeMap[oldNodeId] = newId;
                     }
                 }
@@ -579,17 +583,20 @@
             ratio = Math.max(0.01, Math.min(0.99, ratio));
             
             // Create split point
+            const z1 = (typeof n1.z === 'number' && isFinite(n1.z)) ? n1.z : 0;
+            const z2 = (typeof n2.z === 'number' && isFinite(n2.z)) ? n2.z : 0;
             const splitX = n1.x + (n2.x - n1.x) * ratio;
             const splitY = n1.y + (n2.y - n1.y) * ratio;
-            
-            const existingNodeId = findNodeAtLocation(splitX, splitY);
+            const splitZ = z1 + (z2 - z1) * ratio;
+
+            const existingNodeId = findNodeAtLocation(splitX, splitY, splitZ);
             let splitNodeId;
-            
-            if (existingNodeId) {
+
+            if (existingNodeId !== null) {
                 splitNodeId = existingNodeId;
             } else {
                 splitNodeId = nextNodeId++;
-                model.nodes[splitNodeId] = { id: splitNodeId, x: splitX, y: splitY };
+                model.nodes[splitNodeId] = { id: splitNodeId, x: splitX, y: splitY, z: splitZ };
             }
             
             // Create two new beams
@@ -671,22 +678,26 @@
             const n2 = model.nodes[elem.n2];
             if (!n1 || !n2) return;
             
+            const z1 = (typeof n1.z === 'number' && isFinite(n1.z)) ? n1.z : 0;
+            const z2 = (typeof n2.z === 'number' && isFinite(n2.z)) ? n2.z : 0;
             const dx = n2.x - n1.x;
             const dy = n2.y - n1.y;
-            
+            const dz = z2 - z1;
+
             // Create split nodes
             const splitNodes = [];
             for (let i = 1; i < parts; i++) {
                 const ratio = i / parts;
                 const x = n1.x + dx * ratio;
                 const y = n1.y + dy * ratio;
-                
-                const existing = findNodeAtLocation(x, y);
-                if (existing) {
+                const z = z1 + dz * ratio;
+
+                const existing = findNodeAtLocation(x, y, z);
+                if (existing !== null) {
                     splitNodes.push(existing);
                 } else {
                     const newId = nextNodeId++;
-                    model.nodes[newId] = { id: newId, x, y };
+                    model.nodes[newId] = { id: newId, x, y, z };
                     splitNodes.push(newId);
                 }
             }
@@ -925,10 +936,12 @@
                 const intT = intersections[0].t;
                 
                 // Create node at intersection
-                let intNodeId = findNodeAtLocation(intersections[0].x, intersections[0].y);
-                if (!intNodeId) {
+                // Kesisim artik z de tasiyor (findIntersectionsWithExistingBeams
+                // uc boyutlu kontrol yapiyor), dugum de tasisin.
+                let intNodeId = findNodeAtLocation(intersections[0].x, intersections[0].y, intersections[0].z);
+                if (intNodeId === null) {
                     intNodeId = nextNodeId++;
-                    model.nodes[intNodeId] = { id: intNodeId, x: intersections[0].x, y: intersections[0].y };
+                    model.nodes[intNodeId] = { id: intNodeId, x: intersections[0].x, y: intersections[0].y, z: intersections[0].z || 0 };
                 }
                 
                 if (clickT < intT) {
@@ -956,10 +969,10 @@
                 // Create beams for non-clicked segments
                 let prevNodeId = elem.n1;
                 intersections.forEach((int, i) => {
-                    let intNodeId = findNodeAtLocation(int.x, int.y);
-                    if (!intNodeId) {
+                    let intNodeId = findNodeAtLocation(int.x, int.y, int.z);
+                    if (intNodeId === null) {
                         intNodeId = nextNodeId++;
-                        model.nodes[intNodeId] = { id: intNodeId, x: int.x, y: int.y };
+                        model.nodes[intNodeId] = { id: intNodeId, x: int.x, y: int.y, z: int.z || 0 };
                     }
                     
                     // Check if this segment contains the click

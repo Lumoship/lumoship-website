@@ -3086,6 +3086,179 @@
         </div>
     </div>
 
+    <!-- ================================================================
+         DUZENLEME PENCERELERI  -  Copy / Mirror / Split
+         ----------------------------------------------------------------
+         Bu ucunun JS'i vardi, HTML'i yoktu. Kisayol (Ctrl+D), sag tik menusu
+         ve sag paneldeki dugmeler cagiriyor, hicbir sey acilmiyordu; arayuz
+         denetimi bunu "eksik pencere" olarak bildirdi.
+
+         Alan adlari mantikta YAZILI - degistirilemez:
+           copyOffsetX/Y/Z, copyCount, copyArrayMode, copyArrayOptions,
+           copyArrayCols/Rows/Layers, copySpacingX/Y/Z
+           mirrorAxis (radyo), mirrorPos (radyo), mirrorCustomPos,
+           mirrorKeepOriginal
+           splitMethod (radyo), splitBeamName, splitBeamLength,
+           splitRatio, splitDistance, splitParts
+         ================================================================ -->
+
+    <!-- Copy -->
+    <div class="modal-overlay" id="copyModal" onclick="closeCopyModal()">
+        <div class="modal" style="max-width:440px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2><span class="icon"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span> Copy Beams</h2>
+                <button class="modal-close" onclick="closeCopyModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:var(--space-5);">
+                <div id="copySelectionInfo" style="color:var(--text-2); font-size:var(--fs-sm); margin-bottom:var(--space-3);"></div>
+
+                <div class="form-group">
+                    <label>Offset (m)</label>
+                    <div class="form-row-3">
+                        <input type="number" id="copyOffsetX" value="0" step="0.1" placeholder="X" title="Offset along X">
+                        <input type="number" id="copyOffsetY" value="0" step="0.1" placeholder="Y" title="Offset along Y">
+                        <input type="number" id="copyOffsetZ" value="0" step="0.1" placeholder="Z" title="Offset along Z">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Number of copies</label>
+                    <input type="number" id="copyCount" value="1" min="1" max="200" step="1">
+                </div>
+
+                <label class="modal-checkbox" style="margin-bottom:var(--space-3);">
+                    <input type="checkbox" id="copyArrayMode">
+                    <span style="color:var(--text); font-size:var(--fs-md);">Rectangular array instead</span>
+                </label>
+
+                <div id="copyArrayOptions" style="display:none;">
+                    <div class="form-group">
+                        <label>Count &mdash; columns (X), rows (Y), layers (Z)</label>
+                        <div class="form-row-3">
+                            <input type="number" id="copyArrayCols" value="2" min="1" max="100" step="1" title="Columns along X">
+                            <input type="number" id="copyArrayRows" value="2" min="1" max="100" step="1" title="Rows along Y">
+                            <input type="number" id="copyArrayLayers" value="1" min="1" max="100" step="1" title="Layers along Z">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Spacing (m)</label>
+                        <div class="form-row-3">
+                            <input type="number" id="copySpacingX" value="1" step="0.1" title="Spacing along X">
+                            <input type="number" id="copySpacingY" value="1" step="0.1" title="Spacing along Y">
+                            <input type="number" id="copySpacingZ" value="0" step="0.1" title="Spacing along Z">
+                        </div>
+                    </div>
+                    <div style="color:var(--text-2); font-size:var(--fs-sm);">The original occupies the first cell.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeCopyModal()">Cancel</button>
+                <button class="btn-primary" onclick="executeCopy()">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mirror -->
+    <div class="modal-overlay" id="mirrorModal" onclick="closeMirrorModal()">
+        <div class="modal" style="max-width:440px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2><span class="icon"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="20" x2="12" y2="4"/></svg></span> Mirror Beams</h2>
+                <button class="modal-close" onclick="closeMirrorModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:var(--space-5);">
+                <div id="mirrorSelectionInfo" style="color:var(--text-2); font-size:var(--fs-sm); margin-bottom:var(--space-3);"></div>
+
+                <div class="form-group">
+                    <label>Mirror about</label>
+                    <div class="modal-radio-group">
+                        <label class="modal-radio-item" onclick="selectMirrorAxis('x')">
+                            <input type="radio" name="mirrorAxis" value="x" checked>
+                            <span class="radio-content"><span class="radio-label">X axis &mdash; Y is flipped</span></span>
+                        </label>
+                        <label class="modal-radio-item" onclick="selectMirrorAxis('y')">
+                            <input type="radio" name="mirrorAxis" value="y">
+                            <span class="radio-content"><span class="radio-label">Y axis &mdash; X is flipped</span></span>
+                        </label>
+                        <label class="modal-radio-item" onclick="selectMirrorAxis('z')">
+                            <input type="radio" name="mirrorAxis" value="z">
+                            <span class="radio-content"><span class="radio-label">XY plane &mdash; Z is flipped</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Mirror position</label>
+                    <div class="modal-radio-group">
+                        <label class="modal-radio-item" onclick="selectMirrorPosition('center')">
+                            <input type="radio" name="mirrorPos" value="center" checked>
+                            <span class="radio-content"><span class="radio-label">Centre of selection</span></span>
+                        </label>
+                        <label class="modal-radio-item" onclick="selectMirrorPosition('origin')">
+                            <input type="radio" name="mirrorPos" value="origin">
+                            <span class="radio-content"><span class="radio-label">Origin (0)</span></span>
+                        </label>
+                        <label class="modal-radio-item" onclick="selectMirrorPosition('custom')">
+                            <input type="radio" name="mirrorPos" value="custom">
+                            <span class="radio-content"><span class="radio-label">At coordinate</span></span>
+                            <span class="radio-input"><input type="number" id="mirrorCustomPos" value="0" step="0.1" onfocus="selectMirrorPosition('custom')"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <label class="modal-checkbox">
+                    <input type="checkbox" id="mirrorKeepOriginal" checked>
+                    <span style="color:var(--text); font-size:var(--fs-md);">Keep the original</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeMirrorModal()">Cancel</button>
+                <button class="btn-primary" onclick="executeMirror()">Mirror</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split -->
+    <div class="modal-overlay" id="splitModal" onclick="closeSplitModal()">
+        <div class="modal" style="max-width:440px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2><span class="icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span> Split Beam</h2>
+                <button class="modal-close" onclick="closeSplitModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:var(--space-5);">
+                <div style="display:flex; justify-content:space-between; gap:var(--space-3); background:var(--bg-main); border-radius:var(--r-ctl); padding:var(--space-2) var(--space-3); margin-bottom:var(--space-3); font-size:var(--fs-sm);">
+                    <span id="splitBeamName" style="color:var(--text); font-weight:600;">-</span>
+                    <span id="splitBeamLength" style="color:var(--text-2);">-</span>
+                </div>
+
+                <div class="modal-radio-group">
+                    <label class="modal-radio-item" onclick="selectSplitMethod('midpoint')">
+                        <input type="radio" name="splitMethod" value="midpoint" checked>
+                        <span class="radio-content"><span class="radio-label">At midpoint</span></span>
+                    </label>
+                    <label class="modal-radio-item" onclick="selectSplitMethod('ratio')">
+                        <input type="radio" name="splitMethod" value="ratio">
+                        <span class="radio-content"><span class="radio-label">At ratio (0&ndash;1)</span></span>
+                        <span class="radio-input"><input type="number" id="splitRatio" value="0.5" min="0.01" max="0.99" step="0.05" onfocus="selectSplitMethod('ratio')"></span>
+                    </label>
+                    <label class="modal-radio-item" onclick="selectSplitMethod('distance')">
+                        <input type="radio" name="splitMethod" value="distance">
+                        <span class="radio-content"><span class="radio-label">At distance from start (m)</span></span>
+                        <span class="radio-input"><input type="number" id="splitDistance" value="1" min="0.01" step="0.1" onfocus="selectSplitMethod('distance')"></span>
+                    </label>
+                    <label class="modal-radio-item" onclick="selectSplitMethod('equal')">
+                        <input type="radio" name="splitMethod" value="equal">
+                        <span class="radio-content"><span class="radio-label">Into equal parts</span></span>
+                        <span class="radio-input"><input type="number" id="splitParts" value="2" min="2" max="100" step="1" onfocus="selectSplitMethod('equal')"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSplitModal()">Cancel</button>
+                <button class="btn-primary" onclick="executeSplit()">Split</button>
+            </div>
+        </div>
+    </div>
+
     <!-- AutoCAD-style Command Bar -->
     <!-- Komut cubugu uc bolum: sol bolum sol panelin, orta bolum tuvalin, sag
          bolum sag panelin genisligindedir; genislikleri js/ui/layout.js

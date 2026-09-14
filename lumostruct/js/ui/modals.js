@@ -19,6 +19,80 @@
             return ids;
         }
         
+        // ================================================================
+        //  DUZENLEME PENCERELERI  (Copy / Mirror / Split)
+        // ----------------------------------------------------------------
+        //  Bu uc pencerenin MANTIGI vardi ama HTML'i yoktu: kisayol, sag tik
+        //  menusu ve sag paneldeki dugmeler cagiriyor, hicbir sey acilmiyordu.
+        //  Arayuz denetimi (tests/ui-audit.js) uc "eksik pencere" bulgusu
+        //  olarak bunu yakaladi.
+        //
+        //  Pencereler geri kurulurken mantigin UC BOYUTLU olmadigi ortaya
+        //  cikti: turetilen her dugum yalnizca x-y aliyor, z dusuyordu. Uc
+        //  boyutlu bir cercevede bu, kopyalanan her seyin z=0 duzlemine
+        //  yigilmasi demek. Pencereleri bu haliyle geri koymak calismayan bir
+        //  seyi calisiyor gibi gostermek olurdu; o yuzden z de eklendi.
+        // ================================================================
+
+        // Dugumun kotu: z yoksa sifir (iki boyutlu cizimden gelen dugumler).
+        function kirisKotu(n) { return (n && typeof n.z === 'number' && isFinite(n.z)) ? n.z : 0; }
+
+        // Secili kirislerin BUTUN dugumleri - uc islem de ayni seyi istiyor.
+        function secilenKirisDugumleri(ids) {
+            const k = new Set();
+            ids.forEach(id => {
+                const e = model.elements[id];
+                if (e) { k.add(e.n1); k.add(e.n2); }
+            });
+            return k;
+        }
+
+        // Bir dugum kumesini verilen donusumden gecirip yeni dugumler uretir.
+        // Ayni yerde dugum varsa YENISINI ACMAZ, mevcudu kullanir: kopyalanan
+        // parca komsusuna gercekten baglansin diye.
+        function dugumleriTuret(dugumler, donustur, yeniIdler) {
+            const harita = {};
+            dugumler.forEach(eski => {
+                const d = model.nodes[eski];
+                if (!d) return;
+                const y = donustur(d);
+                const varOlan = findNodeAtLocation(y.x, y.y, y.z);
+                if (varOlan !== null) { harita[eski] = varOlan; return; }
+                const yeni = nextNodeId++;
+                model.nodes[yeni] = { id: yeni, x: y.x, y: y.y, z: y.z };
+                harita[eski] = yeni;
+                if (yeniIdler) yeniIdler.push(yeni);
+            });
+            return harita;
+        }
+
+        // Kirisleri haritaya gore yeniden kurar (kesisimlerde otomatik boler).
+        function kirisleriTuret(ids, harita, yeniKirisler) {
+            ids.forEach(eski => {
+                const e = model.elements[eski];
+                if (!e) return;
+                const a = harita[e.n1], b = harita[e.n2];
+                if (a === undefined || b === undefined) return;
+                yeniKirisler.push(...createBeamWithIntersections(a, b, e.section, e.orientation || 0));
+            });
+        }
+
+        // Pencereyi ac/kapat. DIKKAT: .modal-overlay varsayilan olarak
+        // opacity:0 + visibility:hidden. Yalnizca display'i degistirmek
+        // pencereyi GORUNUR YAPMAZ - gorunurlugu 'active' sinifi veriyor.
+        // Eski kod display ile ugrasiyordu; markup geri gelse bile bos ekran
+        // acilacakti.
+        function pencereAc(id) {
+            const m = document.getElementById(id);
+            if (!m) return null;
+            m.classList.add('active');
+            return m;
+        }
+        function pencereKapat(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove('active');
+        }
+
         // ----- COPY MODAL -----
         function showCopyModal() {
             const selectedBeamIds = getSelectedBeamIds();
@@ -28,14 +102,16 @@
                 return;
             }
             
-            const modal = document.getElementById('copyModal');
+            const modal = pencereAc('copyModal');
             if (!modal) {
                 showToast('Copy modal not found', 'error');
                 return;
             }
-            
-            modal.style.display = 'flex';
-            
+
+            const bilgi = document.getElementById('copySelectionInfo');
+            if (bilgi) bilgi.textContent = selectedBeamIds.length + ' beam' +
+                (selectedBeamIds.length === 1 ? '' : 's') + ' selected';
+
             setTimeout(() => {
                 const input = document.getElementById('copyOffsetX');
                 if (input) input.focus();
@@ -51,87 +127,48 @@
             }
         }
         
-        function closeCopyModal() {
-            const modal = document.getElementById('copyModal');
-            if (modal) modal.style.display = 'none';
-        }
+        function closeCopyModal() { pencereKapat('copyModal'); }
         
         function executeCopy() {
             const offsetX = parseFloat(document.getElementById('copyOffsetX')?.value) || 0;
             const offsetY = parseFloat(document.getElementById('copyOffsetY')?.value) || 0;
+            const offsetZ = parseFloat(document.getElementById('copyOffsetZ')?.value) || 0;
             const copyCount = parseInt(document.getElementById('copyCount')?.value) || 1;
             const arrayMode = document.getElementById('copyArrayMode')?.checked;
-            
+
             if (arrayMode) {
                 executeArrayCopy();
                 return;
             }
-            
+
             const selectedBeamIds = getSelectedBeamIds();
             if (selectedBeamIds.length === 0) {
                 closeCopyModal();
                 showToast('No beams selected', 'warning');
                 return;
             }
-            
+            // Sifir oteleme sessizce "hicbir sey olmadi" demek olurdu; kullanici
+            // kopyanin nereye gittigini arar. Soyle.
+            if (!offsetX && !offsetY && !offsetZ) {
+                showToast('Offset is zero - the copy would sit on the original', 'warning');
+                return;
+            }
+
             const allNewBeamIds = [];
             const allNewNodeIds = [];
-            
+            const kaynak = secilenKirisDugumleri(selectedBeamIds);
+
+            // Her kopya BIR ONCEKINDEN degil ORIJINALDEN oteleniyor: n. kopya
+            // n*oteleme kadar uzakta. Zincirleme otelemede yuvarlama hatasi
+            // birikir ve son kopyalar izgaraya tam oturmaz.
             for (let copyNum = 1; copyNum <= copyCount; copyNum++) {
-                const currentOffsetX = offsetX * copyNum;
-                const currentOffsetY = offsetY * copyNum;
-                
-                // Map old node IDs to new node IDs
-                const nodeMap = {};
-                
-                // Collect nodes from beams
-                const nodesToCopy = new Set();
-                selectedBeamIds.forEach(elemId => {
-                    const elem = model.elements[elemId];
-                    if (elem) {
-                        nodesToCopy.add(elem.n1);
-                        nodesToCopy.add(elem.n2);
-                    }
-                });
-                
-                // Create new nodes at offset positions
-                nodesToCopy.forEach(oldNodeId => {
-                    const oldNode = model.nodes[oldNodeId];
-                    if (oldNode) {
-                        const newX = oldNode.x + currentOffsetX;
-                        const newY = oldNode.y + currentOffsetY;
-                        
-                        // Check if node exists at this location
-                        const existingNodeId = findNodeAtLocation(newX, newY);
-                        if (existingNodeId) {
-                            nodeMap[oldNodeId] = existingNodeId;
-                        } else {
-                            const newId = nextNodeId++;
-                            model.nodes[newId] = { id: newId, x: newX, y: newY };
-                            nodeMap[oldNodeId] = newId;
-                            allNewNodeIds.push(newId);
-                        }
-                    }
-                });
-                
-                // Create new beams with intersection handling
-                selectedBeamIds.forEach(oldElemId => {
-                    const oldElem = model.elements[oldElemId];
-                    if (oldElem) {
-                        const n1Id = nodeMap[oldElem.n1];
-                        const n2Id = nodeMap[oldElem.n2];
-                        
-                        // Create beam with automatic intersection splitting
-                        const newBeamIds = createBeamWithIntersections(
-                            n1Id, n2Id, 
-                            oldElem.section, 
-                            oldElem.orientation || 0
-                        );
-                        allNewBeamIds.push(...newBeamIds);
-                    }
-                });
+                const dx = offsetX * copyNum, dy = offsetY * copyNum, dz = offsetZ * copyNum;
+                const nodeMap = dugumleriTuret(kaynak,
+                    d => ({ x: d.x + dx, y: d.y + dy, z: kirisKotu(d) + dz }),
+                    allNewNodeIds);
+                kirisleriTuret(selectedBeamIds, nodeMap, allNewBeamIds);
             }
-            
+
             // Select new elements
             clearSelection();
             allNewBeamIds.forEach(id => selectedElements.add(id));
@@ -147,93 +184,68 @@
             showToast(`Created ${allNewBeamIds.length} beams (${copyCount} copies)`);
         }
         
-        function findNodeAtLocation(x, y, tolerance = 0.01) {
+        // z VERILMEZSE yalnizca planda arar - eski davranis, iki boyutlu
+        // cizim yollari buna guveniyor. Uc boyutlu islemler z'yi VERMELI:
+        // ayni plan noktasinda ama baska kotadaki dugum BASKA bir dugumdur ve
+        // ikisini birlestirmek modele olmayan bir bag ekler.
+        function findNodeAtLocation(x, y, z, tolerance = 0.01) {
+            const zVar = (typeof z === 'number' && isFinite(z));
             for (const [nodeId, node] of Object.entries(model.nodes)) {
-                if (Math.abs(node.x - x) < tolerance && Math.abs(node.y - y) < tolerance) {
-                    return parseInt(nodeId);
-                }
+                if (Math.abs(node.x - x) >= tolerance) continue;
+                if (Math.abs(node.y - y) >= tolerance) continue;
+                if (zVar && Math.abs(kirisKotu(node) - z) >= tolerance) continue;
+                return parseInt(nodeId);
             }
             return null;
         }
         
+        // Dizi kopyasi UC yonlu: sutun (X), satir (Y), kat (Z).
+        // Kat boyutu gemi isinde bedava gelmiyor - guverte guverte tekrar eden
+        // bir cerceve tam olarak budur; iki boyutlu birakmak, isin yarisini
+        // elle yaptirmak olurdu.
         function executeArrayCopy() {
             const cols = parseInt(document.getElementById('copyArrayCols')?.value) || 2;
             const rows = parseInt(document.getElementById('copyArrayRows')?.value) || 2;
+            const lays = parseInt(document.getElementById('copyArrayLayers')?.value) || 1;
             const spacingX = parseFloat(document.getElementById('copySpacingX')?.value) || 1;
             const spacingY = parseFloat(document.getElementById('copySpacingY')?.value) || 1;
-            
+            const spacingZ = parseFloat(document.getElementById('copySpacingZ')?.value) || 0;
+
             const selectedBeamIds = getSelectedBeamIds();
             if (selectedBeamIds.length === 0) {
                 closeCopyModal();
                 return;
             }
-            
+
             const allNewBeamIds = [];
             const allNewNodeIds = [];
-            
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    if (row === 0 && col === 0) continue; // Skip original position
-                    
-                    const currentOffsetX = spacingX * col;
-                    const currentOffsetY = spacingY * row;
-                    
-                    const nodeMap = {};
-                    const nodesToCopy = new Set();
-                    
-                    selectedBeamIds.forEach(elemId => {
-                        const elem = model.elements[elemId];
-                        if (elem) {
-                            nodesToCopy.add(elem.n1);
-                            nodesToCopy.add(elem.n2);
-                        }
-                    });
-                    
-                    nodesToCopy.forEach(oldNodeId => {
-                        const oldNode = model.nodes[oldNodeId];
-                        if (oldNode) {
-                            const newX = oldNode.x + currentOffsetX;
-                            const newY = oldNode.y + currentOffsetY;
-                            
-                            const existingNodeId = findNodeAtLocation(newX, newY);
-                            if (existingNodeId) {
-                                nodeMap[oldNodeId] = existingNodeId;
-                            } else {
-                                const newId = nextNodeId++;
-                                model.nodes[newId] = { id: newId, x: newX, y: newY };
-                                nodeMap[oldNodeId] = newId;
-                                allNewNodeIds.push(newId);
-                            }
-                        }
-                    });
-                    
-                    selectedBeamIds.forEach(oldElemId => {
-                        const oldElem = model.elements[oldElemId];
-                        if (oldElem) {
-                            const newBeamIds = createBeamWithIntersections(
-                                nodeMap[oldElem.n1], 
-                                nodeMap[oldElem.n2], 
-                                oldElem.section, 
-                                oldElem.orientation || 0
-                            );
-                            allNewBeamIds.push(...newBeamIds);
-                        }
-                    });
+            const kaynak = secilenKirisDugumleri(selectedBeamIds);
+
+            for (let lay = 0; lay < Math.max(1, lays); lay++) {
+                for (let row = 0; row < Math.max(1, rows); row++) {
+                    for (let col = 0; col < Math.max(1, cols); col++) {
+                        if (row === 0 && col === 0 && lay === 0) continue; // orijinalin yeri
+                        const dx = spacingX * col, dy = spacingY * row, dz = spacingZ * lay;
+                        const nodeMap = dugumleriTuret(kaynak,
+                            d => ({ x: d.x + dx, y: d.y + dy, z: kirisKotu(d) + dz }),
+                            allNewNodeIds);
+                        kirisleriTuret(selectedBeamIds, nodeMap, allNewBeamIds);
+                    }
                 }
             }
-            
+
             clearSelection();
             allNewBeamIds.forEach(id => selectedElements.add(id));
             allNewNodeIds.forEach(id => selectedElements.add(id));
-            
+
             results = null;
             if (currentViewMode === '3d') update3DScene();
             else draw();
-            
+
             updateEntityInfoPanel();
             saveState();
             closeCopyModal();
-            showToast(`Created ${cols}×${rows} array (${allNewBeamIds.length} new beams)`);
+            showToast(`Created ${cols}×${rows}${lays > 1 ? '×' + lays : ''} array (${allNewBeamIds.length} new beams)`);
         }
         
         // ----- MIRROR MODAL -----
@@ -245,13 +257,15 @@
                 return;
             }
             
-            const modal = document.getElementById('mirrorModal');
+            const modal = pencereAc('mirrorModal');
             if (!modal) {
                 showToast('Mirror modal not found', 'error');
                 return;
             }
-            
-            modal.style.display = 'flex';
+
+            const bilgi = document.getElementById('mirrorSelectionInfo');
+            if (bilgi) bilgi.textContent = selectedBeamIds.length + ' beam' +
+                (selectedBeamIds.length === 1 ? '' : 's') + ' selected';
             
             // Reset selections
             document.querySelectorAll('#mirrorModal .modal-radio-item').forEach(item => {
@@ -271,10 +285,7 @@
             }
         }
         
-        function closeMirrorModal() {
-            const modal = document.getElementById('mirrorModal');
-            if (modal) modal.style.display = 'none';
-        }
+        function closeMirrorModal() { pencereKapat('mirrorModal'); }
         
         function selectMirrorAxis(axis) {
             document.querySelectorAll('#mirrorModal input[name="mirrorAxis"]').forEach(input => {
@@ -302,90 +313,96 @@
             const axisInput = document.querySelector('#mirrorModal input[name="mirrorAxis"]:checked');
             const posInput = document.querySelector('#mirrorModal input[name="mirrorPos"]:checked');
             
+            // AYNA DUZLEMI. 'x' -> X eksenine gore, yani Y isaret degistirir.
+            // 'y' -> Y eksenine gore, X degisir. 'z' -> yatay XY duzlemine
+            // gore, Z degisir; uc boyutlu modelde en cok istenen bu (bir
+            // guverteyi asagi/yukari yansitmak).
+            //
+            // Degisen KOORDINAT hangisi ise, ayna konumu da o eksen uzerinde
+            // olculur. Eskiden bu iki yerde ayri ayri yaziliydi ve z yoktu.
             const axis = axisInput?.value || 'x';
             const posType = posInput?.value || 'center';
             const keepOriginal = document.getElementById('mirrorKeepOriginal')?.checked ?? true;
             const customPos = parseFloat(document.getElementById('mirrorCustomPos')?.value) || 0;
-            
+
             const selectedBeamIds = getSelectedBeamIds();
             if (selectedBeamIds.length === 0) {
                 closeMirrorModal();
                 showToast('No beams selected', 'warning');
                 return;
             }
-            
-            // Calculate mirror line position
+
+            // Hangi koordinat cevrilecek?
+            const eksen = (axis === 'x') ? 'y' : (axis === 'z') ? 'z' : 'x';
+            const oku = d => (eksen === 'z') ? kirisKotu(d) : d[eksen];
+
+            const nodesToMirror = secilenKirisDugumleri(selectedBeamIds);
+
+            // Ayna konumu
             let mirrorPos = 0;
-            
             if (posType === 'center') {
-                let sumX = 0, sumY = 0, count = 0;
-                selectedBeamIds.forEach(elemId => {
-                    const elem = model.elements[elemId];
-                    if (!elem) return;
-                    const n1 = model.nodes[elem.n1];
-                    const n2 = model.nodes[elem.n2];
-                    if (n1) { sumX += n1.x; sumY += n1.y; count++; }
-                    if (n2) { sumX += n2.x; sumY += n2.y; count++; }
+                let toplam = 0, adet = 0;
+                nodesToMirror.forEach(id => {
+                    const d = model.nodes[id];
+                    if (d) { toplam += oku(d); adet++; }
                 });
-                mirrorPos = count > 0 ? (axis === 'x' ? sumY / count : sumX / count) : 0;
+                mirrorPos = adet > 0 ? toplam / adet : 0;
             } else if (posType === 'origin') {
                 mirrorPos = 0;
             } else {
                 mirrorPos = customPos;
             }
-            
-            // Collect nodes
-            const nodesToMirror = new Set();
-            selectedBeamIds.forEach(elemId => {
-                const elem = model.elements[elemId];
-                if (elem) {
-                    nodesToMirror.add(elem.n1);
-                    nodesToMirror.add(elem.n2);
+
+            // AYNA SECIMI KENDI UZERINE DUSURUYOR MU?
+            //
+            // Iki hal var ve ikisi de ayni sonucu veriyor: ayna duzlemi tam
+            // kirislerin uzerinden geciyorsa dugumler yerinde kalir; secimin
+            // KENDI ortasindan geciyorsa dugumler yer degistirir ama KUME ayni
+            // kalir (1 -> 5, 5 -> 1). Her iki halde de var olan kirislerin
+            // USTUNE ikinci bir takim kurulur: ekranda hicbir sey degismis
+            // gorunmez, ama model iki kat rijittir. Sessizce yanlis sonuc
+            // veren turden bir hata - kopyadaki sifir oteleme korumasinin
+            // ayni sebebi.
+            //
+            // Olcut tek tek dugumler DEGIL, sonucun kendisi: aynalanan her
+            // kiris zaten varsa yapilacak bir sey yok. Kontrol dugum YARATMADAN
+            // yapiliyor, yoksa vazgecince ortada oksuz dugumler kalirdi.
+            {
+                const cift = new Set();
+                Object.values(model.elements).forEach(e => {
+                    cift.add(e.n1 + '>' + e.n2);
+                    cift.add(e.n2 + '>' + e.n1);
+                });
+                const deneme = {};
+                nodesToMirror.forEach(id => {
+                    const d = model.nodes[id];
+                    if (!d) return;
+                    const y = { x: d.x, y: d.y, z: kirisKotu(d) };
+                    y[eksen] = 2 * mirrorPos - oku(d);
+                    deneme[id] = findNodeAtLocation(y.x, y.y, y.z);
+                });
+                const hepsiVar = selectedBeamIds.every(id => {
+                    const e = model.elements[id];
+                    if (!e) return true;
+                    const a = deneme[e.n1], b = deneme[e.n2];
+                    return a !== null && b !== null && a !== undefined && b !== undefined &&
+                           cift.has(a + '>' + b);
+                });
+                if (hepsiVar) {
+                    showToast('Mirror lands on the selection itself - nothing would be added', 'warning');
+                    return;
                 }
-            });
-            
-            const nodeMap = {};
+            }
+
             const newBeamIds = [];
             const newNodeIds = [];
-            
-            // Create mirrored nodes
-            nodesToMirror.forEach(oldNodeId => {
-                const oldNode = model.nodes[oldNodeId];
-                if (oldNode) {
-                    let newX = oldNode.x, newY = oldNode.y;
-                    
-                    if (axis === 'x') {
-                        newY = 2 * mirrorPos - oldNode.y;
-                    } else {
-                        newX = 2 * mirrorPos - oldNode.x;
-                    }
-                    
-                    // Check if node exists at mirrored location
-                    const existingNodeId = findNodeAtLocation(newX, newY);
-                    if (existingNodeId) {
-                        nodeMap[oldNodeId] = existingNodeId;
-                    } else {
-                        const newId = nextNodeId++;
-                        model.nodes[newId] = { id: newId, x: newX, y: newY };
-                        nodeMap[oldNodeId] = newId;
-                        newNodeIds.push(newId);
-                    }
-                }
-            });
-            
-            // Create mirrored beams with intersection handling
-            selectedBeamIds.forEach(oldElemId => {
-                const oldElem = model.elements[oldElemId];
-                if (oldElem) {
-                    const newIds = createBeamWithIntersections(
-                        nodeMap[oldElem.n1],
-                        nodeMap[oldElem.n2],
-                        oldElem.section,
-                        oldElem.orientation || 0
-                    );
-                    newBeamIds.push(...newIds);
-                }
-            });
+            const nodeMap = dugumleriTuret(nodesToMirror, d => {
+                const y = { x: d.x, y: d.y, z: kirisKotu(d) };
+                y[eksen] = 2 * mirrorPos - oku(d);
+                return y;
+            }, newNodeIds);
+
+            kirisleriTuret(selectedBeamIds, nodeMap, newBeamIds);
             
             // If not keeping original, delete them
             if (!keepOriginal) {
@@ -410,7 +427,7 @@
             updateEntityInfoPanel();
             saveState();
             closeMirrorModal();
-            showToast(`Mirrored ${newBeamIds.length} beams about ${axis.toUpperCase()} axis`);
+            showToast(`Mirrored ${newBeamIds.length} beams - ${eksen.toUpperCase()} flipped about ${mirrorPos.toFixed(3)}`);
         }
         
         // ----- SPLIT MODAL -----
@@ -442,8 +459,10 @@
                 return;
             }
             
-            const length = Math.sqrt((n2.x - n1.x)**2 + (n2.y - n1.y)**2);
-            
+            // Kiris boyu UC BOYUTLU. Egik bir kirisi planda olcmek onu
+            // kisaltir; "0.6 m'den bol" dendiginde yanlis yere dugum acardi.
+            const length = Math.hypot(n2.x - n1.x, n2.y - n1.y, kirisKotu(n2) - kirisKotu(n1));
+
             const beamNameEl = document.getElementById('splitBeamName');
             const beamLengthEl = document.getElementById('splitBeamLength');
             const distanceInput = document.getElementById('splitDistance');
@@ -452,13 +471,11 @@
             if (beamLengthEl) beamLengthEl.textContent = length.toFixed(3) + ' m';
             if (distanceInput) distanceInput.max = (length - 0.01).toFixed(2);
             
-            const modal = document.getElementById('splitModal');
+            const modal = pencereAc('splitModal');
             if (!modal) {
                 showToast('Split modal not found', 'error');
                 return;
             }
-            
-            modal.style.display = 'flex';
             
             // Reset selections
             document.querySelectorAll('#splitModal .modal-radio-item').forEach(item => {
@@ -472,10 +489,7 @@
             }
         }
         
-        function closeSplitModal() {
-            const modal = document.getElementById('splitModal');
-            if (modal) modal.style.display = 'none';
-        }
+        function closeSplitModal() { pencereKapat('splitModal'); }
         
         function selectSplitMethod(method) {
             document.querySelectorAll('#splitModal input[name="splitMethod"]').forEach(input => {
@@ -515,10 +529,11 @@
                 return;
             }
             
-            const length = Math.sqrt((n2.x - n1.x)**2 + (n2.y - n1.y)**2);
             const dx = n2.x - n1.x;
             const dy = n2.y - n1.y;
-            
+            const dz = kirisKotu(n2) - kirisKotu(n1);
+            const length = Math.hypot(dx, dy, dz);
+
             let splitPoints = []; // Ratios where to split (0 to 1)
             
             if (method === 'midpoint') {
@@ -545,14 +560,15 @@
             splitPoints.forEach(ratio => {
                 const newX = n1.x + dx * ratio;
                 const newY = n1.y + dy * ratio;
-                
+                const newZ = kirisKotu(n1) + dz * ratio;
+
                 // Check if node exists at this location
-                const existingNodeId = findNodeAtLocation(newX, newY);
-                if (existingNodeId) {
+                const existingNodeId = findNodeAtLocation(newX, newY, newZ);
+                if (existingNodeId !== null) {
                     newNodes.push(existingNodeId);
                 } else {
                     const newId = nextNodeId++;
-                    model.nodes[newId] = { id: newId, x: newX, y: newY };
+                    model.nodes[newId] = { id: newId, x: newX, y: newY, z: newZ };
                     newNodes.push(newId);
                 }
             });

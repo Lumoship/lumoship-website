@@ -63,6 +63,11 @@
             return null;
         }
         
+        // Dugumun kotu. Iki boyutlu cizimden gelen dugumlerde z yok; yoklugu
+        // sifir demek - modelin geri kalani da boyle sayiyor.
+        function dugumKotu(n) { return (n && typeof n.z === 'number' && isFinite(n.z)) ? n.z : 0; }
+        const KESISIM_TOL = 0.01;   // 1 cm - dugum aramadaki tolerans ile ayni
+
         function findIntersectionsWithExistingBeams(newN1, newN2, excludeElemIds = []) {
             // Find all intersections between a new beam (newN1 to newN2) and existing beams
             const intersections = [];
@@ -76,9 +81,22 @@
                 
                 const inter = lineIntersection(newN1, newN2, n1, n2);
                 if (inter) {
+                    // PLANDA kesismek YETMEZ. lineIntersection yalnizca x-y'ye
+                    // bakiyor; bu, iki kiris birbirinin ustunden geciyorsa da
+                    // "kesisti" der. Uc boyutlu bir modelde bunun bedeli agir:
+                    // baska bir kotaya kopyalanan her kiris, altindan gecen her
+                    // seye dugumle yapisiyordu.
+                    //
+                    // Gercek kesisim, planda kesistikleri yerde IKI kirisin de
+                    // ayni kotada olmasini ister. Yeni kirisin t noktasindaki
+                    // z'si ile mevcut kirisin u noktasindaki z'sini karsilastir.
+                    const zYeni = dugumKotu(newN1) + inter.t * (dugumKotu(newN2) - dugumKotu(newN1));
+                    const zVar  = dugumKotu(n1) + inter.u * (dugumKotu(n2) - dugumKotu(n1));
+                    if (Math.abs(zYeni - zVar) > KESISIM_TOL) return;
                     intersections.push({
                         x: inter.x,
                         y: inter.y,
+                        z: zYeni,
                         t: inter.t, // Position on new beam (0-1)
                         existingElemId: parseInt(elemId),
                         existingT: inter.u // Position on existing beam (0-1)
@@ -91,18 +109,20 @@
             return intersections;
         }
         
-        function createNodeAtIntersection(x, y) {
+        function createNodeAtIntersection(x, y, z) {
             // Check if a node already exists at this location
             const tolerance = 0.01; // 1cm tolerance
+            const kz = (typeof z === 'number' && isFinite(z)) ? z : 0;
             for (const [nodeId, node] of Object.entries(model.nodes)) {
-                if (Math.abs(node.x - x) < tolerance && Math.abs(node.y - y) < tolerance) {
+                if (Math.abs(node.x - x) < tolerance && Math.abs(node.y - y) < tolerance &&
+                    Math.abs(dugumKotu(node) - kz) < tolerance) {
                     return parseInt(nodeId); // Return existing node
                 }
             }
             
             // Create new node
             const newId = nextNodeId++;
-            model.nodes[newId] = { id: newId, x: x, y: y };
+            model.nodes[newId] = { id: newId, x: x, y: y, z: kz };
             return newId;
         }
         
@@ -157,7 +177,7 @@
             
             intersections.forEach(inter => {
                 // Create or find node at intersection
-                const nodeId = createNodeAtIntersection(inter.x, inter.y);
+                const nodeId = createNodeAtIntersection(inter.x, inter.y, inter.z);
                 splitNodes.push(nodeId);
                 
                 // Split the existing beam at this intersection
