@@ -69,17 +69,18 @@
             const cat = (typeof HP_CATALOG !== 'undefined')
                 ? HP_CATALOG.find(hp => hp.b === bMM && hp.t === tMM) : null;
 
-            // Turetilmis katalog satiri sessizce kullanilmasin: degerler
-            // fiziksel olarak makul ama EN 10067 ile DOGRULANMADI.
-            if (cat && cat.turetilmis) {
-                debugWarn('Profile ' + cat.name + ' uses DERIVED catalogue values, not EN 10067 - the published row was inconsistent with its own family. See js/core/data.js.');
-            }
-
             let A = cat ? cat.A : B * T * 1.2;                    // cm2
             let Iy = cat ? cat.Ixx : T * Math.pow(B, 3) / 12 * 1.3;
-            // Katalogdaki dx GOVDE DIBINDEN (plakanin oturdugu yuz) olculur:
-            // HP200x10 icin 11,54 cm, elle hesapla 11,89 cm - bulb ucundan
-            // olcseydi 10 cm'in altinda olurdu. plakaliKesitSI de boyle okuyor.
+            // Katalogdaki dx GOVDE DIBINDEN (plakanin oturdugu yuz) olculur;
+            // HP200x10 icin 11,97 cm. Bulb ucundan olcseydi 8 cm civari
+            // olurdu. plakaliKesitSI de boyle okuyor.
+            //
+            // TARIHCE: burada bir zamanlar "katalog 11,54 diyor, elle hesap
+            // 11,89 veriyor" yazan bir not duruyordu ve fark aciklanip
+            // gecilmisti. Aciklanacak bir sey degildi - KATALOG YANLISTI.
+            // Elle hesap hakliydi. Bir olcumle model arasindaki 3 mm'lik fark
+            // "herhalde olcum boyle tanimliyor" diye kapatilinca, bir daha
+            // acilmiyor. 2026-09-14'te katalog EN 10067'ye gore yenilendi.
             let centroidY = cat ? cat.dx : B / 2;                 // cm
 
             const kor = (typeof korMM === 'number' && isFinite(korMM) && korMM > 0) ? korMM : 0;

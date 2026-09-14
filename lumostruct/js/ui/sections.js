@@ -801,7 +801,15 @@
             const fy = mat.yield / 1e6;                 // MPa
             setText('dispE', '210 000');
             setText('dispSigmaY', fy.toFixed(0));
-            setText('steelGradeEcho', grade + '  (σy = ' + fy.toFixed(0) + ' MPa)');
+            // Modelde birden fazla sinif varsa bunu soyle: asagidaki gerilme
+            // sinirlari MODEL GENELIDIR, secili sinifa gore dolar. Karisik bir
+            // modelde "AH36 secili" yazip Grade A kirisleri ayni sinirla
+            // olcmek, fazla gerilmis bir elemani guvenli gostermenin yoludur.
+            const siniflar = (typeof kullanilanSiniflar === 'function') ? kullanilanSiniflar(grade) : [grade];
+            const karisik = siniflar.length > 1;
+            setText('steelGradeEcho', grade + '  (σy = ' + fy.toFixed(0) + ' MPa)' +
+                (karisik ? '  -  modelde ' + siniflar.length + ' sinif var: ' + siniflar.join(', ') +
+                           '  (asagidaki sinirlar model geneli)' : ''));
 
             // The stress limits follow the grade. Leaving them on a stale 355 while the
             // user picks Grade A is how an overstressed member gets reported as safe.

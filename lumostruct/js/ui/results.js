@@ -147,13 +147,22 @@
                 const grade = document.getElementById('steelGrade')?.value || 'AH36';
                 // MATERIALS stores yield in Pa already, under 'yield' - reading '.fy' here
                 // always came back undefined and quietly pinned every grade to 355.
-                const ReH = MATERIALS[grade]?.yield || 355e6; // Pa
-                const sqrtRatio = Math.sqrt(ReH / 235e6);
+                //
+                // Akma gerilmesi ELEMAN BASINA okunur: kirise ayri bir sinif
+                // atanabiliyor ve bu kontrol gecti/kaldi veriyor. Genel sinifi
+                // kullanmak, AH36 atanmis bir kirisi Grade A siniriyla
+                // olcmek demekti.
+                const genelMat = MATERIALS[grade];
+                const kokOran = mat => Math.sqrt((mat?.yield || 355e6) / 235e6);
 
                 // Check each element
                 Object.values(model.elements).forEach(elem => {
                     const sec = SECTIONS[elem.section];
                     if (!sec) { unchecked++; return; }
+
+                    // Narinlik sinirlari akma gerilmesine bagli; akma da
+                    // ELEMANIN kendi celik sinifina.
+                    const sqrtRatio = kokOran(elemanMalzemesi(elem, genelMat));
 
                     // Get profile dimensions
                     const sectionName = elem.section.split('_')[0];

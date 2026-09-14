@@ -694,7 +694,18 @@
         function drawSectionDiagram(sectionName, orientation = 0) {
             const svg = document.getElementById('sectionSvg');
             if (!svg) return;
-            
+
+            // Kesiti olmayan kiris BUTUN PANELI dusurmemeli. Adi okunamayinca
+            // eskiden burada TypeError firliyor, cagri zinciri
+            // updateEntityInfoPanel'e kadar kopuyor ve sag panel bos kaliyordu -
+            // kullanici bir kirise tikliyor, hicbir sey olmuyor. Ice aktarilan
+            // modelde kesitsiz eleman olabiliyor; soyle ve devam et.
+            if (typeof sectionName !== 'string' || !sectionName) {
+                svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" ' +
+                    'fill="var(--text-2)" font-size="12">No section assigned</text>';
+                return;
+            }
+
             // Parse composite section: PROFILE_PLATEWxPLATET
             let profilePart = sectionName;
             let plateW = 0, plateT = 0;

@@ -441,7 +441,7 @@
             const nNodes = Object.keys(model.nodes).length;
             const nDof = nNodes * 6;
             const grade = document.getElementById('steelGrade').value;
-            const mat = MATERIALS[grade];
+            const genelMat = MATERIALS[grade];
             
             // Initialize K and F. K is symmetric and nearly empty, so it is held sparse
             // - see js/core/linsolve.js. Dense storage cost 44 MB and 49 s at 400 nodes.
@@ -509,6 +509,10 @@
                 const rij = rijitUclar(elem, L, yayiliVar);
                 const Lk = rij.Lf;
                 
+                // Elemanin KENDI sinifi varsa o kullanilir (bkz. data.js
+                // elemanMalzemesi). Bu satira kadar butun model tek bir
+                // acilir listenin sinifiyla cozuluyordu.
+                const mat = elemanMalzemesi(elem, genelMat);
                 const E = mat.E;
                 const G = mat.G;
                 const A = sec.A;
@@ -932,6 +936,9 @@
             
             Object.entries(model.elements).forEach(([elemKey, elem]) => {
                 const elemId = parseInt(elemKey);
+                // Ic kuvvetler de elemanin KENDI malzemesiyle geri okunur -
+                // montajda hangi E ve G ile kurulduysa, ayni ikisiyle.
+                const mat = elemanMalzemesi(elem, genelMat);
                 const n1 = model.nodes[elem.n1];
                 const n2 = model.nodes[elem.n2];
                 const sec = SECTIONS[elem.section];
