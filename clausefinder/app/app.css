@@ -643,3 +643,117 @@ body.mode-search .sv{display:flex}
 .doc p.note{font-size:12.5px;color:var(--tx-2)}
 .doc figure{margin:18px 0;text-align:center}
 .doc figcaption{margin-top:8px;font-size:12px;color:var(--tx-3)}
+
+/* ─────────── telefon ───────────
+   Olculdu (386 px): gezinti 296 px, icerik 90 px, ust cubuk 1400 px - sayfa
+   yatay kayiyordu. Asagisi 720 px altinda dort sutunlu izgarayi tek sutuna
+   indirir, gezintiyi cekmece yapar, ust cubugu iki satira sarar. */
+.navbtn{display:none}
+.nav-backdrop{display:none}
+
+@media (max-width:720px){
+  html,body{height:100%}
+  body{display:flex;flex-direction:column;overflow:hidden}
+
+  /* ust cubuk: sarilir, yuksekligi icerikten gelir */
+  .appbar{height:auto;min-height:var(--bar-h);flex-wrap:wrap;align-items:center;gap:0 6px;padding:8px 10px;flex:none}
+  .navbtn{display:grid;order:0}
+  .brand{order:1;flex:1 1 auto;min-width:0}
+  /* Zorunlu satir sonu (tam genislikte sifir yukseklikli sozde oge): marka
+     satirindan sonra hicbir cip yukari kacmasin - Ask dugmesi var/yok fark etmez. */
+  .appbar::before{content:"";display:block;flex:0 0 100%;height:0;order:3}
+  .brand-txt p{display:none}                     /* alt baslik: yer yok */
+  .appbar-right{order:2;margin-left:auto;gap:4px}
+  #chipStats,#chipStatus{display:none}            /* durum cipleri: telefonda gurultu */
+  #helpBtn{display:none}                          /* klavye kisayollari - klavye yok */
+  .askbtn{height:34px}
+
+  /* Cipler ust cubugun kendi akisina katilir (display:contents): 2. satir
+     sinif + kitap, 3. satir kapsam + arama. Ayri bir kaydirilan satir DEGIL -
+     overflow:auto acilir menuleri (position:absolute) kirpiyordu. */
+  .pickers{display:contents}
+  .pick-wrap{order:4;flex:none;max-width:100%;margin-top:6px}
+  .pick-wrap:has(.bookpick){flex:1 1 200px;min-width:0}
+  .pick-wrap:has(.scopepick){order:5}
+  .bookpick{max-width:100%;width:100%}
+  .bookpick-code{display:none}                    /* sinif cipi zaten BV/DNV/LR diyor */
+  .bookpick-name{max-width:none;flex:1;min-width:0;text-align:left}
+  .scopepick-val{max-width:110px}
+  /* menu: ekrana sabit, iki yandan 10 px; top:auto -> dugmenin altinda */
+  .bookmenu{position:fixed;top:auto;left:10px;right:10px;width:auto;min-width:0;max-height:60vh;overflow-y:auto}
+
+  /* arama: kapsam cipinin yanindaki kalan yer; kisayol etiketi yok */
+  .omni{order:5;flex:1 1 140px;min-width:0;max-width:none;height:34px;margin-top:6px}
+  .omni kbd{display:none}
+  .omni span{display:none}
+  .omni::after{content:"Search";flex:1;text-align:left}
+
+  /* govde: tek sutun; ust cubuk ne kadar uzarsa uzasin kalan yeri alir */
+  /* Tek sutun. Gezinti ve perde position:fixed ile akistan cikinca izgaranin
+     ilk akis-ici cocugu .reader oluyor; dort sutunlu sablonda 0 px'lik ilk
+     sutuna dusup 0 genislik aliyordu. */
+  /* z-index:auto - masaustundeki z-index:1 bir yigin baglami kuruyor; icindeki
+     sabit konumlu cekmece (160) ve Ask (170) o baglamin disina cikamayip ust
+     cubugun (60) altinda kaliyordu. */
+  .shell,body.nav-hidden .shell{height:auto;flex:1;min-height:0;z-index:auto;grid-template-columns:minmax(0,1fr)}
+  .shell>*{grid-column:1}
+  .outline{display:none}
+  .nav-resize{display:none}
+
+  /* gezinti: soldan kayan cekmece */
+  .nav{position:fixed;top:0;left:0;bottom:0;width:min(86vw,340px);z-index:160;
+    background:var(--bg-2);box-shadow:0 0 0 1px var(--line),12px 0 40px rgba(0,0,0,.45);
+    transform:translateX(-102%);transition:transform .22s var(--ease);opacity:1;pointer-events:auto}
+  body.nav-open .nav{transform:none}
+  body.nav-hidden .nav{opacity:1;pointer-events:auto}   /* masaustu B kisayolu telefonda gecersiz */
+  .nav-backdrop{display:block;position:fixed;inset:0;z-index:150;background:rgba(3,7,16,.55);
+    backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .22s}
+  body.nav-open .nav-backdrop{opacity:1;pointer-events:auto}
+
+  /* dokunma hedefleri */
+  .t-row{padding:9px 10px;font-size:13.5px;min-height:40px}
+  .t-sec{padding:8px 10px;font-size:13px;min-height:40px}
+  .nav-filter input{height:38px;font-size:14px}
+  .ghost{height:34px;font-size:12px}
+
+  /* icerik */
+  .doc{padding:12px 14px 40px;max-width:100%}
+  .doc h1.x_node_title{font-size:21px}
+  .doc img,.doc svg,.doc table{max-width:100%}
+  .doc table{display:block;overflow-x:auto}
+
+  /* arama gorunumu */
+  .sv-head{padding:12px 14px 0}
+  .sv-body{grid-template-columns:minmax(0,1fr)}
+  .sv-facets{display:none}
+  .sv-results{padding:10px 10px 80px}
+  .grp-head{gap:8px;padding:10px 10px;flex-wrap:wrap}
+  .grp-main{flex:1 1 200px}                       /* baslik ilk satir, sayac + dugme alta sarar */
+  .grp-n,.grp-open{margin-left:auto}
+  .hit{gap:8px;padding:10px 10px}
+  .hit-no{min-width:36px}
+
+  /* Ask: tam ekran sayfa */
+  .ask{top:0;left:0;width:100vw;z-index:170;border-left:0}
+  body.ask-open .shell{padding-right:0}          /* masaustunde icerigi kaydiran bosluk */
+  .ask-note{font-size:10.5px;padding:8px 14px}
+  .ask-log{padding:12px}
+
+  /* iOS Safari 16 px altindaki alanlara odaklaninca sayfayi yakinlastirir */
+  #askInput,#sq,.palette-input input,.nav-filter input{font-size:16px}
+
+  /* komut paleti: ust bosluk daha az, klavye acilinca sigsin */
+  .palette-wrap{padding:4vh 8px 8px;align-items:flex-start}
+  .palette{max-height:88vh}
+  .palette-input{padding:12px 14px;gap:9px}
+  .palette-count{display:none}                    /* "22+ quick results" sigmiyor */
+  .palette-scopes{overflow-x:auto;scrollbar-width:none;padding:8px 10px}
+  .palette-scopes::-webkit-scrollbar{display:none}
+  .scope{flex:none;min-height:32px}
+  .p-item{gap:8px;padding:9px 8px}
+  .p-badge{width:auto;min-width:22px}             /* 56 px rozet sutunu telefonda israf */
+  .palette-foot{display:none}                     /* klavye ipuclari - klavye yok */
+
+  /* toast alttaki tarayici cubuguna girmesin */
+  .toast{bottom:max(18px,env(safe-area-inset-bottom))}
+}

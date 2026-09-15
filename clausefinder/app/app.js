@@ -706,6 +706,9 @@ function route() {
 }
 
 function go(bookId, secId, anchor) {
+  // Telefonda gezinti bir cekmece: bir bolume dokununca kapanir, yoksa
+  // secilen bolum cekmecenin arkasinda kalir.
+  cekmeceKapat();
   const target = `#/${bookId}/${secId}${anchor ? '/' + anchor : ''}`;
   if (location.hash === target) { scrollToAnchor(anchor); return; }
   location.hash = target;
@@ -1075,7 +1078,30 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 
 /* ══════════════════════════════ events ══════════════════════════════ */
 
+/* ── telefon: gezinti cekmecesi ──
+   Masaustunde gezinti hep acik; bu uc fonksiyon yalnizca 720 px altinda
+   anlam tasir (CSS orada .nav'i cekmeceye ceviriyor). Masaustunde cagrilmalari
+   zararsiz - body.nav-open sinifinin orada hicbir kurali yok. */
+const TELEFON = () => window.matchMedia('(max-width:720px)').matches;
+function cekmeceAc() {
+  document.body.classList.add('nav-open');
+  const b = $('#navBtn'); if (b) b.setAttribute('aria-expanded', 'true');
+}
+function cekmeceKapat() {
+  if (!document.body.classList.contains('nav-open')) return;
+  document.body.classList.remove('nav-open');
+  const b = $('#navBtn'); if (b) b.setAttribute('aria-expanded', 'false');
+}
+
 function bindGlobal() {
+  $('#navBtn')?.addEventListener('click', () =>
+    document.body.classList.contains('nav-open') ? cekmeceKapat() : cekmeceAc());
+  $('#navBackdrop')?.addEventListener('click', cekmeceKapat);
+  // Telefonda Escape once cekmeceyi kapatsin (asagidaki genel Escape
+  // kurallarindan once, capture asamasinda).
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && TELEFON() && document.body.classList.contains('nav-open')) { cekmeceKapat(); e.stopPropagation(); }
+  }, true);
   $('#tree').addEventListener('click', e => {
     // narrow the search to this branch
     const sc = e.target.closest('[data-scope-part]');
