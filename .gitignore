@@ -12,3 +12,7 @@ client_secret*.json
 .DS_Store
 Thumbs.db
 .supabase-key
+
+# Saglayici anahtari tasir - asla yayina/depoya girmez.
+clausefinder/config.json
+**/config.json

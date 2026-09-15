@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClauseFinder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/app.css">
+<style>
+  /* Safety net: overlays default to display:grid/flex, so the plain [hidden]
+     attribute is not strong enough on its own. Kept inline so it applies even
+     if the external stylesheet is stale in a browser cache. */
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<!-- ─────────────  APP BAR  ───────────── -->
+<header class="appbar">
+  <div class="brand" id="goHome" role="button" tabindex="0" title="Home">
+    <div class="logo">L</div>
+    <div class="brand-txt">
+      <h1>ClauseFinder</h1>
+      <p id="brandSub">Engineering rule reader</p>
+    </div>
+  </div>
+
+  <div class="pickers">
+    <div class="pick-wrap">
+      <button class="classpick" id="classPick" aria-haspopup="listbox" aria-expanded="false" title="Class society">
+        <span class="classpick-code" id="classCode">—</span>
+        <svg viewBox="0 0 16 16" class="chev"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="bookmenu" id="classMenu" role="listbox" hidden></div>
+    </div>
+    <div class="pick-wrap">
+      <button class="bookpick" id="bookPick" aria-haspopup="listbox" aria-expanded="false">
+        <span class="bookpick-code" id="bookCode">—</span>
+        <span class="bookpick-name" id="bookName">Loading…</span>
+        <svg viewBox="0 0 16 16" class="chev"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="bookmenu" id="bookMenu" role="listbox" hidden></div>
+    </div>
+
+    <div class="pick-wrap">
+      <button class="scopepick" id="scopePick" aria-haspopup="listbox" aria-expanded="false" title="What search and Ask look at">
+        <span class="scopepick-lbl">search in</span>
+        <span class="scopepick-val" id="scopeVal">this book</span>
+        <svg viewBox="0 0 16 16" class="chev"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="bookmenu" id="scopeMenu" role="listbox" hidden></div>
+    </div>
+  </div>
+
+  <button class="omni" id="omniBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <span>Search clauses, sections, figures…</span>
+    <kbd>Ctrl</kbd><kbd>K</kbd>
+  </button>
+
+  <div class="appbar-right">
+    <button class="askbtn" id="askBtn" hidden title="Ask the assistant (Ctrl+I)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+      Ask
+    </button>
+    <span class="chip live" id="chipStatus">Offline</span>
+    <span class="chip" id="chipStats">—</span>
+    <button class="iconbtn" id="themeBtn" title="Toggle theme (T)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <button class="iconbtn" id="helpBtn" title="Keyboard shortcuts (?)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 1 1 3.6 2.7c-.7.3-.8.8-.8 1.6"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ─────────────  SHELL  ───────────── -->
+<div class="shell">
+
+  <!-- TOC -->
+  <aside class="nav" id="nav">
+    <div class="nav-head">
+      <div class="nav-filter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="navFilter" type="text" placeholder="Filter contents" autocomplete="off" spellcheck="false">
+        <button class="clearx" id="navClear" hidden aria-label="Clear">&times;</button>
+      </div>
+    </div>
+    <div class="nav-scroll" id="tree"></div>
+    <div class="nav-foot">
+      <button class="ghost" id="expandAll">Expand all</button>
+      <button class="ghost" id="collapseAll">Collapse all</button>
+    </div>
+  </aside>
+
+  <div class="nav-resize" id="navResize" aria-hidden="true"></div>
+
+  <!-- READER -->
+  <main class="reader" id="reader">
+    <div class="crumb" id="crumb"></div>
+    <article class="doc" id="doc">
+      <div class="welcome" id="welcome">
+        <div class="w-badge">Offline rule reader</div>
+        <h2>Open a section, or press <kbd>Ctrl</kbd><kbd>K</kbd></h2>
+        <p id="welcomeSub">Full text, figures and formulae — with every internal cross-reference wired up.</p>
+        <div class="w-cards" id="welcomeCards"></div>
+        <div class="w-recent" id="welcomeRecent"></div>
+      </div>
+    </article>
+    <nav class="pager" id="pager" hidden>
+      <button class="pagebtn" id="prevSec"><span class="k">[</span><div><em>Previous</em><b id="prevLabel"></b></div></button>
+      <button class="pagebtn right" id="nextSec"><div><em>Next</em><b id="nextLabel"></b></div><span class="k">]</span></button>
+    </nav>
+  </main>
+
+  <!-- ─────────────  SEARCH RESULTS  ───────────── -->
+  <section class="sv" id="searchview" hidden>
+    <header class="sv-head">
+      <div class="sv-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="sq" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Search every rule book — words, &quot;exact phrase&quot;, or a clause number">
+        <button class="clearx" id="sqClear" hidden aria-label="Clear">&times;</button>
+      </div>
+      <div class="sv-meta">
+        <span class="sv-count" id="svCount"></span>
+        <span class="sv-sort">
+          <button class="seg active" data-sort="rel">Best match</button
+          ><button class="seg" data-sort="doc">Book order</button>
+        </span>
+        <label class="sv-toggle"><input type="checkbox" id="svWhole"> Whole words</label>
+        <button class="sv-ask" id="svAsk" hidden title="Answer this from the matching clauses (Ctrl+I)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+          Ask about this
+        </button>
+        <span class="grow"></span>
+        <span class="sv-syntax" id="svSyntax"></span>
+      </div>
+    </header>
+
+    <div class="sv-body">
+      <aside class="sv-facets" id="svFacets"></aside>
+      <div class="sv-results" id="svResults"></div>
+    </div>
+  </section>
+
+  <!-- ─────────────  ASK PANEL  ───────────── -->
+  <aside class="ask" id="askPanel" hidden>
+    <header class="ask-head">
+      <div class="ask-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+        <div>
+          <b>Ask the rules</b>
+          <span id="askModel"></span>
+        </div>
+      </div>
+      <button class="iconbtn" id="askNew" title="New question">＋</button>
+      <button class="iconbtn" id="askClose" title="Close (Esc)">&times;</button>
+    </header>
+    <div class="ask-note">
+      Answers are written only from clauses found in your rule books, and every claim is
+      linked back to the clause it came from. Check the citations before you rely on an answer.
+    </div>
+    <div class="ask-log" id="askLog"></div>
+    <form class="ask-form" id="askForm">
+      <textarea id="askInput" rows="2" placeholder="Ask in any language — the answer comes back in the same one…"></textarea>
+      <button type="submit" class="ask-send" id="askSend" title="Send (Enter)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+  </aside>
+
+  <!-- match navigator, shown in the reader after arriving from a search -->
+  <div class="matchbar" id="matchbar" hidden>
+    <button class="mb-back" id="mbBack">&larr; Results</button>
+    <span class="mb-term" id="mbTerm"></span>
+    <span class="mb-count" id="mbCount"></span>
+    <button class="mb-nav" id="mbPrev" title="Previous match (Shift+Enter)">&uarr;</button>
+    <button class="mb-nav" id="mbNext" title="Next match (Enter)">&darr;</button>
+    <button class="mb-x" id="mbClear" title="Clear highlight (Esc)">&times;</button>
+  </div>
+
+  <!-- OUTLINE -->
+  <aside class="outline" id="outline">
+    <div class="outline-head">On this page</div>
+    <div class="outline-scroll" id="outlineList"></div>
+  </aside>
+</div>
+
+<!-- ─────────────  COMMAND PALETTE  ───────────── -->
+<div class="palette-wrap" id="palette" hidden>
+  <div class="palette-scrim" id="paletteScrim"></div>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="palette-input">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="pq" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Clause number, keyword, or &quot;exact phrase&quot;…">
+      <span class="palette-count" id="pcount"></span>
+    </div>
+    <div class="palette-scopes" id="pscopes">
+      <button class="scope active" data-scope="all">All</button>
+      <button class="scope" data-scope="clause">Clauses</button>
+      <button class="scope" data-scope="section">Sections</button>
+      <button class="scope" data-scope="figure">Figures &amp; formulae</button>
+    </div>
+    <div class="palette-list" id="plist"></div>
+    <div class="palette-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+      <span><kbd>Enter</kbd> open</span>
+      <span><kbd>Esc</kbd> close</span>
+      <span class="grow"></span>
+      <span id="pscopehint">Tip: <code>6.3.2</code> jumps straight to a clause</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────  LIGHTBOX  ───────────── -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-scrim" id="lbScrim"></div>
+  <figure class="lb-fig">
+    <img id="lbImg" alt="">
+    <figcaption>
+      <div class="lb-label" id="lbLabel"></div>
+      <div class="lb-text" id="lbText"></div>
+      <button class="ghost" id="lbCopy">Copy text equivalent</button>
+    </figcaption>
+  </figure>
+</div>
+
+<!-- ─────────────  SHORTCUTS  ───────────── -->
+<div class="sheet" id="help" hidden>
+  <div class="sheet-scrim" id="helpScrim"></div>
+  <div class="sheet-body">
+    <h3>Keyboard</h3>
+    <dl>
+      <dt><kbd>Ctrl</kbd><kbd>K</kbd></dt><dd>Command palette — <kbd>Enter</kbd> opens the full results page</dd>
+      <dt><kbd>Ctrl</kbd><kbd>F</kbd></dt><dd>Focus the search field</dd>
+      <dt><kbd>↑</kbd><kbd>↓</kbd> / <kbd>j</kbd><kbd>k</kbd></dt><dd>Move through results, <kbd>Enter</kbd> to open</dd>
+      <dt><kbd>Enter</kbd></dt><dd>In a section: jump to the next match (<kbd>Shift</kbd> for previous)</dd>
+      <dt><kbd>/</kbd></dt><dd>Filter the contents tree</dd>
+      <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Previous / next section</dd>
+      <dt><kbd>T</kbd></dt><dd>Toggle light / dark</dd>
+      <dt><kbd>B</kbd></dt><dd>Toggle contents panel</dd>
+      <dt><kbd>Alt</kbd><kbd>←</kbd></dt><dd>Back</dd>
+      <dt><kbd>?</kbd></dt><dd>This panel</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close overlays</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="cf-config.js"></script>
+<script src="lib/semantic-web.js"></script>
+<script src="app/app.js"></script>
+<script src="app/ask.js"></script>
+</body>
+</html>
