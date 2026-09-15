@@ -11,3 +11,4 @@ client_secret*.json
 # Isletim sistemi / editor artiklari
 .DS_Store
 Thumbs.db
+.supabase-key
