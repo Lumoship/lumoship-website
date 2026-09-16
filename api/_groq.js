@@ -6,24 +6,27 @@
  * that other people can open the page - so the key moves to an environment
  * variable and the guard becomes a rate limit.
  *
- * GROQ_API_KEY must be set in the Vercel project settings. It is never sent to
+ * AI_API_KEY (or GROQ_API_KEY) must be set in the Vercel project settings. It is never sent to
  * the browser, and there is no endpoint that echoes it back.
  */
 
-const DEFAULT_EP = 'https://api.groq.com/openai/v1/chat/completions';
+/* Provider selection. Two env names for the key: AI_API_KEY is the generic one,
+   GROQ_API_KEY the historical one - either works, so switching provider is a
+   matter of AI_PROVIDER=anthropic + AI_MODEL=claude-sonnet-5 + the key. */
+const { callModel: callShared, normalise } = require('./_model');
 
 function config() {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.AI_API_KEY || process.env.GROQ_API_KEY;
   if (!apiKey) return null;
-  return {
+  return normalise({
     apiKey,
     provider: process.env.AI_PROVIDER || 'groq',
-    model: process.env.AI_MODEL || 'openai/gpt-oss-120b',
-    fallbackModel: process.env.AI_FALLBACK_MODEL || 'llama-3.3-70b-versatile',
-    endpoint: process.env.AI_ENDPOINT || DEFAULT_EP,
-    temperature: Number(process.env.AI_TEMPERATURE || 0.15),
-    maxTokens: Number(process.env.AI_MAX_TOKENS || 2400)
-  };
+    model: process.env.AI_MODEL,
+    fallbackModel: process.env.AI_FALLBACK_MODEL,
+    endpoint: process.env.AI_ENDPOINT,
+    temperature: process.env.AI_TEMPERATURE,
+    maxTokens: process.env.AI_MAX_TOKENS
+  });
 }
 
 /* ── rate limit ──────────────────────────────────────────────────────
@@ -88,54 +91,6 @@ async function readBody(req) {
   catch (e) { return {}; }
 }
 
-/* Same model call the desktop server makes, including the fallback: a model can
-   be decommissioned overnight and a 404 should not read as "Ask is broken". */
-async function callModel(cfg, messages, opts) {
-  opts = opts || {};
-  const models = [cfg.model, cfg.fallbackModel].filter(Boolean);
-  let last = null;
-
-  const send = (model, effort) => {
-    const b = {
-      model,
-      temperature: opts.temperature != null ? opts.temperature : cfg.temperature,
-      max_tokens: opts.maxTokens || cfg.maxTokens,
-      stream: !!opts.stream,
-      messages
-    };
-    if (effort) b.reasoning_effort = effort;
-    return fetch(cfg.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.apiKey },
-      body: JSON.stringify(b),
-      signal: AbortSignal.timeout(opts.timeout || 60000)
-    });
-  };
-
-  for (let i = 0; i < models.length; i++) {
-    let r;
-    try {
-      r = await send(models[i], opts.reasoningEffort);
-      if (!r.ok && opts.reasoningEffort) {
-        const t0 = await r.text();
-        if (/reasoning/i.test(t0)) r = await send(models[i], null);
-        else r = { ok: false, status: r.status, text: async () => t0 };
-      }
-    } catch (e) {
-      last = { status: 504, text: e.name === 'TimeoutError'
-        ? 'The provider did not answer in time.' : String(e.message || e) };
-      continue;
-    }
-    if (r.ok) return r;
-    const t = await r.text();
-    last = { status: r.status, text: t };
-    const retryable = r.status === 404 || r.status === 429 ||
-                      /decommission|does not exist|not found|model/i.test(t);
-    if (!retryable) break;
-  }
-  const e = new Error(last ? String(last.text).slice(0, 600) : 'no model configured');
-  e.status = last ? last.status : 502;
-  throw e;
-}
+const callModel = (cfg, messages, opts) => callShared(cfg, messages, opts);
 
 module.exports = { config, callModel, fail, readBody, rateLimited };
