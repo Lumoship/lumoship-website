@@ -645,7 +645,7 @@
             setStyle('entityInfoMulti', 'display', 'block');
             setText('infoMultiNodes', nodeCount);
             setText('infoMultiBeams', beamCount);
-            cokluDugumListesiniYaz();
+            cokluDugumKartlariniYaz();
             cokluMesnetKutulariniOku();
             
             // Show/hide sections based on selection
@@ -665,33 +665,151 @@
             if (beamActionsSection) beamActionsSection.style.display = beamCount > 0 ? 'block' : 'none';
         }
         
-        // Secili dugumlerin koordinat listesi (mm). Ust uste binen ya da cok
-        // yakin iki dugum ekranda tek gorunuyor; kullanici ikisini secince
-        // ayni mi, kac mm ayri mi gorebilmeli. Iki dugumde aralarindaki
-        // uzaklik da yazilir; 1 mm altina "SAME POSITION" uyarisi.
-        function cokluDugumListesiniYaz() {
-            const kap = document.getElementById('infoMultiNodeList');
+        // ---- Coklu secim: her dugum icin tek-dugum kartinin aynisi ----
+        //
+        // Kullanici iki dugum secince "tek sectigim gibi olsun ama alt alta
+        // listelensin, es zamanli degistireyim" dedi. Kartlar tek-dugum
+        // panelinin (koordinat / mesnet / yuk) kucultulmus kopyasi; her
+        // kontrol dugum numarasini tasir, o dugume dogrudan yazar. Alttaki
+        // "all selected" bolumu hepsine birden uygular.
+        //
+        // Ust uste binen ya da cok yakin dugumler ekranda tek gorunuyor:
+        // iki dugumde aralarindaki uzaklik, 1 mm altinda SAME POSITION
+        // uyarisi ayrica basilir.
+        function cokluDugumKartlariniYaz() {
+            const kap = document.getElementById('infoMultiNodeCards');
+            const not = document.getElementById('infoMultiNodeNote');
             if (!kap) return;
             const ids = Array.from(selectedNodes).map(Number).sort((a, b) => a - b);
-            if (ids.length === 0) { kap.innerHTML = ''; return; }
+            if (ids.length === 0) { kap.innerHTML = ''; if (not) not.innerHTML = ''; return; }
             const mm = v => Math.round((v || 0) * 1000);
+            const inp = (id, ad, deger) =>
+                `<input type="number" id="kart${ad}_${id}" value="${deger}" step="1" onchange="kartKoordinatUygula(${id})" ` +
+                `style="width:100%; padding:3px 4px; font-size:var(--fs-sm); text-align:right;">`;
+            const kutu = (id, dof, isaretli) =>
+                `<label style="display:flex; flex-direction:column; align-items:center; gap:2px; font-size:var(--fs-xs); color:var(--text-2);">` +
+                `<input type="checkbox" id="kartBc${dof}_${id}" ${isaretli ? 'checked' : ''} onchange="kartBCUygula(${id})" style="width:14px; height:14px; accent-color:var(--success);">${dof}</label>`;
             const html = [];
-            ids.slice(0, 12).forEach(id => {
+            ids.slice(0, 20).forEach(id => {
                 const n = model.nodes[id];
                 if (!n) return;
-                html.push(`<div>N${id}: <span style="color:var(--text-primary,#e2e8f0)">${mm(n.x)}, ${mm(n.y)}, ${mm(n.z)}</span></div>`);
+                const bc = model.constraints[id] || {};
+                const tutulu = ['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'].filter(k => bc[k]);
+                const yuk = model.loads.find(l => l.nodeId === id) || {};
+                html.push(`
+                <div class="entity-section" style="padding:8px; margin-bottom:6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+                        <span class="entity-section-title" style="margin:0;">Node <span style="color:var(--primary)">${id}</span></span>
+                        <span style="font-size:var(--fs-xs); color:${tutulu.length ? 'var(--success)' : 'var(--text-3)'}">${tutulu.length ? tutulu.join(', ') : 'Free'}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                        <div><small style="color:var(--text-3); font-size:var(--fs-xs);">X (mm)</small>${inp(id, 'X', mm(n.x))}</div>
+                        <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Y (mm)</small>${inp(id, 'Y', mm(n.y))}</div>
+                        <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Z (mm)</small>${inp(id, 'Z', mm(n.z))}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        ${['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'].map(d => kutu(id, d, !!bc[d])).join('')}
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; margin-bottom:6px;">
+                        <button class="btn-secondary btn-small" onclick="kartBCOnayar(${id}, 'fixed')">Fixed</button>
+                        <button class="btn-secondary btn-small" onclick="kartBCOnayar(${id}, 'pinned')">Pinned</button>
+                        <button class="btn-secondary btn-small" onclick="kartBCOnayar(${id}, 'simply')">Simply</button>
+                        <button class="btn-secondary btn-small" onclick="kartBCOnayar(${id}, 'free')">Free</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto auto; gap:4px; align-items:end;">
+                        <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Fx (kN)</small><input type="number" id="kartFx_${id}" value="${yuk.Fx || 0}" step="1" style="width:100%; padding:3px 4px; font-size:var(--fs-sm); text-align:right;"></div>
+                        <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Fy (kN)</small><input type="number" id="kartFy_${id}" value="${yuk.Fy || 0}" step="1" style="width:100%; padding:3px 4px; font-size:var(--fs-sm); text-align:right;"></div>
+                        <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Fz (kN)</small><input type="number" id="kartFz_${id}" value="${yuk.Fz || 0}" step="1" style="width:100%; padding:3px 4px; font-size:var(--fs-sm); text-align:right;"></div>
+                        <button class="btn-primary btn-small" onclick="kartYukKaydet(${id})" title="Save load">Save</button>
+                        <button class="btn-secondary btn-small" onclick="kartYukSil(${id})" title="Delete load" ${yuk.nodeId ? '' : 'disabled'}>✕</button>
+                    </div>
+                </div>`);
             });
-            if (ids.length > 12) html.push(`<div>… +${ids.length - 12} more</div>`);
-            if (ids.length === 2) {
-                const a = model.nodes[ids[0]], b = model.nodes[ids[1]];
-                if (a && b) {
-                    const d = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + ((a.z || 0) - (b.z || 0)) ** 2);
-                    html.push(d < 0.001
-                        ? `<div style="color:var(--warning)">⚠ SAME POSITION (duplicate node)</div>`
-                        : `<div>distance: <span style="color:var(--text-primary,#e2e8f0)">${(d * 1000).toFixed(0)} mm</span></div>`);
-                }
-            }
+            if (ids.length > 20) html.push(`<div style="font-size:var(--fs-xs); color:var(--text-3); margin-bottom:6px;">… +${ids.length - 20} more nodes (use the "all selected" controls below)</div>`);
             kap.innerHTML = html.join('');
+
+            if (not) {
+                if (ids.length === 2 && model.nodes[ids[0]] && model.nodes[ids[1]]) {
+                    const a = model.nodes[ids[0]], b = model.nodes[ids[1]];
+                    const d = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + ((a.z || 0) - (b.z || 0)) ** 2);
+                    not.innerHTML = d < 0.001
+                        ? `<span style="color:var(--warning)">⚠ SAME POSITION (duplicate node)</span>`
+                        : `distance N${ids[0]}–N${ids[1]}: <span style="color:var(--text-primary,#e2e8f0)">${(d * 1000).toFixed(0)} mm</span>`;
+                } else not.innerHTML = '';
+            }
+        }
+
+        // Kart degisince model ve ekran tazelenir; kartlar yeniden yazilir
+        // (change olayi odak cikinca geldigi icin yazma kaybolmaz).
+        function kartTazele() {
+            results = null;
+            updateModelSummary();
+            if (typeof updateBCTable === 'function') updateBCTable();
+            if (typeof updateLoadTable === 'function') updateLoadTable();
+            cokluDugumKartlariniYaz();
+            cokluMesnetKutulariniOku();
+            if (currentViewMode === '3d') update3DScene(); else draw();
+        }
+
+        function kartKoordinatUygula(id) {
+            const n = model.nodes[id];
+            if (!n) return;
+            const al = ad => parseFloat(document.getElementById(`kart${ad}_${id}`)?.value) / 1000;
+            const x = al('X'), y = al('Y'), z = al('Z');
+            if (![x, y, z].every(isFinite)) return;
+            if (Math.abs(n.x - x) < 1e-4 && Math.abs(n.y - y) < 1e-4 && Math.abs((n.z || 0) - z) < 1e-4) return;
+            saveState();
+            n.x = x; n.y = y; n.z = z;
+            kartTazele();
+            showToast(`Node #${id} moved to (${Math.round(x*1000)}, ${Math.round(y*1000)}, ${Math.round(z*1000)}) mm`);
+        }
+
+        function kartBCUygula(id) {
+            const bc = {};
+            ['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'].forEach(d => { bc[d] = !!document.getElementById(`kartBc${d}_${id}`)?.checked; });
+            saveState();
+            if (Object.values(bc).some(v => v)) {
+                // Zorlanmis yer degistirme varsa korunur.
+                const eski = model.constraints[id];
+                if (eski && eski.prescribed) bc.prescribed = eski.prescribed;
+                model.constraints[id] = bc;
+            } else delete model.constraints[id];
+            kartTazele();
+        }
+
+        function kartBCOnayar(id, tip) {
+            const desen = {
+                'fixed':  [true, true, true, true, true, true],
+                'pinned': [true, true, true, false, false, false],
+                'simply': [false, false, true, false, false, false],
+                'free':   [false, false, false, false, false, false]
+            }[tip] || [false, false, false, false, false, false];
+            ['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'].forEach((d, i) => {
+                const el = document.getElementById(`kartBc${d}_${id}`);
+                if (el) el.checked = desen[i];
+            });
+            kartBCUygula(id);
+        }
+
+        function kartYukKaydet(id) {
+            const al = ad => parseFloat(document.getElementById(`kart${ad}_${id}`)?.value) || 0;
+            const fx = al('Fx'), fy = al('Fy'), fz = al('Fz');
+            if (fx === 0 && fy === 0 && fz === 0) { showToast('Enter at least one non-zero load value', 'warning'); return; }
+            saveState();
+            const i = model.loads.findIndex(l => l.nodeId === id);
+            if (i >= 0) { Object.assign(model.loads[i], { Fx: fx, Fy: fy, Fz: fz }); }
+            else model.loads.push({ nodeId: id, Fx: fx, Fy: fy, Fz: fz, Mx: 0, My: 0, Mz: 0 });
+            kartTazele();
+            showToast(`Load saved on Node #${id}`);
+        }
+
+        function kartYukSil(id) {
+            const i = model.loads.findIndex(l => l.nodeId === id);
+            if (i < 0) return;
+            saveState();
+            model.loads.splice(i, 1);
+            kartTazele();
+            showToast(`Load deleted from Node #${id}`);
         }
 
         // Coklu mesnet kutulari secili dugumlerin GERCEK durumunu gosterir.
