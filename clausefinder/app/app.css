@@ -428,7 +428,7 @@ body.mode-search .sv{display:flex}
 .sv-syntax{font-size:10.5px;color:var(--tx-3);font-family:var(--f-mono)}
 .sv-syntax code{background:var(--bg-3);border:1px solid var(--line);border-radius:3px;padding:1px 5px;margin:0 2px}
 
-.sv-body{flex:1;display:grid;grid-template-columns:216px minmax(0,1fr);min-height:0}
+.sv-body{flex:1;display:grid;grid-template-columns:264px minmax(0,1fr);min-height:0}   /* 264: the place tree indents three levels */
 @media (max-width:1080px){ .sv-body{grid-template-columns:minmax(0,1fr)} .sv-facets{display:none} }
 
 .sv-facets{overflow-y:auto;padding:16px 10px 40px;border-right:1px solid var(--line)}
@@ -443,6 +443,13 @@ body.mode-search .sv{display:flex}
 .frow .fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .frow .fc{font-family:var(--f-mono);font-size:10.5px;color:var(--tx-3)}
 .frow.on .fc{color:var(--ac)}
+/* place tree: book > part > chapter > section, indented per level; the chosen
+   node is .on, its ancestors .open (chevron down) */
+.ftree .frow{padding:4px 6px}
+.ftree .lvl1{padding-left:16px}.ftree .lvl2{padding-left:30px}.ftree .lvl3{padding-left:44px;font-size:11.5px}
+.ftree .frow.open{color:var(--tx)}
+.fchev{width:10px;flex:none;font-size:10px;color:var(--tx-3);text-align:center}
+.frow.on .fchev,.frow.open .fchev{color:var(--ac)}
 .fclear{width:100%;margin-top:2px;height:26px;border:1px dashed var(--line-strong);background:transparent;
   color:var(--tx-3);border-radius:var(--r-s);cursor:pointer;font-size:11px}
 .fclear:hover{color:var(--tx);border-color:var(--ac)}

@@ -404,24 +404,40 @@ async function runSearch(q, filters) {
     }
   }
 
-  // facet counts are computed before filtering so the numbers stay meaningful
-  const fBook = new Map(), fPart = new Map(), fType = new Map();
+  // Facet counts are computed before filtering so the numbers stay meaningful.
+  // The place tree is book > part > chapter > section, keyed by the path
+  // 'book|part|chapter|section'; a hit's path starts with the filter's path.
+  const fType = new Map();
   const bump = (m, k, lbl) => { const o = m.get(k) || { k, lbl, n: 0 }; o.n++; m.set(k, o); };
   const decorate = r => {
     const e = S.lib.get(r.c.b);
     r.sec = e.secMap.get(r.c.s);
+    if (r.sec) r.path = r.c.b + '|' + r.sec.part.id + '|' + r.sec.chap.id + '|' + r.sec.id;
     return r.sec;
   };
+  const where = new Map();   // path -> { k, lvl, lbl, n, order }
+  const node = (k, lvl, lbl, order) => {
+    let o = where.get(k);
+    if (!o) { o = { k, lvl, lbl, n: 0, order }; where.set(k, o); }
+    o.n++;
+  };
+  const bookOrder = new Map(S.books.map((b, i) => [b.id, i]));
   for (const r of raw) {
     if (!decorate(r)) continue;
-    bump(fBook, r.c.b, S.lib.get(r.c.b).meta.short);
-    bump(fPart, r.c.b + '|' + r.sec.part.id, r.sec.part.label + ' ' + (r.sec.part.title || ''));
+    const b = r.c.b, sec = r.sec, bo = bookOrder.get(b) * 1e6;
+    node(b, 0, S.lib.get(b).meta.short, bo);
+    node(b + '|' + sec.part.id, 1, shortLabel(sec.part.label) + ' · ' + (sec.part.title || ''), bo + sec.order);
+    node(b + '|' + sec.part.id + '|' + sec.chap.id, 2,
+         (sec.chap.label ? shortLabel(sec.chap.label) + ' · ' : '') + (sec.chap.title || ''), bo + sec.order);
+    node(r.path, 3, shortLabel(sec.label), bo + sec.order);
     bump(fType, r.c.h ? 'heading' : 'clause', r.c.h ? 'Headings' : 'Clauses');
   }
+  // a node's order is that of its first section in document order
+  const whereList = [...where.values()].sort((a, b) => a.order - b.order || a.lvl - b.lvl);
 
-  const keep = raw.filter(r => r.sec
-    && (!filters.book.size || filters.book.has(r.c.b))
-    && (!filters.part.size || filters.part.has(r.c.b + '|' + r.sec.part.id))
+  const w = filters.where || '';
+  const inWhere = r => !w || r.path === w || r.path.startsWith(w + '|');
+  const keep = raw.filter(r => r.sec && inWhere(r)
     && (!filters.type.size || filters.type.has(r.c.h ? 'heading' : 'clause')));
 
   // group by section
@@ -453,9 +469,11 @@ async function runSearch(q, filters) {
     groups.sort((a, b) => b.score - a.score || a.sec.order - b.sec.order);
   }
   return { groups, total: keep.length, allTotal: raw.length, pending,
-           facets: { book: [...fBook.values()], part: [...fPart.values()].sort((a, b) => b.n - a.n),
-                     type: [...fType.values()] } };
+           facets: { where: whereList, type: [...fType.values()] } };
 }
+
+// 'Part B' -> 'Pt B', 'Chapter 7' -> 'Ch 7', 'Section 4 Plating' -> 'Sec 4 Plating'
+const shortLabel = s => String(s || '').replace(/^Part /, 'Pt ').replace(/^Chapter /, 'Ch ').replace(/^Section /, 'Sec ');
 
 function cmpClause(a, b) {
   const pa = String(a || '').split('.').map(Number), pb = String(b || '').split('.').map(Number);
@@ -525,8 +543,7 @@ const SV = { q: null, res: null, filters: null, shown: 40, sel: -1, flat: [] };
 function searchHash(raw, f) {
   const p = new URLSearchParams();
   p.set('q', raw);
-  if (f.book.size) p.set('b', [...f.book].join(','));
-  if (f.part.size) p.set('p', [...f.part].join(','));
+  if (f.where) p.set('w', f.where);
   if (f.type.size) p.set('t', [...f.type].join(','));
   if (f.sort !== 'rel') p.set('s', f.sort);
   if (f.whole) p.set('w', '1');
@@ -536,13 +553,13 @@ function goSearch(raw, f) {
   const flt = f || SV.filters || newFilters();
   location.hash = searchHash(raw, flt);
 }
-const newFilters = () => ({ book: new Set(), part: new Set(), type: new Set(), sort: 'rel', whole: false });
+const newFilters = () => ({ where: '', type: new Set(), sort: 'rel', whole: false });
 
 async function openSearch(params) {
   const raw = params.get('q') || '';
   const f = newFilters();
-  (params.get('b') || '').split(',').filter(Boolean).forEach(x => f.book.add(x));
-  (params.get('p') || '').split(',').filter(Boolean).forEach(x => f.part.add(x));
+  // w=<path>; older links carried b=<book> or p=<book|part> - same thing, one node
+  f.where = params.get('w') || (params.get('p') || '').split(',')[0] || (params.get('b') || '').split(',')[0] || '';
   (params.get('t') || '').split(',').filter(Boolean).forEach(x => f.type.add(x));
   f.sort = params.get('s') === 'doc' ? 'doc' : 'rel';
   f.whole = params.get('w') === '1';
@@ -659,17 +676,24 @@ const crumbOf = s => {
 function paintFacets(f) {
   if (!f) { $('#svFacets').innerHTML = ''; return; }
   const F = SV.filters;
-  const grp = (title, key, rows, cap) => {
-    if (rows.length < 2 && key !== 'book') return '';
-    return `<div class="fgroup"><h5>${title}</h5>` + rows.slice(0, cap).map(r =>
-      `<button class="frow${F[key].has(r.k) ? ' on' : ''}" data-facet="${key}" data-k="${esc(r.k)}">
+  const w = F.where || '';
+  const onPath = k => w === k || w.startsWith(k + '|');   // node is the filter or an ancestor of it
+  const parentOf = k => k.includes('|') ? k.slice(0, k.lastIndexOf('|')) : '';
+  // Shown: every book; under a node that is on the path, its children.
+  // The chosen node itself is 'on'; its ancestors are 'open'.
+  const rows = f.where.filter(r => r.lvl === 0 || onPath(parentOf(r.k)));
+  const tree = rows.map(r => {
+    const cls = 'frow lvl' + r.lvl + (w === r.k ? ' on' : onPath(r.k) ? ' open' : '');
+    const chev = r.lvl < 3 ? `<span class="fchev">${onPath(r.k) ? '▾' : '›'}</span>` : '<span class="fchev"></span>';
+    return `<button class="${cls}" data-where="${esc(r.k)}" title="${esc(r.lbl)}">${chev}<span class="fn">${esc(r.lbl)}</span><span class="fc">${r.n}</span></button>`;
+  }).join('');
+  const kind = f.type.length < 2 ? '' :
+    `<div class="fgroup"><h5>Kind</h5>` + f.type.map(r =>
+      `<button class="frow${F.type.has(r.k) ? ' on' : ''}" data-facet="type" data-k="${esc(r.k)}">
          <span class="fn">${esc(r.lbl)}</span><span class="fc">${r.n}</span></button>`).join('') + '</div>';
-  };
-  const any = F.book.size || F.part.size || F.type.size;
+  const any = w || F.type.size;
   $('#svFacets').innerHTML =
-    grp('Rule book', 'book', f.book, 10) +
-    grp('Part / chapter', 'part', f.part, 14) +
-    grp('Kind', 'type', f.type, 4) +
+    `<div class="fgroup"><h5>Where</h5><div class="ftree">${tree}</div></div>` + kind +
     (any ? '<button class="fclear" id="fClear">Clear all filters</button>' : '');
 }
 
@@ -1172,6 +1196,13 @@ function bindGlobal() {
   });
   $('#svFacets').addEventListener('click', e => {
     if (e.target.closest('#fClear')) { goSearch($('#sq').value, { ...newFilters(), sort: SV.filters.sort, whole: SV.filters.whole }); return; }
+    const wb = e.target.closest('[data-where]');
+    if (wb) {
+      const k = wb.dataset.where;
+      // the chosen node again -> step up to its parent; anything else -> choose it
+      SV.filters.where = SV.filters.where === k ? (k.includes('|') ? k.slice(0, k.lastIndexOf('|')) : '') : k;
+      goSearch($('#sq').value, SV.filters); return;
+    }
     const b = e.target.closest('[data-facet]'); if (!b) return;
     const set = SV.filters[b.dataset.facet];
     set.has(b.dataset.k) ? set.delete(b.dataset.k) : set.add(b.dataset.k);
