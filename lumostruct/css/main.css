@@ -1157,7 +1157,9 @@
         /* ============== TOAST NOTIFICATIONS ============== */
         .toast-container {
             position: fixed;
-            top: var(--space-4);
+            /* Ust cubugun ALTINDA: 16px'te bildirim "Sign in" dugmesinin ve
+               logonun ustune biniyordu. Cubuk 48px; 8px pay. */
+            top: 56px;
             right: var(--space-4);
             z-index: 10000;
             display: flex;
@@ -5520,3 +5522,71 @@
             color: #93c5fd;
         }
 
+
+        /* ================================================================
+           KOMPAKT DUZEN - 16 Eylul 2026
+           ----------------------------------------------------------------
+           Olculdu (1920 px pencere): ust cubuk 65 px, arac cubugu 45 px,
+           Solve dugmesi 44 px, sayi girisi 33 px yukseklik / 14,6 px yazi,
+           govde satir yuksekligi 1,5 (18,75 px), deger yazisi 14,6 px.
+           Kullanici: "sayilar, harfler, basliklar hala cok buyuk; daha
+           minimal olsun, hicbir sey ust uste binmesin."
+
+           Hedef, yogun bir muhendislik araci (DNV 3D Beam olcusunde):
+             govde 12 px, etiket 11, deger/baslik 13, tek one cikan sayi 16;
+             cubuklar 36-48 px; girisler 26 px; satir yuksekligi 1,35.
+           Tokenlar burada YENIDEN tanimlanir, tek tek kurallar degil - dort
+           adimli olcek korunur, yalnizca adimlar kucultulur. Kontrol icin
+           tests/ui-audit.js ve tests/panel-yogunluk.js; bu blok sonra
+           yeniden olculdu (asagida degerler).
+           ================================================================ */
+        :root {
+            /* 1280 -> 11.2   1600 -> 11.6   1920 -> 12.0   2560+ -> 12.8 */
+            --fs-taban: clamp(11px, calc(0.125vw + 9.6px), 12.8px);
+            --fs-xs: calc(var(--fs-taban) * var(--ui-olcek) * 0.9167);  /* 11    */
+            --fs-sm: calc(var(--fs-taban) * var(--ui-olcek));           /* 12    */
+            --fs-md: calc(var(--fs-taban) * var(--ui-olcek) * 1.0833);  /* 13    */
+            --fs-lg: calc(var(--fs-taban) * var(--ui-olcek) * 1.3333);  /* 16    */
+        }
+        body { line-height: 1.35; }
+
+        /* Ust cubuk: 65 -> 48 px. Logo ve baglantilar da bir adim kucuk. */
+        .lumoship-nav { padding: 0.45rem 1rem; }
+        .lumoship-nav-logo-mark { width: 24px; height: 24px; font-size: 0.8rem; }
+        .lumoship-nav-logo-text { font-size: 0.85rem; }
+
+        /* Sekme cubugu ve Solve: 46/44 -> 36/32 px. */
+        .main-tab { padding: var(--space-2) var(--space-4); }
+        .main-tab-bar .solve-btn, #solveBtn { padding: 5px 14px; }
+
+        /* Kanvas ustu arac cubugu 45 -> 36 px; gorunus dugmeleri bir adim kucuk. */
+        .canvas-toolbar { padding: 2px 4px; }
+        .view-mode-btn, .toolbar-btn { padding: 3px 8px; }
+
+        /* Girisler: sayi girisi 33 px / 14,6 px idi - govde boyunda, 26 px.
+           index.html'de 40 giris/secici satir ici font-size, 44 tanesi satir
+           ici padding tasiyor (sayildi); satir ici stil her kurali yener.
+           Yogunluk TEK yerden yonetilsin diye burada !important - acik tema
+           blogunun yaptigi gibi. Kalici cozum satir ici stilleri sokmek. */
+        input[type="number"], input[type="text"], select {
+            font-size: var(--fs-sm) !important;
+            padding-top: 4px !important;
+            padding-bottom: 4px !important;
+        }
+        .btn-primary, .btn-secondary { padding: 5px 10px; }
+        .btn-small { padding: 3px 8px; }
+
+        /* Tablolar: satir dolgusu 8 -> 5 px; basliklar govdeyle ayni boy. */
+        .results-data-table th, .results-data-table td { padding: 5px 8px; }
+        .data-table th, .data-table td { padding: 4px 6px; }
+        /* Yalnizca dikey: 'padding: 3px 0' .check-table th'nin sag dolgusunu
+           sifirlayip "Plate slendernessPass" yapistiriyordu. */
+        .value-table th, .value-table td { padding-top: 3px; padding-bottom: 3px; }
+
+        /* Pencere basliklari ve kapatma isareti: 14,6 / 18,8 -> 13 / 16. */
+        .modal-header h2 { font-size: var(--fs-md); }
+        .modal-close { font-size: var(--fs-lg); }
+
+        /* Lejant: "Max: 1625.8 MPa (692% - OVER LIMIT)" tek satirda kutudan
+           tasiyordu; metin sarilir. */
+        #stressLegend { white-space: normal; }

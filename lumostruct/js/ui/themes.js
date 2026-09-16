@@ -455,7 +455,10 @@
             const yaz = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
             yaz('legendMax', 'Limit ' + sinir.toFixed(0) + ' MPa');
             yaz('legendMid', (sinir / 2).toFixed(0) + ' MPa');
-            yaz('legendMaxVal', maxStress.toFixed(1) + ' MPa' + (maxStress >= sinir ? '  (' + (maxStress / sinir * 100).toFixed(0) + '% - OVER LIMIT)' : ''));
+            // Asim ayri satirda: tek satir kutudan tasiyordu.
+            const maxEl0 = document.getElementById('legendMaxVal');
+            if (maxEl0) maxEl0.innerHTML = maxStress.toFixed(1) + ' MPa' +
+                (maxStress >= sinir ? '<br>' + (maxStress / sinir * 100).toFixed(0) + '% of limit - OVER' : '');
             yaz('legendYield', yieldStress + ' MPa');
 
             // Cubuk: canvas3d'deki duraklarin aynisi; ustte "sinir asildi" bandi.

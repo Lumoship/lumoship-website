@@ -230,7 +230,12 @@
             for (let i = 0; i < positions.length; i += 5) {
                 if (Math.abs(values[i]) > 0.01) {
                     svgContent += `<circle cx="${xScale(positions[i])}" cy="${yScale(values[i])}" r="4" fill="${diagramColor}"/>`;
-                    svgContent += `<text x="${xScale(positions[i])}" y="${yScale(values[i]) - 8}" text-anchor="middle" fill="${diagramColor}" font-size="10" font-weight="bold">${values[i].toFixed(2)}</text>`;
+                    // Etiket egrinin DIS tarafinda: pozitif deger ustte, negatif altta.
+                    // Hepsi ustte yazilinca negatif ucta etiket, eksen ve dugum adi (N6)
+                    // ust uste biniyordu. Uclarda da hafif iceri kaydirilir.
+                    const yEt = values[i] >= 0 ? yScale(values[i]) - 8 : yScale(values[i]) + 14;
+                    const xEt = xScale(positions[i]) + (i === 0 ? 14 : (i >= positions.length - 1 ? -14 : 0));
+                    svgContent += `<text x="${xEt}" y="${yEt}" text-anchor="middle" fill="${diagramColor}" font-size="10" font-weight="bold">${values[i].toFixed(2)}</text>`;
                 }
             }
             
@@ -2143,7 +2148,13 @@
                                 if (bc.Rx) constrained.push('Rx');
                                 if (bc.Ry) constrained.push('Ry');
                                 if (bc.Rz) constrained.push('Rz');
-                                bcStr = constrained.length > 0 ? `<span style="color:var(--success);">${constrained.join(',')}</span>` : '-';
+                                // Dar sutunda "Ux,Uy,Uz,Rx,Ry,Rz" kesiliyordu; bilinen
+                                // desenler adiyla, geri kalani tam liste (uzerine
+                                // gelince title'da).
+                                const ad = constrained.length === 6 ? 'Fixed'
+                                    : (constrained.join(',') === 'Ux,Uy,Uz' ? 'Pinned'
+                                    : (constrained.join(',') === 'Uz' ? 'Simply' : constrained.join(',')));
+                                bcStr = constrained.length > 0 ? `<span style="color:var(--success);" title="${constrained.join(', ')}">${ad}</span>` : '-';
                             } else {
                                 bcStr = `<span style="color:var(--success);">${bc}</span>`;
                             }
