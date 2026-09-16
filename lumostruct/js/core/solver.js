@@ -20,7 +20,8 @@
             if (floatingNodes.length > 0) {
                 issues.warnings.push({
                     type: 'floating_nodes',
-                    icon: 'error',
+                    // 'error' metni duruyordu; pencerede baslik "error Floating Nodes" cikiyordu.
+                    icon: '<span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg></span>',
                     title: 'Floating Nodes',
                     message: `${floatingNodes.length} node(s) not connected to any beam`,
                     details: `Node IDs: ${floatingNodes.slice(0, 10).join(', ')}${floatingNodes.length > 10 ? '...' : ''}`,
