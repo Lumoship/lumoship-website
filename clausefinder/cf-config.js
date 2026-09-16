@@ -27,6 +27,6 @@ window.CF_CONFIG = {
   apiBase: '/api/',
   semantic: 'browser',
   noStore: false,
-  dataVersion: '20260916'   // + LR Materials. Bump when a book is added: browsers cache
+  dataVersion: '20260916b'  // + LR Materials, + BV NR467 Parts A-F (replaces Part B). Bump when a book is added: browsers cache
                             // books.json for a year (the CDN purges itself on upsert).
 };
