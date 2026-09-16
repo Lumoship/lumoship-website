@@ -2726,10 +2726,12 @@
                     const node = model.nodes[load.nodeId];
                     if (!node) return;
 
-                    let z = 0;
+                    // Ok dugumun GERCEK kotasindan baslar. z=0'dan basliyordu:
+                    // z=3'teki dugumun yuku zeminde, bos bir yerde duruyordu.
+                    let z = node.z || 0;
                     if (deformScale > 0 && results && results.displacements) {
                         const d = results.displacements[load.nodeId];
-                        if (d) z = d.Uz * deformScale;
+                        if (d) z += d.Uz * deformScale;
                     }
 
                     YUK_EKSENLERI.forEach(({ ad, eksen }) => {
@@ -2828,7 +2830,8 @@
                     
                     const dx = n2.x - n1.x;
                     const dy = n2.y - n1.y;
-                    const beamLength = Math.sqrt(dx*dx + dy*dy);
+                    const dzKiris = (n2.z || 0) - (n1.z || 0);
+                    const beamLength = Math.sqrt(dx*dx + dy*dy + dzKiris*dzKiris);
                     
                     // Get line load value for scaling
                     // Yon cozucuyle ayni yerden gelir (lineLoadDirection). Eskiden burada
@@ -2879,11 +2882,12 @@
                         const x = n1.x + dx * t;
                         const y = n1.y + dy * t;
                         
-                        let zBase = 0;
+                        // Kirisin kotasi (z=0 degil; kolon ve ust kat kirisi de yuk tasir)
+                        let zBase = (n1.z || 0) + dzKiris * t;
                         if (deformScale > 0 && results && results.displacements) {
                             const d1 = results.displacements[elem.n1];
                             const d2 = results.displacements[elem.n2];
-                            if (d1 && d2) zBase = (d1.Uz * (1-t) + d2.Uz * t) * deformScale;
+                            if (d1 && d2) zBase += (d1.Uz * (1-t) + d2.Uz * t) * deformScale;
                         }
                         
                         const arrowGroup = new THREE.Group();
@@ -2936,11 +2940,11 @@
                     const linePoints = [];
                     for (let i = 0; i <= 10; i++) {
                         const t = i / 10;
-                        let zBase = 0;
+                        let zBase = (n1.z || 0) + dzKiris * t;
                         if (deformScale > 0 && results && results.displacements) {
                             const d1 = results.displacements[elem.n1];
                             const d2 = results.displacements[elem.n2];
-                            if (d1 && d2) zBase = (d1.Uz * (1-t) + d2.Uz * t) * deformScale;
+                            if (d1 && d2) zBase += (d1.Uz * (1-t) + d2.Uz * t) * deformScale;
                         }
                         // Line at top of arrows (arrow tip + arrow length)
                         const lineZ = zBase + 0.06 + lineLoadArrowScale;
@@ -3140,7 +3144,9 @@
             if (view.showNodeIds) {
                 Object.entries(model.nodes).forEach(([id, node]) => {
                     const labelSprite = createTextSprite(`N${id}`, '#38bdf8', coordLabelScale);
-                    labelSprite.position.set(node.x, node.y, 0.05);
+                    // Etiketler z=0.05'e basiliyordu; z=3'teki dugumun adi zeminde
+                    // duruyordu ("etiketler 3B'de duzgun calismiyor").
+                    labelSprite.position.set(node.x, node.y, (node.z || 0) + 0.05);
                     labelSprite.userData.isModelObject = true;
                     threeScene.add(labelSprite);
                 });
@@ -3149,10 +3155,13 @@
             // Node Coordinates Labels
             if (view.showNodeCoords) {
                 Object.entries(model.nodes).forEach(([id, node]) => {
-                    const coordText = `(${node.x.toFixed(2)}, ${node.y.toFixed(2)})`;
+                    const nz = node.z || 0;
+                    const coordText = Math.abs(nz) > 1e-9
+                        ? `(${node.x.toFixed(2)}, ${node.y.toFixed(2)}, ${nz.toFixed(2)})`
+                        : `(${node.x.toFixed(2)}, ${node.y.toFixed(2)})`;
                     const labelSprite = createTextSprite(coordText, '#94a3b8', coordLabelScale * 0.7);
                     const offsetZ = view.showNodeIds ? -0.02 : 0.05;
-                    labelSprite.position.set(node.x, node.y - coordLabelScale * 2, offsetZ);
+                    labelSprite.position.set(node.x, node.y - coordLabelScale * 2, nz + offsetZ);
                     labelSprite.userData.isModelObject = true;
                     threeScene.add(labelSprite);
                 });
@@ -3167,9 +3176,10 @@
                     
                     const midX = (n1.x + n2.x) / 2;
                     const midY = (n1.y + n2.y) / 2;
+                    const midZ = ((n1.z || 0) + (n2.z || 0)) / 2;
                     
                     const labelSprite = createTextSprite(`E${id}`, '#f59e0b', beamLabelScale);
-                    labelSprite.position.set(midX, midY, 0.08);
+                    labelSprite.position.set(midX, midY, midZ + 0.08);
                     labelSprite.userData.isModelObject = true;
                     threeScene.add(labelSprite);
                 });
@@ -3191,7 +3201,8 @@
                     // yoksa etiket hic basilmaz - sessiz, ama yalan degil.
                     if (!elem.section) return;
                     const labelSprite = createTextSprite(elem.section, '#22c55e', beamLabelScale);
-                    labelSprite.position.set(midX, midY + offsetY * 0.05, 0.06);
+                    const midZ = ((n1.z || 0) + (n2.z || 0)) / 2;
+                    labelSprite.position.set(midX, midY + offsetY * 0.05, midZ + 0.06);
                     labelSprite.userData.isModelObject = true;
                     threeScene.add(labelSprite);
                 });

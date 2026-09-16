@@ -259,6 +259,62 @@
             return { x: enIyi.x, y: enIyi.y, z: enIyi.z, type: enIyi.type };
         }
 
+        // ---- Ekranda kiris uzerindeki nokta (SPLIT / TRIM icin) ----
+        // findPointOnBeam duzlem noktasiyla x-y'de bakar: dusey kolonun 2B
+        // boyu sifir, bulunamiyor; z=3'teki kirise de duzlem noktasi (z=0)
+        // hic yaklasmiyor. Burada kiris EKRANA izdusurulur, imlece 10 px
+        // icindeki en yakin kiris secilir; kiris uzerindeki gercek 3B nokta,
+        // fare isini ile kiris dogrusu arasindaki en kisa baglantidan gelir.
+        function ekrandaKirisNoktasi(clientX, clientY, container, tolerans) {
+            if (typeof threeCamera === 'undefined' || !threeCamera || !container) return null;
+            if (typeof model === 'undefined' || !model) return null;
+            const tol = tolerans || YAPISMA_PIKSEL;
+            const r = container.getBoundingClientRect();
+            const px = clientX - r.left, py = clientY - r.top;
+            const v = new THREE.Vector3();
+            const ekrana = (x, y, z) => {
+                v.set(x, y, z).project(threeCamera);
+                if (v.z > 1) return null;
+                return { x: (v.x * 0.5 + 0.5) * r.width, y: (-v.y * 0.5 + 0.5) * r.height };
+            };
+            let enIyi = null;
+            Object.entries(model.elements).forEach(([id, el]) => {
+                const n1 = model.nodes[el.n1], n2 = model.nodes[el.n2];
+                if (!n1 || !n2) return;
+                const a = ekrana(n1.x, n1.y, n1.z || 0), b = ekrana(n2.x, n2.y, n2.z || 0);
+                if (!a || !b) return;
+                const dx = b.x - a.x, dy = b.y - a.y, uz2 = dx * dx + dy * dy;
+                let s = uz2 < 1e-6 ? 0 : ((px - a.x) * dx + (py - a.y) * dy) / uz2;
+                s = Math.max(0, Math.min(1, s));
+                const u = Math.hypot(px - (a.x + s * dx), py - (a.y + s * dy));
+                if (u <= tol && (!enIyi || u < enIyi.uzaklik)) enIyi = { elemId: parseInt(id, 10), uzaklik: u, n1, n2 };
+            });
+            if (!enIyi) return null;
+
+            // Kiris dogrusu uzerinde fare isinina en yakin nokta (3B).
+            const { n1, n2 } = enIyi;
+            const P = new THREE.Vector3(n1.x, n1.y, n1.z || 0);
+            const seg = new THREE.Vector3(n2.x - n1.x, n2.y - n1.y, (n2.z || 0) - (n1.z || 0));
+            const L = seg.length();
+            if (L < 1e-9) return null;
+            const uVec = seg.clone().divideScalar(L);
+            const rect = container.getBoundingClientRect();
+            const rc = new THREE.Raycaster();
+            rc.setFromCamera(new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1,
+                                               -((clientY - rect.top) / rect.height) * 2 + 1), threeCamera);
+            const Q = rc.ray.origin, w = rc.ray.direction;
+            const r0 = P.clone().sub(Q);
+            const bq = uVec.dot(w), c = w.dot(w), dd = uVec.dot(r0), e = w.dot(r0);
+            const payda = 1 * c - bq * bq;
+            let sM = Math.abs(payda) < 1e-9 ? L / 2 : (bq * e - c * dd) / payda;
+            sM = Math.max(0, Math.min(L, sM));
+            const ratio = sM / L;
+            return {
+                elemId: enIyi.elemId, ratio, distance: sM, totalLength: L,
+                pointX: P.x + uVec.x * sM, pointY: P.y + uVec.y * sM, pointZ: P.z + uVec.z * sM
+            };
+        }
+
         // ---- Eksen kilidi (X / Y / Z) ----
         // Serbest 3B gorunuste fare hep bir DUZLEME duser; o duzlemden
         // cikmanin yolu yoktu - kolon cizmek icin XZ gorunusune gecmek
@@ -295,6 +351,31 @@
             if (Math.abs(payda) < 1e-9) return null;
             const s = (b * e - c * dd) / payda;
             return { x: P.x + u.x * s, y: P.y + u.y * s, z: P.z + u.z * s };
+        }
+
+        // Eksen cikarimi: uc eksenden imlece ekranda en yakin olani, 8 px
+        // icindeyse. Donus { pos, eksen } ya da null.
+        const CIKARIM_PIKSEL = 8;
+        function eksenCikarimi(clientX, clientY, container, taban) {
+            if (typeof threeCamera === 'undefined' || !threeCamera || !container) return null;
+            const r = container.getBoundingClientRect();
+            const px = clientX - r.left, py = clientY - r.top;
+            const v = new THREE.Vector3();
+            let enIyi = null;
+            ['X', 'Y', 'Z'].forEach(eksen => {
+                const k = eksenKilidiNoktasi(clientX, clientY, container, taban, eksen);
+                if (!k) return;
+                // Taban noktasinin kendisi her eksende "en yakin"; cok kisa
+                // cizgide cikarim anlamsiz.
+                const boy = Math.hypot(k.x - taban.x, k.y - taban.y, (k.z || 0) - (taban.z || 0));
+                if (boy < 1e-6) return;
+                v.set(k.x, k.y, k.z).project(threeCamera);
+                if (v.z > 1) return;
+                const sx = (v.x * 0.5 + 0.5) * r.width, sy = (-v.y * 0.5 + 0.5) * r.height;
+                const u = Math.hypot(px - sx, py - sy);
+                if (u <= CIKARIM_PIKSEL && (!enIyi || u < enIyi.u)) enIyi = { pos: k, eksen, u };
+            });
+            return enIyi ? { pos: enIyi.pos, eksen: enIyi.eksen } : null;
         }
 
         function eksenKilidiDegistir(eksen) {
@@ -367,6 +448,21 @@
                     const esit = esitUzunlukYapis(orthoBase, k, container);
                     if (esit) return { pos: { x: esit.x, y: esit.y, z: esit.z }, snap: esit };
                     return { pos: k, snap: null };
+                }
+            }
+
+            // Serbest 3B'de eksen CIKARIMI (tus basmadan): imlec taban
+            // noktasindan gecen X/Y/Z dogrusuna ekranda 8 px yaklasirsa o
+            // eksene oturur - SketchUp'in renkli eksen cikarimi gibi. Boylece
+            // kolon cizmek icin Z'ye basmak sart degil; fare yukari gidince
+            // cizgi Z'ye kilitlenir. Iki boyutlu gorunuslerde gerekmez: orada
+            // duzlem + ortho ayni isi yapar, Z zaten duzlemin ekseni.
+            if (orthoBase && typeof currentViewMode !== 'undefined' && currentViewMode === '3d') {
+                const c = eksenCikarimi(clientX, clientY, container, orthoBase);
+                if (c) {
+                    const esit = esitUzunlukYapis(orthoBase, c.pos, container);
+                    if (esit) { esit.eksen = c.eksen; return { pos: { x: esit.x, y: esit.y, z: esit.z }, snap: esit }; }
+                    return { pos: c.pos, snap: { x: c.pos.x, y: c.pos.y, z: c.pos.z, type: 'AXIS', eksen: c.eksen } };
                 }
             }
 
@@ -659,6 +755,7 @@
             GRID: { color: 'var(--text-2)', label: '',          shape: '<line x1="12" y1="4" x2="12" y2="20" stroke="var(--text-2)" stroke-width="1.5"/><line x1="4" y1="12" x2="20" y2="12" stroke="var(--text-2)" stroke-width="1.5"/>' },
             PERP: { color: 'var(--primary)', label: 'Perpendicular', shape: '<path d="M5 5 L5 19 L19 19" fill="none" stroke="var(--primary)" stroke-width="2"/><rect x="6" y="14" width="5" height="5" fill="none" stroke="var(--primary)" stroke-width="1.2"/>' },
             // Esit uzunluk: "=" isareti. Etiket calisma aninda boyu yazar.
+            AXIS: { color: 'var(--warning)', label: 'On axis', shape: '<line x1="4" y1="20" x2="20" y2="4" stroke="var(--warning)" stroke-width="2"/><polyline points="14,4 20,4 20,10" fill="none" stroke="var(--warning)" stroke-width="2"/>' },
             LEN:  { color: 'var(--success)', label: 'Equal length', shape: '<line x1="5" y1="9" x2="19" y2="9" stroke="var(--success)" stroke-width="2"/><line x1="5" y1="15" x2="19" y2="15" stroke="var(--success)" stroke-width="2"/>' }
         };
 

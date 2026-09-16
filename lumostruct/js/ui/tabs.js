@@ -645,6 +645,8 @@
             setStyle('entityInfoMulti', 'display', 'block');
             setText('infoMultiNodes', nodeCount);
             setText('infoMultiBeams', beamCount);
+            cokluDugumListesiniYaz();
+            cokluMesnetKutulariniOku();
             
             // Show/hide sections based on selection
             const nodeBCSection = document.getElementById('multiNodeBCSection');
@@ -663,6 +665,55 @@
             if (beamActionsSection) beamActionsSection.style.display = beamCount > 0 ? 'block' : 'none';
         }
         
+        // Secili dugumlerin koordinat listesi (mm). Ust uste binen ya da cok
+        // yakin iki dugum ekranda tek gorunuyor; kullanici ikisini secince
+        // ayni mi, kac mm ayri mi gorebilmeli. Iki dugumde aralarindaki
+        // uzaklik da yazilir; 1 mm altina "SAME POSITION" uyarisi.
+        function cokluDugumListesiniYaz() {
+            const kap = document.getElementById('infoMultiNodeList');
+            if (!kap) return;
+            const ids = Array.from(selectedNodes).map(Number).sort((a, b) => a - b);
+            if (ids.length === 0) { kap.innerHTML = ''; return; }
+            const mm = v => Math.round((v || 0) * 1000);
+            const html = [];
+            ids.slice(0, 12).forEach(id => {
+                const n = model.nodes[id];
+                if (!n) return;
+                html.push(`<div>N${id}: <span style="color:var(--text-primary,#e2e8f0)">${mm(n.x)}, ${mm(n.y)}, ${mm(n.z)}</span></div>`);
+            });
+            if (ids.length > 12) html.push(`<div>… +${ids.length - 12} more</div>`);
+            if (ids.length === 2) {
+                const a = model.nodes[ids[0]], b = model.nodes[ids[1]];
+                if (a && b) {
+                    const d = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + ((a.z || 0) - (b.z || 0)) ** 2);
+                    html.push(d < 0.001
+                        ? `<div style="color:var(--warning)">⚠ SAME POSITION (duplicate node)</div>`
+                        : `<div>distance: <span style="color:var(--text-primary,#e2e8f0)">${(d * 1000).toFixed(0)} mm</span></div>`);
+                }
+            }
+            kap.innerHTML = html.join('');
+        }
+
+        // Coklu mesnet kutulari secili dugumlerin GERCEK durumunu gosterir.
+        // Eskiden son basilan dugmenin (Fixed) izini tasiyordu: serbest iki
+        // dugum secilince alti kutu isaretli cikiyordu. Dugumler farkliysa
+        // kutu "belirsiz" (indeterminate) olur.
+        function cokluMesnetKutulariniOku() {
+            const ids = Array.from(selectedNodes);
+            ['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz'].forEach(k => {
+                const el = document.getElementById('multiBc' + k);
+                if (!el) return;
+                const degerler = ids.map(id => {
+                    const bc = model.constraints[id];
+                    return !!(bc && typeof bc === 'object' && bc[k]);
+                });
+                const hepsi = degerler.length > 0 && degerler.every(v => v);
+                const hicbiri = degerler.every(v => !v);
+                el.checked = hepsi;
+                el.indeterminate = !hepsi && !hicbiri;
+            });
+        }
+
         // Select beams connected to selected nodes
         function selectConnectedBeams() {
             if (selectedNodes.size === 0) {

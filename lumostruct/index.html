@@ -2832,6 +2832,9 @@
                             <span class="label">Beams</span>
                             <span class="value highlight" id="infoMultiBeams">0</span>
                         </div>
+                        <!-- Secili dugumlerin koordinatlari: ust uste mi, yakin mi, ayni mi
+                             gorulsun diye (tabs.js -> showMultiInfo doldurur). -->
+                        <div id="infoMultiNodeList" style="margin-top:6px; font-family:var(--font-mono,monospace); font-size:var(--fs-xs); color:var(--text-2); line-height:1.6;"></div>
                     </div>
                     
                     <!-- BC Section for Multi Nodes -->
@@ -2839,27 +2842,27 @@
                         <div class="entity-section-title"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Boundary Condition</div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
                             <div style="display:flex; align-items:center; gap:4px; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl);">
-                                <input type="checkbox" id="multiBcUx" style="width:14px; height:14px; accent-color:var(--success);">
+                                <input type="checkbox" id="multiBcUx" onchange="applyMultiBC()" style="width:14px; height:14px; accent-color:var(--success);">
                                 <span style="color:var(--text-2); font-size:var(--fs-sm);">Ux</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:4px; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl);">
-                                <input type="checkbox" id="multiBcUy" style="width:14px; height:14px; accent-color:var(--success);">
+                                <input type="checkbox" id="multiBcUy" onchange="applyMultiBC()" style="width:14px; height:14px; accent-color:var(--success);">
                                 <span style="color:var(--text-2); font-size:var(--fs-sm);">Uy</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:4px; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl);">
-                                <input type="checkbox" id="multiBcUz" style="width:14px; height:14px; accent-color:var(--success);">
+                                <input type="checkbox" id="multiBcUz" onchange="applyMultiBC()" style="width:14px; height:14px; accent-color:var(--success);">
                                 <span style="color:var(--text-2); font-size:var(--fs-sm);">Uz</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:4px; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl);">
-                                <input type="checkbox" id="multiBcRx" style="width:14px; height:14px; accent-color:var(--success);">
+                                <input type="checkbox" id="multiBcRx" onchange="applyMultiBC()" style="width:14px; height:14px; accent-color:var(--success);">
                                 <span style="color:var(--text-2); font-size:var(--fs-sm);">Rx</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:4px; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl);">
-                                <input type="checkbox" id="multiBcRy" style="width:14px; height:14px; accent-color:var(--success);">
+                                <input type="checkbox" id="multiBcRy" onchange="applyMultiBC()" style="width:14px; height:14px; accent-color:var(--success);">
                                 <span style="color:var(--text-2); font-size:var(--fs-sm);">Ry</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:4px; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl);">
-                                <input type="checkbox" id="multiBcRz" style="width:14px; height:14px; accent-color:var(--success);">
+                                <input type="checkbox" id="multiBcRz" onchange="applyMultiBC()" style="width:14px; height:14px; accent-color:var(--success);">
                                 <span style="color:var(--text-2); font-size:var(--fs-sm);">Rz</span>
                             </div>
                         </div>

@@ -358,9 +358,12 @@
                 return true;
             } else if (cmdState.active === CMD.TRIM) {
                 // Find beam segment containing click
-                const beamOnPoint = findPointOnBeam(modelPos.x, modelPos.y, 0.2);
+                // Fare hareketinde ekrandan bulunan kiris (3B); duzlem noktasi
+                // kolonu ve ust kat kirisini bulamiyordu.
+                const beamOnPoint = (cmdState.hoverBeam && cmdState.hoverPoint) ? cmdState.hoverPoint
+                    : findPointOnBeam(modelPos.x, modelPos.y, 0.2);
                 if (beamOnPoint) {
-                    executeTrimBeam(beamOnPoint.elemId, modelPos.x, modelPos.y);
+                    executeTrimBeam(beamOnPoint.elemId, beamOnPoint.pointX ?? modelPos.x, beamOnPoint.pointY ?? modelPos.y);
                 }
                 return true;
             } else if (cmdState.active === CMD.LINE) {
@@ -696,8 +699,8 @@
                 if (sp) {
                     const cRect = container.getBoundingClientRect();
                     const etiket = snapPoint.type === 'LEN'
-                        ? `= ${(snapPoint.boy * 1000).toFixed(0)} mm${snapPoint.paralel ? ' (parallel)' : ''}`
-                        : undefined;
+                        ? `= ${(snapPoint.boy * 1000).toFixed(0)} mm${snapPoint.paralel ? ' (parallel)' : ''}${snapPoint.eksen ? ' on ' + snapPoint.eksen : ''}`
+                        : (snapPoint.type === 'AXIS' ? `On ${snapPoint.eksen} axis` : undefined);
                     showSnapMarker(sp.x - cRect.left, sp.y - cRect.top, snapPoint.type, etiket);
                 }
             } else {
@@ -764,14 +767,15 @@
                     updateMirrorPreview3D(cmdState.basePoint, modelPos);
                 }
             } else if (cmdState.active === CMD.SPLIT) {
-                // Find point on beam under cursor
-                const beamPoint = findPointOnBeam(modelPos.x, modelPos.y);
-                
+                // Imlecin altindaki kiris EKRANDAN bulunur (kolonlar ve ust
+                // kat kirisleri dahil); duzlem noktasi x-y'de bakiyordu.
+                const beamPoint = ekrandaKirisNoktasi(e.clientX, e.clientY, container, 12);
+
                 if (beamPoint) {
                     cmdState.hoverBeam = beamPoint.elemId;
                     cmdState.hoverPoint = beamPoint;
-                    
-                    const screenPos = modelToScreen3D(beamPoint.pointX, beamPoint.pointY, container);
+
+                    const screenPos = modelToScreen3D(beamPoint.pointX, beamPoint.pointY, container, beamPoint.pointZ || 0);
                     showSplitPoint(screenPos.x, screenPos.y);
                     
                     // Show tooltip
@@ -812,8 +816,8 @@
                     if (currentViewMode === '3d') update3DScene();
                 }
             } else if (cmdState.active === CMD.TRIM) {
-                // TRIM - find beam segment under cursor
-                const beamPoint = findPointOnBeam(modelPos.x, modelPos.y);
+                // TRIM - find beam segment under cursor (ekrandan, 3B)
+                const beamPoint = ekrandaKirisNoktasi(e.clientX, e.clientY, container, 12);
                 if (beamPoint) {
                     cmdState.hoverBeam = beamPoint.elemId;
                     cmdState.hoverPoint = beamPoint;
@@ -860,7 +864,7 @@
                     let tipText = `<span class="distance">${dist.toFixed(0)} mm ${dirText}</span>`;
                     if (cmdState.eksenKilidi) tipText += ` <span style="color:var(--warning);font-size:var(--fs-xs)">${cmdState.eksenKilidi} LOCK</span>`;
                     if (cmdState.orthoMode) tipText += ` <span style="color:var(--success);font-size:var(--fs-xs)">ORTHO</span>`;
-                    if (snapPoint && snapPoint.type) tipText += ` <span style="color:var(--accent-info);font-size:var(--fs-xs)">${snapPoint.type === 'LEN' ? '= ' + (snapPoint.boy * 1000).toFixed(0) : snapPoint.type}</span>`;
+                    if (snapPoint && snapPoint.type) tipText += ` <span style="color:var(--accent-info);font-size:var(--fs-xs)">${snapPoint.type === 'LEN' ? '= ' + (snapPoint.boy * 1000).toFixed(0) : (snapPoint.type === 'AXIS' ? snapPoint.eksen + ' AXIS' : snapPoint.type)}</span>`;
                     showTooltipAt(e.clientX, e.clientY, tipText);
 
                     updateLinePreview3D(modelPos);

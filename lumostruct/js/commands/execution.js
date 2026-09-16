@@ -92,68 +92,41 @@
             const upper = value.toUpperCase();
             const EPSILON = 0.0001;
             
-            // X coordinate: X1500 means split at X=1.5m
-            if (upper.startsWith('X')) {
-                const coord = parseFloat(upper.substring(1)) / 1000; // mm to m
+            // X1500 / Y2000 / Z3000: o koordinattan gecen HER kirisi orada boler.
+            // Z eklendi (kolonlar), ve bolme dugumu kirisin kotasini tasir -
+            // splitBeamAtRatio z'siz dugum kuruyordu, z=3'teki kiris X1500'de
+            // zemine inen iki parcaya donusuyordu.
+            const eksenM = upper.match(/^([XYZ])\s*(-?\d+(?:\.\d+)?)$/);
+            if (eksenM) {
+                const eksen = eksenM[1].toLowerCase();
+                const coord = parseFloat(eksenM[2]) / 1000; // mm to m
+                const oku = n => eksen === 'z' ? (n.z || 0) : n[eksen];
                 const beamsToSplit = [];
-                
+
                 Object.entries(model.elements).forEach(([id, beam]) => {
                     const n1 = model.nodes[beam.n1], n2 = model.nodes[beam.n2];
                     if (!n1 || !n2) return;
-                    
-                    const minX = Math.min(n1.x, n2.x), maxX = Math.max(n1.x, n2.x);
-                    if (coord > minX + EPSILON && coord < maxX - EPSILON) {
-                        const t = (coord - n1.x) / (n2.x - n1.x);
-                        if (t > EPSILON && t < 1 - EPSILON) {
-                            beamsToSplit.push({ id: parseInt(id), t });
-                        }
+                    const a1 = oku(n1), a2 = oku(n2);
+                    const lo = Math.min(a1, a2), hi = Math.max(a1, a2);
+                    if (coord > lo + EPSILON && coord < hi - EPSILON) {
+                        const t = (coord - a1) / (a2 - a1);
+                        if (t > EPSILON && t < 1 - EPSILON) beamsToSplit.push({ id: parseInt(id), t });
                     }
                 });
-                
+
                 if (beamsToSplit.length > 0) {
                     saveState();
                     beamsToSplit.forEach(b => splitBeamAtRatio(b.id, b.t));
-                    showToast(`Split ${beamsToSplit.length} beam(s) at X=${coord*1000} mm`);
+                    showToast(`Split ${beamsToSplit.length} beam(s) at ${eksenM[1]}=${coord*1000} mm`);
                     if (currentViewMode === '3d') update3DScene();
                     else draw();
                     updatePropertiesPanel();
                 } else {
-                    showToast(`No beams cross X=${coord*1000} mm`, 'warning');
+                    showToast(`No beams cross ${eksenM[1]}=${coord*1000} mm`, 'warning');
                 }
                 return;
             }
-            
-            // Y coordinate: Y2000 means split at Y=2m
-            if (upper.startsWith('Y')) {
-                const coord = parseFloat(upper.substring(1)) / 1000; // mm to m
-                const beamsToSplit = [];
-                
-                Object.entries(model.elements).forEach(([id, beam]) => {
-                    const n1 = model.nodes[beam.n1], n2 = model.nodes[beam.n2];
-                    if (!n1 || !n2) return;
-                    
-                    const minY = Math.min(n1.y, n2.y), maxY = Math.max(n1.y, n2.y);
-                    if (coord > minY + EPSILON && coord < maxY - EPSILON) {
-                        const t = (coord - n1.y) / (n2.y - n1.y);
-                        if (t > EPSILON && t < 1 - EPSILON) {
-                            beamsToSplit.push({ id: parseInt(id), t });
-                        }
-                    }
-                });
-                
-                if (beamsToSplit.length > 0) {
-                    saveState();
-                    beamsToSplit.forEach(b => splitBeamAtRatio(b.id, b.t));
-                    showToast(`Split ${beamsToSplit.length} beam(s) at Y=${coord*1000} mm`);
-                    if (currentViewMode === '3d') update3DScene();
-                    else draw();
-                    updatePropertiesPanel();
-                } else {
-                    showToast(`No beams cross Y=${coord*1000} mm`, 'warning');
-                }
-                return;
-            }
-            
+
             // Percentage: 50% 
             if (upper.includes('%')) {
                 const ratio = parseFloat(upper.replace('%', '')) / 100;
@@ -193,11 +166,14 @@
             if (!beam) return;
             
             const n1 = model.nodes[beam.n1], n2 = model.nodes[beam.n2];
-            const newNodeId = nextNodeId++;
-            model.nodes[newNodeId] = {
-                x: n1.x + (n2.x - n1.x) * t,
-                y: n1.y + (n2.y - n1.y) * t
-            };
+            const z1 = n1.z || 0, z2 = n2.z || 0;
+            const sx = n1.x + (n2.x - n1.x) * t, sy = n1.y + (n2.y - n1.y) * t, sz = z1 + (z2 - z1) * t;
+            // Ayni yerde dugum varsa (baska bir bolmeden) onu kullan.
+            let newNodeId = (typeof findNodeAtLocation === 'function') ? findNodeAtLocation(sx, sy, sz) : null;
+            if (newNodeId === null || newNodeId === undefined) {
+                newNodeId = nextNodeId++;
+                model.nodes[newNodeId] = { x: sx, y: sy, z: sz };
+            }
             
             const section = beam.section;
             const origN1 = beam.n1, origN2 = beam.n2;
@@ -655,7 +631,9 @@
             const n2 = model.nodes[elem.n2];
             if (!n1 || !n2) return;
             
-            const length = Math.sqrt((n2.x - n1.x) ** 2 + (n2.y - n1.y) ** 2);
+            // Gercek (3B) boy: kolonda 2B boy sifir, oran sonsuz cikiyordu.
+            const length = Math.sqrt((n2.x - n1.x) ** 2 + (n2.y - n1.y) ** 2 + ((n2.z || 0) - (n1.z || 0)) ** 2);
+            if (length < 1e-9) return;
             const ratio = Math.min(distance / length, 0.99);
             
             executeSplitAtRatio(ratio);
