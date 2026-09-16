@@ -17,10 +17,15 @@
  *   noStore    Locally the data is rebuilt under a running app, so the cache is
  *              a hazard. Online it is immutable and the cache is the budget:
  *              without it every reload pulls an 11 MB index again.
+ *
+ *   dataVersion  Appended to the books.json URL. The CDN caches every object for
+ *              a year; bump this whenever a book is added or removed, or the
+ *              old registry keeps being served and the new book stays hidden.
  */
 window.CF_CONFIG = {
   dataBase: 'https://mmjdgxvxtjippjktajdd.supabase.co/storage/v1/object/public/clausefinder/',
   apiBase: '/api/',
   semantic: 'browser',
-  noStore: false
-};
+  noStore: false,
+  dataVersion: '20260916'   // + LR Materials. Bump when a book is added: browsers cache
+                            // books.json for a year (the CDN purges itself on upsert).

@@ -60,7 +60,11 @@ async function boot() {
     progress(100); return;
   }
   try {
-    S.books = await getJSON(dataUrl('books.json'));
+    // Online the CDN caches every object for a year - right for the immutable
+    // book files, wrong for the registry once a book is added. dataVersion in
+    // cf-config bumps the URL so a new registry is fetched; per-book files are
+    // new keys anyway.
+    S.books = await getJSON(dataUrl('books.json' + (CFG.dataVersion ? '?v=' + CFG.dataVersion : '')));
     if (!Array.isArray(S.books) || !S.books.length) throw new Error('empty');
   } catch (e) {
     $('#doc').innerHTML = `<div class="welcome">
