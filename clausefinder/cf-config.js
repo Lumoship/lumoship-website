@@ -29,3 +29,4 @@ window.CF_CONFIG = {
   noStore: false,
   dataVersion: '20260916'   // + LR Materials. Bump when a book is added: browsers cache
                             // books.json for a year (the CDN purges itself on upsert).
+};
