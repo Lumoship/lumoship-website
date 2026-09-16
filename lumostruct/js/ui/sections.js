@@ -146,31 +146,45 @@
                 return;
             }
             
-            // Larger scale for modal (600x400 viewbox)
+            // GORUS KUTUSU ICERIKTEN TURER.
+            //
+            // Kutu eskiden sabit 600x400 idi ve cizim y=50'den basliyordu.
+            // Olculdu - HP60x4 + 500x12 plaka: cizim 500x72, kutunun 278
+            // birimi BOS kaliyordu. Genis-yassi her kesitte boyle olur, cunku
+            // kutunun orani icerige hic bakmiyordu.
+            //
+            // Simdi genislik sabit, YUKSEKLIK icerikten geliyor: dar kesitte
+            // kutu uzar, yassi kesitte kisalir, ikisinde de bosluk kalmaz.
             const cx = 300;
-            const viewHeight = 400;
+            const KENAR = 55;                 // olcu cizgileri icin ust/alt pay
             const plateEnabled = plateW > 0 && plateT > 0;
-            
+
             let totalHeight = profileData.h;
             let totalWidth = profileData.maxWidth || 50;
-            
+
             if (plateEnabled) {
                 totalHeight += plateT;
                 totalWidth = Math.max(totalWidth, plateW);
             }
-            
-            const scaleH = (viewHeight - 100) / totalHeight;
-            const scaleW = 500 / totalWidth;
-            const scale = Math.min(scaleH, scaleW, 2.5);
-            
+
+            // Genislige gore olcekle. Cok kucuk kesitler asiri buyumesin diye
+            // bir tavan var ama eski 2.5 fazla dusuktu: HP60x4 gibi kucuk bir
+            // profil, yanindaki 500'luk plakanin altinda gorunmez oluyordu.
+            const scale = Math.min(500 / totalWidth, 8);
+            const viewHeight = Math.round(totalHeight * scale + 2 * KENAR);
+            targetSvg.setAttribute('viewBox', '0 0 600 ' + viewHeight);
+
             let svgContent = '';
-            let topY = 50;
+            let topY = KENAR;
+            kucukOlculer = [];
             
             // Plate
             if (plateEnabled) {
                 const plateWS = plateW * scale;
                 const plateTS = plateT * scale;
-                svgContent += `<rect x="${cx - plateWS/2}" y="${topY}" width="${plateWS}" height="${plateTS}" fill="none" stroke="#e2e8f0" stroke-width="3"/>`;
+                // Renkler kucuk onizlemeyle AYNI: mavi cizgi, hafif dolgu. Buyutulmus hal
+                // beyaz cizip olculeri som sari yapinca butun resim sariya donuyordu.
+                svgContent += `<rect x="${cx - plateWS/2}" y="${topY}" width="${plateWS}" height="${plateTS}" fill="rgba(56,189,248,0.12)" stroke="var(--primary)" stroke-width="2.5"/>`;
                 svgContent += drawDimLineLarge(cx - plateWS/2, topY - 25, cx + plateWS/2, topY - 25, plateW, false);
                 topY += plateTS;
             }
@@ -206,23 +220,68 @@
             } else {
                 targetSvg.innerHTML = svgContent;
             }
+
+            // Cizilemeyen kucuk olculer resmin altinda tek satirda. Bilgi
+            // kaybolmuyor, ust uste binme de olmuyor.
+            if (kucukOlculer.length) {
+                const benzersiz = [...new Set(kucukOlculer)];
+                const altY = KENAR + totalHeight * scale + 34;
+                targetSvg.innerHTML +=
+                    '<text x="' + cx + '" y="' + altY + '" text-anchor="middle" ' +
+                    'fill="var(--warning)" font-size="13" font-weight="600">' +
+                    benzersiz.join('  ·  ') + '</text>';
+            }
+
+            // Kutuyu cizimin GERCEK sinirindan kur.
+            //
+            // Yukaridaki KENAR payi bir tahmin: olcu yazisinin yuksekligi,
+            // yaziyla cizgi arasindaki bosluk, dondurme notu - hicbiri paya
+            // girmiyor. Olculdu: cizim alt kenardan 1 birim tasiyordu.
+            // getBBox cizildikten sonra gercek siniri veriyor; tahmin etmek
+            // yerine olcmek her kesit turunde bosluksuz ve tasmasiz oturuyor.
+            try {
+                const bb = targetSvg.getBBox();
+                if (bb && bb.width > 0 && bb.height > 0) {
+                    const pay = 12;
+                    targetSvg.setAttribute('viewBox',
+                        Math.round(bb.x - pay) + ' ' + Math.round(bb.y - pay) + ' ' +
+                        Math.round(bb.width + 2 * pay) + ' ' + Math.round(bb.height + 2 * pay));
+                }
+            } catch (e) {
+                // getBBox yalnizca cizilmis bir SVG'de calisir (pencere kapaliysa
+                // atar). O halde yukarida kurulan kutu zaten yeterli.
+            }
         }
         
+        // Cizilemeyecek kadar kisa olculer: cizim yerine alta yazi.
+        // drawSectionDiagramLarge her cizimden once bosaltir.
+        let kucukOlculer = [];
+
         function drawDimLineLarge(x1, y1, x2, y2, value, vertical = false) {
             const midX = (x1 + x2) / 2;
             const midY = (y1 + y2) / 2;
+
+            // 26 birimin altinda ok uclari ve yazi sigmiyor: yazi komsusuyla
+            // ic ice geciyor (HP60x4 + 500 plakada "4" ile "3" boyle
+            // birbirine giriyordu). Kisa olcu CIZILMEZ, degeri toplanir.
+            const boy = vertical ? Math.abs(y2 - y1) : Math.abs(x2 - x1);
+            if (boy < 26) {
+                kucukOlculer.push(value);
+                return '';
+            }
+
             let svg = '';
             
-            svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffd700" stroke-width="2" stroke-dasharray="6,3"/>`;
+            svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--warning)" stroke-width="1.5" stroke-dasharray="5,3"/>`;
             
             if (vertical) {
-                svg += `<line x1="${x1-6}" y1="${y1}" x2="${x1+6}" y2="${y1}" stroke="#ffd700" stroke-width="2"/>`;
-                svg += `<line x1="${x2-6}" y1="${y2}" x2="${x2+6}" y2="${y2}" stroke="#ffd700" stroke-width="2"/>`;
-                svg += `<text x="${midX - 20}" y="${midY + 5}" fill="#ffd700" font-size="14" font-weight="bold" transform="rotate(-90 ${midX - 20} ${midY + 5})">${value}</text>`;
+                svg += `<line x1="${x1-6}" y1="${y1}" x2="${x1+6}" y2="${y1}" stroke="var(--warning)" stroke-width="1.5"/>`;
+                svg += `<line x1="${x2-6}" y1="${y2}" x2="${x2+6}" y2="${y2}" stroke="var(--warning)" stroke-width="1.5"/>`;
+                svg += `<text x="${midX - 20}" y="${midY + 5}" fill="var(--warning)" font-size="13" font-weight="600" transform="rotate(-90 ${midX - 20} ${midY + 5})">${value}</text>`;
             } else {
-                svg += `<line x1="${x1}" y1="${y1-6}" x2="${x1}" y2="${y1+6}" stroke="#ffd700" stroke-width="2"/>`;
-                svg += `<line x1="${x2}" y1="${y2-6}" x2="${x2}" y2="${y2+6}" stroke="#ffd700" stroke-width="2"/>`;
-                svg += `<text x="${midX}" y="${midY - 8}" fill="#ffd700" font-size="14" font-weight="bold" text-anchor="middle">${value}</text>`;
+                svg += `<line x1="${x1}" y1="${y1-6}" x2="${x1}" y2="${y1+6}" stroke="var(--warning)" stroke-width="1.5"/>`;
+                svg += `<line x1="${x2}" y1="${y2-6}" x2="${x2}" y2="${y2+6}" stroke="var(--warning)" stroke-width="1.5"/>`;
+                svg += `<text x="${midX}" y="${midY - 8}" fill="var(--warning)" font-size="13" font-weight="600" text-anchor="middle">${value}</text>`;
             }
             
             return svg;
@@ -255,7 +314,7 @@
             
             const pathD = `M ${leftEdge} ${topY} L ${leftEdge} ${profileBottom - r2} Q ${leftEdge} ${profileBottom} ${leftEdge + r2} ${profileBottom} L ${lowerRadiusCenterX} ${profileBottom} A ${rS} ${rS} 0 0 0 ${lowerTangentX} ${lowerTangentY} L ${upperTangentX} ${upperTangentY} A ${rS} ${rS} 0 0 1 ${rightEdge} ${upperRadiusCenterY - rS} L ${rightEdge} ${topY} Z`;
             
-            let svg = `<path d="${pathD}" fill="none" stroke="#e2e8f0" stroke-width="3"/>`;
+            let svg = `<path d="${pathD}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
             svg += drawDimLineLarge(bulbTipX + 40, topY, bulbTipX + 40, profileBottom, h, true);
             svg += drawDimLineLarge(leftEdge, profileBottom + 30, rightEdge, profileBottom + 30, t, false);
             svg += drawDimLineLarge(cx, profileBottom + 50, bulbTipX, profileBottom + 50, Math.round(c), false);
@@ -268,7 +327,7 @@
             const hS = h * scale;
             const tS = t * scale;
             
-            let svg = `<rect x="${cx - tS/2}" y="${topY}" width="${tS}" height="${hS}" fill="none" stroke="#e2e8f0" stroke-width="3"/>`;
+            let svg = `<rect x="${cx - tS/2}" y="${topY}" width="${tS}" height="${hS}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
             svg += drawDimLineLarge(cx + tS/2 + 35, topY, cx + tS/2 + 35, topY + hS, h, true);
             svg += drawDimLineLarge(cx - tS/2, topY + hS + 25, cx + tS/2, topY + hS + 25, t, false);
             
@@ -288,7 +347,7 @@
             
             const pathD = `M ${cx - twS/2} ${topY} L ${cx - twS/2} ${topY + hS} L ${cx - bfS/2} ${topY + hS} L ${cx - bfS/2} ${topY + totalHS} L ${cx + bfS/2} ${topY + totalHS} L ${cx + bfS/2} ${topY + hS} L ${cx + twS/2} ${topY + hS} L ${cx + twS/2} ${topY} Z`;
             
-            let svg = `<path d="${pathD}" fill="none" stroke="#e2e8f0" stroke-width="3"/>`;
+            let svg = `<path d="${pathD}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
             svg += drawDimLineLarge(cx + bfS/2 + 40, topY, cx + bfS/2 + 40, topY + totalHS, totalHeight, true);
             svg += drawDimLineLarge(cx - bfS/2, topY + totalHS + 30, cx + bfS/2, topY + totalHS + 30, bf, false);
             
@@ -303,7 +362,7 @@
             
             const pathD = `M ${cx - tS/2} ${topY} L ${cx - tS/2} ${topY + aS} L ${cx - tS/2 + bS} ${topY + aS} L ${cx - tS/2 + bS} ${topY + aS - tS} L ${cx + tS/2} ${topY + aS - tS} L ${cx + tS/2} ${topY} Z`;
             
-            let svg = `<path d="${pathD}" fill="none" stroke="#e2e8f0" stroke-width="3"/>`;
+            let svg = `<path d="${pathD}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
             svg += drawDimLineLarge(cx - tS/2 - 40, topY, cx - tS/2 - 40, topY + aS, a, true);
             svg += drawDimLineLarge(cx - tS/2, topY + aS + 30, cx - tS/2 + bS, topY + aS + 30, b, false);
             
@@ -311,11 +370,16 @@
         }
         
         // ============== PROFILE PREVIEW SVG ==============
-        // Acilista onizleme alani, form alanlarindaki varsayilan b=200 t=10
-        // degerlerinden bir HP kesiti ciziyordu. Panel "Beam Profiles 0" ve
-        // "No profiles created" derken yaninda cizili bir profil durmasi
-        // "zaten bir profil var" gibi okunuyordu. Kullanici katalogdan bir sey
-        // secene ya da bir olcu yazana kadar onizleme bos durur.
+        // Onizleme HER ZAMAN formdaki olculeri cizer.
+        //
+        // Bir sure bos durdu: panel "Beam Profiles 0" derken yaninda cizili bir
+        // profil olmasi "zaten bir profil var" gibi okunuyordu. Ama bos kutu da
+        // olu duruyor ve formdaki b=200 t=10 degerlerinin neye benzedigini
+        // gormek tam da bu kutunun isi.
+        //
+        // Iki kaygi da karsilaniyor: cizim var, ve profil henuz EKLENMEMISSE
+        // kutunun kendisi bunu yaziyor. Boylece cizim bir varlik iddiasi
+        // olmuyor.
         let profilSecildi = false;
 
         function profilSecimiBasladi() {
@@ -324,23 +388,29 @@
             updateProfilePreview();
         }
 
+        // Kutuya "henuz eklenmedi" seridini basar/kaldirir.
+        function onizlemeRozetiniTazele() {
+            const alan = $('profilePreviewArea');
+            if (!alan) return;
+            let rozet = alan.querySelector('.preview-badge');
+            const eklenmisSayi = (typeof SECTIONS !== 'undefined') ? Object.keys(SECTIONS).length : 0;
+            if (!profilSecildi && eklenmisSayi === 0) {
+                if (!rozet) {
+                    rozet = document.createElement('span');
+                    rozet.className = 'preview-badge';
+                    alan.appendChild(rozet);
+                }
+                rozet.textContent = 'Preview - not added yet';
+            } else if (rozet) {
+                rozet.remove();
+            }
+        }
+
         function updateProfilePreview() {
             const svg = $('profilePreviewSVG');
             if (!svg) return;
 
-            if (!profilSecildi) {
-                // font-size viewBox BIRIMINDE. Kutu 128 px, viewBox yuksekligi 180,
-                // yani olcek 0.71: buraya 12 yazarsam ekranda 8.5 px cikar.
-                // Ekranda ~12 ve ~11 px gorunsun diye olcege bolunuyor.
-                const olcek = 128 / 180;
-                const y1 = Math.round(12 / olcek), y2 = Math.round(11 / olcek);
-                svg.innerHTML =
-                    '<text x="140" y="78" text-anchor="middle" fill="currentColor" ' +
-                    'opacity="0.45" font-size="' + y1 + '">No profile selected</text>' +
-                    '<text x="140" y="104" text-anchor="middle" fill="currentColor" ' +
-                    'opacity="0.3" font-size="' + y2 + '">Pick one from the catalog</text>';
-                return;
-            }
+            onizlemeRozetiniTazele();
             
             const plateEnabled = $('plateEnabled')?.checked;
             const plateW = parseFloat($('plateWidth')?.value) || 300;
@@ -538,7 +608,7 @@
                 Z
             `;
             
-            svg += `<path d="${pathD}" fill="rgba(241,245,249,0.06)" stroke="#e2e8f0" stroke-width="2"/>`;
+            svg += `<path d="${pathD}" fill="rgba(56,189,248,0.12)" stroke="var(--primary)" stroke-width="2"/>`;
             
             return svg;
         }
@@ -552,7 +622,7 @@
             
             // Simple rectangle
             svg += `<rect x="${cx - tS/2}" y="${topY}" width="${tS}" height="${hS}" 
-                fill="rgba(241,245,249,0.06)" stroke="#e2e8f0" stroke-width="2"/>`;
+                fill="rgba(56,189,248,0.12)" stroke="var(--primary)" stroke-width="2"/>`;
             
             return svg;
         }
@@ -588,7 +658,7 @@
                 Z
             `;
             
-            svg += `<path d="${pathD}" fill="rgba(241,245,249,0.06)" stroke="#e2e8f0" stroke-width="2"/>`;
+            svg += `<path d="${pathD}" fill="rgba(56,189,248,0.12)" stroke="var(--primary)" stroke-width="2"/>`;
             
             return svg;
         }
@@ -615,7 +685,7 @@
                 Z
             `;
             
-            svg += `<path d="${pathD}" fill="rgba(241,245,249,0.06)" stroke="#e2e8f0" stroke-width="2"/>`;
+            svg += `<path d="${pathD}" fill="rgba(56,189,248,0.12)" stroke="var(--primary)" stroke-width="2"/>`;
             
             return svg;
         }
@@ -818,6 +888,30 @@
             if (tauEl) tauEl.value = (fy / Math.sqrt(3)).toFixed(0);   // von Mises kayma siniri
         }
         
+        // Yeni kiris hangi kesidi alsin?
+        //
+        // Once acilir listedeki secim, sonra kutuphanedeki ilk profil. Ikisi de
+        // yoksa null doner ve cagiran taraf kirisi KURMAZ.
+        //
+        // Burada bir zamanlar `|| 'HP200x10'` vardi: profil yokken kiris,
+        // kutuphanede olmayan bir kesit adi tasiyordu. Sag panel adi
+        // gosteriyor, ozellikler "-" cikiyor, sol panel "Sections 0" diyordu.
+        // Uc yer uc ayri sey soyluyordu. Olmayan bir kesidi uydurmaktansa
+        // durup soylemek dogru.
+        function kesitSec() {
+            const secici = document.getElementById('addBeamSection');
+            const secim = secici && secici.value;
+            if (secim && SECTIONS[secim]) return secim;
+            const ilk = Object.keys(SECTIONS)[0];
+            return ilk || null;
+        }
+
+        // Kiris kuran yollarin ortak uyarisi - tek cumle, tek yerde.
+        function kesitYokUyar() {
+            if (typeof showToast === 'function')
+                showToast('Create a beam profile first (General tab)', true);
+        }
+
         function updateSectionDropdowns() {
             const profiles = Object.keys(SECTIONS);
             const optionsHtml = profiles.length > 0 

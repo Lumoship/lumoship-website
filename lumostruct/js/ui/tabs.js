@@ -277,7 +277,7 @@
             setText('infoBeamId', beamId);
             setText('infoBeamNodes', `${elem.n1} → ${elem.n2}`);
             setText('infoBeamLength', (length * 1000).toFixed(0) + ' mm');
-            setText('infoBeamSection', elem.section || 'HP200x10');
+            setText('infoBeamSection', elem.section || 'no section');
             setText('infoBeamGrade', elem.grade || 'AH36');
             
             // Set editable node coordinates

@@ -90,11 +90,31 @@
         // yukseklik. Tek yon: syncPanelLayout bunu cagirir, bu geri cagirmaz.
         function komutCubuguOlculeri() {
             const cubuk = document.getElementById('commandBar');
-            const tuval = document.querySelector('.canvas-area');
-            if (!cubuk || !tuval) return;
-
-            const t = tuval.getBoundingClientRect();
+            if (!cubuk) return;
             const c = cubuk.getBoundingClientRect();
+
+            // --- ALT YUKSEKLIK ---
+            // Sonuc paneli bunun ustunde durur. Tuvale HIC bagli degil, o
+            // yuzden once ve kendi basina hesaplaniyor.
+            //
+            // Eskiden bu hesap asagidaki tuval kontrolunun ARDINDA kaliyordu:
+            // `.canvas-area` yoksa fonksiyon donuyor, degisken hic yazilmiyor
+            // ve CSS 32px fallback'ine dusuyordu. 32 yalnizca komut cubugu;
+            // alt bilgi seridi sayilmayinca panelin alt kenari cubugun ICINE
+            // dusuyor ve tablonun son satiri cubugun altinda kaliyordu.
+            const kok = document.documentElement;
+            if (kok && kok.style && typeof kok.style.setProperty === 'function') {
+                const altBilgi = document.querySelector('.app-footer');
+                const h = c.height + (altBilgi ? altBilgi.getBoundingClientRect().height : 0);
+                if (Number.isFinite(h) && h > 0)
+                    kok.style.setProperty('--alt-yukseklik', Math.round(h) + 'px');
+            }
+
+            // --- KOMUT CUBUGUNUN YAN BOLUMLERI ---
+            // Bunlar tuvalin hizasina bakar; tuval yoksa yalnizca bu kisim atlanir.
+            const tuval = document.querySelector('.canvas-area');
+            if (!tuval) return;
+            const t = tuval.getBoundingClientRect();
             if (!Number.isFinite(t.left) || !Number.isFinite(c.left)) return;
             // Test kosumundaki DOM taklidinde style bir CSSStyleDeclaration
             // degil; ozel degisken yazamayiz, gecerim.
@@ -102,12 +122,6 @@
 
             cubuk.style.setProperty('--cmd-sol', Math.max(0, Math.round(t.left - c.left)) + 'px');
             cubuk.style.setProperty('--cmd-sag', Math.max(0, Math.round(c.right - t.right)) + 'px');
-
-            const altBilgi = document.querySelector('.app-footer');
-            const h = c.height + (altBilgi ? altBilgi.getBoundingClientRect().height : 0);
-            const kok = document.documentElement;
-            if (kok && kok.style && typeof kok.style.setProperty === 'function')
-                kok.style.setProperty('--alt-yukseklik', Math.round(h) + 'px');
         }
 
         // taraf: 'left' | 'right'. force verilirse o duruma getirir.

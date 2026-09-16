@@ -580,7 +580,9 @@
                         if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
                         
                         const beamId = nextElementId++;
-                        model.elements[beamId] = { n1: n1Id, n2: n2Id, section: (document.getElementById('addBeamSection')?.value) || 'HP200x10' };
+                        const kesit = kesitSec();
+                        if (!kesit) { kesitYokUyar(); return; }
+                        model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
                         
                         autoSplitAtIntersections([beamId]);
                         
@@ -640,7 +642,9 @@
                     if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y }; }
                     
                     const beamId = nextElementId++;
-                    model.elements[beamId] = { n1: n1Id, n2: n2Id, section: (document.getElementById('addBeamSection')?.value) || 'HP200x10' };
+                    const kesit = kesitSec();
+                    if (!kesit) { kesitYokUyar(); return; }
+                    model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
                     
                     autoSplitAtIntersections([beamId]);
                     
@@ -747,7 +751,8 @@
             if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p1.z || 0 }; }
             
             const elemId = nextElementId++;
-            const section = (document.getElementById('addBeamSection')?.value) || 'HP200x10';
+            const section = kesitSec();
+            if (!section) { kesitYokUyar(); return; }
             model.elements[elemId] = { n1: n1Id, n2: n2Id, section: section };
             
             // Auto-split at intersections

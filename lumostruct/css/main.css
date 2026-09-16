@@ -2420,6 +2420,22 @@
             opacity: 0;
             transition: opacity var(--transition-fast);
             color: var(--text-muted);
+            /* Artik gercek bir dugme: kendi zemini ve cercevesi olmasin,
+               ama tiklanabilir oldugu imlecten anlasilsin. */
+            background: none;
+            border: none;
+            padding: 2px;
+            cursor: pointer;
+            line-height: 0;
+        }
+
+        .profile-preview-pro .expand-hint:hover {
+            color: var(--accent-info);
+        }
+
+        /* Dokunmatikte hover yok - simge hep gorunsun. */
+        @media (hover: none) {
+            .profile-preview-pro .expand-hint { opacity: 0.6; }
         }
         
         .profile-preview-pro:hover .expand-hint {
@@ -3998,7 +4014,11 @@
         /* Results Bottom Panel */
         .results-bottom-panel {
             position: fixed;
-            bottom: 0;
+            /* bottom: 0 komut cubugunun ve alt bilgi seridinin ALTINA
+               uzaniyordu. Gercek deger asagida --alt-yukseklik ile geliyor;
+               burasi da onunla ayni olsun ki kural sirasi degisirse
+               panel bir anligina cubugun uzerine dusmesin. */
+            bottom: var(--alt-yukseklik, 58px);
             left: 326px;
             right: 280px;
             height: 250px;
@@ -5003,7 +5023,7 @@
            suruklenerek genisletilince hizayi kaybediyordu. Ucu de
            js/ui/layout.js'in olctugu degiskenlerden gelir. */
         .results-bottom-panel {
-            bottom: var(--alt-yukseklik, 32px);
+            bottom: var(--alt-yukseklik, 58px);
             left: var(--icerik-sol, 326px);
             right: var(--icerik-sag, 280px);
         }
@@ -5397,3 +5417,102 @@
 .results-data-table td, .results-data-table th {
     padding: 3px var(--space-2);
 }
+
+        /* ================================================================
+           GENERAL SEKMESI: ONIZLEME PANELIN ALTINA KADAR
+           ----------------------------------------------------------------
+           Olculdu: "Beam Profiles" kartinin dogal yuksekligi 886 px, ama
+           .collapsible-content tavani (min(44vh, 400px)) onu 400 pxe kesip
+           ICERIDE kaydiriyordu - panelin altinda bos yer dururken. Onizleme
+           kutusu da 190 px yazmasina ragmen 128 pxe sikismisti.
+
+           Tavan oteki sekmelerde kaliyor: yogunluk calismasinda bilerek
+           konmustu ve orada isini goruyor. Burada yalnizca BU kart
+           muaf tutulup kalan boslugu aliyor.
+
+           Kisa ekranda onizleme min-heighte iner ve kart yine kayar -
+           dar ekranda bir sey kaybedilmiyor.
+           ================================================================ */
+        /* .active SART. Kural bu olmadan yazilmisti ve sekme gizlendiginde
+           bile display:flex diyordu: Model sekmesine gecince sol panelde
+           General icerigi duruyordu. .main-tab-content varsayilani
+           display:none; onu ezen her kural secilmis olma kosulunu tasimali. */
+        .main-tab-content.active#tabContentGeneral {
+            display: flex;
+            flex-direction: column;
+            /* min-height DEGIL height: min-height ile kart dogal boyuna (886 px)
+               uzayip paneli 443 px asiyordu - panel kayiyor, onizleme yine
+               sikisiyordu. Kesin yukseklik verilince kalan bosluk gercekten
+               dagitilabiliyor. */
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #tabContentGeneral > .collapsible-panel:not(.buyuyen-kart) {
+            flex: 0 0 auto;
+        }
+
+        #tabContentGeneral > .collapsible-panel.buyuyen-kart {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #tabContentGeneral > .buyuyen-kart > .collapsible-content.open {
+            max-height: none;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            /* Sigmayan kisim BURADA kaysin - panelin tamami degil. */
+            overflow-y: auto;
+        }
+
+        /* Kart icinde buyuyen tek parca onizleme; formlar dogal boyunda. */
+        #tabContentGeneral .profile-preview-pro {
+            height: auto;
+            flex: 1 1 auto;
+            /* 190 px: kutunun ESKI sabit boyu. Taban olarak o aliniyor ki dar
+               ekranda eskisinden kucuk olmasin; yer varsa buyuyor. */
+            min-height: 190px;
+        }
+
+        #tabContentGeneral .profile-form,
+        #tabContentGeneral .underline-tabs {
+            flex: 0 0 auto;
+        }
+
+        /* ================================================================
+           MODEL TABLOSU: SECILI SATIR
+           ----------------------------------------------------------------
+           Zemin eskiden satir ici stildeydi ve ID hucresi --accent-info ile
+           yaziliyordu. Olculdu: mavi yazi (96,165,250) secili zeminde
+           (34,67,93) 4.07 kontrast veriyor - okunur sinirin altinda.
+
+           Bu kusur yeni degil; tablolar bugune kadar tuvale cizimle
+           dolmadigi icin denetimin gozune hic girmemisti. Tablolar modeli
+           takip etmeye baslayinca ilk kosuda cikti.
+
+           Zemin aynen korunuyor, yalnizca ID daha acik bir maviye aliniyor:
+           #93c5fd ayni zeminde 5.74. Satirin "secili" oldugu yine renkten
+           anlasiliyor, ama numara okunuyor.
+           ================================================================ */
+        #modelNodesTable tr.secili-satir,
+        #modelBeamsTable tr.secili-satir {
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        /* Renk SATIR ICI degil burada: satir ici stil CSS kuralini eziyor
+           ve secili satirda kontrast duzeltmesi hic uygulanmiyordu. */
+        .kimlik-hucresi {
+            color: var(--accent-info);
+            font-weight: 500;
+        }
+
+        #modelNodesTable tr.secili-satir .kimlik-hucresi,
+        #modelBeamsTable tr.secili-satir .kimlik-hucresi {
+            color: #93c5fd;
+        }
+

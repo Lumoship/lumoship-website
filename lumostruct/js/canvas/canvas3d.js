@@ -11,7 +11,7 @@
         let cameraAngleX = 0, cameraAngleY = 0;  // For smooth 3D transition
         
         // Display size multiplier for beams and nodes
-        window.displaySizeMultiplier = 0.5;  // Default: 0.5x
+        window.displaySizeMultiplier = 0.4;  // Default: 0.4x (kullanici tercihi)
         
         // Individual display sizes for geometry elements
         window.displaySizes = {
@@ -2203,9 +2203,16 @@
                 if (deformScale > 0 && results && results.displacements) {
                     const d1 = results.displacements[elem.n1];
                     const d2 = results.displacements[elem.n2];
-                    // Uz negative = downward, so z should also be negative (down in 3D)
-                    if (d1) z1 += -d1.Uz * deformScale;
-                    if (d2) z2 += -d2.Uz * deformScale;
+                    // Sahne Z"si model Z"si ile ayni yonde (deforme olmayan geometri
+                    // z = n.z ile kuruluyor, kamera up = +Z). O halde Uz
+                    // DOGRUDAN eklenir: negatif Uz asagi cizer.
+                    //
+                    // Burada bir zamanlar -Uz vardi ve tam tersini yapiyordu:
+                    // asagi yuk altinda yapi YUKARI kalkiyordu. Yorum zaten
+                    // dogru niyeti yaziyordu, satir onu tutmuyordu. 2B gorunum
+                    // (canvas2d.js drawDeformed) hep dogruydu; yalnizca 3B ters.
+                    if (d1) z1 += d1.Uz * deformScale;
+                    if (d2) z2 += d2.Uz * deformScale;
                 }
                 
                 const start = new THREE.Vector3(n1.x, n1.y, z1);
@@ -2449,7 +2456,7 @@
                     let z = (node.z || 0);
                     if (deformScale > 0 && results && results.displacements) {
                         const d = results.displacements[nodeId];
-                        if (d) z += -d.Uz * deformScale;
+                        if (d) z += d.Uz * deformScale;
                     }
                     
                     // Check if node is selected
@@ -2698,7 +2705,7 @@
                     let z = 0;
                     if (deformScale > 0 && results && results.displacements) {
                         const d = results.displacements[load.nodeId];
-                        if (d) z = -d.Uz * deformScale;
+                        if (d) z = d.Uz * deformScale;
                     }
 
                     YUK_EKSENLERI.forEach(({ ad, eksen }) => {
@@ -2852,7 +2859,7 @@
                         if (deformScale > 0 && results && results.displacements) {
                             const d1 = results.displacements[elem.n1];
                             const d2 = results.displacements[elem.n2];
-                            if (d1 && d2) zBase = -(d1.Uz * (1-t) + d2.Uz * t) * deformScale;
+                            if (d1 && d2) zBase = (d1.Uz * (1-t) + d2.Uz * t) * deformScale;
                         }
                         
                         const arrowGroup = new THREE.Group();
@@ -2909,7 +2916,7 @@
                         if (deformScale > 0 && results && results.displacements) {
                             const d1 = results.displacements[elem.n1];
                             const d2 = results.displacements[elem.n2];
-                            if (d1 && d2) zBase = -(d1.Uz * (1-t) + d2.Uz * t) * deformScale;
+                            if (d1 && d2) zBase = (d1.Uz * (1-t) + d2.Uz * t) * deformScale;
                         }
                         // Line at top of arrows (arrow tip + arrow length)
                         const lineZ = zBase + 0.06 + lineLoadArrowScale;
@@ -2965,8 +2972,8 @@
                         if (deformScale > 0 && results.displacements) {
                             const d1 = results.displacements[elem.n1];
                             const d2 = results.displacements[elem.n2];
-                            if (d1) z1 = -d1.Uz * deformScale;
-                            if (d2) z2 = -d2.Uz * deformScale;
+                            if (d1) z1 = d1.Uz * deformScale;
+                            if (d2) z2 = d2.Uz * deformScale;
                             zMid = (z1 + z2) / 2;
                         }
                         
@@ -3058,8 +3065,8 @@
                         if (deformScale > 0 && results.displacements) {
                             const d1 = results.displacements[elem.n1];
                             const d2 = results.displacements[elem.n2];
-                            if (d1) z1 = -d1.Uz * deformScale;
-                            if (d2) z2 = -d2.Uz * deformScale;
+                            if (d1) z1 = d1.Uz * deformScale;
+                            if (d2) z2 = d2.Uz * deformScale;
                         }
                         
                         // Points on beam (base of diagram)
@@ -3155,8 +3162,11 @@
                     const midY = (n1.y + n2.y) / 2;
                     const offsetY = view.showElemIds ? -beamLabelScale * 1.5 : 0;
                     
-                    const sectionName = elem.section || 'HP200x10';
-                    const labelSprite = createTextSprite(sectionName, '#22c55e', beamLabelScale);
+                    // Kesiti olmayan kirise 3B etikette 'HP200x10' yazmak,
+                    // olmayan bir secimi varmis gibi gostermek demek. Kesit
+                    // yoksa etiket hic basilmaz - sessiz, ama yalan degil.
+                    if (!elem.section) return;
+                    const labelSprite = createTextSprite(elem.section, '#22c55e', beamLabelScale);
                     labelSprite.position.set(midX, midY + offsetY * 0.05, 0.06);
                     labelSprite.userData.isModelObject = true;
                     threeScene.add(labelSprite);

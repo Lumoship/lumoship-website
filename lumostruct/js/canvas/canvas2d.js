@@ -1681,12 +1681,12 @@
             const transLength = parseFloat(document.getElementById('transLength').value) || 4;
             const transCount = parseInt(document.getElementById('transCount').value) || 5;
             const transSpacing = parseFloat(document.getElementById('transSpacing').value) || 2;
-            const transBeam = document.getElementById('transBeam').value || 'HP200x10';
+            const transBeam = document.getElementById('transBeam').value || kesitSec();
             
             const longLength = parseFloat(document.getElementById('longLength').value) || 8;
             const longCount = parseInt(document.getElementById('longCount').value) || 3;
             const longSpacing = parseFloat(document.getElementById('longSpacing').value) || 2;
-            const longBeam = document.getElementById('longBeam').value || 'HP200x10';
+            const longBeam = document.getElementById('longBeam').value || kesitSec();
             
             const distLoad = parseFloat(document.getElementById('gridDistLoad').value) || 0;
             const loadDirection = document.getElementById('loadDirection').value || 'transverse';

@@ -272,6 +272,39 @@
         let historyIndex = -1;
         const MAX_HISTORY = 50;
         
+        // Model degisti - sol panel tablolari bunu ogrensin.
+        //
+        // updateModelTables() bugune kadar YALNIZCA panels.js icinden
+        // cagriliyordu, yani panelin kendi Add/Remove dugmelerinden. Tuvale
+        // cizim, Quick Grillage, ice aktarma, kopya/ayna/bolme ve geri al
+        // tabloyu hic tazelemiyordu: model doluyken sol panel "Nodes 0 /
+        // Beams 0" yaziyordu.
+        //
+        // Tazeleme mevcut is bittikten SONRAYA birakiliyor. saveState bazi
+        // yerlerde degisiklikten once, bazilarinda sonra cagriliyor; mikro
+        // gorev kuyruguna atinca iki desende de son durum okunur. Ayni
+        // islemdeki birden fazla cagri tek tazelemeye duser.
+        let _tazelemeBekliyor = false;
+        function modelTablolariniTazele() {
+            if (_tazelemeBekliyor) return;
+            _tazelemeBekliyor = true;
+            Promise.resolve().then(() => {
+                _tazelemeBekliyor = false;
+                try {
+                    if (typeof updateModelTables === 'function') updateModelTables();
+                    if (typeof updateModelSummary === 'function') updateModelSummary();
+                    // Kesit acilir listeleri de kutuphaneyi takip etsin. Aksi
+                    // halde sayac "Sections 1" derken liste "No profiles"
+                    // diyebiliyor - ayni kutuphane, iki ayri cevap.
+                    // updateSectionDropdowns mevcut secimi koruyor.
+                    if (typeof updateSectionDropdowns === 'function') updateSectionDropdowns();
+                } catch (e) {
+                    // Arayuz henuz kurulmamis olabilir (acilis, testler).
+                    // Tazeleme bir kolaylik; basarisizligi modeli etkilemez.
+                }
+            });
+        }
+
         function saveState() {
             // Remove any redo states
             history = history.slice(0, historyIndex + 1);
@@ -289,6 +322,8 @@
             
             // Auto-save to localStorage
             autoSaveModel();
+
+            modelTablolariniTazele();
             
             // Mark that model changed after last solve
             if (results) {
@@ -536,6 +571,9 @@
         function updateAfterHistoryChange() {
             updateUndoRedoButtons();
             updateModelSummary();
+            // Geri al / ileri al saveState cagirmaz (tam da amaci gecmise
+            // yazmamak), o yuzden tablo tazelemesi buraya ayrica konuyor.
+            modelTablolariniTazele();
             clearSelection();
             if (currentViewMode === '3d') {
                 update3DScene();

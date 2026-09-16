@@ -467,6 +467,33 @@
             const selfWeightOn = !!document.getElementById('includeSelfWeight')?.checked;
 
             // Assemble stiffness
+            // KESITLER ONCE COZULUR.
+            //
+            // Burada bir zamanlar su vardi: kesit bulunamazsa
+            // sec = SECTIONS['HP200x10'] - yani BASKA bir kirisin kaydettigi
+            // kesit. Sonuc ekrana cikiyor, sayilar hic secilmemis bir kesite
+            // ait oluyor ve bunu hicbir yer yazmiyordu. Kutuphane bosken de
+            // undefined kalip birkac satir sonra patliyordu.
+            //
+            // Eksik kesit bir varsayimla kapatilacak sey degil. Adindan
+            // cozulebiliyorsa cozulur (HP200x10 gibi bir ad kesidi tam tarif
+            // eder); cozulemiyorsa model EKSIKTIR ve durulur. Hepsi birden
+            // toplanip yaziliyor - kullanici kirisleri teker teker
+            // kovalamasin.
+            const kesitsiz = [];
+            Object.entries(model.elements).forEach(([anahtar, elem]) => {
+                if (SECTIONS[elem.section]) return;
+                if (elem.section && typeof layerToSection === 'function') {
+                    try { layerToSection(elem.section); } catch (e) { /* ad cozulemedi */ }
+                }
+                if (!SECTIONS[elem.section]) kesitsiz.push(elem.id != null ? elem.id : anahtar);
+            });
+            if (kesitsiz.length) {
+                const liste = kesitsiz.slice(0, 6).join(', ') + (kesitsiz.length > 6 ? ', ...' : '');
+                throw new Error('No usable section on beam ' + liste + ' (' + kesitsiz.length +
+                    ' of ' + Object.keys(model.elements).length + '). Assign a profile before solving.');
+            }
+
             Object.values(model.elements).forEach(elem => {
                 const n1 = model.nodes[elem.n1];
                 const n2 = model.nodes[elem.n2];
@@ -477,17 +504,9 @@
                     return;
                 }
                 
-                // Ensure section exists in library
-                let sec = SECTIONS[elem.section];
-                if (!sec) {
-                    // Try to parse and register the section
-                    layerToSection(elem.section);
-                    sec = SECTIONS[elem.section];
-                }
-                if (!sec) {
-                    debugError('Section not found:', elem.section);
-                    sec = SECTIONS['HP200x10']; // Fallback
-                }
+                // Yukaridaki on pas her elemanin kesidini cozdu ya da
+                // durdu; burada arama guvenli.
+                const sec = SECTIONS[elem.section];
                 
                 const dx = n2.x - n1.x;
                 const dy = n2.y - n1.y;

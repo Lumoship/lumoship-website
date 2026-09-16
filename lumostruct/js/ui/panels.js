@@ -1990,6 +1990,16 @@
             const n2 = parseInt(document.getElementById('addBeamN2').value);
             const section = document.getElementById('addBeamSection').value;
             
+            // Profil yokken acilir listenin tek secenegi bos degerli bir yer
+            // tutucu ("No profiles - create in General tab"). Eskiden bu deger
+            // dogrudan kirise yaziliyordu: kesidi olmayan bir kiris modele
+            // giriyor, tabloda "-" gorunuyor ve sorun ancak cozum aninda
+            // dogrulayiciya takiliyordu. Ureten yerde soyle.
+            if (!section || !SECTIONS[section]) {
+                showToast('Create a beam profile first (General tab)', true);
+                return;
+            }
+            
             if (!model.nodes[n1]) {
                 showToast(`Node ${n1} does not exist`, true);
                 return;
@@ -2139,9 +2149,9 @@
                             }
                         }
                         const isSelected = selectedNodes.has(id);
-                        return `<tr style="${isSelected ? 'background:rgba(56,189,248,0.2);' : ''} cursor:pointer;"
+                        return `<tr class="${isSelected ? 'secili-satir' : ''}" style="cursor:pointer;"
                                     onclick="selectNodeById(${id})">
-                            <td style="color:var(--accent-info); font-weight:500;">${id}</td>
+                            <td class="kimlik-hucresi">${id}</td>
                             <td>${(node.x * 1000).toFixed(0)}</td>
                             <td>${(node.y * 1000).toFixed(0)}</td>
                             <td>${((node.z || 0) * 1000).toFixed(0)}</td>
@@ -2166,12 +2176,12 @@
                             length = Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2)) * 1000;
                         }
                         const isSelected = selectedElements.has(elemId);
-                        return `<tr style="${isSelected ? 'background:rgba(56,189,248,0.2);' : ''}"
-                                    onclick="selectBeamById(${elemId})" style="cursor:pointer;">
-                            <td style="color:var(--accent-info); font-weight:500;">${elemId}</td>
+                        return `<tr class="${isSelected ? 'secili-satir' : ''}" style="cursor:pointer;"
+                                    onclick="selectBeamById(${elemId})">
+                            <td class="kimlik-hucresi">${elemId}</td>
                             <td>${elem.n1}</td>
                             <td>${elem.n2}</td>
-                            <td style="color:var(--success);">${elem.section || 'HP200x10'}</td>
+                            <td style="color:${elem.section ? 'var(--success)' : 'var(--text-3)'};">${elem.section || 'no section'}</td>
                             <td>${length.toFixed(0)}</td>
                         </tr>`;
                     }).join('');

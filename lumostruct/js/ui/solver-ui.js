@@ -38,6 +38,12 @@
             setTimeout(() => {
                 try {
                     results = solve();
+
+                // Cozucu, adindan cozulebilen bir kesidi kutuphaneye KENDISI
+                // ekler (fem.js -> layerToSection). Panel bunu ogrenmezse
+                // "Sections 0" yazarken modelde kesit olur; kullanici hangisine
+                // inanacagini bilemez. Kutuphane buyuduyse arayuz onu gostersin.
+                if (typeof updateSectionDropdowns === 'function') updateSectionDropdowns();
                     modelChangedAfterSolve = false;
                     showResultsVisualization = true;
                     displayResults();
@@ -239,7 +245,19 @@
         // Enhanced error message parser
         function parsesolverError(error) {
             const msg = error.message || String(error);
-            
+
+            // ZATEN ACIK olan mesaji genellestirme.
+            //
+            // Asagidaki kaliplar, cozucunun icinden gelen ham hatalari
+            // ("singular matrix" gibi) kullanicinin okuyabilecegi bir cumleye
+            // cevirmek icin. Ama cozucu artik bazi hallerde ZATEN kullanici
+            // icin yazilmis, hangi kirisin sorunlu oldugunu soyleyen bir mesaj
+            // atiyor. O mesaji "one or more beams" diye genellestirmek,
+            // bilgiyi geri almak demek: kullanici kirisi bulamiyor.
+            //
+            // Isaret: cozucu boyle mesajlari kiris numarasiyla yaziyor.
+            if (/beam \d/i.test(msg)) return msg;
+
             // Common error patterns and user-friendly messages
             if (msg.includes('singular') || msg.includes('Singular')) {
                 return 'Model is unstable! Check boundary conditions - the structure may be able to move freely.';
