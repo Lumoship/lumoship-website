@@ -92,8 +92,11 @@
         function showTooltipAt(screenX, screenY, html) {
             if (cmdElements.tooltip) {
                 cmdElements.tooltip.innerHTML = html;
+                // Yapisma isaretcisinin etiketi imlecin sag hizasinda durur;
+                // ipucu 30 px yukaridayken alt kenari o etiketin ustune
+                // biniyordu ("= 6000 mm" okunmuyordu). 46 px yukari.
                 cmdElements.tooltip.style.left = (screenX + 15) + 'px';
-                cmdElements.tooltip.style.top = (screenY - 30) + 'px';
+                cmdElements.tooltip.style.top = (screenY - 46) + 'px';
                 cmdElements.tooltip.classList.add('visible');
             }
         }
@@ -123,16 +126,21 @@
         }
         
         // Update Coordinates Display
-        function updateCoordsDisplay(modelX, modelY) {
+        function updateCoordsDisplay(modelX, modelY, modelZ) {
             if (cmdElements.coords) {
-                cmdElements.coords.textContent = `X: ${modelX.toFixed(3)}  Y: ${modelY.toFixed(3)}`;
+                const z = (typeof modelZ === 'number' && isFinite(modelZ)) ? modelZ : 0;
+                cmdElements.coords.textContent = `X: ${modelX.toFixed(3)}  Y: ${modelY.toFixed(3)}  Z: ${z.toFixed(3)}`;
             }
         }
         
         // ============== COORDINATE CONVERSION ==============
         
         // Screen to Model coordinates (3D view)
-        function screenToModel3D(screenX, screenY, container) {
+        // gecenNokta (istege bagli): duzlem, etkin duzleme PARALEL olarak bu
+        // noktadan gecirilir. Cizim z=3'teki bir dugumden devam ederken fare
+        // z=0'a dusuyordu ve her kiris capraz asagi iniyordu; suruyor olan
+        // cizginin duzlemi son noktadan gecmeli.
+        function screenToModel3D(screenX, screenY, container, gecenNokta) {
             if (!threeCamera || !container) return { x: 0, y: 0, z: 0 };
             
             const rect = container.getBoundingClientRect();
@@ -153,20 +161,226 @@
                 ? aktifCalismaDuzlemi()
                 : { axis: 'Z', offset: 0 };
             {
-                const o = d.offset;
+                let o = d.offset;
+                if (gecenNokta) {
+                    o = d.axis === 'X' ? gecenNokta.x : (d.axis === 'Y' ? gecenNokta.y : (gecenNokta.z || 0));
+                }
                 if (d.axis === 'X') { normal = new THREE.Vector3(1, 0, 0); constant = -o; }
                 else if (d.axis === 'Y') { normal = new THREE.Vector3(0, 1, 0); constant = -o; }
                 else { normal = new THREE.Vector3(0, 0, 1); constant = -o; }
             }
             const plane = new THREE.Plane(normal, constant);
             const intersection = new THREE.Vector3();
-            raycaster.ray.intersectPlane(plane, intersection);
-            
-            if (intersection) {
-                return { x: intersection.x, y: intersection.y, z: intersection.z };
+            // Isin duzleme paralelse (XY duzlemi etkinken yandan bakmak gibi)
+            // intersectPlane null doner ve hedef (0,0,0)'da kalir. Eskiden bu
+            // sifir noktasi gercek bir tiklama sanilip oraya cizim yapiliyordu.
+            // Bos donmek dogru: cagiran, duzlemin bu gorunuse dik oldugunu
+            // soyler.
+            const vurdu = raycaster.ray.intersectPlane(plane, intersection);
+            if (!vurdu) return null;
+            return { x: intersection.x, y: intersection.y, z: intersection.z };
+        }
+
+        // ---- Ekran olcegi ----
+        // Bir CSS pikselinin kamera hedefindeki karsiligi (m). Yapisma
+        // toleransi PIKSEL cinsinden olmali: sabit 0,15 m, yakinlastirinca
+        // yarim ekran, uzaklastirinca gorunmez bir daireydi.
+        function pikselBasinaMetre(container) {
+            if (typeof threeCamera === 'undefined' || !threeCamera || !container) return 0.01;
+            const h = container.clientHeight || 600;
+            if (threeCamera.isOrthographicCamera) {
+                return (threeCamera.top - threeCamera.bottom) / (threeCamera.zoom || 1) / h;
             }
-            
-            return { x: 0, y: 0, z: 0 };
+            const r = (window.spherical && window.spherical.radius) || 8;
+            return 2 * r * Math.tan((threeCamera.fov || 60) * Math.PI / 360) / h;
+        }
+
+        // Yapisma yaricapi: 10 piksel. Kullanici imleci "dugumun ustune"
+        // getirir; ne kadar yakinlastirdigi onun isi.
+        const YAPISMA_PIKSEL = 10;
+
+        // ---- Ekran uzayinda dugum/orta nokta yapismasi ----
+        // Duzlem-ici yapisma (findSnapPoint) dugumleri etkin duzleme
+        // YANSITIP fare noktasiyla karsilastirir. Serbest 3B'de bu yanlis:
+        // z=3'teki dugum ekranda baska yerde gorunur, yansittigi (x,y) ise
+        // bambaska bir ekran noktasina duser - kullanici dugumun ustune gelir,
+        // yapisma olmaz. Iki boyutlu gorunuslerde de derinlik belirsizligi var:
+        // yandan bakinca y=0 ve y=4'teki iki dugum ust uste geliyor ve hangisi
+        // secilecegi rastgeleydi ("alakasiz bir yerden tutuyor").
+        //
+        // Burada dugum ve orta noktalar EKRANA izdusurulur, imlece 10 piksel
+        // icindekiler aday olur. Ust uste gelenlerde etkin calisma duzlemi
+        // uzerindeki (derinligi duzlemin kaymasina esit olan) kazanir; boylece
+        // XZ gorunusunde y=0 duzleminde cizerken y=0'daki dugum tutulur.
+        // Donen nokta dugumun GERCEK 3B konumudur - kiris ona baglanir.
+        function ekrandanYapis(clientX, clientY, container) {
+            if (!cmdState.snapMode) return null;
+            if (typeof threeCamera === 'undefined' || !threeCamera || !container) return null;
+            if (typeof model === 'undefined' || !model) return null;
+
+            const r = container.getBoundingClientRect();
+            const px = clientX - r.left, py = clientY - r.top;
+            const v = new THREE.Vector3();
+            const ekrana = (x, y, z) => {
+                v.set(x, y, z).project(threeCamera);
+                if (v.z > 1) return null;                  // kamera arkasi
+                return { x: (v.x * 0.5 + 0.5) * r.width, y: (-v.y * 0.5 + 0.5) * r.height };
+            };
+
+            const d = (typeof aktifCalismaDuzlemi === 'function')
+                ? aktifCalismaDuzlemi() : { axis: 'Z', offset: 0 };
+            const derinlik = p => d.axis === 'X' ? p.x : (d.axis === 'Y' ? p.y : (p.z || 0));
+            const duzlemde = p => Math.abs(derinlik(p) - d.offset) < 0.001;
+
+            // (uzaklik, duzlemde-mi) ikilisiyle siralanir: once duzlemdekiler.
+            let enIyi = null;
+            const dene = (p, tip) => {
+                const e = ekrana(p.x, p.y, p.z || 0);
+                if (!e) return;
+                const u = Math.hypot(px - e.x, py - e.y);
+                if (u > YAPISMA_PIKSEL) return;
+                const aday = { x: p.x, y: p.y, z: p.z || 0, type: tip, uzaklik: u, duzlemde: duzlemde(p) };
+                if (!enIyi) { enIyi = aday; return; }
+                if (aday.duzlemde !== enIyi.duzlemde) { if (aday.duzlemde) enIyi = aday; return; }
+                // Dugum orta noktadan once gelir: ayni yakinlikta uc kazanir.
+                if (aday.type === 'END' && enIyi.type !== 'END' && u <= enIyi.uzaklik + 3) { enIyi = aday; return; }
+                if (u < enIyi.uzaklik) enIyi = aday;
+            };
+
+            Object.values(model.nodes).forEach(n => dene(n, 'END'));
+            Object.values(model.elements).forEach(el => {
+                const n1 = model.nodes[el.n1], n2 = model.nodes[el.n2];
+                if (!n1 || !n2) return;
+                dene({ x: (n1.x + n2.x) / 2, y: (n1.y + n2.y) / 2,
+                       z: ((n1.z || 0) + (n2.z || 0)) / 2 }, 'MID');
+            });
+
+            if (!enIyi) return null;
+            return { x: enIyi.x, y: enIyi.y, z: enIyi.z, type: enIyi.type };
+        }
+
+        // ---- Eksen kilidi (X / Y / Z) ----
+        // Serbest 3B gorunuste fare hep bir DUZLEME duser; o duzlemden
+        // cikmanin yolu yoktu - kolon cizmek icin XZ gorunusune gecmek
+        // gerekiyordu. Kilit varken imlec, taban noktasindan gecen eksen
+        // dogrusunun fare isinina EN YAKIN noktasina oturur (iki dogru
+        // arasindaki en kisa baglanti). Boylece 3B'de bir dugume tiklayip
+        // Z'ye basip yukari cizilebilir; uzunluk yazilirsa da o eksende gider.
+        function eksenKilidiNoktasi(clientX, clientY, container, taban, eksen) {
+            if (!taban || !eksen) return null;
+            if (typeof threeCamera === 'undefined' || !threeCamera || !container) return null;
+
+            const rect = container.getBoundingClientRect();
+            const mouse = new THREE.Vector2(
+                ((clientX - rect.left) / rect.width) * 2 - 1,
+                -((clientY - rect.top) / rect.height) * 2 + 1
+            );
+            const rc = new THREE.Raycaster();
+            rc.setFromCamera(mouse, threeCamera);
+
+            const P = new THREE.Vector3(taban.x, taban.y, taban.z || 0);
+            const u = eksen === 'X' ? new THREE.Vector3(1, 0, 0)
+                    : eksen === 'Y' ? new THREE.Vector3(0, 1, 0)
+                    : new THREE.Vector3(0, 0, 1);
+            const Q = rc.ray.origin.clone();
+            const w = rc.ray.direction.clone();
+
+            // Eksen dogrusu P + s*u, fare isini Q + t*w. En yakin noktalarin s'i:
+            const a = u.dot(u), b = u.dot(w), c = w.dot(w);
+            const r0 = P.clone().sub(Q);
+            const dd = u.dot(r0), e = w.dot(r0);
+            const payda = a * c - b * b;
+            // Eksen bakis yonuyle cakisiyorsa (Z kilidi + tam tepeden bakis)
+            // derinlik ekrandan okunamaz; kilit uygulanmaz.
+            if (Math.abs(payda) < 1e-9) return null;
+            const s = (b * e - c * dd) / payda;
+            return { x: P.x + u.x * s, y: P.y + u.y * s, z: P.z + u.z * s };
+        }
+
+        function eksenKilidiDegistir(eksen) {
+            if (typeof cmdState === 'undefined') return;
+            cmdState.eksenKilidi = (cmdState.eksenKilidi === eksen) ? null : eksen;
+            if (typeof showToast === 'function')
+                showToast(cmdState.eksenKilidi ? `Axis lock: ${cmdState.eksenKilidi} (press again to release)` : 'Axis lock off');
+            if (typeof updateCommandUI === 'function') updateCommandUI();
+        }
+
+        // ---- Esit uzunluk onerisi ----
+        // Cizerken imlecin taban noktasina uzakligi, modeldeki bir kirisin
+        // boyuna yaklasinca (10 piksel) tam o boya oturtulur: 3000'lik bir
+        // kirisin paralelini cizerken 3000'e gelince yakalar. Once mevcut
+        // kirislerden CIZILENE PARALEL olanlar denenir (kullanicinin niyeti
+        // buyuk olasilikla o), bulunmazsa butun boylar. Dugum yapismasi bunu
+        // ezer: gercek bir noktaya yapismak daha kuvvetli bir niyettir.
+        function esitUzunlukYapis(taban, p, container) {
+            if (!taban || !p) return null;
+            if (typeof model === 'undefined' || !model) return null;
+            const dx = p.x - taban.x, dy = p.y - taban.y, dz = (p.z || 0) - (taban.z || 0);
+            const L = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (L < 1e-6) return null;
+            const yon = { x: dx / L, y: dy / L, z: dz / L };
+            const tol = YAPISMA_PIKSEL * pikselBasinaMetre(container);
+
+            let enIyi = null;
+            const dene = (boy, paralel, id) => {
+                const fark = Math.abs(L - boy);
+                if (fark > tol) return;
+                // paralel olan, olmayana karsi kazanir; sonra en yakin boy
+                if (!enIyi || (paralel && !enIyi.paralel) ||
+                    (paralel === enIyi.paralel && fark < enIyi.fark)) {
+                    enIyi = { boy, paralel, fark, id };
+                }
+            };
+            Object.entries(model.elements).forEach(([id, el]) => {
+                const n1 = model.nodes[el.n1], n2 = model.nodes[el.n2];
+                if (!n1 || !n2) return;
+                const ex = n2.x - n1.x, ey = n2.y - n1.y, ez = (n2.z || 0) - (n1.z || 0);
+                const boy = Math.sqrt(ex * ex + ey * ey + ez * ez);
+                if (boy < 1e-6) return;
+                const cosA = Math.abs((ex * yon.x + ey * yon.y + ez * yon.z) / boy);
+                dene(boy, cosA > 0.9998, parseInt(id, 10));   // ~1 derece
+            });
+            if (!enIyi) return null;
+            return {
+                x: taban.x + yon.x * enIyi.boy,
+                y: taban.y + yon.y * enIyi.boy,
+                z: (taban.z || 0) + yon.z * enIyi.boy,
+                type: 'LEN', boy: enIyi.boy, paralel: enIyi.paralel, kaynak: enIyi.id
+            };
+        }
+
+        // ---- Imlecin 3B model noktasi: TEK yol ----
+        // Tiklama ve fare hareketi ayni sirayi izler; ikisi ayri karar
+        // verirse onizleme baska, cizilen baska yere duser.
+        //   1. Ekranda dugum/orta nokta varsa ONA (gercek 3B konum).
+        //   2. Eksen kilidi varsa taban noktasindan o eksende.
+        //   3. Yoksa etkin duzleme dus, ortho + duzlem-ici yapisma.
+        //   4. Serbest noktada esit uzunluk onerisi.
+        // Donus: { pos, snap } ya da null (duzlem gorunuse dik).
+        function imlecNoktasi3D(clientX, clientY, container, orthoBase) {
+            const dugum = ekrandanYapis(clientX, clientY, container);
+            if (dugum) return { pos: { x: dugum.x, y: dugum.y, z: dugum.z }, snap: dugum };
+
+            if (cmdState.eksenKilidi && orthoBase) {
+                const k = eksenKilidiNoktasi(clientX, clientY, container, orthoBase, cmdState.eksenKilidi);
+                if (k) {
+                    const esit = esitUzunlukYapis(orthoBase, k, container);
+                    if (esit) return { pos: { x: esit.x, y: esit.y, z: esit.z }, snap: esit };
+                    return { pos: k, snap: null };
+                }
+            }
+
+            const modelPos = screenToModel3D(clientX, clientY, container, orthoBase);
+            if (!modelPos) return null;
+            const snapPoint = duzlemeOturt(modelPos, orthoBase, container);
+            // Izgara yapismasi en zayif niyet; esit uzunluk onu ezer.
+            if (snapPoint && snapPoint.type !== 'GRID') return { pos: modelPos, snap: snapPoint };
+
+            if (orthoBase) {
+                const esit = esitUzunlukYapis(orthoBase, modelPos, container);
+                if (esit) return { pos: { x: esit.x, y: esit.y, z: esit.z }, snap: esit };
+            }
+            return { pos: modelPos, snap: snapPoint || null };
         }
         
         // Model to Screen coordinates (3D view)
@@ -205,7 +419,7 @@
 
         // Fare konumuna ortho ve snap uygular. Iki cizim yolunda da ayni is
         // yapiliyordu ve ikisi de yalnizca x,y biliyordu.
-        function duzlemeOturt(modelPos, orthoBase) {
+        function duzlemeOturt(modelPos, orthoBase, container) {
             let uv = duzlemUV(modelPos);
             const taban = orthoBase ? duzlemUV(orthoBase) : null;
 
@@ -214,7 +428,9 @@
                 uv = { u: c.x, v: c.y };
             }
 
-            const snapPoint = findSnapPoint(uv.u, uv.v);
+            // Tolerans ekrandan: kapsayici verilmediyse eski sabit deger.
+            const tol = container ? YAPISMA_PIKSEL * pikselBasinaMetre(container) : 0.15;
+            const snapPoint = findSnapPoint(uv.u, uv.v, tol);
             if (snapPoint) {
                 const s = duzlemUV(snapPoint);
                 if (taban && cmdState.orthoMode) {
@@ -226,7 +442,15 @@
                 }
             }
 
+            // Duzlem-ici nokta, taban noktasinin derinligine (z=3 gibi)
+            // geri yazilir; duzlemNokta etkin duzlemin kaymasini kullanirdi.
             const np = duzlemNokta(uv.u, uv.v);
+            if (orthoBase && !(snapPoint && snapPoint.type !== 'GRID')) {
+                const d = (typeof aktifCalismaDuzlemi === 'function') ? aktifCalismaDuzlemi() : { axis: 'Z' };
+                if (d.axis === 'X') np.x = orthoBase.x;
+                else if (d.axis === 'Y') np.y = orthoBase.y;
+                else np.z = orthoBase.z || 0;
+            }
             modelPos.x = np.x; modelPos.y = np.y; modelPos.z = np.z;
             return snapPoint || null;
         }
@@ -282,27 +506,40 @@
             // duzleme geri yansitilmis noktayi dondurmek, o dugumden gecmeyen
             // bir kiris uretiyordu: ekranda ust uste gorunuyor ama baglanmiyor.
             const D = { nodes: {}, elements: model.elements };
+            const derinlik = n => duzlem.axis === 'X' ? n.x : (duzlem.axis === 'Y' ? n.y : (n.z || 0));
             Object.entries(model.nodes).forEach(([id, n]) => {
                 const q = uv(n);
                 q.gercek = { x: n.x, y: n.y, z: n.z || 0 };
+                // Yansitilinca ust uste gelen dugumlerden hangisi? Etkin
+                // duzlemin uzerindeki. Yandan bakarken y=0 ve y=4'teki iki
+                // dugum ayni yere dusuyor ve rastgele biri tutuluyordu.
+                q.duzlemde = Math.abs(derinlik(n) - duzlem.offset) < 0.001;
                 D.nodes[id] = q;
             });
             const taban = cmdState.basePoint ? uv(cmdState.basePoint) : { x: 0, y: 0 };
-            
+
             let best = null;
             let minDist = tolerance;
             let snapType = '';
-            
+            let bestDuzlemde = false;
+            // Duzlemdeki aday, duzlem disindakini uzaklik ne olursa olsun ezer
+            // (ikisi de tolerans icindeyse).
+            const dahaIyi = (dist, duzlemde) => {
+                if (dist >= tolerance) return false;
+                if (duzlemde !== bestDuzlemde) return duzlemde;
+                return dist < minDist;
+            };
+
             // 1. Endpoint snap (highest priority)
             Object.values(D.nodes).forEach(node => {
                 const dist = Math.sqrt((node.x - modelX) ** 2 + (node.y - modelY) ** 2);
-                if (dist < minDist) {
-                    minDist = dist;
+                if (dahaIyi(dist, node.duzlemde)) {
+                    minDist = dist; bestDuzlemde = node.duzlemde;
                     best = { x: node.x, y: node.y, gercek: node.gercek };
                     snapType = 'END';
                 }
             });
-            
+
             // 2. Midpoint snap
             Object.values(D.elements).forEach(elem => {
                 const n1 = D.nodes[elem.n1];
@@ -311,8 +548,9 @@
                     const midX = (n1.x + n2.x) / 2;
                     const midY = (n1.y + n2.y) / 2;
                     const dist = Math.sqrt((midX - modelX) ** 2 + (midY - modelY) ** 2);
-                    if (dist < minDist) {
-                        minDist = dist;
+                    const duzlemde = n1.duzlemde && n2.duzlemde;
+                    if (dahaIyi(dist, duzlemde)) {
+                        minDist = dist; bestDuzlemde = duzlemde;
                         best = { x: midX, y: midY, gercek: (n1.gercek && n2.gercek) ? {
                             x: (n1.gercek.x + n2.gercek.x) / 2,
                             y: (n1.gercek.y + n2.gercek.y) / 2,
@@ -419,17 +657,19 @@
             INT:  { color: 'var(--warning)', label: 'Intersection',  shape: '<line x1="5" y1="5" x2="19" y2="19" stroke="var(--warning)" stroke-width="2"/><line x1="19" y1="5" x2="5" y2="19" stroke="var(--warning)" stroke-width="2"/>' },
             NEAR: { color: 'var(--primary)', label: 'Nearest',       shape: '<polygon points="12,4 20,12 12,20 4,12" fill="none" stroke="var(--primary)" stroke-width="2"/>' },
             GRID: { color: 'var(--text-2)', label: '',          shape: '<line x1="12" y1="4" x2="12" y2="20" stroke="var(--text-2)" stroke-width="1.5"/><line x1="4" y1="12" x2="20" y2="12" stroke="var(--text-2)" stroke-width="1.5"/>' },
-            PERP: { color: 'var(--primary)', label: 'Perpendicular', shape: '<path d="M5 5 L5 19 L19 19" fill="none" stroke="var(--primary)" stroke-width="2"/><rect x="6" y="14" width="5" height="5" fill="none" stroke="var(--primary)" stroke-width="1.2"/>' }
+            PERP: { color: 'var(--primary)', label: 'Perpendicular', shape: '<path d="M5 5 L5 19 L19 19" fill="none" stroke="var(--primary)" stroke-width="2"/><rect x="6" y="14" width="5" height="5" fill="none" stroke="var(--primary)" stroke-width="1.2"/>' },
+            // Esit uzunluk: "=" isareti. Etiket calisma aninda boyu yazar.
+            LEN:  { color: 'var(--success)', label: 'Equal length', shape: '<line x1="5" y1="9" x2="19" y2="9" stroke="var(--success)" stroke-width="2"/><line x1="5" y1="15" x2="19" y2="15" stroke="var(--success)" stroke-width="2"/>' }
         };
-        
-        function showSnapMarker(screenX, screenY, type) {
+
+        function showSnapMarker(screenX, screenY, type, etiket) {
             const marker = document.getElementById('snapMarker');
             const svg = document.getElementById('snapMarkerSvg');
             const label = document.getElementById('snapMarkerLabel');
             if (!marker || !svg) return;
             const c = SNAP_MARKER_CONFIG[type] || SNAP_MARKER_CONFIG.END;
             svg.innerHTML = c.shape;
-            if (label) { label.textContent = c.label; label.style.color = c.color; }
+            if (label) { label.textContent = etiket || c.label; label.style.color = c.color; }
             marker.style.left = screenX + 'px';
             marker.style.top = screenY + 'px';
             marker.style.display = 'block';

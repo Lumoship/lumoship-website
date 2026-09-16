@@ -97,8 +97,9 @@
             const divisionsY = Math.round(sizeY / spacing);
             
             // Create lines
-            const majorMaterial = new THREE.LineBasicMaterial({ color: majorColor, transparent: true, opacity: 0.6 });
-            const minorMaterial = new THREE.LineBasicMaterial({ color: minorColor, transparent: true, opacity: 0.4 });
+            // Opaklik piksel oranina gore (canvas3d.js -> izgaraOpakligi).
+            const majorMaterial = new THREE.LineBasicMaterial({ color: majorColor, transparent: true, opacity: izgaraOpakligi(0.6) });
+            const minorMaterial = new THREE.LineBasicMaterial({ color: minorColor, transparent: true, opacity: izgaraOpakligi(0.4) });
             
             // X direction lines
             for (let i = 0; i <= divisionsX; i++) {

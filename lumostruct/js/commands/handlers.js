@@ -77,134 +77,9 @@
                         startCommand(valUpper);
                     }
                     else if (cmdState.active === CMD.LINE) {
-                        // LINE command - process coordinate or distance
-                        // Try coordinate format: X,Y or X,Y,Z (mm)
-                        const coordMatch = val.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)(?:\s*[,;\s]\s*(-?\d+(?:\.\d+)?))?$/);
-                        if (coordMatch) {
-                            // Iki sayi AKTIF DUZLEMIN iki eksenidir: XY'de x,y - XZ'de
-                            // x,z - YZ'de y,z. Ucuncu sayi verilirse her zaman tam
-                            // x,y,z olarak okunur. Eskiden iki sayi hep x,y sayiliyor,
-                            // XZ gorunusunde yazdiginiz nokta baska yere dusuyordu.
-                            const a1 = parseFloat(coordMatch[1]) / 1000;   // mm -> m
-                            const a2 = parseFloat(coordMatch[2]) / 1000;
-                            let x, y, z;
-                            if (coordMatch[3] !== undefined) {
-                                x = a1; y = a2; z = parseFloat(coordMatch[3]) / 1000;
-                            } else {
-                                const np = (typeof duzlemNokta === 'function')
-                                    ? duzlemNokta(a1, a2) : { x: a1, y: a2, z: 0 };
-                                x = np.x; y = np.y; z = np.z;
-                            }
-                            
-                            cmdState.linePoints.push({ x, y, z });
-                            
-                            if (cmdState.linePoints.length >= 2) {
-                                saveState();
-                                const pts = cmdState.linePoints;
-                                const p1 = pts[pts.length - 2];
-                                const p2 = pts[pts.length - 1];
-                                
-                                // Update direction for next distance input
-                                const ddx = p2.x - p1.x;
-                                const ddy = p2.y - p1.y;
-                                const dlen = Math.sqrt(ddx*ddx + ddy*ddy);
-                                if (dlen > 0.001) {
-                                    cmdState.lastCursorDir = { x: ddx/dlen, y: ddy/dlen };
-                                }
-                                
-                                let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                                if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
-                                
-                                let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                                if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
-                                
-                                const beamId = nextElementId++;
-                                const kesit = kesitSec();
-                                if (!kesit) { kesitYokUyar(); return; }
-                                model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
-                                
-                                autoSplitAtIntersections([beamId]);
-                                
-                                // Force render update
-                                if (currentViewMode === '3d') {
-                                    update3DScene();
-                                    if (threeRenderer && threeScene && threeCamera) {
-                                        threeRenderer.render(threeScene, threeCamera);
-                                    }
-                                } else {
-                                    draw();
-                                }
-                                
-                                
-                                const distMM = (dlen * 1000).toFixed(0);
-                                showToast(`Line: ${distMM} mm → Next point or distance`);
-                            } else {
-                                // First point - set default direction
-                                cmdState.lastCursorDir = { x: 1, y: 0 };
-                                if (currentViewMode === '3d') update3DScene();
-                                else draw();
-                                showToast(`Start: (${(x*1000).toFixed(0)}, ${(y*1000).toFixed(0)}, ${(z*1000).toFixed(0)}) → Next point or distance`);
-                            }
-                            updateCommandUI();
-                        }
-                        // Try relative coordinate: @X,Y
-                        else if (val.startsWith('@') || val.startsWith('@')) {
-                            const relMatch = val.match(/^@(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
-                            if (relMatch && cmdState.linePoints.length > 0) {
-                                const lastPt = cmdState.linePoints[cmdState.linePoints.length - 1];
-                                const dx = parseFloat(relMatch[1]) / 1000;
-                                const dy = parseFloat(relMatch[2]) / 1000;
-                                const x = lastPt.x + dx;
-                                const y = lastPt.y + dy;
-                                
-                                // Update direction for next distance input
-                                const dlen = Math.sqrt(dx*dx + dy*dy);
-                                if (dlen > 0.001) {
-                                    cmdState.lastCursorDir = { x: dx/dlen, y: dy/dlen };
-                                }
-                                
-                                const z = lastPt.z || 0;  // stay on the same work plane
-                                cmdState.linePoints.push({ x, y, z });
-                                
-                                saveState();
-                                let n1Id = findNodeAt(lastPt.x, lastPt.y, 0.01, lastPt.z || 0);
-                                if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: lastPt.x, y: lastPt.y, z: lastPt.z || 0 }; }
-                                
-                                let n2Id = findNodeAt(x, y, 0.01, z);
-                                if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: x, y: y, z: z }; }
-                                
-                                const beamId = nextElementId++;
-                                const kesit = kesitSec();
-                                if (!kesit) { kesitYokUyar(); return; }
-                                model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
-                                
-                                autoSplitAtIntersections([beamId]);
-                                
-                                // Force render update
-                                if (currentViewMode === '3d') {
-                                    update3DScene();
-                                    if (threeRenderer && threeScene && threeCamera) {
-                                        threeRenderer.render(threeScene, threeCamera);
-                                    }
-                                } else {
-                                    draw();
-                                }
-                                
-                                
-                                const distMM = (dlen * 1000).toFixed(0);
-                                showToast(`Relative: ${distMM} mm → Next point or distance`);
-                                updateCommandUI();
-                            }
-                        }
-                        // Try distance (single number)
-                        else {
-                            const dist = parseFloat(val);
-                            if (!isNaN(dist) && dist > 0 && cmdState.linePoints.length > 0) {
-                                processLineDistanceInput(dist);
-                            } else if (!isNaN(dist) && dist > 0 && cmdState.linePoints.length === 0) {
-                                showToast('First specify a start point', 'warning');
-                            }
-                        }
+                        // Koordinat / uzunluk / @dx,dy / eksen kilidi: tek
+                        // cozumleyici (system.js), komut cubugundakiyle ayni.
+                        cizgiGirdisiIsle(val);
                     }
                     else if (cmdState.active === CMD.NODE_MOVE && cmdState.selectedNode) {
                         // NODE_MOVE: Move node to coordinates
@@ -338,6 +213,18 @@
                 return;
             }
             
+            // X / Y / Z: cizerken eksen kilidi (SketchUp'taki ok tuslari
+            // gibi). Komut girisi bos oldugu surece girise yazilmaz; bir
+            // koordinat yazarken basilan harf girdinin parcasidir.
+            if (cmdState.active === CMD.LINE && cmdState.linePoints.length > 0 &&
+                /^[xyz]$/i.test(e.key) && !e.ctrlKey && !e.altKey &&
+                (!isCmdInput || !(cmdElements.input && cmdElements.input.value.trim()))) {
+                e.preventDefault();
+                e.stopPropagation();
+                eksenKilidiDegistir(e.key.toUpperCase());
+                return;
+            }
+
             // Letter keys - focus input and type (AutoCAD style: type command then Space)
             if (cmdState.active === CMD.NONE && !isCmdInput && /^[a-z]$/i.test(e.key) && !e.ctrlKey) {
                 e.preventDefault();
@@ -375,25 +262,30 @@
                 return false; // Let normal handler proceed
             }
             
-            const modelPos = screenToModel3D(e.clientX, e.clientY, container);
-            
             // For LINE command, use last point as base point for ortho
             let orthoBase = cmdState.basePoint;
             if (cmdState.active === CMD.LINE && cmdState.linePoints.length > 0) {
                 orthoBase = cmdState.linePoints[cmdState.linePoints.length - 1];
             }
-            
-            // Ortho ve snap AKTIF DUZLEMIN iki ekseninde uygulanir
-            // (XY: x-y, XZ: x-z, YZ: y-z). Ikisi de yalnizca x,y biliyordu;
-            // bu yuzden XZ ve YZ gorunuslerinde cizim yapilamiyordu.
-            const snapPoint = duzlemeOturt(modelPos, orthoBase);
+
+            // Imlecin model noktasi TEK yoldan (imlecNoktasi3D): once ekranda
+            // dugum, sonra eksen kilidi, sonra etkin duzlem + ortho + yapisma.
+            // Fare hareketi de ayni yolu kullanir; onizleme ile tiklama ayni
+            // yere duser.
+            const imlec = imlecNoktasi3D(e.clientX, e.clientY, container, orthoBase);
+            if (!imlec) {
+                showToast('Work plane is edge-on to this view - pick another view or plane', 'warning');
+                return true;
+            }
+            const modelPos = imlec.pos;
+            const snapPoint = imlec.snap;
             cmdState.currentSnapPoint = snapPoint || null;
-            
+
             // Handle based on command and phase
             if (cmdState.active === CMD.COPY || cmdState.active === CMD.MOVE) {
                 if (cmdState.phase === PHASE.BASE_POINT) {
                     // Set base point
-                    cmdState.basePoint = { x: modelPos.x, y: modelPos.y };
+                    cmdState.basePoint = { x: modelPos.x, y: modelPos.y, z: modelPos.z || 0 };
                     cmdState.basePointScreen = { x: e.clientX, y: e.clientY };
                     showBasePointMarker(e.clientX, e.clientY);
                     cmdState.phase = PHASE.DESTINATION;
@@ -472,70 +364,11 @@
                 }
                 return true;
             } else if (cmdState.active === CMD.LINE) {
-                // LINE command - add point
-                cmdState.linePoints.push({ x: modelPos.x, y: modelPos.y, z: modelPos.z || 0 });
-                
-                if (cmdState.linePoints.length >= 2) {
-                    saveState();
-                    const pts = cmdState.linePoints;
-                    const p1 = pts[pts.length - 2];
-                    const p2 = pts[pts.length - 1];
-                    
-                    // Update direction for next distance input
-                    // Yon dz'yi de sayar: XZ/YZ duzleminde cizerken yon
-                    // sifir cikiyor ve uzunluk girdisi calismiyordu.
-                    const dx = p2.x - p1.x;
-                    const dy = p2.y - p1.y;
-                    const dz = (p2.z || 0) - (p1.z || 0);
-                    const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                    if (len > 0.001) {
-                        cmdState.lastCursorDir = { x: dx/len, y: dy/len, z: dz/len };
-                    }
-                    
-                    // Find or create nodes (use 10mm tolerance for finding existing nodes)
-                    let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                    if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
-                    
-                    let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                    if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
-                    
-                    // Create beam
-                    const beamId = nextElementId++;
-                    const kesit = kesitSec();
-                    if (!kesit) { kesitYokUyar(); return; }
-                    model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
-                    
-                    // Auto-split at intersections
-                    autoSplitAtIntersections([beamId]);
-                    
-                    // Force render update
-                    if (currentViewMode === '3d') {
-                        update3DScene();
-                        if (threeRenderer && threeScene && threeCamera) {
-                            threeRenderer.render(threeScene, threeCamera);
-                        }
-                    } else {
-                        draw();
-                    }
-                    updatePropertiesPanel();
-                    
-                    
-                    const distMM = (len * 1000).toFixed(0);
-                    showToast(`Line: ${distMM} mm → Next point?`);
-                } else {
-                    // First point - show feedback
-                    showToast(`Start: (${(modelPos.x*1000).toFixed(0)}, ${(modelPos.y*1000).toFixed(0)}) → Next point or distance`);
-                    // Set default direction for distance input
-                    cmdState.lastCursorDir = { x: 1, y: 0 };
-                }
-                
-                cmdState.basePoint = { x: modelPos.x, y: modelPos.y };
-                updateCommandUI();
-                
-                // Keep focus on input for distance entry
-                if (cmdElements.input) {
-                    setTimeout(() => cmdElements.input.focus(), 10);
-                }
+                // Tiklama, yazilan koordinat, uzunluk, @dx,dy - hepsi ayni
+                // fonksiyona gider (ciziyeNoktaEkle). Eskiden bes kopya vardi
+                // ve bazilari z'yi dusuruyordu.
+                ciziyeNoktaEkle({ x: modelPos.x, y: modelPos.y, z: modelPos.z || 0 },
+                    snapPoint && snapPoint.type === 'LEN' ? snapPoint : null);
                 return true;
             } else if (cmdState.active === CMD.OFFSET) {
                 if (cmdState.phase === PHASE.SELECT) {
@@ -695,80 +528,97 @@
             updatePropertiesPanel();
         }
         
-        // Auto-split beams at intersections
+        // Auto-split beams at intersections.
+        //
+        // UC BOYUTLU. Eskiden yalnizca x-y'ye bakiyordu: z=3'teki bir kiris,
+        // altindan gecen z=0'daki kirisle "kesisti" sayilip ikisi de
+        // bolunuyordu; kesisim dugumu z'siz (=0) kuruldugu icin ust kiris
+        // zemine dokunan sahte bir dugum kazaniyordu. Kolonun ust ucu da
+        // planda zemin kirisinin "ustunde" gorundugu icin zemin kirisi
+        // kolon tepesinde bolunuyordu. Bir 3B cerceve boyle kurulamaz.
+        //
+        // Kesisim = planda kesisen iki dogrunun O noktada AYNI kotada
+        // olmasi (snap.js'teki findIntersectionsWithExistingBeams ile ayni
+        // olcut). Uc noktanin kiris uzerinde olmasi da 3B uzakliktir.
         function autoSplitAtIntersections(newBeamIds) {
             const EPSILON = 0.0001;
+            const KOTA_TOL = 0.001;     // 1 mm
+            const z = n => n.z || 0;
             let totalSplits = 0;
-            
+
             newBeamIds.forEach(newId => {
                 const newBeam = model.elements[newId];
                 if (!newBeam) return;
                 const n1 = model.nodes[newBeam.n1], n2 = model.nodes[newBeam.n2];
                 if (!n1 || !n2) return;
-                
+
                 const intersections = [];
                 const endpointSplits = [];
-                
+
                 Object.entries(model.elements).forEach(([otherId, otherBeam]) => {
                     if (parseInt(otherId) === newId) return;
                     const on1 = model.nodes[otherBeam.n1], on2 = model.nodes[otherBeam.n2];
                     if (!on1 || !on2) return;
-                    
-                    // Check segment intersection
+
+                    // Plan kesisimi + kota esitligi
                     const d = (n1.x - n2.x) * (on1.y - on2.y) - (n1.y - n2.y) * (on1.x - on2.x);
                     if (Math.abs(d) >= 1e-10) {
                         const t = ((n1.x - on1.x) * (on1.y - on2.y) - (n1.y - on1.y) * (on1.x - on2.x)) / d;
                         const u = -((n1.x - n2.x) * (n1.y - on1.y) - (n1.y - n2.y) * (n1.x - on1.x)) / d;
-                        
+
                         if (t > EPSILON && t < 1 - EPSILON && u > EPSILON && u < 1 - EPSILON) {
-                            const ix = n1.x + t * (n2.x - n1.x);
-                            const iy = n1.y + t * (n2.y - n1.y);
-                            intersections.push({ x: ix, y: iy, tNew: t, tOther: u, otherElemId: parseInt(otherId) });
+                            const zYeni = z(n1) + t * (z(n2) - z(n1));
+                            const zVar  = z(on1) + u * (z(on2) - z(on1));
+                            if (Math.abs(zYeni - zVar) <= KOTA_TOL) {
+                                const ix = n1.x + t * (n2.x - n1.x);
+                                const iy = n1.y + t * (n2.y - n1.y);
+                                intersections.push({ x: ix, y: iy, z: zYeni, tNew: t, tOther: u, otherElemId: parseInt(otherId) });
+                            }
                         }
                     }
-                    
-                    // Check if new beam endpoints are on other beam (for parallel copy)
-                    const checkPointOnSegment = (px, py, x1, y1, x2, y2) => {
-                        const dx = x2 - x1, dy = y2 - y1;
-                        const len = Math.sqrt(dx*dx + dy*dy);
-                        if (len < EPSILON) return null;
-                        const t = ((px - x1) * dx + (py - y1) * dy) / (len * len);
+
+                    // Yeni kirisin uc noktasi mevcut kirisin UZERINDE mi (3B)?
+                    const checkPointOnSegment = (p, a, b) => {
+                        const dx = b.x - a.x, dy = b.y - a.y, dz = z(b) - z(a);
+                        const len2 = dx*dx + dy*dy + dz*dz;
+                        if (len2 < EPSILON * EPSILON) return null;
+                        const t = ((p.x - a.x) * dx + (p.y - a.y) * dy + (z(p) - z(a)) * dz) / len2;
                         if (t <= EPSILON || t >= 1 - EPSILON) return null;
-                        const cx = x1 + t * dx, cy = y1 + t * dy;
-                        const dist = Math.sqrt((px - cx)**2 + (py - cy)**2);
-                        if (dist < 0.001) return { t, x: cx, y: cy };
+                        const cx = a.x + t * dx, cy = a.y + t * dy, cz = z(a) + t * dz;
+                        const dist = Math.sqrt((p.x - cx)**2 + (p.y - cy)**2 + (z(p) - cz)**2);
+                        if (dist < KOTA_TOL) return { t, x: cx, y: cy, z: cz };
                         return null;
                     };
-                    
-                    const n1OnOther = checkPointOnSegment(n1.x, n1.y, on1.x, on1.y, on2.x, on2.y);
+
+                    const n1OnOther = checkPointOnSegment(n1, on1, on2);
                     if (n1OnOther) {
-                        endpointSplits.push({ x: n1.x, y: n1.y, tOther: n1OnOther.t, otherElemId: parseInt(otherId), nodeId: newBeam.n1 });
+                        endpointSplits.push({ tOther: n1OnOther.t, otherElemId: parseInt(otherId), nodeId: newBeam.n1 });
                     }
-                    
-                    const n2OnOther = checkPointOnSegment(n2.x, n2.y, on1.x, on1.y, on2.x, on2.y);
+
+                    const n2OnOther = checkPointOnSegment(n2, on1, on2);
                     if (n2OnOther) {
-                        endpointSplits.push({ x: n2.x, y: n2.y, tOther: n2OnOther.t, otherElemId: parseInt(otherId), nodeId: newBeam.n2 });
+                        endpointSplits.push({ tOther: n2OnOther.t, otherElemId: parseInt(otherId), nodeId: newBeam.n2 });
                     }
                 });
-                
+
                 if (intersections.length > 0) {
                     intersections.sort((a, b) => a.tNew - b.tNew);
                     totalSplits += intersections.length;
-                    
-                    // Create nodes at intersections
+
+                    // Create nodes at intersections (z ile)
                     const newNodes = intersections.map(inter => {
-                        const existing = findNodeAt(inter.x, inter.y, 0.001);
+                        const existing = findNodeAt(inter.x, inter.y, 0.001, inter.z);
                         if (existing) return existing;
                         const id = nextNodeId++;
-                        model.nodes[id] = { x: inter.x, y: inter.y };
+                        model.nodes[id] = { x: inter.x, y: inter.y, z: inter.z };
                         return id;
                     });
-                    
+
                     // Split new beam
                     const section = newBeam.section;
                     const origN1 = newBeam.n1, origN2 = newBeam.n2;
                     delete model.elements[newId];
-                    
+
                     let prevNode = origN1;
                     newNodes.forEach(nodeId => {
                         const id = nextElementId++;
@@ -777,41 +627,41 @@
                     });
                     const lastId = nextElementId++;
                     model.elements[lastId] = { n1: prevNode, n2: origN2, section };
-                    
+
                     // Split other beams
                     intersections.forEach((inter, idx) => {
                         const otherBeam = model.elements[inter.otherElemId];
                         if (!otherBeam) return;
                         const nodeId = newNodes[idx];
                         if (otherBeam.n1 === nodeId || otherBeam.n2 === nodeId) return;
-                        
+
                         const oSection = otherBeam.section;
                         const oN1 = otherBeam.n1, oN2 = otherBeam.n2;
                         delete model.elements[inter.otherElemId];
-                        
+
                         const id1 = nextElementId++; model.elements[id1] = { n1: oN1, n2: nodeId, section: oSection };
                         const id2 = nextElementId++; model.elements[id2] = { n1: nodeId, n2: oN2, section: oSection };
                     });
                 }
-                
-                // Process endpoint splits (for parallel copy)
+
+                // Process endpoint splits (for parallel copy / T joints)
                 endpointSplits.forEach(split => {
                     const otherBeam = model.elements[split.otherElemId];
                     if (!otherBeam || otherBeam.n1 === split.nodeId || otherBeam.n2 === split.nodeId) return;
-                    
+
                     const oSection = otherBeam.section;
                     const oN1 = otherBeam.n1, oN2 = otherBeam.n2;
                     delete model.elements[split.otherElemId];
-                    
+
                     const id1 = nextElementId++; model.elements[id1] = { n1: oN1, n2: split.nodeId, section: oSection };
                     const id2 = nextElementId++; model.elements[id2] = { n1: split.nodeId, n2: oN2, section: oSection };
                     totalSplits++;
                 });
             });
-            
+
             if (totalSplits > 0) showToast(`Auto-split: ${totalSplits}`, 'success');
         }
-        
+
         // Highlight beam for command preview
         function highlightBeamForCommand(beamId) {
             // Will be shown in preview
@@ -824,29 +674,31 @@
         function handleCommandMouseMove3D(e, container) {
             if (cmdState.active === CMD.NONE) return;
             
-            const modelPos = screenToModel3D(e.clientX, e.clientY, container);
-            
-            // Update coordinates display
-            updateCoordsDisplay(modelPos.x, modelPos.y);
-            
             // For LINE command, use last point as base point for ortho
             let orthoBase = cmdState.basePoint;
             if (cmdState.active === CMD.LINE && cmdState.linePoints.length > 0) {
                 orthoBase = cmdState.linePoints[cmdState.linePoints.length - 1];
             }
-            
-            // Ortho ve snap AKTIF DUZLEMIN iki ekseninde uygulanir
-            // (XY: x-y, XZ: x-z, YZ: y-z). Ikisi de yalnizca x,y biliyordu;
-            // bu yuzden XZ ve YZ gorunuslerinde cizim yapilamiyordu.
-            const snapPoint = duzlemeOturt(modelPos, orthoBase);
+
+            // Tiklamayla AYNI yol (imlecNoktasi3D) - bkz. handleCommandClick3D.
+            const imlec = imlecNoktasi3D(e.clientX, e.clientY, container, orthoBase);
+            if (!imlec) { hideSnapMarker(); hideTooltip(); return; }
+            const modelPos = imlec.pos;
+            const snapPoint = imlec.snap;
             cmdState.currentSnapPoint = snapPoint || null;
-            
+
+            // Update coordinates display
+            updateCoordsDisplay(modelPos.x, modelPos.y, modelPos.z);
+
             // Gorsel snap isaretcisi (kapsayiciya gore konum).
             if (snapPoint && typeof modelToScreen3D === 'function') {
                 const sp = modelToScreen3D(snapPoint.x, snapPoint.y, container, snapPoint.z || 0);
                 if (sp) {
                     const cRect = container.getBoundingClientRect();
-                    showSnapMarker(sp.x - cRect.left, sp.y - cRect.top, snapPoint.type);
+                    const etiket = snapPoint.type === 'LEN'
+                        ? `= ${(snapPoint.boy * 1000).toFixed(0)} mm${snapPoint.paralel ? ' (parallel)' : ''}`
+                        : undefined;
+                    showSnapMarker(sp.x - cRect.left, sp.y - cRect.top, snapPoint.type, etiket);
                 }
             } else {
                 hideSnapMarker();
@@ -991,44 +843,31 @@
                     const dz = (modelPos.z || 0) - (lastPt.z || 0);
                     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) * 1000;
                     
-                    // Track cursor direction for distance input
+                    // Track cursor direction for distance input. UC boyut:
+                    // yazilan uzunluk imlecin yonunde gider, Z'de de.
                     if (dist > 1) { // More than 1mm movement
-                        cmdState.lastCursorDir = { x: dx, y: dy };
-                        if (cmdState.orthoMode) {
-                            // Store ortho direction
-                            if (Math.abs(dx) > Math.abs(dy)) {
-                                cmdState.orthoDir = { x: dx > 0 ? 1 : -1, y: 0 };
-                            } else {
-                                cmdState.orthoDir = { x: 0, y: dy > 0 ? 1 : -1 };
-                            }
-                        }
+                        const L = dist / 1000;
+                        cmdState.lastCursorDir = { x: dx / L, y: dy / L, z: dz / L };
                     }
-                    
+
                     // Show direction indicator in tooltip
-                    let dirText = '';
-                    if (cmdState.lastCursorDir) {
-                        const cdx = cmdState.lastCursorDir.x;
-                        const cdy = cmdState.lastCursorDir.y;
-                        if (Math.abs(cdx) > Math.abs(cdy)) {
-                            dirText = cdx > 0 ? '→' : '←';
-                        } else {
-                            dirText = cdy > 0 ? '↑' : '↓';
-                        }
-                    }
-                    
+                    const dirText = yonOku(cmdState.lastCursorDir);
+
                     // Cizerken asil bakilan sey uzunluk; once o gelir ve
                     // buyuk yazilir. X/Y zaten durum seridinde, "Type distance
                     // + Enter" da komut cubugunda yaziyor - imlecin yaninda
                     // dort satir okumak zorunda kalmayin diye buradan cikti.
                     let tipText = `<span class="distance">${dist.toFixed(0)} mm ${dirText}</span>`;
+                    if (cmdState.eksenKilidi) tipText += ` <span style="color:var(--warning);font-size:var(--fs-xs)">${cmdState.eksenKilidi} LOCK</span>`;
                     if (cmdState.orthoMode) tipText += ` <span style="color:var(--success);font-size:var(--fs-xs)">ORTHO</span>`;
-                    if (snapPoint && snapPoint.type) tipText += ` <span style="color:var(--accent-info);font-size:var(--fs-xs)">${snapPoint.type}</span>`;
+                    if (snapPoint && snapPoint.type) tipText += ` <span style="color:var(--accent-info);font-size:var(--fs-xs)">${snapPoint.type === 'LEN' ? '= ' + (snapPoint.boy * 1000).toFixed(0) : snapPoint.type}</span>`;
                     showTooltipAt(e.clientX, e.clientY, tipText);
-                    
+
                     updateLinePreview3D(modelPos);
                 } else {
                     // First point - just show coordinates
-                    let tipText = `<span style="color:var(--text-2);font-size:var(--fs-xs)">X: ${xMM}  Y: ${yMM}</span>`;
+                    const zMM = ((modelPos.z || 0) * 1000).toFixed(0);
+                    let tipText = `<span style="color:var(--text-2);font-size:var(--fs-xs)">X: ${xMM}  Y: ${yMM}  Z: ${zMM}</span>`;
                     if (snapPoint && snapPoint.type) tipText += `<br><span style="color:var(--accent-info);font-size:var(--fs-xs)">[${snapPoint.type}]</span>`;
                     showTooltipAt(e.clientX, e.clientY, tipText);
                 }

@@ -158,7 +158,8 @@
             hoverPoint: null,          // Point on hovered beam
             keepOriginal: true,        // For mirror
             linePoints: [],            // For LINE command
-            lastCursorDir: null,       // Last cursor direction {x, y}
+            lastCursorDir: null,       // Last cursor direction {x, y, z}
+            eksenKilidi: null,         // 'X' | 'Y' | 'Z' | null - cizimde eksen kilidi
             orthoDir: { x: 1, y: 0 },  // Ortho direction
             offsetDist: 0.5,           // Default offset distance (500mm)
             offsetSide: 1,             // Offset side (1 or -1)
@@ -313,7 +314,7 @@
                     msg = 'Specify first point: (click or type X,Y or X,Y,Z in mm)';
                 } else {
                     const lastPt = cmdState.linePoints[cmdState.linePoints.length - 1];
-                    msg = `From (${(lastPt.x*1000).toFixed(0)},${(lastPt.y*1000).toFixed(0)}): Next point or [Enter to finish]`;
+                    msg = `From (${(lastPt.x*1000).toFixed(0)},${(lastPt.y*1000).toFixed(0)},${((lastPt.z||0)*1000).toFixed(0)})` + (cmdState.eksenKilidi ? ` [${cmdState.eksenKilidi} lock]` : '') + `: Next point or [Enter to finish]`;
                 }
             } else if (cmdState.active === CMD.COPY) {
                 switch (cmdState.phase) {
@@ -412,7 +413,7 @@
                 if (cmdState.linePoints.length === 0) {
                     cmdElements.hints.innerHTML = 'Click or type <span>X,Y,Z</span> (mm) | <span>@X,Y</span> relative | <span>[ESC]</span> Cancel';
                 } else {
-                    cmdElements.hints.innerHTML = 'Next: Click | <span>X,Y,Z</span> | <span>@X,Y</span> | <span>distance</span> | <span>[ENTER]</span> Finish | <span>[ESC]</span>';
+                    cmdElements.hints.innerHTML = 'Next: Click | <span>X,Y,Z</span> | <span>@X,Y</span> | <span>distance</span> | <span>X/Y/Z</span> axis lock | <span>[ENTER]</span> Finish | <span>[ESC]</span>';
                 }
             } else if (cmdState.active === CMD.SPLIT) {
                 cmdElements.hints.innerHTML = 'Click beam | X1500 Y2000 50% | <span>[ESC]</span> Cancel';
@@ -543,130 +544,13 @@
                 return;
             }
             
-            // LINE command - handle coordinate or distance input
+            // LINE: koordinat / uzunluk / @dx,dy / eksen kilidi. Klavye
+            // yakalayicisindaki (handlers.js) yolla AYNI cozumleyici.
             if (cmdState.active === CMD.LINE) {
-                // Try to parse as coordinate (X,Y or X,Y,Z format in mm)
-                const coordMatch = value.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)(?:\s*[,;\s]\s*(-?\d+(?:\.\d+)?))?$/);
-                if (coordMatch) {
-                    // Iki sayi AKTIF DUZLEMIN iki eksenidir: XY'de x,y - XZ'de
-                    // x,z - YZ'de y,z. Ucuncu sayi verilirse her zaman tam
-                    // x,y,z olarak okunur. Eskiden iki sayi hep x,y sayiliyor,
-                    // XZ gorunusunde yazdiginiz nokta baska yere dusuyordu.
-                    const a1 = parseFloat(coordMatch[1]) / 1000;   // mm -> m
-                    const a2 = parseFloat(coordMatch[2]) / 1000;
-                    let x, y, z;
-                    if (coordMatch[3] !== undefined) {
-                        x = a1; y = a2; z = parseFloat(coordMatch[3]) / 1000;
-                    } else {
-                        const np = (typeof duzlemNokta === 'function')
-                            ? duzlemNokta(a1, a2) : { x: a1, y: a2, z: 0 };
-                        x = np.x; y = np.y; z = np.z;
-                    }
-                    
-                    // Add point at coordinate
-                    cmdState.linePoints.push({ x, y, z });
-                    
-                    if (cmdState.linePoints.length >= 2) {
-                        // Create beam between last two points
-                        saveState();
-                        const pts = cmdState.linePoints;
-                        const p1 = pts[pts.length - 2];
-                        const p2 = pts[pts.length - 1];
-                        
-                        let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                        if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
-                        
-                        let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                        if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z || 0 }; }
-                        
-                        const beamId = nextElementId++;
-                        const kesit = kesitSec();
-                        if (!kesit) { kesitYokUyar(); return; }
-                        model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
-                        
-                        autoSplitAtIntersections([beamId]);
-                        
-                        // Force render update
-                        if (currentViewMode === '3d') {
-                            update3DScene();
-                            if (threeRenderer && threeScene && threeCamera) {
-                                threeRenderer.render(threeScene, threeCamera);
-                            }
-                        } else {
-                            draw();
-                        }
-                        
-                        
-                        showToast(`Line: (${(p1.x*1000).toFixed(0)},${(p1.y*1000).toFixed(0)}) → (${(p2.x*1000).toFixed(0)},${(p2.y*1000).toFixed(0)})`);
-                    } else {
-                        // First point set - update scene to show node
-                        if (currentViewMode === '3d') update3DScene();
-                        else draw();
-                        showToast(`Start: (${(x*1000).toFixed(0)}, ${(y*1000).toFixed(0)}) → Next point?`);
-                    }
-                    
-                    updateCommandUI();
-                    // Keep focus on input
-                    if (cmdElements.input) setTimeout(() => cmdElements.input.focus(), 10);
-                    return;
-                }
-                
-                // Try to parse as distance (single number)
-                const dist = parseFloat(value);
-                if (!isNaN(dist) && dist > 0 && cmdState.linePoints.length > 0) {
-                    processLineDistanceInput(dist);
-                    return;
-                }
-                
-                // Try to parse as relative coordinate (@X,Y format)
-                const relMatch = value.match(/^@(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
-                if (relMatch && cmdState.linePoints.length > 0) {
-                    const lastPt = cmdState.linePoints[cmdState.linePoints.length - 1];
-                    const dx = parseFloat(relMatch[1]) / 1000;
-                    const dy = parseFloat(relMatch[2]) / 1000;
-                    const x = lastPt.x + dx;
-                    const y = lastPt.y + dy;
-                    
-                    // Add relative point
-                    cmdState.linePoints.push({ x, y });
-                    
-                    // Create beam
-                    saveState();
-                    const p1 = lastPt;
-                    const p2 = { x, y };
-                    
-                    let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-                    if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y }; }
-                    
-                    let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-                    if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y }; }
-                    
-                    const beamId = nextElementId++;
-                    const kesit = kesitSec();
-                    if (!kesit) { kesitYokUyar(); return; }
-                    model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
-                    
-                    autoSplitAtIntersections([beamId]);
-                    
-                    // Force render update
-                    if (currentViewMode === '3d') {
-                        update3DScene();
-                        if (threeRenderer && threeScene && threeCamera) {
-                            threeRenderer.render(threeScene, threeCamera);
-                        }
-                    } else {
-                        draw();
-                    }
-                    
-                    
-                    showToast(`Relative: @${(dx*1000).toFixed(0)},${(dy*1000).toFixed(0)}`);
-                    updateCommandUI();
-                    // Keep focus on input
-                    if (cmdElements.input) setTimeout(() => cmdElements.input.focus(), 10);
-                    return;
-                }
+                cizgiGirdisiIsle(value);
+                return;
             }
-            
+
             // Process input based on active command and phase
             if (cmdState.active === CMD.COPY || cmdState.active === CMD.MOVE) {
                 if (cmdState.phase === PHASE.DESTINATION) {
@@ -702,91 +586,151 @@
             }
         }
         
-        // Process LINE distance input - create beam in current direction
+        // ============== LINE: TEK GIRIS NOKTASI ==============
+        //
+        // Kiris kuran BES kopya vardi: 3B tiklama, komut cubugundan koordinat,
+        // klavye yakalayicisindan koordinat, uzunluk, @dx,dy. Ikisi z'yi
+        // dusuruyordu (dugumu z'siz kuruyor, yani z=3'te cizilen kiris
+        // zemine iniyordu), uzunluk girisi yonun z'sini saymiyordu. Simdi
+        // her yol bir NOKTA uretir ve ciziyeNoktaEkle'ye verir.
+        //
+        // p: {x,y,z} metre. Ilk nokta ise yalnizca baslangic olur; sonrakiler
+        // bir onceki noktadan buraya kiris kurar.
+        function ciziyeNoktaEkle(p, esitUzunluk) {
+            const nokta = { x: p.x, y: p.y, z: (typeof p.z === 'number' && isFinite(p.z)) ? p.z : 0 };
+            cmdState.linePoints.push(nokta);
+
+            if (cmdState.linePoints.length >= 2) {
+                const pts = cmdState.linePoints;
+                const p1 = pts[pts.length - 2];
+                const p2 = pts[pts.length - 1];
+
+                const dx = p2.x - p1.x, dy = p2.y - p1.y, dz = p2.z - p1.z;
+                const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                if (len < 0.001) {
+                    // Ayni noktaya ikinci tiklama: sifir boylu kiris kurma.
+                    pts.pop();
+                    showToast('Same point - pick a different point', 'warning');
+                    return false;
+                }
+                // Bir sonraki "uzunluk" girisi bu yonde gider (z dahil).
+                cmdState.lastCursorDir = { x: dx/len, y: dy/len, z: dz/len };
+
+                const kesit = kesitSec();
+                if (!kesit) { pts.pop(); kesitYokUyar(); return false; }
+
+                saveState();
+                let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z);
+                if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z }; }
+                let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z);
+                if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p2.z }; }
+
+                const beamId = nextElementId++;
+                model.elements[beamId] = { n1: n1Id, n2: n2Id, section: kesit };
+                autoSplitAtIntersections([beamId]);
+
+                if (currentViewMode === '3d') {
+                    update3DScene();
+                    if (threeRenderer && threeScene && threeCamera) threeRenderer.render(threeScene, threeCamera);
+                } else {
+                    draw();
+                }
+                if (typeof updatePropertiesPanel === 'function') updatePropertiesPanel();
+
+                const distMM = (len * 1000).toFixed(0);
+                const esit = esitUzunluk ? ` (= beam ${esitUzunluk.kaynak})` : '';
+                showToast(`Line: ${distMM} mm ${yonOku(cmdState.lastCursorDir)}${esit} → Next point?`);
+            } else {
+                cmdState.lastCursorDir = { x: 1, y: 0, z: 0 };
+                if (currentViewMode === '3d') update3DScene(); else draw();
+                showToast(`Start: (${(nokta.x*1000).toFixed(0)}, ${(nokta.y*1000).toFixed(0)}, ${(nokta.z*1000).toFixed(0)}) → Next point or distance`);
+            }
+
+            cmdState.basePoint = { x: nokta.x, y: nokta.y, z: nokta.z };
+            // Klavyeden girilen noktada imlec baska yerde; eski konumdaki
+            // ipucu ve isaretci yaniltir, fare kipirdayinca yeniden gelir.
+            hideTooltip(); if (typeof hideSnapMarker === 'function') hideSnapMarker();
+            updateCommandUI();
+            if (cmdElements.input) setTimeout(() => cmdElements.input.focus(), 10);
+            return true;
+        }
+
+        // Yon oku: en buyuk bileseni yazar; z de sayilir.
+        function yonOku(d) {
+            if (!d) return '';
+            const ax = Math.abs(d.x || 0), ay = Math.abs(d.y || 0), az = Math.abs(d.z || 0);
+            if (az > ax && az > ay) return d.z > 0 ? '↑ +Z' : '↓ -Z';
+            if (ax >= ay) return d.x > 0 ? '→ +X' : '← -X';
+            return d.y > 0 ? '↑ +Y' : '↓ -Y';
+        }
+
+        // Yazilan girdiyi cozer:
+        //   "X" / "Y" / "Z"      eksen kilidi (ac/kapat)
+        //   "a,b"                etkin duzlemin iki ekseni (mm)
+        //   "a,b,c"              tam x,y,z (mm)
+        //   "@dx,dy" / "@dx,dy,dz"  son noktaya gore (mm)
+        //   "3000"               son yonde (fare / kilit / son kiris) uzunluk
+        function cizgiGirdisiIsle(value) {
+            const v = String(value).trim();
+            if (!v) return;
+
+            if (/^[xyz]$/i.test(v)) {
+                if (cmdState.linePoints.length === 0) { showToast('First specify a start point', 'warning'); return; }
+                eksenKilidiDegistir(v.toUpperCase());
+                return;
+            }
+
+            const SAYI = '(-?\\d+(?:\\.\\d+)?)';
+            const AYRAC = '\\s*[,;\\s]\\s*';
+            const mutlak = v.match(new RegExp('^' + SAYI + AYRAC + SAYI + '(?:' + AYRAC + SAYI + ')?$'));
+            if (mutlak) {
+                const a1 = parseFloat(mutlak[1]) / 1000, a2 = parseFloat(mutlak[2]) / 1000;
+                let p;
+                if (mutlak[3] !== undefined) p = { x: a1, y: a2, z: parseFloat(mutlak[3]) / 1000 };
+                else p = (typeof duzlemNokta === 'function') ? duzlemNokta(a1, a2) : { x: a1, y: a2, z: 0 };
+                ciziyeNoktaEkle(p);
+                return;
+            }
+
+            const bagil = v.match(new RegExp('^@' + SAYI + AYRAC + SAYI + '(?:' + AYRAC + SAYI + ')?$'));
+            if (bagil) {
+                if (cmdState.linePoints.length === 0) { showToast('First specify a start point', 'warning'); return; }
+                const son = cmdState.linePoints[cmdState.linePoints.length - 1];
+                const dx = parseFloat(bagil[1]) / 1000, dy = parseFloat(bagil[2]) / 1000;
+                const dz = bagil[3] !== undefined ? parseFloat(bagil[3]) / 1000 : 0;
+                ciziyeNoktaEkle({ x: son.x + dx, y: son.y + dy, z: (son.z || 0) + dz });
+                return;
+            }
+
+            const uzunluk = parseFloat(v);
+            if (!isNaN(uzunluk) && uzunluk > 0) {
+                if (cmdState.linePoints.length === 0) { showToast('First specify a start point', 'warning'); return; }
+                processLineDistanceInput(uzunluk);
+                return;
+            }
+
+            showToast('Type X,Y[,Z] · @dX,dY[,dZ] · distance · X/Y/Z axis lock', 'warning');
+        }
+
+        // Uzunluk girisi: son noktadan, son yonde. Yon sirasiyla: eksen
+        // kilidi (imlecin o eksendeki isareti), fare yonu (3B), yoksa +X.
         function processLineDistanceInput(distMM) {
             if (cmdState.linePoints.length === 0) return;
-            
-            const lastPt = cmdState.linePoints[cmdState.linePoints.length - 1];
-            const distM = distMM / 1000; // mm to meters
-            
-            // Get current direction from mouse position or ortho
-            let dx = 1, dy = 0; // Default: positive X direction
-            
-            // Use last cursor direction if available
-            if (cmdState.lastCursorDir && (cmdState.lastCursorDir.x !== 0 || cmdState.lastCursorDir.y !== 0)) {
-                dx = cmdState.lastCursorDir.x;
-                dy = cmdState.lastCursorDir.y;
-            } else if (cmdState.orthoMode && cmdState.orthoDir) {
-                // In ortho mode, use last ortho direction
-                dx = cmdState.orthoDir.x || 1;
-                dy = cmdState.orthoDir.y || 0;
+            const son = cmdState.linePoints[cmdState.linePoints.length - 1];
+            const L = distMM / 1000;
+
+            let d = cmdState.lastCursorDir ? { x: cmdState.lastCursorDir.x || 0, y: cmdState.lastCursorDir.y || 0, z: cmdState.lastCursorDir.z || 0 } : { x: 1, y: 0, z: 0 };
+            if (cmdState.eksenKilidi) {
+                const k = cmdState.eksenKilidi.toLowerCase();
+                const isaret = (d[k] < 0) ? -1 : 1;
+                d = { x: 0, y: 0, z: 0 }; d[k] = isaret;
             }
-            
-            // Normalize direction
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len > 0.001) {
-                dx /= len;
-                dy /= len;
-            } else {
-                dx = 1; dy = 0; // Fallback to +X
-            }
-            
-            // Calculate end point
-            const endX = lastPt.x + dx * distM;
-            const endY = lastPt.y + dy * distM;
-            
-            // Add end point to line points
-            cmdState.linePoints.push({ x: endX, y: endY });
-            
-            // Create beam
-            saveState();
-            const p1 = lastPt;
-            const p2 = { x: endX, y: endY };
-            
-            // Find or create nodes (10mm tolerance)
-            let n1Id = findNodeAt(p1.x, p1.y, 0.01, p1.z || 0);
-            if (n1Id == null) { n1Id = nextNodeId++; model.nodes[n1Id] = { x: p1.x, y: p1.y, z: p1.z || 0 }; }
-            
-            let n2Id = findNodeAt(p2.x, p2.y, 0.01, p2.z || 0);
-            if (n2Id == null) { n2Id = nextNodeId++; model.nodes[n2Id] = { x: p2.x, y: p2.y, z: p1.z || 0 }; }
-            
-            const elemId = nextElementId++;
-            const section = kesitSec();
-            if (!section) { kesitYokUyar(); return; }
-            model.elements[elemId] = { n1: n1Id, n2: n2Id, section: section };
-            
-            // Auto-split at intersections
-            autoSplitAtIntersections([elemId]);
-            
-            // Force render update
-            if (currentViewMode === '3d') {
-                update3DScene();
-                // Force immediate render
-                if (threeRenderer && threeScene && threeCamera) {
-                    threeRenderer.render(threeScene, threeCamera);
-                }
-            } else {
-                draw();
-            }
-            
-            
-            // Direction indicator
-            let dirText = '';
-            if (Math.abs(dx) > Math.abs(dy)) {
-                dirText = dx > 0 ? '→ +X' : '← -X';
-            } else {
-                dirText = dy > 0 ? '↑ +Y' : '↓ -Y';
-            }
-            
-            showToast(`Line: ${distMM.toFixed(0)} mm ${dirText}`);
-            updateCommandUI();
-            
-            // Keep focus on input for next entry
-            if (cmdElements.input) {
-                setTimeout(() => cmdElements.input.focus(), 10);
-            }
+            const n = Math.sqrt(d.x*d.x + d.y*d.y + d.z*d.z);
+            if (n < 1e-9) d = { x: 1, y: 0, z: 0 }; else { d.x /= n; d.y /= n; d.z /= n; }
+
+            ciziyeNoktaEkle({ x: son.x + d.x * L, y: son.y + d.y * L, z: (son.z || 0) + d.z * L });
         }
-        
+
         // Start Command - Always start from SELECT phase
         function startCommand(cmd) {
             // "LI" / "LIN" gibi kismi yazimlar da komuta cevrilir; asagidaki
@@ -933,6 +877,7 @@
             cmdState.hoverPoint = null;
             cmdState.boundaryEdges = [];
             cmdState.linePoints = [];
+            cmdState.eksenKilidi = null;
             cmdState.selectedNode = null;
             cmdState.hoverNode = null;
             cmdState.dragNode = null;

@@ -120,7 +120,11 @@
             }
             
             // 6. NO LOADS WARNING
-            const hasLoads = model.loads.length > 0 || model.pressure.length > 0;
+            // Hat yuklari kirisin ustunde durur (elem.lineLoads); yalnizca
+            // model.loads/pressure'a bakmak, sadece hat yuku tasiyan bir
+            // modele "yuk yok" dedirtiyordu.
+            const hasLoads = model.loads.length > 0 || model.pressure.length > 0 ||
+                Object.values(model.elements).some(e => e.lineLoads && e.lineLoads.length > 0);
             if (!hasLoads) {
                 issues.warnings.push({
                     type: 'no_loads',
@@ -308,6 +312,7 @@
                             <div style="color:var(--danger-text); font-weight:600; margin-bottom:4px;">${err.icon} ${err.title}</div>
                             <div style="color:var(--danger-text); font-size:var(--fs-md);">${err.message}</div>
                             <div style="color:#a8a29e; font-size:var(--fs-sm); margin-top:4px;">${err.details}</div>
+                            ${Array.isArray(err.beams) && err.beams.length ? `<button class="btn-secondary btn-small" style="margin-top:8px;" onclick="closeValidationModal(); selectAndHighlightBeams([${err.beams.join(',')}])">Select Beams</button>` : ''}
                         </div>`;
                 });
                 html += `</div>`;
@@ -359,7 +364,8 @@
             // updateUI() was called here but never existed anywhere in the app - clicking
             // "Select Nodes" in the validation modal threw before it could redraw.
             updateEntityInfoPanel();
-            draw();
+            if (typeof secimVurgusunuTazele === 'function') secimVurgusunuTazele();
+            else draw();
             showToast(`Selected ${nodeIds.length} floating node(s)`, 'info');
         }
         
@@ -369,8 +375,11 @@
             selectedElements.clear();
             beamIds.forEach(id => selectedElements.add(id));
             updateEntityInfoPanel();
-            draw();
-            showToast(`Selected ${beamIds.length} duplicate beam(s)`, 'info');
+            // Gorunus her zaman Three.js; draw() yalnizca gizli 2B tuvali
+            // ciziyordu, secim ekranda gorunmuyordu.
+            if (typeof secimVurgusunuTazele === 'function') secimVurgusunuTazele();
+            else draw();
+            showToast(`Selected ${beamIds.length} beam(s)`, 'info');
         }
         
         // Manual validation check

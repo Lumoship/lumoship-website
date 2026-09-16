@@ -16,9 +16,17 @@
                 return;
             }
             
-            // Run validation unless skipped
+            // Run validation unless skipped.
+            //
+            // Burada ayri bir validateModelForSolver() vardi: kiris boyunu
+            // yalnizca x-y'den olcuyordu, yani dusey bir kolon "sifir boylu"
+            // sayilip cozum engelleniyordu; ustelik baslik/simge tasimadigi
+            // icin pencerede "undefined undefined" yaziyor, kiris numarasini
+            // da (elem.id yok) bos birakiyordu. Check dugmesinin kullandigi
+            // validateModel() ucuncu boyutu da olcuyor ve tam mesaj tasiyor;
+            // iki ayri dogrulama iki ayri karar demekti - tek kaynak o.
             if (!skipValidation) {
-                const issues = validateModelForSolver();
+                const issues = validateModel();
                 
                 if (issues.errors.length > 0 || issues.warnings.length > 0) {
                     showValidationModal(issues);
@@ -281,124 +289,4 @@
             return 'Solver error: ' + msg;
         }
         
-        // Detailed model validation for solver
-        function validateModelForSolver() {
-            const issues = { errors: [], warnings: [] };
-            
-            // Check for nodes
-            const nodeCount = Object.keys(model.nodes).length;
-            if (nodeCount === 0) {
-                issues.errors.push({ message: 'No nodes defined', details: 'Create at least 2 nodes to define a beam.' });
-                return issues;
-            }
-            
-            // Check for elements
-            const elemCount = Object.keys(model.elements).length;
-            if (elemCount === 0) {
-                issues.errors.push({ message: 'No beams defined', details: 'Create at least one beam between nodes.' });
-                return issues;
-            }
-            
-            // Check for boundary conditions
-            const bcCount = Object.keys(model.constraints).length;
-            if (bcCount === 0) {
-                issues.errors.push({ 
-                    message: 'No boundary conditions', 
-                    details: 'Add at least one support (fixed, pinned, or simply supported) to prevent rigid body motion.' 
-                });
-            }
-            
-            // Check for loads
-            const hasLoads = model.loads.length > 0 || 
-                           Object.values(model.elements).some(e => e.lineLoads && e.lineLoads.length > 0);
-            if (!hasLoads) {
-                issues.warnings.push({ 
-                    message: 'No loads defined', 
-                    details: 'Model will solve but results will be zero. Add point loads or line loads.' 
-                });
-            }
-            
-            // Check for disconnected nodes
-            const connectedNodes = new Set();
-            Object.values(model.elements).forEach(elem => {
-                connectedNodes.add(elem.n1);
-                connectedNodes.add(elem.n2);
-            });
-            
-            const disconnectedNodes = Object.keys(model.nodes).filter(id => !connectedNodes.has(parseInt(id)));
-            if (disconnectedNodes.length > 0) {
-                issues.warnings.push({ 
-                    message: `${disconnectedNodes.length} disconnected node(s)`, 
-                    details: `Nodes ${disconnectedNodes.slice(0, 3).join(', ')}${disconnectedNodes.length > 3 ? '...' : ''} are not connected to any beam.` 
-                });
-            }
-            
-            // Check for missing sections
-            const missingSections = [];
-            Object.values(model.elements).forEach(elem => {
-                if (!elem.section || !SECTIONS[elem.section]) {
-                    missingSections.push(elem.id);
-                }
-            });
-            if (missingSections.length > 0) {
-                issues.errors.push({ 
-                    message: `${missingSections.length} beam(s) have undefined sections`, 
-                    details: `Beams ${missingSections.slice(0, 3).join(', ')}${missingSections.length > 3 ? '...' : ''} need valid section assignments.` 
-                });
-            }
-            
-            // Check for zero-length beams
-            const zeroLengthBeams = [];
-            Object.values(model.elements).forEach(elem => {
-                const n1 = model.nodes[elem.n1];
-                const n2 = model.nodes[elem.n2];
-                if (n1 && n2) {
-                    const L = Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2));
-                    if (L < 1e-6) {
-                        zeroLengthBeams.push(elem.id);
-                    }
-                }
-            });
-            if (zeroLengthBeams.length > 0) {
-                issues.errors.push({ 
-                    message: `${zeroLengthBeams.length} zero-length beam(s)`, 
-                    details: `Beams ${zeroLengthBeams.join(', ')} have start and end nodes at the same position.` 
-                });
-            }
-            
-            // Check for unsupported nodes with loads
-            model.loads.forEach(load => {
-                const nodeId = load.nodeId;
-                // Check if this node or connected nodes have any path to a support
-                // Simplified check: just warn if loaded node has no direct support
-                if (!model.constraints[nodeId]) {
-                    // This is actually fine, just informational
-                }
-            });
-            
-            // Check boundary condition sufficiency
-            let hasVerticalSupport = false;
-            let hasRotationSupport = false;
-            Object.values(model.constraints).forEach(bc => {
-                if (typeof bc === 'string') {
-                    if (bc === 'fixed' || bc === 'simply_supported' || bc === 'pinned') {
-                        hasVerticalSupport = true;
-                    }
-                    if (bc === 'fixed') {
-                        hasRotationSupport = true;
-                    }
-                } else if (typeof bc === 'object') {
-                    if (bc.Uz) hasVerticalSupport = true;
-                    if (bc.Rx || bc.Ry) hasRotationSupport = true;
-                }
-            });
-            
-            if (!hasVerticalSupport) {
-                issues.errors.push({ 
-                    message: 'No vertical support', 
-                    details: 'At least one node must be constrained in Z direction to prevent vertical movement.' 
-                });
-            }
-            
-            return issues;
-        }
+

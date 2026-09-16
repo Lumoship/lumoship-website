@@ -522,7 +522,7 @@
             // Renderer
             threeRenderer = new THREE.WebGLRenderer({ antialias: true });
             threeRenderer.setSize(width, height);
-            threeRenderer.setPixelRatio(window.devicePixelRatio);
+            threeRenderer.setPixelRatio(cizimPikselOrani(width, height));
             container.appendChild(threeRenderer.domElement);
             
             // Corner navigation gizmo: separate scene + camera (rendered in a small
@@ -671,9 +671,32 @@
         // hicbir sey yapmaz ve 2B gorunum pencere yeniden boyutlandikca
         // gerinirdi. Tek giris noktasi: updateCameraPosition her iki kamerayi da
         // dogru kurar.
+        // Cizim piksel orani: ekranin DPR'sinin IKI KATI (ust sinir 3).
+        //
+        // Olculdu (1308x730 tuval, Intel UHD, 7 kirislik model): 1x'te
+        // 1,3 ms/kare, 2x'te 1,0 ms/kare - fark olcum gurultusu icinde,
+        // yani supersampling bedava. Kazanc: WebGL cizgileri 1 aygit
+        // pikselidir ve MSAA yalnizca ucgen kenarlarini yumusatir; 1x'te
+        // ince kiris kenarlari ve izgara basamakli gorunuyordu ("cozunurluk
+        // cok kotu"). 2x'te ayni cizgi yarim CSS pikseli olur ve tarayici
+        // kucultmesi kenarlari yumusatir.
+        //
+        // Ust sinir: toplam piksel 8 milyonu gecmesin - 4K + %200 olcekli
+        // bir ekranda 4x'e cikmak 30M piksel demek, iGPU bunu tasimaz.
+        function cizimPikselOrani(genislik, yukseklik) {
+            const dpr = window.devicePixelRatio || 1;
+            const alan = Math.max(1, (genislik || 800) * (yukseklik || 600));
+            const tavan = Math.sqrt(8e6 / alan);
+            return Math.max(dpr, Math.min(dpr * 2, 3, tavan));
+        }
+        
         function kamerayiYenidenOlcekle(genislik, yukseklik) {
             if (typeof threeRenderer === 'undefined' || !threeRenderer) return;
             if (!(genislik > 0) || !(yukseklik > 0)) return;
+            // Tarayici yakinlastirmasi DPR'yi degistirir; oran her boyut
+            // degisiminde tazelenir, yoksa baslangictaki degerde kalirdi.
+            const oran = cizimPikselOrani(genislik, yukseklik);
+            if (Math.abs(threeRenderer.getPixelRatio() - oran) > 1e-3) threeRenderer.setPixelRatio(oran);
             threeRenderer.setSize(genislik, yukseklik);
             if (typeof threeControls !== 'undefined' && threeControls) threeControls.update();
         }
@@ -968,7 +991,7 @@
                 }
                 
                 // Node dragging (single or multiple nodes)
-                if (cmdState.dragNode && isDragging) {
+                if (cmdState.dragNode && isDragging && modelPos) {
                     const primaryNode = model.nodes[cmdState.dragNode];
                     if (primaryNode && cmdState.basePoint) {
                         let newX = modelPos.x, newY = modelPos.y;
@@ -1209,7 +1232,8 @@
                 raycaster.setFromCamera(mouse, threeCamera);
                 const intersects = raycaster.intersectObjects(threeScene.children, true);
                 
-                const modelPos = screenToModel3D(e.clientX, e.clientY, container);
+                // Duzlem gorunuse dikse isin duzleme carpmaz; menu yine acilir.
+                const modelPos = screenToModel3D(e.clientX, e.clientY, container) || { x: 0, y: 0, z: 0 };
                 
                 let foundNode = null, foundElem = null;
                 
@@ -3287,6 +3311,17 @@
             }
         }
 
+        // Izgara cizgisi opakligi. Piksel orani > 1 iken WebGL cizgisi 1
+        // aygit pikseli = yarim CSS pikseli kalir ve kucultmede yari
+        // soluklasir (2x'te olculdu: izgara neredeyse kayboluyordu). Taban
+        // opaklik oranla carpilir; iki izgara kurucusu da (burasi ve
+        // themes.js) buradan okur.
+        function izgaraOpakligi(taban) {
+            const oran = (typeof threeRenderer !== 'undefined' && threeRenderer && threeRenderer.getPixelRatio)
+                ? threeRenderer.getPixelRatio() : 1;
+            return Math.min(1, taban * Math.min(2, oran));
+        }
+
         function recreateGrid() {
             if (!threeInitialized || !threeScene) return;
             
@@ -3312,8 +3347,8 @@
             const divisionsY = Math.round(sizeY / spacing);
             
             // Create lines
-            const majorMaterial = new THREE.LineBasicMaterial({ color: majorColor, transparent: true, opacity: 0.6 });
-            const minorMaterial = new THREE.LineBasicMaterial({ color: minorColor, transparent: true, opacity: 0.4 });
+            const majorMaterial = new THREE.LineBasicMaterial({ color: majorColor, transparent: true, opacity: izgaraOpakligi(0.6) });
+            const minorMaterial = new THREE.LineBasicMaterial({ color: minorColor, transparent: true, opacity: izgaraOpakligi(0.4) });
             
             // X direction lines (parallel to Y)
             for (let i = 0; i <= divisionsX; i++) {
