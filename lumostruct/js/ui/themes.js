@@ -440,20 +440,39 @@
             solveModel();
         }
         
+        // Lejant SINIRA gore olceklenir - kirislerin rengi de oyle.
+        // Eskiden etiketler results.maxVonMises'i yaziyordu (0 / max/2 / max),
+        // renkler ise sigmaLimit'e gore boyaniyordu: lejant "1563 MPa = ust"
+        // derken kiris 235'te kirmiziya donuyordu. Cubuk da tek renkti.
         function updateStressLegend() {
             if (!results) return;
-            
+
             const maxStress = results.maxVonMises || 0;
-            // Follow the selected grade instead of assuming AH36.
+            const sinir = parseFloat(document.getElementById('sigmaLimit')?.value) || 355;
             const grade = document.getElementById('steelGrade')?.value;
             const yieldStress = (MATERIALS[grade] ? MATERIALS[grade].yield / 1e6 : 355);
-            
-            document.getElementById('legendMax').textContent = maxStress.toFixed(0) + ' MPa';
-            document.getElementById('legendMid').textContent = (maxStress / 2).toFixed(0) + ' MPa';
-            document.getElementById('legendMaxVal').textContent = maxStress.toFixed(1) + ' MPa';
-            document.getElementById('legendYield').textContent = yieldStress + ' MPa';
+
+            const yaz = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            yaz('legendMax', 'Limit ' + sinir.toFixed(0) + ' MPa');
+            yaz('legendMid', (sinir / 2).toFixed(0) + ' MPa');
+            yaz('legendMaxVal', maxStress.toFixed(1) + ' MPa' + (maxStress >= sinir ? '  (' + (maxStress / sinir * 100).toFixed(0) + '% - OVER LIMIT)' : ''));
+            yaz('legendYield', yieldStress + ' MPa');
+
+            // Cubuk: canvas3d'deki duraklarin aynisi; ustte "sinir asildi" bandi.
+            const cubuk = document.getElementById('legendBar');
+            if (cubuk) {
+                cubuk.style.background = 'linear-gradient(to top, rgb(34,197,94) 0%, rgb(234,179,8) 50%, rgb(249,115,22) 80%, rgb(220,38,38) 100%)';
+            }
+            const band = document.getElementById('legendOver');
+            if (band) {
+                band.style.display = 'block';
+                band.style.background = maxStress >= sinir ? '#ff0000' : 'rgba(255,0,0,0.25)';
+                band.title = 'Above limit';
+            }
+            const maxEl = document.getElementById('legendMaxVal');
+            if (maxEl) maxEl.style.color = maxStress >= sinir ? '#ff4d4d' : 'var(--success)';
         }
-        
+
         function getStressColor(stress, maxStress) {
             // Returns color based on stress ratio (0 to 1)
             // Green (low) -> Yellow (medium) -> Orange -> Red (high)

@@ -2081,13 +2081,7 @@
                     if (elemResult) {
                         const stress = elemResult.vonMises || 0;
                         const sigmaLimit = parseFloat(document.getElementById('sigmaLimit')?.value) || 355;
-                        const color = getStressColorHex(stress, sigmaLimit);
-                        return new THREE.MeshStandardMaterial({ 
-                            color: color, 
-                            metalness: 0.4, 
-                            roughness: 0.5,
-                            side: THREE.DoubleSide 
-                        });
+                        return gerilmeMalzemesi(stress, sigmaLimit, { metalness: 0.4, roughness: 0.5, side: THREE.DoubleSide });
                     }
                 }
                 
@@ -2113,39 +2107,64 @@
                 });
             }
             
+            // Gerilme rengi. Oran = gerilme / sinir (sigmaLimit, kullanicinin
+            // izin verilen gerilmesi). Duraklar:
+            //   0      yesil   (34,197, 94)
+            //   0,50   sari    (234,179,  8)
+            //   0,80   turuncu (249,115, 22)
+            //   1,00   kirmizi (220, 38, 38)
+            //   > 1    SINIR ASILDI: saf kirmizi (255,0,0) + guclu emissive
+            //
+            // Eskiden ust durak (239,68,68) hem sinirin tam altinda hem de
+            // ustunde ayni renkti ve isik altinda turuncuya kaciyordu: %665
+            // kullanimli kiris ile %95'lik kiris ayirt edilemiyordu. Simdi
+            // siniri asan parca herkesin "kirmizi" dedigi renkte ve kendi
+            // isigini veriyor (bkz. gerilmeMalzemesi).
+            const GERILME_DURAKLARI = [
+                [0.0, 34, 197, 94],
+                [0.5, 234, 179, 8],
+                [0.8, 249, 115, 22],
+                [1.0, 220, 38, 38]
+            ];
+            const SINIR_ASIM_RENGI = 0xff0000;
+
+            function sinirAsildi(stress, sinir) {
+                return !!sinir && sinir > 0 && stress >= sinir;
+            }
+
             function getStressColorHex(stress, maxStress) {
                 if (!maxStress || maxStress === 0) return 0x22c55e;
-                
-                const ratio = Math.min(stress / maxStress, 1);
-                
-                // Color stops: Green -> Lime -> Yellow -> Orange -> Red
-                let r, g, b;
-                
-                if (ratio < 0.25) {
-                    const t = ratio / 0.25;
-                    r = Math.round(34 + (132 - 34) * t);
-                    g = Math.round(197 + (204 - 197) * t);
-                    b = Math.round(94 + (22 - 94) * t);
-                } else if (ratio < 0.5) {
-                    const t = (ratio - 0.25) / 0.25;
-                    r = Math.round(132 + (234 - 132) * t);
-                    g = Math.round(204 + (179 - 204) * t);
-                    b = Math.round(22 + (8 - 22) * t);
-                } else if (ratio < 0.75) {
-                    const t = (ratio - 0.5) / 0.25;
-                    r = Math.round(234 + (249 - 234) * t);
-                    g = Math.round(179 + (115 - 179) * t);
-                    b = Math.round(8 + (22 - 8) * t);
-                } else {
-                    const t = (ratio - 0.75) / 0.25;
-                    r = Math.round(249 + (239 - 249) * t);
-                    g = Math.round(115 + (68 - 115) * t);
-                    b = Math.round(22 + (68 - 22) * t);
+                if (sinirAsildi(stress, maxStress)) return SINIR_ASIM_RENGI;
+                const ratio = Math.max(0, stress / maxStress);
+                let r = 220, g = 38, b = 38;
+                for (let i = 1; i < GERILME_DURAKLARI.length; i++) {
+                    const [p0, r0, g0, b0] = GERILME_DURAKLARI[i - 1];
+                    const [p1, r1, g1, b1] = GERILME_DURAKLARI[i];
+                    if (ratio <= p1) {
+                        const s = (ratio - p0) / (p1 - p0);
+                        r = Math.round(r0 + (r1 - r0) * s);
+                        g = Math.round(g0 + (g1 - g0) * s);
+                        b = Math.round(b0 + (b1 - b0) * s);
+                        break;
+                    }
                 }
-                
                 return (r << 16) + (g << 8) + b;
             }
-            
+
+            // Gerilme rengiyle malzeme: siniri asan parca isik ne olursa olsun
+            // kirmizi kalsin diye emissive yukseltilir.
+            function gerilmeMalzemesi(stress, sinir, ekstra) {
+                const renk = getStressColorHex(stress, sinir);
+                const asti = sinirAsildi(stress, sinir);
+                return new THREE.MeshStandardMaterial(Object.assign({
+                    color: renk,
+                    emissive: renk,
+                    emissiveIntensity: asti ? 0.55 : 0.15,
+                    metalness: 0.3,
+                    roughness: 0.6
+                }, ekstra || {}));
+            }
+
             // Get deformation scale
             const deformScale = view.showDeformed && results ? view.deformationScale : 0;
             
@@ -2408,15 +2427,7 @@
                             // Calculate stress at this position (proportional to moment)
                             const stressRatio = Mmax > 0 ? Math.abs(M) / (Mmax * 1.001) : 0;
                             const stress = stressRatio * (elemResult.sigma || 0);
-                            const segColor = getStressColorHex(stress, sigmaLimit);
-                            
-                            const segMat = new THREE.MeshStandardMaterial({
-                                color: segColor,
-                                emissive: segColor,
-                                emissiveIntensity: 0.2,
-                                metalness: 0.3,
-                                roughness: 0.6
-                            });
+                            const segMat = gerilmeMalzemesi(stress, sigmaLimit, { emissiveIntensity: sinirAsildi(stress, sigmaLimit) ? 0.55 : 0.2 });
                             
                             const segGeom = new THREE.CylinderGeometry(beamRadius, beamRadius, segLength * 1.02, 8);
                             const segMesh = new THREE.Mesh(segGeom, segMat);
@@ -2448,10 +2459,13 @@
                             beamColor = beamColorInt;
                         }
                         
-                        const beamMat = new THREE.MeshStandardMaterial({ 
+                        const gerilmeAsti = !isSelected && shouldShowStress && results.elementResults[elemId] &&
+                            sinirAsildi(results.elementResults[elemId].vonMises || 0,
+                                        parseFloat(document.getElementById('sigmaLimit')?.value) || 355);
+                        const beamMat = new THREE.MeshStandardMaterial({
                             color: beamColor,
                             emissive: beamColor,
-                            emissiveIntensity: isSelected ? 0.4 : 0.15,
+                            emissiveIntensity: isSelected ? 0.4 : (gerilmeAsti ? 0.55 : 0.15),
                             metalness: 0.3,
                             roughness: 0.6
                         });

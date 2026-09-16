@@ -31,7 +31,10 @@
                 // Beam loads / Node loads sekmeleri modelin kendisini listeler,
                 // bunlar icin analiz gerekmiyor. Yanit sekmeleri cozum yoksa
                 // "Run Solve" der.
-                bottomPanel.style.display = (tabName === 'results') ? 'block' : 'none';
+                // 'block' CSS'teki flex sutununu eziyordu: icerik alani (overflow:auto)
+                // yukseklik siniri alamayip panelin altindan tasiyor, tablo satirlari
+                // komut cubugunun uzerine biniyordu. Panel flex kalir.
+                bottomPanel.style.display = (tabName === 'results') ? 'flex' : 'none';
                 if (tabName === 'results' && typeof updateResultsBottomPanel === 'function') {
                     updateResultsBottomPanel();
                 }
