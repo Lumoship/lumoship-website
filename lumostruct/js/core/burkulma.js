@@ -155,7 +155,11 @@
             };
             const y = eksen(sec.Iy, kY), z = eksen(sec.Iz, kZ);
             const kritik = (y.NbRd <= z.NbRd) ? y : z;
-            const basinc = Math.max(0, -N_kN) * 1e3;             // N, yalnizca basinc
+            // Yalnizca basinc; A*fy'nin %0.5'inden kucuk eksenel kuvvet "basinc
+            // altinda uye" sayilmaz (izgarada -0.0 kN'lik sayisal artiklar 12
+            // kirisi burkulma listesine sokuyordu; egilme zaten gerilme kontrolunde).
+            let basinc = Math.max(0, -N_kN) * 1e3;             // N
+            if (basinc <= 0.005 * sec.A * fy) basinc = 0;
             const UFN = basinc / kritik.NbRd;
             const lt = yanalBurkulma(elem, sec, mat, L, momentler, g);
             const chiLT = lt.uygulanir ? lt.chiLT : 1;

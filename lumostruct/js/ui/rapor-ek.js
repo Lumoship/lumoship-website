@@ -166,6 +166,90 @@
             return h;
         }
 
+        // ---- Checks bolumu ----
+        // Gerilme tabani + kullanim, levha narinligi, uye burkulmasi (6.3.1 /
+        // 6.3.3 / 6.3.2) uye tablosu, sehim aciklik tablosu. Kontrolun
+        // varsayimlari (K carpanlari, tutulu flans, gammaM1) tabloda yazar:
+        // rapor okuyan, kullanicinin ne kabul ettigini gorur.
+        function raporKontrolBolumu(esc, num, r, eqRow, utilMax, d) {
+            const sinir = (typeof gerilmeSinirlariniHesapla === 'function') ? gerilmeSinirlariniHesapla() : null;
+            const taban = (typeof kontrolAyarlari === 'function') ? GERILME_TABANLARI[kontrolAyarlari().taban] : null;
+            const gEl = document.getElementById('gammaM1');
+            const gammaM1 = gEl ? (parseFloat(gEl.value) || 1) : 1;
+            const durumHucre = s => '<td class="' + (s === 'FAIL' || s === 'OVER' ? 'fail' : (s === 'check' ? 'warn' : '')) + '">' + esc(s) + '</td>';
+            const sinifla = s => (s === 'FAIL' || s === 'OVER') ? ' class="fail"' : (s === 'check' ? ' class="warn"' : '');
+
+            // 1. ozet tablosu
+            let h = '<h2>Checks</h2>';
+            h += '<table><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>' + (eqRow || '');
+            h += '<tr' + (utilMax > 100 ? ' class="fail"' : '') + '><td>Stress utilisation (von Mises)</td><td>' + (utilMax > 100 ? 'EXCEEDED' : 'OK') + '</td><td>' +
+                 num(utilMax, 1) + ' % of ' + (sinir ? num(sinir.sigma, 0) : esc(d.sigmaLimit)) + ' MPa' +
+                 (taban ? ' — ' + esc(taban.ad) + (sinir && sinir.aciklama ? ': ' + esc(sinir.aciklama) : '') : '') + '</td></tr>';
+            const levha = (document.getElementById('bucklingDetail')?.textContent || '').split('Member buckling')[0].trim();
+            const levhaDurum = (document.getElementById('bucklingStatus')?.textContent || '-').trim();
+            h += '<tr' + (/FAIL/.test(levhaDurum) ? ' class="fail"' : '') + '><td>Plate slenderness (h<sub>w</sub>/t<sub>w</sub>, b<sub>f</sub>/t<sub>f</sub>)</td><td>' + esc(levhaDurum) + '</td><td>' + esc(levha || '-') + '</td></tr>';
+
+            // uye burkulmasi
+            const b = (typeof modelBurkulma === 'function') ? modelBurkulma(r) : {};
+            const uyeler = [];
+            const gorulen = new Set();
+            Object.entries(b).forEach(([id, x]) => { if (gorulen.has(x)) return; gorulen.add(x); uyeler.push(Object.assign({ id: parseInt(id, 10) }, x)); });
+            const kontrolEdilen = uyeler.filter(x => x.basinc > 0 || (x.lt && x.lt.uygulanir));
+            const enKotu = kontrolEdilen.reduce((m, x) => (!m || x.UF > m.UF) ? x : m, null);
+            const asan = kontrolEdilen.filter(x => x.UF > 1).length;
+            const ltSayi = uyeler.filter(x => x.lt && x.lt.uygulanir).length;
+            h += '<tr' + (asan ? ' class="fail"' : '') + '><td>Member buckling (EN 1993-1-1 6.3.1 flexural, 6.3.3 N+M, 6.3.2 LTB)</td><td>' +
+                 (kontrolEdilen.length ? (asan ? 'EXCEEDED' : 'OK') : 'n/a') + '</td><td>' +
+                 (kontrolEdilen.length ? ('max UF ' + num(enKotu.UF, 2) + ' (member of beam ' + esc(typeof kirisEtiketi === 'function' ? kirisEtiketi(enKotu.id) : enKotu.id) + ')' + (asan ? ', ' + asan + ' member(s) over' : '') +
+                 '; ' + kontrolEdilen.length + ' member(s) in compression or unrestrained, LTB on ' + ltSayi + '; γ<sub>M1</sub> = ' + num(gammaM1, 2) + '; buckling length = span between supports × K') : 'no member in compression; LTB not applicable (plated / closed sections)') + '</td></tr>';
+
+            // sehim
+            const so = (typeof sehimOzeti === 'function') ? sehimOzeti(r) : null;
+            h += '<tr' + (so && so.var_ && !so.ok ? ' class="fail"' : '') + '><td>Deflection</td><td>' + (!so || !so.var_ ? 'no limit' : (so.ok ? 'OK' : 'EXCEEDED')) + '</td><td>' + esc(so ? so.metin : '-') + '</td></tr>';
+            h += '</tbody></table>';
+
+            // 2. uye burkulma tablosu (en kotu 12)
+            if (kontrolEdilen.length) {
+                const liste = kontrolEdilen.slice().sort((a, c) => c.UF - a.UF).slice(0, 12);
+                h += '<h3 style="font-size:12px; margin:12px 0 4px;">Member buckling — worst ' + liste.length + ' of ' + kontrolEdilen.length + '</h3>';
+                h += '<table><thead><tr><th>Member</th><th>L (m)</th><th>K<sub>y</sub>/K<sub>z</sub>/K<sub>LT</sub></th><th>N (kN)</th><th>&lambda;&#772;<sub>y</sub></th><th>&lambda;&#772;<sub>z</sub></th><th>N<sub>b,Rd</sub> (kN)</th><th>UF N</th>' +
+                     '<th>M<sub>y</sub> (kNm)</th><th>M<sub>z</sub> (kNm)</th><th>&chi;<sub>LT</sub></th><th>M<sub>b,Rd</sub> (kNm)</th><th>UF LT</th><th>UF</th><th>Status</th></tr></thead><tbody>';
+                liste.forEach(x => {
+                    const uye = x.zincir && x.zincir.n > 1 ? ((x.zincir.ad ? x.zincir.ad + ': ' : '') + 'beams ' + x.zincir.kirisler.join(', ')) : (typeof kirisEtiketi === 'function' ? kirisEtiketi(x.id) : 'beam ' + x.id);
+                    const L = x.zincir ? x.zincir.L : (x.LcrY / (x.kY || 1));
+                    const lt = x.lt && x.lt.uygulanir ? x.lt : null;
+                    const e = x.etkilesim;
+                    h += '<tr' + sinifla(x.durum) + '><td>' + esc(uye) + '</td><td>' + num(L, 2) + '</td><td>' + num(x.kY, 2) + ' / ' + num(x.kZ, 2) + ' / ' + num(lt ? lt.kLT : ((x.lt && x.lt.kLT) || 1), 2) +
+                         (x.lt && !x.lt.uygulanir && x.lt.neden && x.lt.neden !== 'no moment' ? '<br><span style="color:#666;">' + esc(x.lt.neden) + '</span>' : '') + '</td>' +
+                         '<td>' + num(x.N, 1) + '</td><td>' + num(x.lambdaY, 3) + '</td><td>' + num(x.lambdaZ, 3) + '</td><td>' + num(x.NbRd, 1) + '</td><td>' + num(x.UFN, 3) + '</td>' +
+                         '<td>' + (e ? num(e.My, 1) : (lt ? num(lt.My, 1) : '-')) + '</td><td>' + (e ? num(e.Mz, 1) : '-') + '</td>' +
+                         '<td>' + (lt ? num(lt.chiLT, 3) : '-') + '</td><td>' + (lt ? num(lt.MbRd, 1) : '-') + '</td><td>' + (lt ? num(lt.UFLT, 3) : '-') + '</td>' +
+                         '<td><strong>' + num(x.UF, 3) + '</strong></td>' + durumHucre(x.durum) + '</tr>';
+                });
+                h += '</tbody></table>';
+                h += '<div style="color:#666; margin:-4px 0 8px;">Curve per EN 1993-1-1 Tab 6.2 (pipe a, other welded open sections c; LTB Tab 6.4 d). Interaction factors Annex B method 2, elastic (class 3). C<sub>m</sub>/C<sub>1</sub> from the member moment distribution; span peak → 1.0.</div>';
+            }
+
+            // 3. sehim aciklik tablosu
+            if (so && so.var_ && typeof sehimKontrolu === 'function') {
+                const sk = sehimKontrolu(r);
+                const kayitlar = []; const gor = new Set();
+                Object.entries(sk).forEach(([id, k]) => { if (gor.has(k) || k.kullanim === null) return; gor.add(k); kayitlar.push(Object.assign({ id: parseInt(id, 10) }, k)); });
+                if (kayitlar.length) {
+                    const liste = kayitlar.sort((a, c) => c.kullanim - a.kullanim).slice(0, 12);
+                    const asanS = kayitlar.filter(k => k.kullanim > 1).length;
+                    h += '<h3 style="font-size:12px; margin:12px 0 4px;">Deflection — worst ' + liste.length + ' of ' + kayitlar.length + ' spans' + (asanS ? ', ' + asanS + ' over' : '') + '</h3>';
+                    h += '<table><thead><tr><th>Span</th><th>L (m)</th><th>&delta; (mm)</th><th>L/&delta;</th><th>Limit (mm)</th><th>Util %</th><th>Status</th></tr></thead><tbody>';
+                    liste.forEach(k => {
+                        h += '<tr' + sinifla(k.durum) + '><td>' + esc((k.ad ? k.ad + ': ' : '') + (k.kirisler && k.kirisler.length > 1 ? 'beams ' + k.kirisler.join(', ') : (typeof kirisEtiketi === 'function' ? kirisEtiketi(k.id) : 'beam ' + k.id))) + '</td><td>' + num(k.L, 2) + '</td><td>' + num(k.d, 2) + '</td><td>' +
+                             (isFinite(k.oran) ? 'L/' + num(k.oran, 0) : '-') + '</td><td>' + num(k.sinirMm, 2) + '</td><td>' + num(k.kullanim * 100, 0) + '</td>' + durumHucre(k.durum) + '</tr>';
+                    });
+                    h += '</tbody></table>';
+                }
+            }
+            return h;
+        }
+
         function raporGorunumBolumu() {
             const png = modelGorunumuPng();
             if (!png || png.length < 200) return '';

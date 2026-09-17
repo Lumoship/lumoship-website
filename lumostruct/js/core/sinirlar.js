@@ -224,7 +224,7 @@
                 if (k.sehimOran > 0) sinirMm = L * 1000 / k.sehimOran;
                 if (k.sehimMm > 0) sinirMm = (sinirMm === null) ? k.sehimMm : Math.min(sinirMm, k.sehimMm);
                 const kullanim = (sinirMm && sinirMm > 0) ? d / sinirMm : null;
-                const kayit = { L: L, d: d, oran: oran, sinirMm: sinirMm, kullanim: kullanim, aciklik: ac.kirisler.length > 1 ? ((ac.ad ? ac.ad + ': ' : '') + ac.kirisler.length + ' beams, ' + (L * 1000).toFixed(0) + ' mm') : '',
+                const kayit = { L: L, d: d, oran: oran, sinirMm: sinirMm, kullanim: kullanim, kirisler: ac.kirisler.map(x => parseInt(x, 10)), ad: ac.ad || '', aciklik: ac.kirisler.length > 1 ? ((ac.ad ? ac.ad + ': ' : '') + ac.kirisler.length + ' beams, ' + (L * 1000).toFixed(0) + ' mm') : '',
                                 durum: kullanim === null ? 'no limit' : (kullanim > 1 ? 'OVER' : (kullanim > 0.9 ? 'check' : 'ok')) };
                 ac.kirisler.forEach(id => { out[id] = kayit; });
             });

@@ -151,7 +151,7 @@ ${(typeof raporYuklerBolumu === 'function') ? raporYuklerBolumu(esc, num) : ''}
   <tr><td>Highest utilisation</td><td class="big">${num(utilMax, 1)} %</td></tr>
 </table>
 
-<h2>Checks</h2>
+${(typeof raporKontrolBolumu === 'function') ? raporKontrolBolumu(esc, num, results, eqRow, utilMax, d) : `<h2>Checks</h2>
 <table><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>
   ${eqRow}
   <tr><td>Utilisation</td><td>${utilMax > 100 ? 'EXCEEDED' : 'OK'}</td>
@@ -164,7 +164,7 @@ ${(typeof raporYuklerBolumu === 'function') ? raporYuklerBolumu(esc, num) : ''}
       <td>${esc((typeof sehimOzeti === 'function') ? sehimOzeti(results).metin : '-')}</td></tr>
   <tr><td>Stress limit basis</td>
       <td colspan="2">${esc((typeof kontrolAyarlari === 'function') ? (GERILME_TABANLARI[kontrolAyarlari().taban].ad + ' — ' + gerilmeSinirlariniHesapla().aciklama) : '-')}</td></tr>
-</tbody></table>
+</tbody></table>`}
 
 <h2>Support reactions</h2>
 <table><thead><tr><th>Node</th><th>F<sub>z</sub> (kN)</th><th>M<sub>x</sub> (kN&middot;m)</th>
