@@ -429,13 +429,9 @@
             // The factors themselves live with the solver (currentLoadFactors), applied per
             // load category. This used to set a variable nothing ever read, so every
             // combination gave identical results.
-            const f = currentLoadFactors();
-
-            document.getElementById('currentLC').textContent = lc;
-            document.getElementById('currentLCFactor').textContent =
-                f.D.toFixed(1) + 'D / ' + f.L.toFixed(1) + 'L';
-
-            showToast(`Load combination ${lc} applied (${f.D.toFixed(1)}D + ${f.L.toFixed(1)}L)`);
+            model.activeCombination = lc;
+            yukSecicileriniTazele();
+            showToast('Solving ' + kombinasyonEtiketi(etkinKombinasyon()));
             
             // Re-solve with new factor
             solveModel();

@@ -90,8 +90,10 @@ function analizSeciciAc() {
         govde += '<div style="color:var(--text-2); font-size:var(--fs-md); margin-bottom:10px;">' +
                  (analizVeri.kirisler.length + ' beams, ' + analizVeri.mesnetler.length +
                   ' supports, ' + Object.keys(analizVeri.kesitler).length + ' sections') + '</div>';
-        if (lc.length) govde += satirSecim('analizYukSec', 'Load case', lc.map(l =>
-            ({ v: l.ad, t: (l.aciklama || l.ad) })));
+        // Varsayilan: butun yuk durumlari ayri DURUM olarak gelir (C1, C2...),
+        // her biri kendi kombinasyonuyla. Tek durum secilirse 'L' olur.
+        if (lc.length) govde += satirSecim('analizYukSec', 'Load cases', [{ v: '', t: 'All ' + lc.length + ' as separate cases (C1, C2, ...)' }]
+            .concat(lc.map(l => ({ v: l.ad, t: 'Only: ' + (l.aciklama || l.ad) }))));
     }
 
     const modal = document.createElement('div');
@@ -170,7 +172,7 @@ function analizOnizlemeTazele() {
 function analizKurulumHazirla() {
     if (analizTur === 'dnv') {
         const ls = document.getElementById('analizYukSec');
-        return dnvModeliKur(analizVeri, { lc: ls ? ls.value : undefined });
+        return dnvModeliKur(analizVeri, { lc: (ls && ls.value) ? ls.value : undefined });
     }
     const mid = document.getElementById('analizModelSec').value;
     const as = document.getElementById('analizAnalizSec');
@@ -217,6 +219,11 @@ function analizModeliYukle(k) {
     model.constraints = k.constraints || {};
     model.loads = k.loads || [];
     model.pressure = [];
+    // Yuk durumlari ve kombinasyonlar dosyadan (DNV: her yuk durumu bir durum)
+    if (k.loadCases && k.loadCases.length) model.loadCases = k.loadCases;
+    if (k.combinations && k.combinations.length) { model.combinations = k.combinations; model.activeCombination = k.combinations[0].id; }
+    model.activeLoadCase = (k.loadCases || []).map(d => d.id).find(id => id !== 'D') || 'L';
+    if (typeof yukSecicileriniTazele === 'function') yukSecicileriniTazele();
 
     // Yeni eleman/dugum eklenirse cakismasin.
     const enBuyuk = o => Object.keys(o).reduce((m, x) => Math.max(m, parseInt(x, 10) || 0), 0);

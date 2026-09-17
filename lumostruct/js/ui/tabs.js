@@ -241,6 +241,7 @@
                 if (fyInput) fyInput.value = load.Fy || 0;
                 if (fzInput) fzInput.value = load.Fz || 0;
                 ['Mx', 'My', 'Mz'].forEach(k => { const el = document.getElementById('infoLoad' + k); if (el) el.value = load[k] || 0; });
+                const dEl = document.getElementById('infoLoadCase'); if (dEl && load.case) dEl.value = load.case;
             } else {
                 loadsContainer.innerHTML = `<div style="color:var(--text-3); font-size:var(--fs-md);">No loads on this node</div>`;
                 
@@ -842,7 +843,7 @@
             saveState();
             const i = model.loads.findIndex(l => l.nodeId === id);
             if (i >= 0) { Object.assign(model.loads[i], { Fx: fx, Fy: fy, Fz: fz }); }
-            else model.loads.push({ nodeId: id, Fx: fx, Fy: fy, Fz: fz, Mx: 0, My: 0, Mz: 0 });
+            else model.loads.push({ case: etkinYukDurumu(), nodeId: id, Fx: fx, Fy: fy, Fz: fz, Mx: 0, My: 0, Mz: 0 });
             kartTazele();
             showToast(`Load saved on Node #${id}`);
         }
@@ -1272,11 +1273,11 @@
             
             if (existingLoadIndex >= 0) {
                 // Update existing load
-                Object.assign(model.loads[existingLoadIndex], { Fx: fx, Fy: fy, Fz: fz, Mx: mx, My: my, Mz: mz });
+                Object.assign(model.loads[existingLoadIndex], { Fx: fx, Fy: fy, Fz: fz, Mx: mx, My: my, Mz: mz, case: (document.getElementById('infoLoadCase')?.value || etkinYukDurumu()) });
                 showToast(`Load updated on Node #${currentInfoNode}`);
             } else {
                 // Add new load
-                model.loads.push({
+                model.loads.push({ case: (document.getElementById('infoLoadCase')?.value || etkinYukDurumu()),
                     nodeId: currentInfoNode,
                     Fx: fx, Fy: fy, Fz: fz,
                     Mx: mx, My: my, Mz: mz
@@ -1365,7 +1366,7 @@
             const elem = model.elements[currentInfoBeam];
             if (!elem.lineLoads) elem.lineLoads = [];
             
-            elem.lineLoads.push({
+            elem.lineLoads.push({ case: (document.getElementById('infoLineLoadCase')?.value || etkinYukDurumu()),
                 value: q,
                 q: q,
                 value2: (q2 !== null && q2 !== q) ? q2 : undefined,
@@ -1740,7 +1741,7 @@
                     model.loads[existingIdx].Fz = fz;
                 } else {
                     // Add new
-                    model.loads.push({
+                    model.loads.push({ case: etkinYukDurumu(),
                         nodeId: nodeId,
                         Fx: fx, Fy: fy, Fz: fz,
                         Mx: 0, My: 0, Mz: 0
@@ -1784,7 +1785,7 @@
                 const elem = model.elements[elemId];
                 if (elem) {
                     if (!elem.lineLoads) elem.lineLoads = [];
-                    elem.lineLoads.push({
+                    elem.lineLoads.push({ case: etkinYukDurumu(),
                         value: q,
                         q: q,
                         direction: direction,
@@ -1854,7 +1855,7 @@
             
             saveState();
             
-            model.loads.push({
+            model.loads.push({ case: etkinYukDurumu(),
                 nodeId: nodeId,
                 Fx: 0, Fy: 0, Fz: fz,
                 Mx: 0, My: 0, Mz: 0
@@ -1910,7 +1911,7 @@
                 elem.lineLoads = [];
             }
             
-            elem.lineLoads.push({
+            elem.lineLoads.push({ case: etkinYukDurumu(),
                 value: q,              // Primary property
                 q: q,                  // Keep for compatibility
                 direction: direction,
@@ -1961,7 +1962,7 @@
                     if (!elem.lineLoads) {
                         elem.lineLoads = [];
                     }
-                    elem.lineLoads.push({
+                    elem.lineLoads.push({ case: etkinYukDurumu(),
                         value: q,
                         q: q,
                         direction: direction,

@@ -661,7 +661,7 @@
             
             saveState(); // Save before adding load
             
-            model.loads.push({
+            model.loads.push({ case: etkinYukDurumu(),
                 nodeId: nodeId,
                 Fx: Fx,
                 Fy: Fy,
@@ -1510,7 +1510,7 @@
             }
             
             // Add the load
-            elem.lineLoads.push({
+            elem.lineLoads.push({ case: etkinYukDurumu(),
                 id: elem.lineLoads.length + 1,
                 value: loadValue,      // kN/m
                 angle: angle,          // degrees
@@ -1602,7 +1602,7 @@
                     const halfLoad = totalLoad / 2;
                     
                     // Add to nodal loads
-                    model.loads.push({
+                    model.loads.push({ case: etkinYukDurumu(),
                         nodeId: elem.n1,
                         Fx: 0,
                         Fy: 0,
@@ -1611,7 +1611,7 @@
                         elemId: elem.id
                     });
                     
-                    model.loads.push({
+                    model.loads.push({ case: etkinYukDurumu(),
                         nodeId: elem.n2,
                         Fx: 0,
                         Fy: 0,
@@ -2243,6 +2243,8 @@
         }
 
         function updateModelSummary() {
+            // Yuk durumu / kombinasyon secicileri modeli izler (ac, geri al, temizle)
+            if (typeof yukSecicileriniTazele === 'function') yukSecicileriniTazele();
             const nNodes = Object.keys(model.nodes).length;
             const nElems = Object.keys(model.elements).length;
             const nConst = Object.keys(model.constraints).length;

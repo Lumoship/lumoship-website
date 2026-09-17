@@ -1562,15 +1562,16 @@
                     Define point loads on nodes or distributed loads on beams.
                 </div>
                 
-                <!-- Load Cases Button -->
-                <div style="margin-bottom:16px;">
-                    <button class="btn-primary btn-block" onclick="showLoadCasesModal()" style="font-weight:600;">
-                        <span class="icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
-                        Load Cases (LC1, LC2...)
-                    </button>
-                    <div style="font-size:var(--fs-xs); color:var(--text-2); margin-top:4px; text-align:center;">
-                        Active: <span id="activeLoadCaseName" style="color:var(--accent-info); font-weight:600;">LC1 - Default</span>
+                <!-- Yuk durumu: yeni yukler bu duruma yazilir; kombinasyonlar pencerede -->
+                <div class="panel-card" style="margin-bottom:12px;">
+                    <div style="display:flex; gap:6px; align-items:flex-end;">
+                        <div style="flex:1;">
+                            <small style="color:var(--text-3); font-size:var(--fs-xs);">Load case for new loads</small>
+                            <select id="etkinYukDurumu" class="yuk-durumu-secici" style="width:100%; padding:6px; font-size:var(--fs-sm);" onchange="etkinYukDurumuAyarla(this.value); yukSecicileriniTazele();"></select>
+                        </div>
+                        <button class="btn-secondary" onclick="showLoadCasesModal()" title="Load cases and combinations" style="padding:6px 10px; font-size:var(--fs-sm); white-space:nowrap;">Cases &amp; combinations…</button>
                     </div>
+                    <div style="font-size:var(--fs-xs); color:var(--text-3); margin-top:4px;">Active: <span id="activeLoadCaseName" style="color:var(--accent-info); font-weight:600;">L - Live</span>. Each load keeps its case; combinations factor them.</div>
                 </div>
                 
                 <!-- Point Loads -->
@@ -1587,6 +1588,7 @@
                                     <th>Mx</th>
                                     <th>My</th>
                                     <th>Mz</th>
+                                    <th>Case</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -1608,6 +1610,7 @@
                                     <th>Nodes</th>
                                     <th>q (kN/m)</th>
                                     <th>Range</th>
+                                    <th>Case</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -2105,12 +2108,11 @@
                         </h3>
                         <div style="display:flex; flex-direction:column; gap:8px;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <select id="loadCombSelect" style="flex:1; padding:8px; font-size:var(--fs-sm); background:var(--bg-main); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--r-ctl);">
-                                    <option value="LC1" selected>LC1: Dead + Live (1.0D + 1.0L)</option>
-                                    <option value="LC2">LC2: Factored (1.2D + 1.5L)</option>
-                                    <option value="LC3">LC3: Dead Only (1.0D)</option>
+                                <select id="loadCombSelect" onchange="loadCombSecildi()" style="flex:1; padding:8px; font-size:var(--fs-sm); background:var(--bg-main); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--r-ctl);">
+                                    <option value="LC1" selected>LC1: Service (1D + 1L)</option>
                                 </select>
-                                <button class="btn-secondary" onclick="applyLoadCombination()" style="padding:8px 12px; font-size:var(--fs-sm);">Apply</button>
+                                <button class="btn-secondary" onclick="applyLoadCombination()" style="padding:8px 12px; font-size:var(--fs-sm);">Solve</button>
+                                <button class="btn-secondary" onclick="showLoadCasesModal()" title="Edit cases and combinations" style="padding:8px 10px; font-size:var(--fs-sm);">Edit…</button>
                             </div>
                             <div style="font-size:var(--fs-xs); color:var(--text-3);">
                                 Current: <span id="currentLC" style="color:var(--primary-text);">LC1</span> | 
@@ -2590,11 +2592,14 @@
                         </div>
                         
                         <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">
-                            <small style="color:var(--text-3);">Point Load (kN):</small>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                                <small style="color:var(--text-3);">Point Load (kN):</small>
+                                <select id="infoLoadCase" class="yuk-durumu-secici" title="Load case" style="padding:2px 4px; font-size:var(--fs-xs); max-width:130px;"></select>
+                            </div>
                             <div style="display:flex; gap:4px; margin-top:4px;">
                                 <div style="flex:1; text-align:center;">
                                     <small style="color:var(--text-3); font-size:var(--fs-xs);">Fx</small>
-                                    <input type="number" id="infoLoadFx" value="0" step="1" style="padding:4px; font-size:var(--fs-sm);">
+                                    <input type="number" id="infoLoadFx"value="0" step="1" style="padding:4px; font-size:var(--fs-sm);">
                                 </div>
                                 <div style="flex:1; text-align:center;">
                                     <small style="color:var(--text-3); font-size:var(--fs-xs);">Fy</small>
@@ -2815,6 +2820,10 @@
                                     <option value="global">Z (Global)</option>
                                     <option value="local">Local</option>
                                 </select>
+                            </div>
+                            <div>
+                                <small style="color:var(--text-3); font-size:var(--fs-xs);">Case</small>
+                                <select id="infoLineLoadCase" class="yuk-durumu-secici" style="width:100%; padding:4px; font-size:var(--fs-sm);"></select>
                             </div>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
@@ -3386,6 +3395,7 @@
 
     <!-- Core Modules -->
     <script src="js/core/data.js"></script>
+    <script src="js/core/yukler.js"></script>
     <script src="js/core/kiris.js"></script>
     <script src="js/core/state.js"></script>
     <script src="js/core/profiles.js"></script>

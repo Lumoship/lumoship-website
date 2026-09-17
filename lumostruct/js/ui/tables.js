@@ -211,7 +211,8 @@
                                 son: (l.endPct !== undefined) ? l.endPct : (l.end !== undefined ? l.end * 100 : 100),
                                 // 90 derece tam asagi, 0 derece kirise dik yanal.
                                 yon: Math.abs(aci - 90) < 1e-9 ? 'vertical'
-                                   : (Math.abs(aci) < 1e-9 ? 'lateral' : 'skew')
+                                   : (Math.abs(aci) < 1e-9 ? 'lateral' : 'skew'),
+                                durum: l.case || 'L'
                             });
                         });
                     });
@@ -230,7 +231,8 @@
                 satirlar: () => (model.loads || []).map(l => ({
                     id: parseInt(l.nodeId, 10),
                     Px: l.Fx || 0, Py: l.Fy || 0, Pz: l.Fz || 0,
-                    Mx: l.Mx || 0, My: l.My || 0, Mz: l.Mz || 0
+                    Mx: l.Mx || 0, My: l.My || 0, Mz: l.Mz || 0,
+                    durum: l.case || 'L'
                 }))
             },
             {

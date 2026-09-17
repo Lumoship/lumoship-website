@@ -119,6 +119,9 @@
         // Factors for the selected load combination, by load category. Loads carry a `case`
         // of 'D' (dead) or 'L' (live); self weight is always dead.
         function currentLoadFactors() {
+            // Kombinasyon tablosu modelde (js/core/yukler.js). Yalniz eski
+            // testler icin: yardimci yoksa sabit uc kombinasyon.
+            if (typeof kombinasyonKatsayilari === 'function') return kombinasyonKatsayilari(etkinKombinasyonId());
             const lc = (typeof document !== 'undefined' &&
                         document.getElementById('loadCombSelect')?.value) || 'LC1';
             switch (lc) {
@@ -126,6 +129,11 @@
                 case 'LC3': return { D: 1.0, L: 0.0 };   // dead only
                 default:    return { D: 1.0, L: 1.0 };   // LC1, service
             }
+        }
+        // Yukun kendi durumunun katsayisi; durumu tanimsiz eski yuk 'L'.
+        function yukKatsayisiOku(loadFactors, durum) {
+            if (typeof yukKatsayisi === 'function') return yukKatsayisi(loadFactors, durum);
+            return loadFactors[durum] !== undefined ? loadFactors[durum] : loadFactors.L;
         }
 
         // Put a uniform load of global intensity wVec (N/m) on the stretch of a member
@@ -429,7 +437,7 @@
                 const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
                 const a = L * sPct / 100, b = L * ePct / 100;
                 if (b - a < 1e-12 || !qValue) return;
-                const kat = (loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L);
+                const kat = yukKatsayisiOku(loadFactors, load.case);
                 const wVec = yayiliYukYonu(load, frame, qValue * 1000 * kat).vec;
                 const q2 = load.value2;
                 const wVec2 = (typeof q2 === 'number' && isFinite(q2) && q2 !== qValue)
@@ -865,7 +873,7 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
             // Apply pressure loads (legacy support)
             model.pressure.forEach(pr => {
                 const area = (pr.x2 - pr.x1) * (pr.y2 - pr.y1);
-                const prF = loadFactors[pr.case] !== undefined ? loadFactors[pr.case] : loadFactors.L;
+                const prF = yukKatsayisiOku(loadFactors, pr.case);
                 const totalForce = pr.value * area * 1000 * prF; // kN to N
                 
                 const inArea = Object.entries(model.nodes).filter(([id, n]) =>
@@ -941,7 +949,7 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                     // sloped member); 0 degrees is sideways across the member. Both parts are
                     // applied - dropping the sideways one silently loses load. Intensity is
                     // per unit length of the member itself.
-                    const kat = (loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L);
+                    const kat = yukKatsayisiOku(loadFactors, load.case);
                     const wf = w * kat;
                     const wVec = yayiliYukYonu(load, frame, wf).vec;
 
@@ -979,7 +987,7 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
             model.loads.forEach(load => {
                 const dofs = nodeDofs[load.nodeId];
                 if (!dofs) return;
-                const lf = loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L;
+                const lf = yukKatsayisiOku(loadFactors, load.case);
                 if (load.Fx) F[dofs[0]] += load.Fx * 1000 * lf;
                 if (load.Fy) F[dofs[1]] += load.Fy * 1000 * lf;
                 if (load.Fz) F[dofs[2]] += load.Fz * 1000 * lf;

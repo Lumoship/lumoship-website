@@ -296,6 +296,8 @@
                 draw();
             }
             
+            // Yuk durumu / kombinasyon secicileri varsayilana doner (model yeni nesne)
+            if (typeof yukSecicileriniTazele === 'function') yukSecicileriniTazele();
             showToast('Model cleared', 'success');
             saveState(); // Save empty state
         }

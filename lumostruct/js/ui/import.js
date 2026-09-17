@@ -1183,6 +1183,13 @@
         function updateLineLoadTable() { updateBCLoadsTable(); }
         function updateLoadsList() { updateBCLoadsTable(); }
         
+        // Yuk tablolarinda satir ici durum secici (Loads sekmesi)
+        function yukDurumuSecici(tur, a, b, durum) {
+            const d = durum || 'L';
+            const ops = yukDurumlari().map(x => '<option value="' + x.id + '"' + (x.id === d ? ' selected' : '') + '>' + x.id + '</option>').join('');
+            return '<select class="yuk-durum-mini" title="Load case" onchange="yukDurumuAta(\'' + tur + '\', ' + a + ', ' + (b === null ? 'null' : b) + ', this.value)" style="padding:1px 2px; font-size:var(--fs-xs); background:var(--bg-main); color:var(--text); border:1px solid var(--border); border-radius:var(--r-ctl);">' + ops + '</select>';
+        }
+
         function updateBCLoadsTable() {
             // Update Boundary Conditions table
             const bcTable = document.getElementById('bcTable');
@@ -1212,7 +1219,7 @@
             const loadTable = document.getElementById('loadTable');
             if (loadTable) {
                 if (model.loads.length === 0) {
-                    loadTable.innerHTML = '<tr><td colspan="8" style="color:var(--text-3); text-align:center;">No loads defined</td></tr>';
+                    loadTable.innerHTML = '<tr><td colspan="9" style="color:var(--text-3); text-align:center;">No loads defined</td></tr>';
                 } else {
                     loadTable.innerHTML = model.loads.map((load, idx) => {
                         const fmt = (v) => v ? v.toFixed(1) : '0';
@@ -1228,7 +1235,8 @@
                             <td onclick="editPointLoad(${idx}, 'Mx')" style="color:${clr(load.Mx)}; ${editStyle}" title="Click to edit">${fmt(load.Mx)}</td>
                             <td onclick="editPointLoad(${idx}, 'My')" style="color:${clr(load.My)}; ${editStyle}" title="Click to edit">${fmt(load.My)}</td>
                             <td onclick="editPointLoad(${idx}, 'Mz')" style="color:${clr(load.Mz)}; ${editStyle}" title="Click to edit">${fmt(load.Mz)}</td>
-                            <td><button class="btn-small" onclick="removeLoad(${idx})" style="padding:2px 4px; font-size:var(--fs-xs);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button></td>
+                            <td>${yukDurumuSecici('node', idx, null, load.case)}</td>
+                            <td><button class="btn-small" onclick="removeLoad(${idx})"style="padding:2px 4px; font-size:var(--fs-xs);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button></td>
                         </tr>`;
                     }).join('');
                 }
@@ -1250,14 +1258,15 @@
                                 value: ll.value || ll.q || 0,
                                 start: ll.start || 0,
                                 end: ll.end || 1,
-                                angle: ll.angle || 'z'
+                                angle: ll.angle || 'z',
+                                durum: ll.case
                             });
                         });
                     }
                 });
                 
                 if (lineLoads.length === 0) {
-                    lineLoadTable.innerHTML = '<tr><td colspan="5" style="color:var(--text-3); text-align:center;">No line loads defined</td></tr>';
+                    lineLoadTable.innerHTML = '<tr><td colspan="6" style="color:var(--text-3); text-align:center;">No line loads defined</td></tr>';
                 } else {
                     lineLoadTable.innerHTML = lineLoads.map(ll => {
                         const range = ll.start === 0 && ll.end === 1 ? 'Full' : `${(ll.start * 100).toFixed(0)}-${(ll.end * 100).toFixed(0)}%`;
@@ -1266,7 +1275,8 @@
                             <td style="color:var(--text-3); font-size:var(--fs-xs);">${ll.n1}→${ll.n2}</td>
                             <td onclick="editLineLoad(${ll.elemId}, ${ll.idx})" style="color:var(--success); font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-style:dotted;" title="Click to edit">${ll.value.toFixed(1)}</td>
                             <td style="color:var(--text-2);">${range}</td>
-                            <td><button class="btn-small" onclick="removeLineLoad(${ll.elemId}, ${ll.idx})" style="padding:2px 4px; font-size:var(--fs-xs); background:var(--danger); border:none; color:white; border-radius:var(--r-ctl); cursor:pointer;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button></td>
+                            <td>${yukDurumuSecici('line', ll.elemId, ll.idx, ll.durum)}</td>
+                            <td><button class="btn-small" onclick="removeLineLoad(${ll.elemId}, ${ll.idx})"style="padding:2px 4px; font-size:var(--fs-xs); background:var(--danger); border:none; color:white; border-radius:var(--r-ctl); cursor:pointer;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button></td>
                         </tr>`;
                     }).join('');
                 }

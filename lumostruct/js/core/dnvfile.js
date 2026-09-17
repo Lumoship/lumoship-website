@@ -306,34 +306,49 @@
         veri.eklemler.forEach(j => { const a = anahtar(j.p); if (harita.has(a)) eklemDugum[j.ad] = harita.get(a); });
         veri.mesnetler.forEach(m => { const a = anahtar(m.p); if (harita.has(a)) eklemDugum[m.ad] = harita.get(a); });
 
-        const lc = secenek.lc
+        // Yuk durumlari: DNV'nin her yuk durumu bizde bir DURUM (C1, C2, ...)
+        // olur; kombinasyon listesi her durum icin 1.0 katsayili bir satir
+        // tasir (oz agirlik D ile). secenek.lc verilirse yalnizca o durum,
+        // 'L' etiketiyle (eski davranis).
+        const seciliLc = secenek.lc
             ? veri.yukDurumlari.find(x => x.ad === secenek.lc || x.aciklama === secenek.lc)
-            : veri.yukDurumlari[0];
-        if (lc) lc.dugumYukleri.forEach(y => {
-            const d = eklemDugum[y.eklem];
-            if (!d) { uyarilar.push('yuk: birlesim "' + y.eklem + '" bulunamadi'); return; }
-            loads.push({
-                nodeId: d,
-                Fx: y.F[0] / 1000, Fy: y.F[1] / 1000, Fz: y.F[2] / 1000,   // N -> kN
-                Mx: y.M[0] / 1000, My: y.M[1] / 1000, Mz: y.M[2] / 1000,
-                case: 'L'
+            : null;
+        const durumlar = seciliLc ? [seciliLc] : veri.yukDurumlari;
+        const loadCases = [{ id: 'D', ad: 'Dead (incl. self weight)' }];
+        const combinations = [];
+        durumlar.forEach((lc, i) => {
+            const cid = seciliLc ? 'L' : ('C' + (i + 1));
+            loadCases.push({ id: cid, ad: lc.aciklama || lc.ad || cid });
+            combinations.push({ id: 'LC' + (i + 1), ad: lc.aciklama || lc.ad || cid, katsayi: { D: 1.0, [cid]: 1.0 } });
+            (lc.dugumYukleri || []).forEach(y => {
+                const d = eklemDugum[y.eklem];
+                if (!d) { uyarilar.push('yuk: birlesim "' + y.eklem + '" bulunamadi'); return; }
+                loads.push({
+                    nodeId: d,
+                    Fx: y.F[0] / 1000, Fy: y.F[1] / 1000, Fz: y.F[2] / 1000,   // N -> kN
+                    Mx: y.M[0] / 1000, My: y.M[1] / 1000, Mz: y.M[2] / 1000,
+                    case: cid
+                });
+            });
+            // Yayili yukler (.clb dosyasindan; XML modelde yok). q N/m, DNV'de
+            // eksi = asagi; LumoStruct'ta + = asagi (kN/m).
+            (lc.hatYukleri || []).forEach(y => {
+                const e = elements[y.kiris + 1];
+                if (!e) { uyarilar.push('yayili yuk: kiris ' + y.kiris + ' yok'); return; }
+                const q1 = -y.q1 / 1000, q2 = -y.q2 / 1000;
+                e.lineLoads = e.lineLoads || [];
+                e.lineLoads.push({ value: q1, q: q1, value2: (Math.abs(q2 - q1) > 1e-9) ? q2 : undefined,
+                                   startPct: 0, endPct: 100, start: 0, end: 1, direction: 'global', case: cid });
             });
         });
-
-        // Yayili yukler (.clb dosyasindan; XML modelde yok). q N/m, DNV'de
-        // eksi = asagi; LumoStruct'ta + = asagi (kN/m).
-        if (lc && Array.isArray(lc.hatYukleri)) lc.hatYukleri.forEach(y => {
-            const e = elements[y.kiris + 1];
-            if (!e) { uyarilar.push('yayili yuk: kiris ' + y.kiris + ' yok'); return; }
-            const q1 = -y.q1 / 1000, q2 = -y.q2 / 1000;
-            e.lineLoads = e.lineLoads || [];
-            e.lineLoads.push({ value: q1, q: q1, value2: (Math.abs(q2 - q1) > 1e-9) ? q2 : undefined,
-                               startPct: 0, endPct: 100, start: 0, end: 1, direction: 'global', case: 'L' });
-        });
+        // Kombinasyon katsayilari butun durumlari kapsasin
+        combinations.forEach(k => loadCases.forEach(d => { if (k.katsayi[d.id] === undefined) k.katsayi[d.id] = 0; }));
+        const lc = durumlar[0] || null;
 
         return {
             nodes: nodes, elements: elements, constraints: constraints,
             loads: loads, sections: sections, uyarilar: uyarilar,
+            loadCases: loadCases, combinations: combinations.length ? combinations : null,
             model: { ad: veri.ad }, lc: lc ? lc.ad : null
         };
     }
