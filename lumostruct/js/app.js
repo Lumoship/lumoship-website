@@ -61,6 +61,9 @@
         if (typeof updateLoadCasesUI === 'function') {
             updateLoadCasesUI();
         }
+        // Settings > Units: isaret kurallari (yardim.js, tek kaynak)
+        const isaretKutu = document.getElementById('isaretKurallariKutusu');
+        if (isaretKutu && typeof isaretKurallariHtml === 'function') isaretKutu.innerHTML = isaretKurallariHtml();
         
         // Initialize collapsible panels
         document.querySelectorAll('.collapsible-header').forEach(header => {

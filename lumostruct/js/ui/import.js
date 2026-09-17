@@ -1045,7 +1045,8 @@
                                     <span>100%+ (Over limit)</span>
                                 </div>
                             </div>
-                            
+                            ${(typeof yardimEkBolumleri === 'function') ? yardimEkBolumleri() : ''}
+
                         </div>
                     </div>
                 </div>
