@@ -431,7 +431,7 @@
         function elemanYerelYukToplami(elem, frame, L, loadFactors, selfWeightOn, sec) {
             const toplam = new Array(12).fill(0);
             const ekle = f => { for (let i = 0; i < 12; i++) toplam[i] += f[i]; };
-            (elem.lineLoads || []).forEach(load => {
+            ((typeof etkinHatYukleri === 'function') ? etkinHatYukleri(elem) : (elem.lineLoads || [])).forEach(load => {
                 const qValue = (load.value ?? load.q ?? 0);
                 const sPct = (load.startPct !== undefined) ? load.startPct : (load.start !== undefined ? load.start * 100 : 0);
                 const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
@@ -454,7 +454,7 @@
         // katsayisiyla) + oz agirlik (D katsayisiyla, tam boy, asagi). Montaj
         // (addDistributedLoad cagrilari) ile ayni kaynaklar, ayni carpanlar.
         function elemanGeriYukleri(elem, sec, loadFactors, selfWeightOn) {
-            const out = (elem.lineLoads || []).map(l => ({ load: l, kat: yukKatsayisiOku(loadFactors, l.case) }));
+            const out = ((typeof etkinHatYukleri === 'function') ? etkinHatYukleri(elem) : (elem.lineLoads || [])).map(l => ({ load: l, kat: yukKatsayisiOku(loadFactors, l.case) }));
             if (selfWeightOn && sec && sec.A > 0 && !sec.rigid) {
                 out.push({ load: { value: sec.A * STEEL_DENSITY * GRAVITY / 1000, startPct: 0, endPct: 100, angle: 90 }, kat: loadFactors.D });
             }
@@ -722,6 +722,9 @@
             
             // Factors for the selected load combination - applied to every load below.
             const loadFactors = currentLoadFactors();
+            // Basinc yamalari -> kiris basina sanal hat yukleri (js/core/basinc.js).
+            // Montaj, mafsal ve geri kazanim etkinHatYukleri(elem) ile ayni listeyi gorur.
+            if (typeof basincYukleriniHazirla === 'function') basincYukleriniHazirla();
 
             // Oz agirlik bayragi BURADA okunur, kullanildigi yerde degil: montaj
             // dongusu rijit uclara karar verirken buna bakiyor ve o donguden
@@ -790,7 +793,7 @@
 
                 // Rijitlik ESNEK boy uzerinden kurulur; dogrultu kosinusleri
                 // ve yayili yuk acikligi tam boyu kullanmaya devam eder.
-                const yayiliVar = !!(elem.lineLoads && elem.lineLoads.length) || selfWeightOn;
+                const yayiliVar = ((typeof etkinHatYukleri === 'function') ? etkinHatYukleri(elem).length > 0 : !!(elem.lineLoads && elem.lineLoads.length)) || selfWeightOn;
                 const rij = mafsalRijitUc(elem, rijitUclar(elem, L, yayiliVar), L);
                 const Lk = rij.Lf;
                 
@@ -881,43 +884,15 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 }
             });
             
-            // Apply pressure loads (legacy support)
-            model.pressure.forEach(pr => {
-                const area = (pr.x2 - pr.x1) * (pr.y2 - pr.y1);
-                const prF = yukKatsayisiOku(loadFactors, pr.case);
-                const totalForce = pr.value * area * 1000 * prF; // kN to N
-                
-                const inArea = Object.entries(model.nodes).filter(([id, n]) =>
-                    n.x >= pr.x1 - 0.01 && n.x <= pr.x2 + 0.01 &&
-                    n.y >= pr.y1 - 0.01 && n.y <= pr.y2 + 0.01
-                );
-                if (inArea.length === 0) return;
+            // Basinc: eskiden yamanin toplam kuvveti dugumlere pay ediliyordu
+            // (acik ortasinda moment sifir cikardi). Artik plaka yuku serit
+            // genisligiyle kiris hat yukune cevrilir (basincYukleriniHazirla)
+            // ve asagidaki hat yuku yolundan gecer.
 
-                // Share the patch by tributary area, not by head count: a corner node carries
-                // a quarter of what a node in the middle does. Splitting equally pushes load
-                // outwards onto the supports and softens the middle of the panel.
-                const xs = [...new Set(inArea.map(([, n]) => n.x))].sort((a, b) => a - b);
-                const ys = [...new Set(inArea.map(([, n]) => n.y))].sort((a, b) => a - b);
-                const span = (vals, v, lo, hi) => {
-                    if (vals.length === 1) return hi - lo;
-                    const i = vals.indexOf(v);
-                    const left = (i === 0) ? lo : (vals[i - 1] + v) / 2;
-                    const right = (i === vals.length - 1) ? hi : (v + vals[i + 1]) / 2;
-                    return right - left;
-                };
-
-                const weights = inArea.map(([, n]) =>
-                    span(xs, n.x, pr.x1, pr.x2) * span(ys, n.y, pr.y1, pr.y2));
-                const wSum = weights.reduce((s, v) => s + v, 0) || 1;
-
-                inArea.forEach(([nodeId], k) => {
-                    F[nodeDofs[nodeId][2]] -= totalForce * weights[k] / wSum; // Uz, down
-                });
-            });
-            
             // Apply line loads on elements
-            Object.values(model.elements).forEach(elem => {
-                if (!elem.lineLoads || elem.lineLoads.length === 0) return;
+            Object.entries(model.elements).forEach(([elemKeyY, elem]) => {
+                const hatYukleri = (typeof etkinHatYukleri === 'function') ? etkinHatYukleri(elem, elemKeyY) : (elem.lineLoads || []);
+                if (!hatYukleri.length) return;
                 
                 const n1 = model.nodes[elem.n1];
                 const n2 = model.nodes[elem.n2];
@@ -932,7 +907,7 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 if (!frame) return;
                 const L = frame.L;   // true 3D length - a sloped member carries its own length
 
-                elem.lineLoads.forEach(load => {
+                hatYukleri.forEach(load => {
                     // Load value in kN/m - support both 'value' and 'q' properties
                     const qValue = load.value ?? load.q ?? 0;
                     const w = qValue * 1000;  // kN/m to N/m
@@ -1187,7 +1162,7 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 // ayni kirisi anlatmaz.
                 //   xA..xB : elemanin gercekten egilen bolgesi
                 // Rijit uc yokken xA=0, xB=L, Lk=L - bugunku davranis birebir.
-                const yayiliVar = !!(elem.lineLoads && elem.lineLoads.length) || selfWeightOn;
+                const yayiliVar = ((typeof etkinHatYukleri === 'function') ? etkinHatYukleri(elem).length > 0 : !!(elem.lineLoads && elem.lineLoads.length)) || selfWeightOn;
                 const rij = mafsalRijitUc(elem, rijitUclar(elem, L, yayiliVar, true), L);
                 const Lk = rij.Lf;
                 const xA = rij.a, xB = L - rij.b;

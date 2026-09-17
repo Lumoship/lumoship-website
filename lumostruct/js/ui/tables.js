@@ -196,7 +196,9 @@
                     { a: 'aci', b: 'Angle [deg]', o: 1 },
                     { a: 'bas', b: 'From [%]', o: 0 },
                     { a: 'son', b: 'To [%]', o: 0 },
-                    { a: 'yon', b: 'Direction', m: true }
+                    { a: 'yon', b: 'Direction', m: true },
+                    { a: 'durum', b: 'Case', m: true },
+                    { a: 'kaynak', b: 'Source', m: true }
                 ],
                 satirlar: () => {
                     const r = [];
@@ -212,10 +214,19 @@
                                 // 90 derece tam asagi, 0 derece kirise dik yanal.
                                 yon: Math.abs(aci - 90) < 1e-9 ? 'vertical'
                                    : (Math.abs(aci) < 1e-9 ? 'lateral' : 'skew'),
-                                durum: l.case || 'L'
+                                durum: l.case || 'L',
+                                kaynak: 'line load'
                             });
                         });
                     });
+                    // Basinc yamalarindan turetilen hat yukleri (cozucunun gordugu haliyle)
+                    if (typeof basincYukleriniHazirla === 'function' && (model.pressure || []).length) {
+                        const b = basincYukleriniHazirla();
+                        Object.entries(b).forEach(([id, liste]) => liste.forEach(l => r.push({
+                            id: parseInt(id, 10), q: l.value, aci: 90, bas: l.startPct, son: l.endPct,
+                            yon: 'vertical', durum: l.case || 'L', kaynak: 'pressure ' + (l.basinc || '') + ' (b=' + (l.serit * 1000).toFixed(0) + ' mm)'
+                        })));
+                    }
                     return r;
                 }
             },
@@ -226,7 +237,8 @@
                     { a: 'Px', b: 'Px [kN]', o: 3 }, { a: 'Py', b: 'Py [kN]', o: 3 },
                     { a: 'Pz', b: 'Pz [kN]', o: 3 },
                     { a: 'Mx', b: 'Mx [kNm]', o: 3 }, { a: 'My', b: 'My [kNm]', o: 3 },
-                    { a: 'Mz', b: 'Mz [kNm]', o: 3 }
+                    { a: 'Mz', b: 'Mz [kNm]', o: 3 },
+                    { a: 'durum', b: 'Case', m: true }
                 ],
                 satirlar: () => (model.loads || []).map(l => ({
                     id: parseInt(l.nodeId, 10),

@@ -101,7 +101,9 @@
             set('sumWeight', mass >= 1000 ? (mass / 1000).toFixed(2) + ' t' : mass.toFixed(0) + ' kg');
             set('sumProfiles', profiles.size);
             set('sumSupports', Object.keys(model.constraints || {}).length);
-            set('sumLoadedBeams', loadedBeams);
+            // Basinc yamasindan yuk alan kirisler de "yuklu" sayilir
+            const basincli = (typeof basincYukleriniHazirla === 'function' && (model.pressure || []).length) ? Object.keys(basincYukleriniHazirla()).length : 0;
+            set('sumLoadedBeams', loadedBeams + (basincli ? ' (+' + basincli + ' by pressure)' : ''));
             set('sumPointLoads', (model.loads || []).length);
             set('sumExtents', dx.toFixed(1) + ' x ' + dy.toFixed(1) + ' m');
         }

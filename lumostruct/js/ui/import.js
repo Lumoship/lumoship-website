@@ -1242,6 +1242,24 @@
                 }
             }
             
+            // Basinc yamalari tablosu (Loads sekmesi)
+            const basincTablo = document.getElementById('basincTablo');
+            if (basincTablo) {
+                const ps = model.pressure || [];
+                if (!ps.length) basincTablo.innerHTML = '<tr><td colspan="6" style="color:var(--text-3); text-align:center;">No pressure loads</td></tr>';
+                else basincTablo.innerHTML = ps.map((p, i) => {
+                    const dag = (typeof basincDagilimi === 'function') ? basincDagilimi(p) : [];
+                    const ipucu = dag.length ? dag.map(d => 'E' + d.id + ': ' + d.q.toFixed(2) + ' kN/m (b=' + (d.serit * 1000).toFixed(0) + ' mm)').join(String.fromCharCode(10)) : 'no beam in patch';
+                    return '<tr title="' + ipucu.replace(/"/g, '&quot;') + '">' +
+                        '<td style="color:var(--accent-info); font-weight:600;">' + (p.ad || 'P' + (i + 1)) + '</td>' +
+                        '<td style="color:var(--danger-text); font-weight:600;">' + p.value + '</td>' +
+                        '<td style="color:var(--text-2); font-size:var(--fs-xs);">' + p.x1 + '–' + p.x2 + ' × ' + p.y1 + '–' + p.y2 + (typeof p.z === 'number' ? ' @z' + p.z : '') + '</td>' +
+                        '<td style="color:var(--text-2);">' + (p.tasima || 'auto') + ' → ' + dag.length + ' beam' + (dag.length === 1 ? '' : 's') + '</td>' +
+                        '<td>' + yukDurumuSecici('pressure', i, null, p.case) + '</td>' +
+                        '<td><button class="btn-small" onclick="basincSil(' + i + ')" style="padding:2px 4px; font-size:var(--fs-xs);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button></td></tr>';
+                }).join('');
+            }
+
             // Update Line Loads table
             const lineLoadTable = document.getElementById('lineLoadTable');
             if (lineLoadTable) {

@@ -1858,6 +1858,30 @@
             });
         }
 
+        // Basinc yamalari (model.pressure) - yamanin kotu verilmemisse
+        // modeldeki kirislerin en sik kotu (tek kotlu izgarada o kot).
+        function basincYamalariniCiz() {
+            const kotSay = {};
+            Object.values(model.nodes).forEach(n => { const z = Math.round((n.z || 0) * 1000); kotSay[z] = (kotSay[z] || 0) + 1; });
+            const yaygin = Object.entries(kotSay).sort((a, b) => b[1] - a[1])[0];
+            const varsayilanZ = yaygin ? parseInt(yaygin[0]) / 1000 : 0;
+            (model.pressure || []).forEach(p => {
+                const z = (typeof p.z === 'number' && isFinite(p.z)) ? p.z : varsayilanZ;
+                const w = Math.abs(p.x2 - p.x1), h = Math.abs(p.y2 - p.y1);
+                if (w < 1e-6 || h < 1e-6) return;
+                const geo = new THREE.PlaneGeometry(w, h);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false });
+                const yama = new THREE.Mesh(geo, mat);
+                yama.position.set((p.x1 + p.x2) / 2, (p.y1 + p.y2) / 2, z + 0.002);
+                yama.userData.isModelObject = true;
+                threeScene.add(yama);
+                const kenar = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineDashedMaterial({ color: 0xef4444, dashSize: 0.15, gapSize: 0.08 }));
+                kenar.position.copy(yama.position); kenar.computeLineDistances();
+                kenar.userData.isModelObject = true;
+                threeScene.add(kenar);
+            });
+        }
+
         function update3DScene() {
             if (!threeInitialized) return;
             
@@ -2515,6 +2539,9 @@
             });
             } // End of if (view.showBeams)
             
+            // Basinc yamalari: yari saydam kirmizi dikdortgen, kotunda
+            if (view.showLoads !== false && (model.pressure || []).length) basincYamalariniCiz();
+
             // Draw nodes - Premium diamond style
             if (view.showNodes) {
                 Object.entries(model.nodes).forEach(([id, node]) => {
