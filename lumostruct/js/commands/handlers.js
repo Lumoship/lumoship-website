@@ -175,7 +175,14 @@
                     else if (cmdState.active !== CMD.NONE && cmdState.phase === PHASE.SELECT) {
                         // Confirm selection and move to next phase
                         const selectedBeamIds = getSelectedBeamIds();
-                        if (selectedBeamIds.length > 0) {
+                        // STRETCH: dugum secimi yeter
+                        if (cmdState.active === CMD.MOVE && cmdState.stretchNodes && selectedNodes.size > 0) {
+                            cmdState.stretchNodes = [...selectedNodes].filter(id => model.nodes[id]);
+                            cmdState.phase = PHASE.BASE_POINT;
+                            updateCommandUI();
+                            showToast(`${cmdState.stretchNodes.length} node(s) selected. Click base point.`);
+                        }
+                        else if (selectedBeamIds.length > 0) {
                             cmdState.selectedBeamIds = selectedBeamIds;
                             
                             if (cmdState.active === CMD.EXTEND || cmdState.active === CMD.TRIM) {

@@ -34,6 +34,7 @@
         const KOMUT_SOZDIZIMI = [
             ['LINE', 'click points; or type <b>a,b</b> (active plane axes, mm), <b>a,b,c</b>, <b>@dx,dy[,dz]</b> (relative), <b>3000</b> (length in the current direction); <b>X</b>/<b>Y</b>/<b>Z</b> toggles an axis lock; Enter ends.'],
             ['COPY / MOVE', 'select, base point, then click or type <b>a,b</b> (plane axes), <b>a,b,c</b>, <b>d&lt;angle</b> or a distance.'],
+            ['STRETCH', 'box-select nodes, base point, displacement: only those nodes move, connected beams stretch. <b>Ctrl+drag</b> a node does the same with the mouse (in the active plane).'],
             ['ROTATE', 'select, centre, angle in degrees (about the active plane normal); <b>C</b> first keeps the original.'],
             ['MIRROR', 'select, two points of the mirror line (in the active plane); Y removes the original.'],
             ['SPLIT', 'hover a beam: <b>50%</b>, <b>R0.3</b> (ratio), <b>D1500</b> (mm from start), <b>P3</b> (equal parts); or <b>X1500</b> / <b>Y2000</b> / <b>Z3000</b> splits every beam crossing that coordinate.'],

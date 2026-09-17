@@ -899,6 +899,14 @@
                     if (obj && obj.userData.elemId !== undefined && foundElemId == null) foundElemId = obj.userData.elemId;
                 }
                 
+                // Isin dugum kuresini iskaladiysa ekran uzakligiyla ara (hover
+                // balonuyla ayni tolerans) - Ctrl+surukleme kucuk kureyi tam
+                // tutturmayi gerektirmesin.
+                if (foundNodeId == null && e.ctrlKey && typeof ekrandaEnYakin === 'function') {
+                    const y = ekrandaEnYakin(e.clientX, e.clientY, container);
+                    if (y && y.nodeId !== undefined) foundNodeId = y.nodeId;
+                }
+
                 // Check if command is active and NOT in select phase
                 const cmdActiveNotSelect = typeof cmdState !== 'undefined' && 
                     cmdState.active !== CMD.NONE && 
@@ -913,19 +921,20 @@
                             saveState();
                             cmdState.active = CMD.NODE_MOVE;
                             cmdState.selectedNode = foundNodeId;
-                            cmdState.basePoint = { x: node.x, y: node.y };
+                            cmdState.basePoint = { x: node.x, y: node.y, z: node.z || 0 };
                             cmdState.dragNode = foundNodeId;
-                            
+
                             // Store original positions for all selected nodes (multi-drag)
                             cmdState.dragNodesOriginal = {};
                             if (selectedNodes.has(foundNodeId)) {
                                 selectedNodes.forEach(nodeId => {
                                     const n = model.nodes[nodeId];
                                     if (n) {
-                                        cmdState.dragNodesOriginal[nodeId] = { x: n.x, y: n.y };
+                                        cmdState.dragNodesOriginal[nodeId] = { x: n.x, y: n.y, z: n.z || 0 };
                                     }
                                 });
                             }
+                            cmdState.dragNodesOriginal[foundNodeId] = { x: node.x, y: node.y, z: node.z || 0 };
                             
                             const multiInfo = selectedNodes.size > 1 ? ` (${selectedNodes.size} nodes)` : '';
                             showToast(`Node #${foundNodeId}: Drag to move${multiInfo}`);
@@ -990,48 +999,16 @@
                     statusCoords.textContent = txt;
                 }
                 
-                // Node dragging (single or multiple nodes)
+                // Node dragging (single or multiple nodes) - ETKIN DUZLEMDE:
+                // XY'de x,y; XZ'de x,z; YZ'de y,z degisir, ucuncu eksen sabit.
+                // Eskiden yalniz x,y yaziliyordu: XZ gorunusunde surukleme
+                // dugumu yanlis yere (y'ye) tasiyordu.
                 if (cmdState.dragNode && isDragging && modelPos) {
                     const primaryNode = model.nodes[cmdState.dragNode];
                     if (primaryNode && cmdState.basePoint) {
-                        let newX = modelPos.x, newY = modelPos.y;
-                        
-                        // Apply ortho
-                        if (cmdState.orthoMode) {
-                            const ddx = newX - cmdState.basePoint.x, ddy = newY - cmdState.basePoint.y;
-                            if (Math.abs(ddx) > Math.abs(ddy)) newY = cmdState.basePoint.y;
-                            else newX = cmdState.basePoint.x;
-                        }
-                        
-                        // Apply snap (excluding dragged node)
-                        const snap = findSnapPoint(newX, newY, 0.15);
-                        if (snap) {
-                            if (cmdState.orthoMode) {
-                                if (Math.abs(newX - cmdState.basePoint.x) > Math.abs(newY - cmdState.basePoint.y)) newX = snap.x;
-                                else newY = snap.y;
-                            } else { newX = snap.x; newY = snap.y; }
-                        }
-                        
-                        // Calculate delta
-                        const deltaX = newX - cmdState.basePoint.x;
-                        const deltaY = newY - cmdState.basePoint.y;
-                        
-                        // Move primary node
-                        primaryNode.x = newX; 
-                        primaryNode.y = newY;
-                        
-                        // Move all other selected nodes (multi-drag)
-                        if (selectedNodes.size > 1 && selectedNodes.has(cmdState.dragNode)) {
-                            selectedNodes.forEach(nodeId => {
-                                if (nodeId !== cmdState.dragNode) {
-                                    const otherNode = model.nodes[nodeId];
-                                    if (otherNode && cmdState.dragNodesOriginal && cmdState.dragNodesOriginal[nodeId]) {
-                                        otherNode.x = cmdState.dragNodesOriginal[nodeId].x + deltaX;
-                                        otherNode.y = cmdState.dragNodesOriginal[nodeId].y + deltaY;
-                                    }
-                                }
-                            });
-                        }
+                        const s = surukleUygula(modelPos);
+                        const deltaX = s.deltaX, deltaY = s.deltaY, deltaZ = s.deltaZ;
+                        const newX = s.hedef.x, newY = s.hedef.y;
                         
                         if (currentViewMode === '3d') update3DScene();
                         else draw();
@@ -1155,11 +1132,12 @@
                 if (e.button === 0) {
                     // Left click release
                     
-                    // Node drag finish
+                    // Node drag finish: ustune gelinen dugumle birles, bagli
+                    // kirisleri kesisimlerde bol, sonucu bayatla, komutu kapat.
                     if (cmdState.dragNode && hasMoved) {
                         const node = model.nodes[cmdState.dragNode];
-                        if (node) showToast(`Node → X:${(node.x*1000).toFixed(0)} Y:${(node.y*1000).toFixed(0)}`);
-                        cmdState.dragNode = null;
+                        surukleBitir();
+                        if (node) showToast(`Node → X:${(node.x*1000).toFixed(0)} Y:${(node.y*1000).toFixed(0)}${Math.abs(node.z || 0) > 1e-6 ? ' Z:' + (node.z*1000).toFixed(0) : ''}`);
                         hideTooltip();
                         isDragging = false;
                         return;
@@ -1856,6 +1834,54 @@
                     if (n1 && n2) applyWorkPlaneGhost(o, n1, n2);
                 }
             });
+        }
+
+        // Surukleme adimi: imlecin model konumunu etkin duzlemde hedefe cevirir
+        // (duzlem disi eksen sabit, ortho, XY'de yapisma) ve surukelenen
+        // butun dugumleri orijinal + delta olarak tasir. Arayuzden bagimsiz;
+        // tests/verify-cizim-komutlari.js dogrudan cagirir.
+        function surukleUygula(modelPos) {
+            const b = cmdState.basePoint;
+            const eks = (typeof aktifCalismaDuzlemi === 'function') ? aktifCalismaDuzlemi().axis
+                      : ((typeof activeWorkPlane !== 'undefined' && activeWorkPlane) ? activeWorkPlane.axis : 'Z');
+            const hedef = { x: modelPos.x, y: modelPos.y, z: (typeof modelPos.z === 'number') ? modelPos.z : (b.z || 0) };
+            if (eks === 'Z') hedef.z = b.z || 0; else if (eks === 'Y') hedef.y = b.y; else hedef.x = b.x;
+            const ekI = eks === 'Z' ? ['x', 'y'] : (eks === 'Y' ? ['x', 'z'] : ['y', 'z']);
+            if (cmdState.orthoMode) {
+                const d0 = hedef[ekI[0]] - (b[ekI[0]] || 0), d1 = hedef[ekI[1]] - (b[ekI[1]] || 0);
+                if (Math.abs(d0) > Math.abs(d1)) hedef[ekI[1]] = b[ekI[1]] || 0; else hedef[ekI[0]] = b[ekI[0]] || 0;
+            }
+            if (eks === 'Z' && typeof findSnapPoint === 'function') {
+                const snap = findSnapPoint(hedef.x, hedef.y, 0.15);
+                if (snap && !(snap.nodeId !== undefined && cmdState.dragNodesOriginal && cmdState.dragNodesOriginal[snap.nodeId])) {
+                    if (cmdState.orthoMode) { if (Math.abs(hedef.x - b.x) > Math.abs(hedef.y - b.y)) hedef.x = snap.x; else hedef.y = snap.y; }
+                    else { hedef.x = snap.x; hedef.y = snap.y; }
+                }
+            }
+            const deltaX = hedef.x - b.x, deltaY = hedef.y - b.y, deltaZ = hedef.z - (b.z || 0);
+            Object.entries(cmdState.dragNodesOriginal || {}).forEach(([nodeId, o]) => {
+                const n = model.nodes[nodeId];
+                if (n) { n.x = o.x + deltaX; n.y = o.y + deltaY; n.z = o.z + deltaZ; }
+            });
+            return { hedef: hedef, deltaX: deltaX, deltaY: deltaY, deltaZ: deltaZ };
+        }
+
+        // Surukleme bitisi (canvas3d ve canvas2d ortak): birlestir + kesisim + temizle
+        function surukleBitir() {
+            const tasinan = new Set(Object.keys(cmdState.dragNodesOriginal || {}).map(Number));
+            if (!tasinan.size && cmdState.dragNode) tasinan.add(cmdState.dragNode);
+            const bagli = Object.keys(model.elements).map(Number).filter(id => tasinan.has(model.elements[id].n1) || tasinan.has(model.elements[id].n2));
+            if (typeof tasinanDugumleriBirlestir === 'function') tasinanDugumleriBirlestir(tasinan);
+            const kalan = bagli.filter(id => model.elements[id]);
+            if (kalan.length && typeof autoSplitAtIntersections === 'function') autoSplitAtIntersections(kalan);
+            results = null;
+            cmdState.dragNode = null; cmdState.dragNodesOriginal = null;
+            if (cmdState.active === CMD.NODE_MOVE) cmdState.active = CMD.NONE;
+            cmdState.selectedNode = null;
+            if (typeof updateCommandUI === 'function') updateCommandUI();
+            if (typeof updateModelSummary === 'function') updateModelSummary();
+            if (currentViewMode === '3d') update3DScene(); else draw();
+            if (typeof updateEntityInfoPanel === 'function') updateEntityInfoPanel();
         }
 
         // Kiris ustu tekil yukler (elem.pointLoads): yuk noktasinda dusey ok.

@@ -29,6 +29,7 @@
             { ad: 'LINE',   kisa: ['L'],       aciklama: 'Draw connected beams' },
             { ad: 'COPY',   kisa: ['CO', 'C'], aciklama: 'Copy selected beams' },
             { ad: 'MOVE',   kisa: ['M'],       aciklama: 'Move selected beams' },
+            { ad: 'STRETCH', kisa: ['ST'],     aciklama: 'Move selected nodes; connected beams stretch' },
             { ad: 'ROTATE', kisa: ['RO', 'R'], aciklama: 'Rotate about a centre' },
             { ad: 'MIRROR', kisa: ['MI'],      aciklama: 'Mirror about a line' },
             { ad: 'OFFSET', kisa: ['O'],       aciklama: 'Parallel copy at a distance' },
@@ -765,9 +766,24 @@
                 case 'MOVE':
                     cmdState.active = CMD.MOVE;
                     cmdState.selectedBeamIds = hasSelection ? selectedBeamIds : [];
+                    cmdState.stretchNodes = null;
                     cmdState.phase = hasSelection ? PHASE.BASE_POINT : PHASE.SELECT;
                     showToast(hasSelection ? `MOVE ${selectedBeamIds.length}: Click base point` : 'Select beams, then Space');
                     break;
+
+                // STRETCH: secili DUGUMLER tasinir, bagli kirisler uzar/kisalir
+                // (MOVE kirisin iki ucunu da tasir). Kutu secimiyle bir kenar
+                // dugumlerini alip acikligi degistirmenin yolu.
+                case 'ST':
+                case 'STRETCH': {
+                    const dugumler = [...selectedNodes].filter(id => model.nodes[id]);
+                    cmdState.active = CMD.MOVE;
+                    cmdState.selectedBeamIds = [];
+                    cmdState.stretchNodes = dugumler.length ? dugumler : [];
+                    cmdState.phase = dugumler.length ? PHASE.BASE_POINT : PHASE.SELECT;
+                    showToast(dugumler.length ? `STRETCH ${dugumler.length} node(s): Click base point` : 'Select nodes (box select), then Space');
+                    break;
+                }
                     
                 case 'R':
                 case 'RO':

@@ -229,23 +229,28 @@
         // Execute Move with offset
         // offsetZ eklendi: XZ/YZ duzleminde tasima Z'de olur.
         function executeMoveWithOffset(offsetX, offsetY, offsetZ = 0) {
-            if (cmdState.selectedBeamIds.length === 0) {
+            const stretch = Array.isArray(cmdState.stretchNodes) && cmdState.stretchNodes.length > 0;
+            if (cmdState.selectedBeamIds.length === 0 && !stretch) {
                 showToast('No beams selected', 'warning');
                 cancelCommand();
                 return;
             }
-            
+
             saveState();
-            
-            // Collect nodes from beams
-            const nodesToMove = new Set();
-            cmdState.selectedBeamIds.forEach(elemId => {
+
+            // Collect nodes: STRETCH -> secili dugumler; MOVE -> secili kirislerin uclari
+            const nodesToMove = new Set(stretch ? cmdState.stretchNodes : []);
+            if (!stretch) cmdState.selectedBeamIds.forEach(elemId => {
                 const elem = model.elements[elemId];
                 if (elem) {
                     nodesToMove.add(elem.n1);
                     nodesToMove.add(elem.n2);
                 }
             });
+            // Tasinan dugumlere bagli kirisler (kesisim taramasi icin)
+            const bagliKirisler = stretch
+                ? Object.keys(model.elements).map(Number).filter(id => nodesToMove.has(model.elements[id].n1) || nodesToMove.has(model.elements[id].n2))
+                : cmdState.selectedBeamIds;
             
             // Move nodes
             nodesToMove.forEach(nodeId => {
@@ -256,16 +261,16 @@
                     node.z = (node.z || 0) + offsetZ;
                 }
             });
-            tasinmaSonrasiTopla(nodesToMove, cmdState.selectedBeamIds);
+            tasinmaSonrasiTopla(nodesToMove, bagliKirisler);
 
             results = null;
             if (currentViewMode === '3d') update3DScene();
             else draw();
-            
+
             updateEntityInfoPanel();
-            
+
             const distMM = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ) * 1000;
-            showToast(`Moved ${cmdState.selectedBeamIds.length} beams (${distMM.toFixed(0)}mm)`);
+            showToast(stretch ? `Stretched: ${nodesToMove.size} node(s) moved ${distMM.toFixed(0)} mm` : `Moved ${cmdState.selectedBeamIds.length} beams (${distMM.toFixed(0)}mm)`);
             
             cancelCommand();
         }
