@@ -449,7 +449,10 @@
                     { a: 'UFN', b: 'UF N', o: 3 },
                     { a: 'My', b: 'My [kNm]', o: 2 }, { a: 'Mz', b: 'Mz [kNm]', o: 2 },
                     { a: 'kyy', b: 'kyy', o: 3 }, { a: 'kzz', b: 'kzz', o: 3 },
-                    { a: 'UF', b: 'UF N+M', o: 3 },
+                    { a: 'chiLT', b: 'χLT', o: 3 },
+                    { a: 'MbRd', b: 'Mb,Rd [kNm]', o: 1 },
+                    { a: 'UFLT', b: 'UF LT', o: 3 },
+                    { a: 'UF', b: 'UF', o: 3 },
                     { a: 'durum', b: 'Status', m: true }
                 ],
                 satirlar: () => {
@@ -464,7 +467,10 @@
                         UFN: r.UFN,
                         My: r.etkilesim ? r.etkilesim.My : null, Mz: r.etkilesim ? r.etkilesim.Mz : null,
                         kyy: r.etkilesim ? r.etkilesim.kyy : null, kzz: r.etkilesim ? r.etkilesim.kzz : null,
-                        UF: r.UF, durum: r.durum,
+                        chiLT: (r.lt && r.lt.uygulanir) ? r.lt.chiLT : null,
+                        MbRd: (r.lt && r.lt.uygulanir) ? r.lt.MbRd : null,
+                        UFLT: (r.lt && r.lt.uygulanir) ? r.lt.UFLT : null,
+                        UF: r.UF, durum: r.durum + ((r.lt && !r.lt.uygulanir && r.lt.neden && r.lt.neden !== 'no moment') ? ' (LT: ' + r.lt.neden + ')' : ''),
                         _vurgu: r.durum === 'FAIL' ? 'stress-fail' : (r.durum === 'check' ? 'stress-warn' : (r.durum === 'ok' ? 'stress-ok' : ''))
                     }));
                 }

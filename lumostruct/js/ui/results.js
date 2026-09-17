@@ -115,11 +115,12 @@
             function burkulmaOzeti() {
                 if (typeof modelBurkulma !== 'function' || !results) return '';
                 const b = Object.values(modelBurkulma(results));
-                const basinc = b.filter(x => x.basinc > 0);
-                if (!basinc.length) return 'Member buckling: no member in compression.';
+                const basinc = b.filter(x => x.basinc > 0 || (x.lt && x.lt.uygulanir));
+                const ltSayi = b.filter(x => x.lt && x.lt.uygulanir).length;
+                if (!basinc.length) return 'Member buckling: no member in compression; LTB not applicable (plated / closed sections).';
                 const enKotu = basinc.reduce((m, x) => x.UF > m.UF ? x : m, basinc[0]);
                 const fail = basinc.filter(x => x.UF > 1).length;
-                return 'Member buckling (EN 1993-1-1 6.3.1 + 6.3.3 N+M interaction): max UF ' + enKotu.UF.toFixed(2) +
+                return 'Member buckling (EN 1993-1-1 6.3.1 + 6.3.3 N+M' + (ltSayi ? ' + 6.3.2 LTB on ' + ltSayi + ' unrestrained member(s)' : '') + '): max UF ' + enKotu.UF.toFixed(2) +
                     (fail ? ' - ' + fail + ' member(s) FAIL' : ' - OK') + '. See Buckling tab.';
             }
 

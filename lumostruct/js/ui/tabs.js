@@ -297,6 +297,9 @@
             if (kyEl) kyEl.value = elem.kY || 1;
             if (kzEl) kzEl.value = elem.kZ || 1;
             if (egEl) egEl.value = elem.burkulmaEgrisi || '';
+            const kltEl = document.getElementById('infoBeamKlt'), yanalEl = document.getElementById('infoBeamYanal');
+            if (kltEl) kltEl.value = elem.kLT || 1;
+            if (yanalEl) yanalEl.value = (typeof elem.yanalTutulu === 'boolean') ? (elem.yanalTutulu ? '1' : '0') : '';
             const hsEl = document.getElementById('infoHingeStart'), heEl = document.getElementById('infoHingeEnd');
             if (hsEl) hsEl.checked = !!elem.hingeStart;
             if (heEl) heEl.checked = !!elem.hingeEnd;
@@ -1492,6 +1495,10 @@
             if (ky > 0 && ky !== 1) elem.kY = ky; else delete elem.kY;
             if (kz > 0 && kz !== 1) elem.kZ = kz; else delete elem.kZ;
             if (eg) elem.burkulmaEgrisi = eg; else delete elem.burkulmaEgrisi;
+            const klt = parseFloat(document.getElementById('infoBeamKlt')?.value);
+            if (klt > 0 && klt !== 1) elem.kLT = klt; else delete elem.kLT;
+            const yanal = document.getElementById('infoBeamYanal')?.value;
+            if (yanal === '1') elem.yanalTutulu = true; else if (yanal === '0') elem.yanalTutulu = false; else delete elem.yanalTutulu;
             if (results && typeof updateResultsBottomPanel === 'function') updateResultsBottomPanel();
             if (results && typeof displayResults === 'function') displayResults();
         }

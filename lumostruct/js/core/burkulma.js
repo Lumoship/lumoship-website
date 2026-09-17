@@ -34,6 +34,24 @@
         // ayak, yuklu payanda) kullanim orani oldugundan KUCUK cikiyordu.
         // UF artik etkilesim orani; UFN saf eksenel oran olarak ayrica verilir.
         //
+        // YANAL BURULMALI BURKULMA (LTB) - EN 1993-1-1 6.3.2 (genel hal 6.3.2.2):
+        //   Mcr = C1 pi^2 E Iz / Lcr^2 * sqrt(Iw/Iz + Lcr^2 G It / (pi^2 E Iz))
+        //   lambda_LT = sqrt(Wy fy / Mcr); Phi_LT = 0.5[1 + a_LT(lambda_LT - 0.2) + lambda_LT^2]
+        //   chi_LT = 1/(Phi + sqrt(Phi^2 - lambda^2)) <= 1;  Mb,Rd = chi_LT Wy fy / gM1
+        //   lambda_LT <= 0.2 ya da M/Mcr <= 0.04 ise kontrol gerekmez (6.3.2.2(4)).
+        //   C1 (dogrusal moment): 1.88 - 1.40 psi + 0.52 psi^2 <= 2.70; tepe
+        //   aciklik icindeyse 1.0 (guvenli taraf). Iw: T/L/FB/HP acik kesitte 0;
+        //   kesit Iw tasiyorsa o. a_LT Tablo 6.4: kaynakli I h/b <= 2 -> c,
+        //   > 2 -> d; diger kesitler d (gemi yapisi kaynaklidir).
+        //   Lcr = kLT * L (elem.kLT, varsayilan 1 = uclari yanal tutulu).
+        // UYGULANMAZ: plakali kesit (isComposite / plateWidth - basinc flansi
+        // plakaya bagli), kapali kesit (PIPE/BOX), rijit, Iz/J yok. Kullanici
+        // elem.yanalTutulu = false ile plakali kirise de zorlayabilir, true ile
+        // serbest kirisi tutulu sayabilir (tripping braketleri vb.).
+        // Etkilesimde (6.3.3) My,Rd = chi_LT Wy fy / gM1 ve burulmaya duyarli
+        // eleman icin k_zy = 1 - 0.1 lambda_z n_z / (C_mLT - 0.25) (Tablo B.2),
+        // C_mLT = C_my.
+        //
         // Kusur katsayisi alpha: kesit turune gore EN 1993-1-1 tablo 6.2.
         //   boru (sicak) a = 0.21; lama/bulb/T/L (kaynakli, kalin) c = 0.49.
         //   Kullanici isterse elemana kendi egrisini verir (elem.burkulmaEgrisi).
@@ -54,6 +72,56 @@
             const Phi = 0.5 * (1 + alpha * (lambda - 0.2) + lambda * lambda);
             const kok = Math.sqrt(Math.max(Phi * Phi - lambda * lambda, 0));
             return Math.min(1, 1 / (Phi + kok));
+        }
+
+        function yanalTutuluMu(elem, sec) {
+            if (elem && typeof elem.yanalTutulu === 'boolean') return elem.yanalTutulu;
+            return !!(sec && (sec.isComposite || sec.plateWidth > 0));
+        }
+        // C1 (Mcr moment dagilimi katsayisi). Dogrusal: 1.88 - 1.40 psi + 0.52 psi^2 <= 2.7
+        function c1Katsayisi(M1, M2, Mmax) {
+            const a = Math.abs(M1 || 0), b = Math.abs(M2 || 0), m = Math.abs(Mmax || 0);
+            const buyuk = Math.max(a, b);
+            if (buyuk < 1e-9) return 1;
+            if (m > buyuk * 1.001 + 1e-9) return 1;             // tepe aciklik icinde
+            const psi = Math.max(-1, Math.min(1, (a >= b) ? (M2 || 0) / (M1 || 1e-12) : (M1 || 0) / (M2 || 1e-12)));
+            return Math.min(2.7, 1.88 - 1.40 * psi + 0.52 * psi * psi);
+        }
+        // Tek eleman LTB. momentler {M1, M2, Mmax} kNm. Donus: { uygulanir, neden, ... }
+        function yanalBurkulma(elem, sec, mat, L, momentler, gammaM1) {
+            const yok = neden => ({ uygulanir: false, neden: neden, chiLT: 1, UFLT: 0 });
+            if (!sec || sec.rigid) return yok('rigid');
+            const tur = (typeof kesitTuru === 'function') ? kesitTuru(elem && elem.section) : (sec.type || 'default');
+            if (tur === 'PIPE' || sec.type === 'BOX' || sec.type === 'PIPE') return yok('closed section');
+            if (yanalTutuluMu(elem, sec)) return yok((elem && typeof elem.yanalTutulu === 'boolean') ? 'restrained (user)' : 'restrained by plating');
+            if (!(sec.Iz > 0) || !(sec.J > 0) || !(L > 0)) return yok('no Iz / It');
+            const m = momentler || {};
+            const My = Math.max(Math.abs(m.M1 || 0), Math.abs(m.M2 || 0), Math.abs(m.Mmax || 0)) * 1e3;   // N·m
+            if (!(My > 0)) return yok('no moment');
+            const WyT = (sec.WyTop > 0) ? sec.WyTop : sec.Wy, WyB = (sec.WyBot > 0) ? sec.WyBot : sec.Wy;
+            const Wy = (WyT > 0 && WyB > 0) ? Math.min(WyT, WyB) : (sec.Wy > 0 ? sec.Wy : 0);
+            if (!(Wy > 0)) return yok('no Wy');
+            const E = mat.E, G = (mat.G > 0) ? mat.G : E / 2.6, fy = mat.yield;
+            const g = (gammaM1 > 0) ? gammaM1 : 1;
+            const kLT = (elem && elem.kLT > 0) ? elem.kLT : 1;
+            const Lcr = kLT * L;
+            const Iw = (sec.Iw > 0) ? sec.Iw : 0;
+            const C1 = c1Katsayisi(m.M1, m.M2, m.Mmax);
+            const p2 = Math.PI * Math.PI;
+            const Mcr = C1 * p2 * E * sec.Iz / (Lcr * Lcr) * Math.sqrt(Iw / sec.Iz + Lcr * Lcr * G * sec.J / (p2 * E * sec.Iz));
+            const lambdaLT = Math.sqrt(Wy * fy / Mcr);
+            const hb = (sec.h > 0 && sec.bf > 0) ? sec.h / sec.bf : Infinity;
+            const egri = (sec.type === 'I') ? (hb <= 2 ? 'c' : 'd') : 'd';
+            const alpha = BURKULMA_EGRILERI[egri];
+            let chiLT = 1;
+            const gereksiz = lambdaLT <= 0.2 || My / Mcr <= 0.04;
+            if (!gereksiz) {
+                const Phi = 0.5 * (1 + alpha * (lambdaLT - 0.2) + lambdaLT * lambdaLT);
+                chiLT = Math.min(1, 1 / (Phi + Math.sqrt(Math.max(Phi * Phi - lambdaLT * lambdaLT, 0))));
+            }
+            const MbRd = chiLT * Wy * fy / g;
+            return { uygulanir: true, neden: gereksiz ? 'slender check not required (λ̄LT ≤ 0.2)' : '', kLT: kLT, Lcr: Lcr, C1: C1, Mcr: Mcr / 1e3, lambdaLT: lambdaLT,
+                     egri: egri, alpha: alpha, chiLT: chiLT, MbRd: MbRd / 1e3, My: My / 1e3, UFLT: My / MbRd };
         }
 
         // Tablo B.3 esdegeri uniform moment katsayisi. M1, M2 uc momentleri
@@ -89,6 +157,8 @@
             const kritik = (y.NbRd <= z.NbRd) ? y : z;
             const basinc = Math.max(0, -N_kN) * 1e3;             // N, yalnizca basinc
             const UFN = basinc / kritik.NbRd;
+            const lt = yanalBurkulma(elem, sec, mat, L, momentler, g);
+            const chiLT = lt.uygulanir ? lt.chiLT : 1;
             // --- 6.3.3 etkilesimi ---
             const m = momentler || {};
             const My = Math.max(Math.abs(m.M1 || 0), Math.abs(m.M2 || 0), Math.abs(m.Mmax || 0)) * 1e3;   // N·m
@@ -102,23 +172,29 @@
                 const Cmy = cmKatsayisi(m.M1, m.M2, m.Mmax), Cmz = cmKatsayisi(m.Mz1, m.Mz2, m.Mz);
                 const kyy = Math.min(Cmy * (1 + 0.6 * y.lambda * ny), Cmy * (1 + 0.6 * ny));
                 const kzz = Math.min(Cmz * (1 + 0.6 * z.lambda * nz), Cmz * (1 + 0.6 * nz));
-                const kyz = kzz, kzy = 0.8 * kyy;
-                const MyRd = Wy > 0 ? Wy * fy / g : Infinity, MzRd = Wz > 0 ? Wz * fy / g : Infinity;
+                const kyz = kzz;
+                // burulmaya duyarli eleman (LTB uygulanir): Tablo B.2 ikinci blok
+                const CmLT = Cmy;
+                const kzy = lt.uygulanir
+                    ? Math.max(1 - 0.1 * z.lambda * nz / (CmLT - 0.25), 1 - 0.1 * nz / (CmLT - 0.25))
+                    : 0.8 * kyy;
+                const MyRd = Wy > 0 ? chiLT * Wy * fy / g : Infinity, MzRd = Wz > 0 ? Wz * fy / g : Infinity;
                 const my = My / MyRd, mz = Mz / MzRd;
                 etk = { My: My / 1e3, Mz: Mz / 1e3, MyRd: MyRd / 1e3, MzRd: MzRd / 1e3, Cmy: Cmy, Cmz: Cmz,
                         kyy: kyy, kzz: kzz, kyz: kyz, kzy: kzy, ny: ny, nz: nz,
                         UFy: ny + kyy * my + kyz * mz, UFz: nz + kzy * my + kzz * mz };
             }
-            const UF = etk ? Math.max(etk.UFy, etk.UFz) : UFN;
+            const UFetk = etk ? Math.max(etk.UFy, etk.UFz) : UFN;
+            const UF = Math.max(UFetk, lt.uygulanir ? lt.UFLT : 0);
             return {
                 N: N_kN, basinc: basinc / 1e3,
-                UFN: UFN, etkilesim: etk,
+                UFN: UFN, etkilesim: etk, lt: lt,
                 kY: kY, kZ: kZ, LcrY: y.Lcr, LcrZ: z.Lcr,
                 lambdaY: y.lambda, lambdaZ: z.lambda, chiY: y.chi, chiZ: z.chi,
                 NcrY: y.Ncr / 1e3, NcrZ: z.Ncr / 1e3,
                 NbRd: kritik.NbRd / 1e3, eksenKritik: (kritik === y) ? 'y' : 'z',
                 egri: egri, alpha: alpha, gammaM1: g, UF: UF,
-                durum: basinc === 0 ? 'tension/none' : (UF > 1 ? 'FAIL' : (UF > 0.9 ? 'check' : 'ok'))
+                durum: (basinc === 0 && !(lt.uygulanir && lt.UFLT > 0)) ? 'tension/none' : (UF > 1 ? 'FAIL' : (UF > 0.9 ? 'check' : 'ok'))
             };
         }
 
