@@ -663,7 +663,7 @@
             else altTabloCiz();
             // Secili ilk satiri gorunur alana getir.
             const kap = document.getElementById('resultsBottomContent');
-            const satir = kap && kap.querySelector('tr.selected');
+            const satir = (kap && typeof kap.querySelector === 'function') ? kap.querySelector('tr.selected') : null;
             if (satir && typeof satir.scrollIntoView === 'function') {
                 try { satir.scrollIntoView({ block: 'nearest' }); } catch (e) { /* eski tarayici */ }
             }
