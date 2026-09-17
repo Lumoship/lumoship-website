@@ -29,14 +29,24 @@
 
         function deformeAnimAcikMi() { return deformeAnim.acik; }
 
+        // Dugme animasyon surerken "Stop" der: kullanici "Animate yazan
+        // yerde stop gibi bir sey yazsin" dedi - calisan seyin nasil
+        // durdurulacagi dugmenin uzerinde okunmali.
+        function deformeAnimDugmesi() {
+            const btn = document.getElementById('btnDeformAnim');
+            if (!btn) return;
+            btn.classList.toggle('success', deformeAnim.acik);
+            btn.innerHTML = deformeAnim.acik ? '&#9632; Stop' : '&#9654; Animate';
+            btn.title = deformeAnim.acik ? 'Stop the deformation animation' : 'Animate deformation: 0 → scale → 0, repeats';
+        }
+
         function deformeAnimToggle() {
             if (!results || !results.displacements) {
                 showToast('Run SOLVE first', true);
                 return;
             }
             deformeAnim.acik = !deformeAnim.acik;
-            const btn = document.getElementById('btnDeformAnim');
-            if (btn) btn.classList.toggle('success', deformeAnim.acik);
+            deformeAnimDugmesi();
             if (deformeAnim.acik) {
                 // Animasyon deforme sekil GORUNTUSUNUN yerine gecer: ikisi ust
                 // uste binince hangisi hareket ediyor belli olmuyordu.
@@ -146,7 +156,7 @@
         // kurulduysa (update3DScene grubu atar) katman yeniden kurulur.
         function deformeAnimAdim(simdi) {
             if (!deformeAnim.acik) return;
-            if (!results || !results.displacements) { deformeAnim.acik = false; deformeAnimSok(); return; }
+            if (!results || !results.displacements) { deformeAnim.acik = false; deformeAnimSok(); deformeAnimDugmesi(); return; }
             if (!deformeAnim.grup || !deformeAnim.grup.parent) deformeAnimKur();
             const faz = ((simdi - deformeAnim.t0) % DEFORME_ANIM_SURE_MS) / DEFORME_ANIM_SURE_MS;
             const k = 0.5 * (1 - Math.cos(2 * Math.PI * faz)) * (view.deformationScale || 50);

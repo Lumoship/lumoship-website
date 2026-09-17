@@ -1,5 +1,37 @@
         // ============== MAIN TAB SWITCHING ==============
+        // Results sekmesinden cikinca animasyon durur, gerilme/deforme/moment/
+        // kesme boyamasi kalkar (kullanici: "model sekmesine gectim, animasyon
+        // durmali, sonuc renklendirmesi gitmeli"); Results'a donunce ayni
+        // gorunum geri gelir (sonuc hala gecerliyse).
+        let sonucGorunumYedek = null;
+        function sonucGorunumunuKapat() {
+            const yedek = {
+                anim: (typeof deformeAnimAcikMi === 'function') && deformeAnimAcikMi(),
+                deformed: !!view.showDeformed, stress: !!view.showStress, moment: !!view.showMoment, shear: !!view.showShear
+            };
+            if (yedek.anim && typeof deformeAnimToggle === 'function') deformeAnimToggle();
+            view.showDeformed = false; view.showStress = false; view.showMoment = false; view.showShear = false;
+            const bd = document.getElementById('btnDeformed'); if (bd) bd.classList.remove('active', 'success');
+            ['btnStressViz', 'btnMomentViz', 'btnShearViz'].forEach(id => { const b = document.getElementById(id); if (b) b.classList.remove('active'); });
+            const exag = document.getElementById('exaggerationControl'); if (exag) exag.style.display = 'none';
+            return yedek;
+        }
+        function sonucGorunumunuGeriGetir(yedek) {
+            if (!yedek || !results || modelChangedAfterSolve) return;
+            view.showDeformed = yedek.deformed; view.showStress = yedek.stress; view.showMoment = yedek.moment; view.showShear = yedek.shear;
+            const bd = document.getElementById('btnDeformed'); if (bd && yedek.deformed) bd.classList.add('success');
+            const bs = document.getElementById('btnStressViz'); if (bs && yedek.stress) bs.classList.add('active');
+            const bm = document.getElementById('btnMomentViz'); if (bm && yedek.moment) bm.classList.add('active');
+            const bk = document.getElementById('btnShearViz'); if (bk && yedek.shear) bk.classList.add('active');
+            const exag = document.getElementById('exaggerationControl'); if (exag && yedek.deformed) exag.style.display = 'flex';
+            if (yedek.anim && typeof deformeAnimToggle === 'function' && !deformeAnimAcikMi()) deformeAnimToggle();
+        }
+
         function switchMainTab(tabName) {
+            const oncekiSekme = (document.querySelector('.main-tab.active') || {}).id || '';
+            const resultsTanCikis = /Results$/.test(oncekiSekme) && tabName !== 'results';
+            const resultsAGiris = !/Results$/.test(oncekiSekme) && tabName === 'results';
+            if (resultsTanCikis) sonucGorunumYedek = sonucGorunumunuKapat();
             // Update tab buttons
             document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
             document.getElementById(`mainTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
@@ -44,8 +76,10 @@
                 if (typeof syncResultsPanelSpace === 'function') syncResultsPanelSpace();
             }
             
-            // Redraw if visualization state changed
-            if (wasShowingResults !== showResultsVisualization) {
+            if (resultsAGiris && sonucGorunumYedek) { sonucGorunumunuGeriGetir(sonucGorunumYedek); sonucGorunumYedek = null; }
+
+            // Redraw if visualization state changed (or a result view was switched off / restored)
+            if (wasShowingResults !== showResultsVisualization || resultsTanCikis || resultsAGiris) {
                 if (currentViewMode === '3d') {
                     update3DScene();
                 } else {
