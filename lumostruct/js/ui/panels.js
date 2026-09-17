@@ -2245,6 +2245,12 @@
         function updateModelSummary() {
             // Yuk durumu / kombinasyon secicileri modeli izler (ac, geri al, temizle)
             if (typeof yukSecicileriniTazele === 'function') yukSecicileriniTazele();
+            // Celik sinifi ve kontrol ayarlari modelden (ac / geri al)
+            if (model && model.grade && typeof MATERIALS !== 'undefined' && MATERIALS[model.grade]) {
+                const g = document.getElementById('steelGrade');
+                if (g && g.value !== model.grade) { g.value = model.grade; if (typeof updateMaterialDisplay === 'function') updateMaterialDisplay(); }
+            }
+            if (typeof gerilmeSinirlariniUygula === 'function') gerilmeSinirlariniUygula();
             const nNodes = Object.keys(model.nodes).length;
             const nElems = Object.keys(model.elements).length;
             const nConst = Object.keys(model.constraints).length;

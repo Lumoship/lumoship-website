@@ -155,6 +155,11 @@
   <tr><td>Buckling (web slenderness)</td>
       <td>${esc((document.getElementById('bucklingStatus')?.textContent || '-').trim())}</td>
       <td>${esc(document.getElementById('bucklingDetail')?.textContent || '-')}</td></tr>
+  <tr><td>Deflection</td>
+      <td>${esc((() => { const s = (typeof sehimOzeti === 'function') ? sehimOzeti(results) : null; return !s || !s.var_ ? 'no limit' : (s.ok ? 'OK' : 'EXCEEDED'); })())}</td>
+      <td>${esc((typeof sehimOzeti === 'function') ? sehimOzeti(results).metin : '-')}</td></tr>
+  <tr><td>Stress limit basis</td>
+      <td colspan="2">${esc((typeof kontrolAyarlari === 'function') ? (GERILME_TABANLARI[kontrolAyarlari().taban].ad + ' — ' + gerilmeSinirlariniHesapla().aciklama) : '-')}</td></tr>
 </tbody></table>
 
 <h2>Support reactions</h2>

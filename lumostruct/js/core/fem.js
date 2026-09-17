@@ -1727,6 +1727,13 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 debugWarn('Equilibrium off by ' + (equilibrium.error * 100).toFixed(3) + '%');
             }
 
+            // Ozetteki "max deflection" dugumlere bakiyordu: iki ucu mesnetli tek
+            // kiriste 0.00 mm yaziyordu, acik ortasi 27 mm inerken. Eleman
+            // sehim egrisinin en buyugu de sayilir (dmax mm, mutlak).
+            Object.values(elementResults).forEach(e => {
+                if (e && isFinite(e.dmax) && Math.abs(e.dmax) / 1000 > Math.abs(maxDeflection)) maxDeflection = e.dmax / 1000;
+            });
+
             return {
                 displacements,
                 elementResults,

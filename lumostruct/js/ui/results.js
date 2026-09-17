@@ -260,6 +260,20 @@
                 }
             }
             
+            // Sehim siniri (Settings: L/x ve/veya mm) - sinirlar.js
+            const deflStatus = document.getElementById('deflStatus'), deflDetail = document.getElementById('deflDetail');
+            if (deflStatus && typeof sehimOzeti === 'function') {
+                const so = sehimOzeti(results);
+                if (!so.var_) {
+                    deflStatus.innerHTML = '<span style="color:var(--text-3);">No limit</span>';
+                } else if (so.ok) {
+                    deflStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> Pass</span>';
+                } else {
+                    deflStatus.innerHTML = '<span style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> FAIL</span>';
+                }
+                if (deflDetail) deflDetail.textContent = so.metin;
+            }
+
             // Displacement table (left) - Top 10
             const dispTableLeft = document.getElementById('dispTableLeft');
             if (dispTableLeft) {

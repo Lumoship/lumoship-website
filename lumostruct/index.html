@@ -1761,14 +1761,45 @@
                 </div>
 
                 <h3 class="panel-title">Stress Limits</h3>
+                <!-- Kural tabani: js/core/sinirlar.js (model.kontrol ile kaydedilir) -->
+                <div class="limit-input">
+                    <label>Basis</label>
+                    <select id="gerilmeTabani" onchange="kontrolAyariDegisti()" style="width:100%; padding:6px; font-size:var(--fs-sm);">
+                        <option value="yield">Yield stress (σy, σy/√3)</option>
+                        <option value="dnv-ac1">DNV RU-SHIP Pt.3 Ch.6 Sec.6 — AC-I (static)</option>
+                        <option value="dnv-ac2">DNV RU-SHIP Pt.3 Ch.6 Sec.6 — AC-II/III (static + dynamic)</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+                <div id="hgKutusu" style="display:none; margin:4px 0 8px;">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); cursor:pointer;"><input type="checkbox" id="hgYuklu" onchange="kontrolAyariDegisti()"> Member subjected to hull girder loads</label>
+                    <div class="limit-input" style="margin-top:4px;">
+                        <label>Hull girder stress σ<sub>hg</sub> at the member (MPa)</label>
+                        <input type="number" id="sigmaHg" value="0" step="5" onchange="kontrolAyariDegisti()">
+                    </div>
+                </div>
                 <div class="limit-input">
                     <label>Normal Stress Limit (MPa)</label>
-                    <input type="number" id="sigmaLimit" value="355">
+                    <input type="number" id="sigmaLimit" value="355" onchange="kontrolAyariDegisti()">
                 </div>
                 <div class="limit-input">
                     <label>Shear Stress Limit (MPa)</label>
-                    <input type="number" id="tauLimit" value="205">
+                    <input type="number" id="tauLimit" value="205" onchange="kontrolAyariDegisti()">
                 </div>
+                <div id="gerilmeTabaniAciklama" style="font-size:var(--fs-xs); color:var(--text-3); margin:-2px 0 10px;"></div>
+
+                <h3 class="panel-title">Deflection Limit</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div class="limit-input">
+                        <label>Span ratio L / x (blank = none)</label>
+                        <input type="number" id="sehimOran" value="" placeholder="e.g. 250" step="10" onchange="kontrolAyariDegisti()">
+                    </div>
+                    <div class="limit-input">
+                        <label>Absolute (mm, blank = none)</label>
+                        <input type="number" id="sehimMm" value="" placeholder="e.g. 20" step="1" onchange="kontrolAyariDegisti()">
+                    </div>
+                </div>
+                <div style="font-size:var(--fs-xs); color:var(--text-3); margin:-2px 0 10px;">Checked per beam against its own span (deflection relative to the beam ends). Common: L/250 – L/300.</div>
                 <div class="limit-input">
                     <label>Material factor γM1 (member buckling)</label>
                     <input type="number" id="gammaM1" value="1.0" step="0.05" min="1" title="EN 1993-1-1: 1.0 · DNV: 1.15">
@@ -2069,6 +2100,9 @@
                             <tr><th>Slenderness / buckling</th>
                                 <td colspan="2"><span id="bucklingStatus">-</span>
                                     <div class="check-detail" id="bucklingDetail"></div></td></tr>
+                            <tr><th>Deflection</th>
+                                <td colspan="2"><span id="deflStatus">-</span>
+                                    <div class="check-detail" id="deflDetail"></div></td></tr>
                         </tbody>
                     </table>
 
@@ -3447,6 +3481,7 @@
     <script src="js/core/yukler.js"></script>
     <script src="js/core/zarf.js"></script>
     <script src="js/core/basinc.js"></script>
+    <script src="js/core/sinirlar.js"></script>
     <script src="js/core/kiris.js"></script>
     <script src="js/core/state.js"></script>
     <script src="js/core/profiles.js"></script>

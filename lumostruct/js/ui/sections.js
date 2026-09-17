@@ -953,9 +953,14 @@
 
             // The stress limits follow the grade. Leaving them on a stale 355 while the
             // user picks Grade A is how an overstressed member gets reported as safe.
-            const sigmaEl = $('sigmaLimit'), tauEl = $('tauLimit');
-            if (sigmaEl) sigmaEl.value = fy.toFixed(0);
-            if (tauEl) tauEl.value = (fy / Math.sqrt(3)).toFixed(0);   // von Mises kayma siniri
+            // Sinif modelle kaydedilir; sinirlar secili tabana gore (sinirlar.js)
+            if (typeof model !== 'undefined' && model) model.grade = grade;
+            if (typeof gerilmeSinirlariniUygula === 'function') gerilmeSinirlariniUygula();
+            else {
+                const sigmaEl = $('sigmaLimit'), tauEl = $('tauLimit');
+                if (sigmaEl) sigmaEl.value = fy.toFixed(0);
+                if (tauEl) tauEl.value = (fy / Math.sqrt(3)).toFixed(0);
+            }
         }
         
         // Yeni kiris hangi kesidi alsin?

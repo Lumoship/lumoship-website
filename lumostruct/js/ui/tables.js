@@ -269,10 +269,15 @@
                     { a: 'xMy', b: 'at x [mm]', o: 0 },
                     { a: 'Mzmax', b: 'Mz max [kNm]', o: 3 },
                     { a: 'd', b: 'd max [mm]', o: 4 },
+                    { a: 'Ld', b: 'L/d', o: 0 },
+                    { a: 'dDurum', b: 'Defl.', m: true },
                     { a: 'lc', b: 'LC', m: true }
                 ],
-                satirlar: () => Object.entries(results.elementResults || {}).map(([id, e]) => ({
+                satirlar: () => { const sk = (typeof sehimKontrolu === 'function') ? sehimKontrolu(results) : {}; return Object.entries(results.elementResults || {}).map(([id, e]) => ({
                     id: parseInt(id, 10),
+                    Ld: (sk[id] && isFinite(sk[id].oran)) ? sk[id].oran : null,
+                    dDurum: sk[id] ? sk[id].durum : '-',
+                    _vurgu: sk[id] ? (sk[id].durum === 'OVER' ? 'stress-fail' : (sk[id].durum === 'check' ? 'stress-warn' : '')) : '',
                     Nx: e.N || 0,
                     Qy: e.Vz || 0,
                     Qz: e.V || 0,
@@ -287,7 +292,7 @@
                     // Zarfta: kaydin geldigi (von Mises'e gore) kombinasyon;
                     // tek kombinasyonda o kombinasyon.
                     lc: e.lc || (typeof etkinKombinasyonId === 'function' ? etkinKombinasyonId() : '')
-                }))
+                })); }
             },
             {
                 ad: 'noderesp', baslik: 'Node responses', secim: 'dugum', sonuc: true,
