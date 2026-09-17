@@ -1224,6 +1224,12 @@
             <div class="main-tab-content" id="tabContentModel">
                 <h2><span class="icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span> Model</h2>
                 
+                    <!-- Izgara uretici: panel + araliklar + profiller + mesnetler + basinc -> model (js/ui/izgara.js) -->
+                    <h3 class="panel-title">Generate</h3>
+                    <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-4);">
+                        <button class="btn-primary btn-small" onclick="izgaraPenceresiAc()" title="Stiffeners × girders panel with supports and pressure" style="flex:1;">Grillage generator…</button>
+                    </div>
+
                     <h3 class="panel-title">Model maintenance</h3>
                     <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-4);">
                         <button class="btn-secondary btn-small" onclick="purgeModel(10)"
@@ -1380,102 +1386,8 @@
                     </div>
                 </div>
                 
-                <!-- QUICK GRILLAGE GENERATOR Panel -->
-                <div class="collapsible-panel">
-                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                        <div class="title">
-                            <span class="icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
-                            <span>Quick Grillage Generator</span>
-                        </div>
-                        <span class="arrow"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span></span>
-                    </div>
-                    <div class="collapsible-content">
-                        <!-- Transverse Beams -->
-                        <div style="background:var(--bg-tertiary); padding:8px; border-radius:var(--r-ctl); margin-bottom:8px;">
-                            <div style="color:var(--warning); font-weight:600; font-size:var(--fs-sm); margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Transverse Beams (Y direction)</div>
-                            <div class="form-row" style="margin-bottom:8px;">
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Length (m)</small>
-                                    <input type="number" id="transLength" value="4" step="0.1" min="0.5" style="padding:4px;">
-                                </div>
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Count</small>
-                                    <input type="number" id="transCount" value="5" min="2" max="50" oninput="updateTotalLengths()" style="padding:4px;">
-                                </div>
-                            </div>
-                            <div class="form-row" style="margin-bottom:8px;">
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Spacing (m)</small>
-                                    <input type="number" id="transSpacing" value="2" step="0.1" min="0.1" oninput="updateTotalLengths()" style="padding:4px;">
-                                </div>
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Beam</small>
-                                    <select id="transBeam" style="font-size:var(--fs-sm); padding:4px;">
-                                        <option value="">-- Create in General tab --</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <small style="color:var(--text-3); font-size:var(--fs-xs);">Total X: <span id="totalXLength" style="color:var(--warning);">8</span> m</small>
-                        </div>
-                        
-                        <!-- Longitudinal Beams -->
-                        <div style="background:var(--bg-tertiary); padding:8px; border-radius:var(--r-ctl); margin-bottom:8px;">
-                            <div style="color:var(--success); font-weight:600; font-size:var(--fs-sm); margin-bottom:8px;"><span class="icon"><svg viewBox="0 0 24 24"><path d="M16 3H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><line x1="6" y1="7" x2="10" y2="7"/><line x1="6" y1="12" x2="8" y2="12"/><line x1="6" y1="17" x2="10" y2="17"/></svg></span> Longitudinal Beams (X direction)</div>
-                            <div class="form-row" style="margin-bottom:8px;">
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Length (m)</small>
-                                    <input type="number" id="longLength" value="8" step="0.1" min="0.5" style="padding:4px;">
-                                </div>
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Count</small>
-                                    <input type="number" id="longCount" value="3" min="2" max="50" oninput="updateTotalLengths()" style="padding:4px;">
-                                </div>
-                            </div>
-                            <div class="form-row" style="margin-bottom:8px;">
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Spacing (m)</small>
-                                    <input type="number" id="longSpacing" value="2" step="0.1" min="0.1" oninput="updateTotalLengths()" style="padding:4px;">
-                                </div>
-                                <div>
-                                    <small style="color:var(--text-3); font-size:var(--fs-xs);">Beam</small>
-                                    <select id="longBeam" style="font-size:var(--fs-sm); padding:4px;">
-                                        <option value="">-- Create in General tab --</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <small style="color:var(--text-3); font-size:var(--fs-xs);">Total Y: <span id="totalYLength" style="color:var(--success);">4</span> m</small>
-                        </div>
-                        
-                        <!-- Load & Support -->
-                        <div class="form-row" style="margin-bottom:8px;">
-                            <div>
-                                <small style="color:var(--danger-text); font-size:var(--fs-xs);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Load q (kN/m)</small>
-                                <input type="number" id="gridDistLoad" value="10" step="1" min="0" style="padding:4px;">
-                            </div>
-                            <div>
-                                <small style="color:var(--text-3); font-size:var(--fs-xs);">Apply to</small>
-                                <select id="loadDirection" style="font-size:var(--fs-sm); padding:4px;">
-                                    <option value="transverse">Transverse</option>
-                                    <option value="longitudinal">Longitudinal</option>
-                                    <option value="both">Both</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group" style="margin-bottom:8px;">
-                            <small style="color:var(--primary-text); font-size:var(--fs-xs);"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Support</small>
-                            <select id="gridSupport" style="font-size:var(--fs-sm); padding:4px;">
-                                <option value="all_edges_ss">All Edges - Simply Supported</option>
-                                <option value="all_edges_fixed">All Edges - Fixed</option>
-                                <option value="corners_ss">4 Corners - Simply Supported</option>
-                                <option value="corners_fixed">4 Corners - Fixed</option>
-                            </select>
-                        </div>
-                        
-                        <button class="btn-primary btn-block" onclick="generateGrid()" style="padding:8px;"><span class="icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Generate Grillage</button>
-                    </div>
-                </div>
-                
+                <!-- Eski "Quick Grillage Generator" paneli kaldirildi: Generate > Grillage generator (js/ui/izgara.js) yerine gecti. -->
+
                 <!-- Model Validation Summary -->
                 <div class="collapsible panel-card">
                     <div class="collapsible-header" onclick="toggleCollapsible(this)">
@@ -3530,6 +3442,7 @@
     <script src="js/ui/report.js"></script>
     <script src="js/ui/rapor-ek.js"></script>
     <script src="js/ui/yardim.js"></script>
+    <script src="js/ui/izgara.js"></script>
     <script src="js/ui/panels.js"></script>
     <script src="js/ui/tabs.js"></script>
     <script src="js/ui/import.js"></script>

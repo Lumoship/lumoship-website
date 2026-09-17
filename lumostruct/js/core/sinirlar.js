@@ -105,23 +105,94 @@
             const a = model.nodes[e.n1], b = model.nodes[e.n2];
             return (a && b) ? Math.hypot(b.x - a.x, b.y - a.y, (b.z || 0) - (a.z || 0)) : 0;
         }
-        // Her kiris: sehim (mm), boy, L/d orani, sinir, durum. results.elementResults[id].dmax mm.
+        // ---- Acikliklar ----
+        // Sehim ACIKLIK bazinda olculur: ayni adli (elem.ad), dogrusal ve
+        // birbirine bagli kirisler bir uye sayilir; uye, dusey mesnetli
+        // dugumlerde acikliklara bolunur. Her acikligin sehimi, uclarini
+        // birlestiren KIRISE GORE bagil en buyuk sapmadir (uclar mesnetse
+        // mutlak sehimle ayni). Eskiden 600 mm'lik bir tasiyici parcasi 11 mm
+        // inince "L/53 FAIL" cikiyordu; tasiyici aslinda 6 m'de L/534.
+        // Adsiz kiris tek basina bir acikliktir (kendi kirisine gore bagil).
+        function sehimAcikliklari(r) {
+            const z = n => n.z || 0;
+            const yon = e => { const a = model.nodes[e.n1], b = model.nodes[e.n2]; const L = kirisBoyu3B(e); return L > 1e-9 ? [(b.x - a.x) / L, (b.y - a.y) / L, (z(b) - z(a)) / L] : [0, 0, 0]; };
+            const paralel = (u, v) => Math.abs(u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) > 0.9999;
+            const mesnetli = id => { const c = model.constraints && model.constraints[id]; return !!(c && (c === 'fixed' || c === 'pinned' || c === 'simply_supported' || c.Uz)); };
+            const ids = Object.keys(model.elements).filter(id => r.elementResults[id] && !r.elementResults[id].rigid);
+            const kullanildi = new Set();
+            const acikliklar = [];
+            // dugum -> ayni adli komsu kirisler
+            const komsu = {};
+            ids.forEach(id => { const e = model.elements[id]; [e.n1, e.n2].forEach(n => { (komsu[n] = komsu[n] || []).push(id); }); });
+            ids.forEach(id => {
+                if (kullanildi.has(id)) return;
+                const e0 = model.elements[id];
+                const u0 = yon(e0);
+                // zinciri iki yone dogru uzat
+                const zincir = [id]; kullanildi.add(id);
+                const uzat = (ucId, ileri) => {
+                    let ucNode = ucId;
+                    for (;;) {
+                        if (mesnetli(ucNode)) break;
+                        const son = zincir[ileri ? zincir.length - 1 : 0];
+                        const aday = (komsu[ucNode] || []).find(k => !kullanildi.has(k) && (model.elements[k].ad || '') === (e0.ad || '') && (e0.ad || '') !== '' && paralel(yon(model.elements[k]), u0) && (model.elements[k].n1 === ucNode || model.elements[k].n2 === ucNode));
+                        if (aday === undefined) break;
+                        kullanildi.add(aday);
+                        if (ileri) zincir.push(aday); else zincir.unshift(aday);
+                        const ea = model.elements[aday];
+                        ucNode = (ea.n1 === ucNode) ? ea.n2 : ea.n1;
+                    }
+                    return ucNode;
+                };
+                // e0'in n2 yonune, sonra n1 yonune
+                const sonNode = uzat(e0.n2, true);
+                const basNode = uzat(e0.n1, false);
+                acikliklar.push({ kirisler: zincir, bas: basNode, son: sonNode, ad: e0.ad || '' });
+            });
+            return acikliklar;
+        }
+
+        // Her kiris: acikligin L, bagil sehim d (mm), L/d, sinir, durum.
         function sehimKontrolu(r) {
             const k = kontrolAyarlari();
             const out = {};
             if (!r || !r.elementResults) return out;
-            Object.entries(model.elements).forEach(([id, e]) => {
-                const er = r.elementResults[id];
-                if (!er || er.rigid) return;
-                const L = kirisBoyu3B(e);
-                const d = Math.abs(er.dmax || 0);                // mm (kirise gore bagil sehim)
+            const z = n => n.z || 0;
+            sehimAcikliklari(r).forEach(ac => {
+                const A = model.nodes[ac.bas], B = model.nodes[ac.son];
+                if (!A || !B) return;
+                const L = Math.hypot(B.x - A.x, B.y - A.y, z(B) - z(A));
+                let dA = ((r.displacements[ac.bas] || {}).Uz || 0) * 1000, dB = ((r.displacements[ac.son] || {}).Uz || 0) * 1000;
+                // Konsol: yalniz bir uc mesnetliyse sehim o uca gore olculur
+                // (uc sehimi), kirise gore degil - kirise gore bagil sapma konsolun
+                // gercek sehiminin bestebiri kadar cikardi.
+                const mesnetliUc = id => { const c = model.constraints && model.constraints[id]; return !!(c && (c === 'fixed' || c === 'pinned' || c === 'simply_supported' || c.Uz)); };
+                const basM = mesnetliUc(ac.bas), sonM = mesnetliUc(ac.son);
+                if (basM && !sonM) dB = dA; else if (sonM && !basM) dA = dB;
+                // acikliktaki her kirisin diyagram noktalari: kirise gore bagil sapma
+                let d = 0;
+                ac.kirisler.forEach(id => {
+                    const e = model.elements[id], er = r.elementResults[id];
+                    const a = model.nodes[e.n1];
+                    const dg = er && er.diagram;
+                    if (!dg || !dg.d) { d = Math.max(d, Math.abs(er.dmax || 0)); return; }
+                    dg.x.forEach((x, i) => {
+                        // noktanin aciklik basindan uzakligi (kiris n1'den x kadar; n1'in aciklik basina uzakligi)
+                        const s0 = Math.hypot(a.x - A.x, a.y - A.y, z(a) - z(A));
+                        const ters = (Math.hypot(model.nodes[e.n2].x - A.x, model.nodes[e.n2].y - A.y, z(model.nodes[e.n2]) - z(A)) < s0);
+                        const s = ters ? s0 - x : s0 + x;
+                        const kiris = L > 1e-9 ? dA + (dB - dA) * s / L : dA;
+                        d = Math.max(d, Math.abs(dg.d[i] - kiris));
+                    });
+                });
                 const oran = d > 1e-9 ? (L * 1000) / d : Infinity;
                 let sinirMm = null;
                 if (k.sehimOran > 0) sinirMm = L * 1000 / k.sehimOran;
                 if (k.sehimMm > 0) sinirMm = (sinirMm === null) ? k.sehimMm : Math.min(sinirMm, k.sehimMm);
                 const kullanim = (sinirMm && sinirMm > 0) ? d / sinirMm : null;
-                out[id] = { L: L, d: d, oran: oran, sinirMm: sinirMm, kullanim: kullanim,
-                            durum: kullanim === null ? 'no limit' : (kullanim > 1 ? 'OVER' : (kullanim > 0.9 ? 'check' : 'ok')) };
+                const kayit = { L: L, d: d, oran: oran, sinirMm: sinirMm, kullanim: kullanim, aciklik: ac.kirisler.length > 1 ? (ac.ad + ': ' + ac.kirisler.length + ' beams, ' + (L * 1000).toFixed(0) + ' mm') : '',
+                                durum: kullanim === null ? 'no limit' : (kullanim > 1 ? 'OVER' : (kullanim > 0.9 ? 'check' : 'ok')) };
+                ac.kirisler.forEach(id => { out[id] = kayit; });
             });
             return out;
         }
@@ -137,7 +208,7 @@
             const asan = liste.filter(([, x]) => x.kullanim > 1).length;
             return {
                 var_: true, ok: asan === 0, enKotuId: id, kullanim: v.kullanim, asan: asan,
-                metin: 'Limit ' + sinirYazi + '. Worst Beam #' + id + ': ' + v.d.toFixed(2) + ' mm = L/' + (isFinite(v.oran) ? v.oran.toFixed(0) : '∞') +
-                       ' (' + (v.kullanim * 100).toFixed(0) + '% of limit)' + (asan ? '; ' + asan + ' beam(s) OVER' : '')
+                metin: 'Limit ' + sinirYazi + '. Worst Beam #' + id + (v.aciklik ? ' (span ' + v.aciklik + ')' : '') + ': ' + v.d.toFixed(2) + ' mm = L/' + (isFinite(v.oran) ? v.oran.toFixed(0) : '∞') +
+                       ' (' + (v.kullanim * 100).toFixed(0) + '% of limit)' + (asan ? '; ' + asan + ' beam(s) OVER' : '') + '. Spans: same-named collinear beams between supports; deflection relative to the span chord.'
             };
         }
