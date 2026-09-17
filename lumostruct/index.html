@@ -643,8 +643,10 @@
         }
         .lumoship-nav-logo:hover { opacity: 0.85; }
         .lumoship-nav-logo-mark {
-            width: 28px;
-            height: 28px;
+            /* Kompakt duzen: 28 -> 22 px, 0.95 -> 0.72rem (main.css'teki blok bu
+               stil dosyasindan ONCE yuklendigi icin degerler burada). */
+            width: 22px;
+            height: 22px;
             background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
             border-radius: 7px;
             display: flex;
@@ -652,12 +654,12 @@
             justify-content: center;
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.72rem;
             color: white;
         }
         .lumoship-nav-logo-text {
             font-family: 'Inter', system-ui, sans-serif;
-            font-size: 1rem;
+            font-size: 0.78rem;
             font-weight: 600;
             color: #f8fafc;
             letter-spacing: 0.06em;
@@ -693,7 +695,7 @@
             color: #94a3b8;
             text-decoration: none;
             font-family: 'Inter', sans-serif;
-            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-size: clamp(0.68rem, 0.7vw, 0.75rem);   /* kompakt: 14 -> 11.5 px */
             font-weight: 500;
             display: inline-flex;
             align-items: center;
@@ -715,7 +717,7 @@
             text-decoration: none;
             color: #f8fafc;
             font-family: 'Inter', sans-serif;
-            font-size: 0.825rem;
+            font-size: 0.72rem;   /* kompakt: 13.2 -> 11.5 px */
             font-weight: 500;
             transition: all 200ms;
         }
@@ -755,7 +757,8 @@
         }
         
         .user-badge-login {
-            padding: 0.45rem 0.95rem;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.72rem;   /* kompakt: 13.2 -> 11.5 px */
             background: #3b82f6;
             border-color: #3b82f6;
             color: white;
@@ -1296,7 +1299,7 @@
                             </div>
                             <div style="display:flex; gap:4px;">
                                 <button class="btn-primary btn-small" onclick="addBeamManual()" style="flex:1; padding:4px; font-size:var(--fs-sm);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Add Beam</button>
-                                <button class="btn-secondary btn-small" onclick="addBeamFromSelection()" style="flex:1; padding:4px; font-size:var(--fs-sm);" title="Select 2 nodes first"><span class="icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> From Selection</button>
+                                <button class="btn-secondary btn-small" onclick="addBeamFromSelection()" style="flex:1; padding:4px; font-size:var(--fs-sm); white-space:nowrap;" title="Select 2 nodes first"><span class="icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> From Selection</button>
                                 <button class="btn-danger btn-small" onclick="removeSelectedBeams()" style="padding:4px; font-size:var(--fs-sm);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span></button>
                             </div>
                         </div>

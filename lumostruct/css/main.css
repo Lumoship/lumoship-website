@@ -1157,10 +1157,10 @@
         /* ============== TOAST NOTIFICATIONS ============== */
         .toast-container {
             position: fixed;
-            /* Ust cubuk + sekme cubugunun ALTINDA (44 + 32 px): 16px'te bildirim
+            /* Ust cubuk + sekme cubugunun ALTINDA (37 + 32 px): 16px'te bildirim
                "Sign in" dugmesinin, 56px'te Import/Export dugmelerinin ustune
                biniyordu. */
-            top: 84px;
+            top: 76px;
             right: var(--space-4);
             z-index: 10000;
             display: flex;
@@ -1389,7 +1389,7 @@
         }
         
         .toast-icon {
-            font-size: var(--font-size-xl);
+            font-size: var(--fs-md);
             flex-shrink: 0;
         }
         
