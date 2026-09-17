@@ -88,14 +88,28 @@
         }
 
         // ---- Model gorunumu ----
+        // Gorunum HER ZAMAN Three.js ile cizilir (plan/XZ/YZ dahil; setViewMode
+        // yalnizca kamerayi cevirir, mainCanvas gizli ve bayat). Eskiden yalniz
+        // '3d' modunda renderer okunuyor, plan gorunumunde gizli 2B tuval
+        // alinip raporda BOS beyaz kutu cikiyordu (DNV .clb -> ENV -> rapor
+        // akisinda olculdu). toDataURL, render'in hemen ardindan cagrilir;
+        // preserveDrawingBuffer gerekmez.
         function modelGorunumuPng() {
             try {
-                if (currentViewMode === '3d' && typeof threeRenderer !== 'undefined' && threeRenderer && threeScene && threeCamera) {
+                const kap = document.getElementById('threeContainer');
+                const ucBoyutGorunur = kap ? kap.style.display !== 'none' : true;
+                if (ucBoyutGorunur && typeof threeRenderer !== 'undefined' && threeRenderer && threeScene && threeCamera) {
+                    // Modeli cerceveye sigdirip cek; kullanicinin kamerasi geri konur
+                    const tc = (typeof threeControls !== 'undefined') ? threeControls : null;
+                    const eski = (tc && tc.target && tc.spherical) ? { t: tc.target.clone(), r: tc.spherical.radius } : null;
+                    if (eski && typeof fit3DView === 'function') fit3DView();
                     threeRenderer.render(threeScene, threeCamera);
-                    return threeRenderer.domElement.toDataURL('image/png');
+                    const png = threeRenderer.domElement.toDataURL('image/png');
+                    if (eski) { tc.target.copy(eski.t); tc.spherical.radius = eski.r; tc.update(); }
+                    return png;
                 }
                 const c = document.getElementById('mainCanvas');
-                if (c && typeof draw === 'function') { draw(); return c.toDataURL('image/png'); }
+                if (c && c.style.display !== 'none' && typeof draw === 'function') { draw(); return c.toDataURL('image/png'); }
             } catch (e) { /* WebGL tamponu korunmuyorsa bos donebilir */ }
             return null;
         }

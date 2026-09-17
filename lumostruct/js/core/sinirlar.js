@@ -143,7 +143,10 @@
         // birlestiren KIRISE GORE bagil en buyuk sapmadir (uclar mesnetse
         // mutlak sehimle ayni). Eskiden 600 mm'lik bir tasiyici parcasi 11 mm
         // inince "L/53 FAIL" cikiyordu; tasiyici aslinda 6 m'de L/534.
-        // Adsiz kiris tek basina bir acikliktir (kendi kirisine gore bagil).
+        // Adsiz kirisler de birbirine zincirlenir (ad varsa ayni olmali):
+        // DNV .clb'den gelen kirislerin adi yok, kesisimlerde parcalanmis;
+        // eskiden her parca tek basina "aciklik" sayilip mesnetli ucu olan
+        // 700 mm'lik parca konsol gibi olculuyor, L/100 FAIL cikiyordu.
         function sehimAcikliklari(r) {
             const z = n => n.z || 0;
             const yon = e => { const a = model.nodes[e.n1], b = model.nodes[e.n2]; const L = kirisBoyu3B(e); return L > 1e-9 ? [(b.x - a.x) / L, (b.y - a.y) / L, (z(b) - z(a)) / L] : [0, 0, 0]; };
@@ -166,7 +169,7 @@
                     for (;;) {
                         if (mesnetli(ucNode)) break;
                         const son = zincir[ileri ? zincir.length - 1 : 0];
-                        const aday = (komsu[ucNode] || []).find(k => !kullanildi.has(k) && (model.elements[k].ad || '') === (e0.ad || '') && (e0.ad || '') !== '' && paralel(yon(model.elements[k]), u0) && (model.elements[k].n1 === ucNode || model.elements[k].n2 === ucNode));
+                        const aday = (komsu[ucNode] || []).find(k => !kullanildi.has(k) && (model.elements[k].ad || '') === (e0.ad || '') && paralel(yon(model.elements[k]), u0) && (model.elements[k].n1 === ucNode || model.elements[k].n2 === ucNode));
                         if (aday === undefined) break;
                         kullanildi.add(aday);
                         if (ileri) zincir.push(aday); else zincir.unshift(aday);
@@ -221,7 +224,7 @@
                 if (k.sehimOran > 0) sinirMm = L * 1000 / k.sehimOran;
                 if (k.sehimMm > 0) sinirMm = (sinirMm === null) ? k.sehimMm : Math.min(sinirMm, k.sehimMm);
                 const kullanim = (sinirMm && sinirMm > 0) ? d / sinirMm : null;
-                const kayit = { L: L, d: d, oran: oran, sinirMm: sinirMm, kullanim: kullanim, aciklik: ac.kirisler.length > 1 ? (ac.ad + ': ' + ac.kirisler.length + ' beams, ' + (L * 1000).toFixed(0) + ' mm') : '',
+                const kayit = { L: L, d: d, oran: oran, sinirMm: sinirMm, kullanim: kullanim, aciklik: ac.kirisler.length > 1 ? ((ac.ad ? ac.ad + ': ' : '') + ac.kirisler.length + ' beams, ' + (L * 1000).toFixed(0) + ' mm') : '',
                                 durum: kullanim === null ? 'no limit' : (kullanim > 1 ? 'OVER' : (kullanim > 0.9 ? 'check' : 'ok')) };
                 ac.kirisler.forEach(id => { out[id] = kayit; });
             });
