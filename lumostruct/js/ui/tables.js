@@ -440,7 +440,8 @@
                 sut: [
                     { a: 'id', b: 'Beam', o: 0 },
                     { a: 'N', b: 'N [kN]', o: 2 },
-                    { a: 'L', b: 'L [mm]', o: 0 },
+                    { a: 'L', b: 'Lmember [mm]', o: 0 },
+                    { a: 'uye', b: 'Member', m: true },
                     { a: 'kY', b: 'Ky', o: 2 }, { a: 'kZ', b: 'Kz', o: 2 },
                     { a: 'lamY', b: 'λ̄y', o: 3 }, { a: 'lamZ', b: 'λ̄z', o: 3 },
                     { a: 'chi', b: 'χ (crit.)', o: 3 },
@@ -460,7 +461,8 @@
                     const b = modelBurkulma(results);
                     return Object.entries(b).map(([id, r]) => ({
                         id: parseInt(id, 10),
-                        N: r.N, L: tabloKirisBoyu(model.elements[id]) * 1000,
+                        N: r.N, L: (r.zincir ? r.zincir.L : tabloKirisBoyu(model.elements[id])) * 1000,
+                        uye: r.zincir && r.zincir.n > 1 ? ((r.zincir.ad ? r.zincir.ad + ' ' : '') + r.zincir.n + ' beams: ' + r.zincir.kirisler.join(',')) : '-',
                         kY: r.kY, kZ: r.kZ, lamY: r.lambdaY, lamZ: r.lambdaZ,
                         chi: r.eksenKritik === 'y' ? r.chiY : r.chiZ,
                         NbRd: r.NbRd, egri: r.egri + ' (' + r.eksenKritik + ')',

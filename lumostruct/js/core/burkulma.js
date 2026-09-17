@@ -199,6 +199,23 @@
         }
 
         // Butun model. results.elementResults[id].N okunur (kN, cekme +).
+        //
+        // BURKULMA BOYU = ACIKLIK ZINCIRI. Kesisimlerde bolunmus bir kiris
+        // (600 mm'lik parcalar) parca boyuyla kontrol edilince Nb,Rd ve Mcr
+        // gercekte olmayan bir yanal tutulmaya dayaniyordu - guvenli tarafta
+        // degil. Sehim kontrolundeki ayni zincir (sehimAcikliklari: ayni adli
+        // dogrusal parcalar, dusey mesnetli dugumlerde bolunur) burada da
+        // "uye"dir: L zincir boyu, N zincirdeki en buyuk basinc, momentler
+        // zincirin uc ve tepe degerleri; zincirdeki her parca ayni kaydi alir.
+        // K carpanlari (kY/kZ/kLT) zincirin ILK parcasindan okunur.
+        function burkulmaUyeleri(results) {
+            const uyeler = [];
+            const acikliklar = (typeof sehimAcikliklari === 'function') ? sehimAcikliklari(results) : null;
+            if (acikliklar) acikliklar.forEach(ac => uyeler.push(ac.kirisler.map(String)));
+            const gorulen = new Set(uyeler.flat());
+            Object.keys(model.elements).forEach(id => { if (!gorulen.has(String(id))) uyeler.push([String(id)]); });
+            return uyeler;
+        }
         function modelBurkulma(results) {
             const out = {};
             if (!results || !results.elementResults) return out;
@@ -206,17 +223,25 @@
             const genelMat = MATERIALS[grade] || MATERIALS['AH36'];
             const gEl = document.getElementById('gammaM1');
             const gammaM1 = gEl ? (parseFloat(gEl.value) || 1) : 1;
-            Object.entries(model.elements).forEach(([id, elem]) => {
-                const r = results.elementResults[id];
-                if (!r) return;
-                const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
-                if (!n1 || !n2) return;
-                const L = Math.sqrt((n2.x - n1.x) ** 2 + (n2.y - n1.y) ** 2 + ((n2.z || 0) - (n1.z || 0)) ** 2);
-                const sec = (typeof kesitBul === 'function') ? kesitBul(elem.section) : SECTIONS[elem.section];
-                const mat = (typeof elemanMalzemesi === 'function') ? elemanMalzemesi(elem, genelMat) : genelMat;
-                const b = elemanBurkulma(elem, sec, mat, L, r.N || 0, gammaM1,
-                    { M1: r.M1, M2: r.M2, Mmax: r.Mmax, Mz1: r.Mz1, Mz2: r.Mz2, Mz: r.Mz });
-                if (b) out[id] = b;
+            const boy = e => { const a = model.nodes[e.n1], b = model.nodes[e.n2]; return (a && b) ? Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2 + ((b.z || 0) - (a.z || 0)) ** 2) : 0; };
+            burkulmaUyeleri(results).forEach(ids => {
+                const parcalar = ids.map(id => ({ id: id, elem: model.elements[id], r: results.elementResults[id] })).filter(p => p.elem && p.r);
+                if (!parcalar.length) return;
+                const ilk = parcalar[0].elem;
+                const L = parcalar.reduce((s, p) => s + boy(p.elem), 0);
+                const sec = (typeof kesitBul === 'function') ? kesitBul(ilk.section) : SECTIONS[ilk.section];
+                const mat = (typeof elemanMalzemesi === 'function') ? elemanMalzemesi(ilk, genelMat) : genelMat;
+                // uye kuvvetleri: en buyuk basinc, uc momentleri, tepe
+                const N = Math.min(...parcalar.map(p => p.r.N || 0));
+                const enB = alan => parcalar.reduce((m, p) => Math.max(m, Math.abs(p.r[alan] || 0)), 0);
+                const momentler = {
+                    M1: parcalar[0].r.M1, M2: parcalar[parcalar.length - 1].r.M2, Mmax: enB('Mmax'),
+                    Mz1: parcalar[0].r.Mz1, Mz2: parcalar[parcalar.length - 1].r.Mz2, Mz: enB('Mz')
+                };
+                const b = elemanBurkulma(ilk, sec, mat, L, N, gammaM1, momentler);
+                if (!b) return;
+                b.zincir = { n: parcalar.length, L: L, ad: ilk.ad || '', kirisler: parcalar.map(p => parseInt(p.id, 10)) };
+                parcalar.forEach(p => { out[p.id] = b; });
             });
             return out;
         }
