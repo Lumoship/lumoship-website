@@ -156,6 +156,55 @@
                 });
             }
             
+            // 7b. GECERSIZ KESIT OZELLIKLERI - kutuphanede var ama A / Iy / Wy
+            // sifir ya da null (yanlis parametreyle kurulmus profil, bozuk
+            // dosya). Eskiden cozume giriyor, sonuc sessizce anlamsizlasiyordu.
+            const bozukKesitler = [];
+            Object.entries(model.elements).forEach(([id, elem]) => {
+                const s = kesitBul(elem.section);
+                if (!s || s.rigid) return;
+                if (!(s.A > 0) || !(s.Iy > 0) || !(s.Wy > 0 || s.WyTop > 0 || s.WyBot > 0)) bozukKesitler.push(parseInt(id));
+            });
+            if (bozukKesitler.length > 0) {
+                issues.errors.push({
+                    type: 'invalid_sections',
+                    icon: '<span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>',
+                    title: 'Invalid Section Properties',
+                    message: `${bozukKesitler.length} beam(s) have a section with zero / missing A, Iy or Wy`,
+                    details: `Beam IDs: ${bozukKesitler.slice(0, 10).join(', ')}${bozukKesitler.length > 10 ? '...' : ''}. Re-create the profile (check the dimension fields).`,
+                    beams: bozukKesitler
+                });
+            }
+
+            // 7c. TANIMSIZ YUK DURUMU - yukun `case` alani model.loadCases'te
+            // yoksa kombinasyon katsayisi 0 olur ve yuk SESSIZCE yok sayilir
+            // (DNV dosyasindan gelen D/C1 durumlu modele 'L' durumlu yuk
+            // eklenince yasandi). Uyar; kullanici Loads sekmesinden durum atar.
+            if (typeof yukDurumlari === 'function') {
+                const durumlar = new Set(yukDurumlari().map(d => d.id));
+                const yetim = {};
+                const say = (durum, etiket) => { if (durum === undefined || durum === null || durumlar.has(durum)) return; (yetim[durum] = yetim[durum] || []).push(etiket); };
+                (model.loads || []).forEach((l, i) => say(l.case, 'node ' + l.nodeId));
+                (model.pressure || []).forEach((p, i) => say(p.case, 'pressure ' + (p.ad || 'P' + (i + 1))));
+                Object.entries(model.elements).forEach(([id, e]) => {
+                    (e.lineLoads || []).forEach(ll => say(ll.case, 'beam ' + id + ' line load'));
+                    (e.pointLoads || []).forEach(pl => say(pl.case, 'beam ' + id + ' point load'));
+                });
+                const anahtarlar = Object.keys(yetim);
+                if (anahtarlar.length) {
+                    const toplam = anahtarlar.reduce((s, k) => s + yetim[k].length, 0);
+                    issues.warnings.push({
+                        type: 'unknown_load_case',
+                        icon: '<span class="icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>',
+                        title: 'Loads in an Undefined Load Case',
+                        message: `${toplam} load(s) use case ${anahtarlar.map(k => '"' + k + '"').join(', ')} which is not defined - they get factor 0 and are IGNORED`,
+                        details: 'Defined cases: ' + [...durumlar].join(', ') + '. Assign a case in the Loads tab (Case column) or add the case in Load cases & combinations. First: ' +
+                                 anahtarlar.map(k => k + ': ' + yetim[k].slice(0, 4).join(', ') + (yetim[k].length > 4 ? '...' : '')).join('; '),
+                        cases: yetim
+                    });
+                }
+            }
+
             // 8. ZERO LENGTH BEAMS
             const zeroLengthBeams = [];
             Object.entries(model.elements).forEach(([id, elem]) => {

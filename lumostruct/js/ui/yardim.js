@@ -48,7 +48,7 @@
 
         function isaretKurallariHtml() {
             return ISARET_KURALLARI.map(g =>
-                '<div style="margin-bottom:10px;"><div style="font-weight:600; color:var(--text); margin-bottom:4px;">' + g.baslik + '</div>' +
+                '<div style="margin-bottom:8px;"><div style="font-weight:600; color:var(--text); margin-bottom:4px;">' + g.baslik + '</div>' +
                 '<table style="width:100%; border-collapse:collapse; font-size:var(--fs-sm);">' +
                 g.satir.map(([a, b]) => '<tr><td style="color:var(--accent-info); padding:2px 8px 2px 0; white-space:nowrap; vertical-align:top;">' + a + '</td><td style="color:var(--text-2); padding:2px 0;">' + b + '</td></tr>').join('') +
                 '</table></div>').join('');

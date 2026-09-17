@@ -1501,7 +1501,7 @@
                 return;
             }
             
-            const data = { model, results };
+            const data = { model: (typeof kesitleriModeleYaz === 'function') ? kesitleriModeleYaz(model) : model, results };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const filename = 'grillage_model.json';
@@ -1536,10 +1536,11 @@
                         throw new Error('Invalid model structure');
                     }
                     model = data.model;
+                    if (typeof kesitleriModeldenYukle === 'function') kesitleriModeldenYukle(model);
                     results = data.results || null;
-                    
+
                     // Recalculate nextNodeId and nextElementId
-                    const nodeIds = Object.keys(model.nodes).map(id => parseInt(id));
+const nodeIds = Object.keys(model.nodes).map(id => parseInt(id));
                     const elemIds = Object.keys(model.elements).map(id => parseInt(id));
                     nextNodeId = nodeIds.length > 0 ? Math.max(...nodeIds) + 1 : 1;
                     nextElementId = elemIds.length > 0 ? Math.max(...elemIds) + 1 : 1;

@@ -78,6 +78,27 @@
             if (typeof updateEmptyState === 'function') updateEmptyState();
         }
         
+        // ============== KESITLERIN MODELLE TASINMASI ==============
+        // SECTIONS bos baslar; her profil kullanici ya da ice aktarma ile
+        // uretilir. Otomatik kayit, JSON disa aktarma ve son dosyalar YALNIZCA
+        // model'i yaziyordu: sayfa yenilenince / dosya acilinca 54 kirisin
+        // kesiti "undefined" kaliyor, cozum engelleniyordu (DNV .clb ile
+        // olculdu). Kesitler model.sections altinda modelle birlikte gider.
+        function kesitleriModeleYaz(m) {
+            const hedef = m || model;
+            if (!hedef || typeof SECTIONS === 'undefined') return hedef;
+            const kopya = {};
+            Object.keys(SECTIONS).forEach(ad => { kopya[ad] = SECTIONS[ad]; });
+            hedef.sections = kopya;
+            return hedef;
+        }
+        function kesitleriModeldenYukle(m) {
+            if (!m || !m.sections || typeof m.sections !== 'object' || typeof SECTIONS === 'undefined') return 0;
+            let n = 0;
+            Object.keys(m.sections).forEach(ad => { const s = m.sections[ad]; if (s && typeof s === 'object') { SECTIONS[ad] = s; n++; } });
+            return n;
+        }
+
         // ============== AUTO-SAVE SYSTEM ==============
         let autoSaveTimer = null;
         const AUTO_SAVE_DELAY = 2000; // 2 seconds after last change
@@ -89,7 +110,7 @@
             autoSaveTimer = setTimeout(() => {
                 try {
                     const saveData = {
-                        model: model,
+                        model: kesitleriModeleYaz(model),
                         timestamp: Date.now(),
                         version: '1.0'
                     };
@@ -135,9 +156,10 @@
             const data = loadAutoSave();
             if (data && data.model) {
                 model = data.model;
-                
+                kesitleriModeldenYukle(model);
+
                 // Recalculate IDs
-                const nodeIds = Object.keys(model.nodes).map(id => parseInt(id));
+const nodeIds = Object.keys(model.nodes).map(id => parseInt(id));
                 const elemIds = Object.keys(model.elements).map(id => parseInt(id));
                 nextNodeId = nodeIds.length > 0 ? Math.max(...nodeIds) + 1 : 1;
                 nextElementId = elemIds.length > 0 ? Math.max(...elemIds) + 1 : 1;
@@ -176,6 +198,7 @@
 
         function addToRecentFiles(filename, modelData) {
             try {
+                if (typeof kesitleriModeleYaz === 'function') kesitleriModeleYaz(modelData);
                 let recent = safeJsonParse(localStorage.getItem('grillage_recent_files'), []);
                 if (!Array.isArray(recent)) recent = [];
 
@@ -262,6 +285,7 @@
             }
 
             model = parsed;
+            kesitleriModeldenYukle(model);
             results = null;
 
             // Yeni id'ler mevcut modelin uzerinden devam etmeli

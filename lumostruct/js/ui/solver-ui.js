@@ -119,8 +119,11 @@
             const FIX = { Ux: true, Uy: true, Uz: true, Rx: true, Ry: true, Rz: true }; // fixed
 
             const makeNodes = () => ({ 0: { x: 0, y: 0, z: 0 }, 1: { x: L, y: 0, z: 0 } });
+            // Yukler AÇIKÇA 'L' durumunda ve sinama kendi durum/kombinasyon
+            // setiyle kosar: kullanicinin modeli D/C1 durumlu bir DNV dosyasiysa
+            // 'L' katsayisi 0 oluyor ve dort vaka birden "0.00 FAIL" veriyordu.
             const udlElem = () => ({ 0: { n1: 0, n2: 1, section: SEC, orientation: 0,
-                lineLoads: [{ value: w, startPct: 0, endPct: 100, angle: 90 }] } });
+                lineLoads: [{ value: w, startPct: 0, endPct: 100, angle: 90, case: 'L' }] } });
             const plainElem = () => ({ 0: { n1: 0, n2: 1, section: SEC, orientation: 0, lineLoads: [] } });
 
             const cases = [
@@ -129,19 +132,29 @@
                 { name: 'Fixed-fixed + UDL',        formula: 'wL²/12', exact: w * L * L / 12,
                   nodes: makeNodes(), elements: udlElem(),   constraints: { 0: FIX, 1: FIX }, loads: [] },
                 { name: 'Cantilever + tip load',    formula: 'P·L',    exact: P * L,
-                  nodes: makeNodes(), elements: plainElem(), constraints: { 0: FIX }, loads: [{ nodeId: 1, Fz: -P }] },
+                  nodes: makeNodes(), elements: plainElem(), constraints: { 0: FIX }, loads: [{ nodeId: 1, Fz: -P, case: 'L' }] },
                 { name: 'Cantilever + UDL',         formula: 'wL²/2',  exact: w * L * L / 2,
                   nodes: makeNodes(), elements: udlElem(),   constraints: { 0: FIX }, loads: [] }
             ];
 
             // Backup
             const backup = { nodes: model.nodes, elements: model.elements,
-                constraints: model.constraints, loads: model.loads, pressure: model.pressure };
+                constraints: model.constraints, loads: model.loads, pressure: model.pressure,
+                loadCases: model.loadCases, combinations: model.combinations, activeCombination: model.activeCombination };
             const hadTestSec = SECTIONS[SEC];
             SECTIONS[SEC] = testSection;
+            const combEl = document.getElementById('loadCombSelect');
+            const combEski = combEl ? combEl.value : null;
+            const swEl = document.getElementById('includeSelfWeight');
+            const swEski = swEl ? swEl.checked : null;
 
             const out = [];
             try {
+                model.loadCases = [{ id: 'D', ad: 'Dead' }, { id: 'L', ad: 'Live' }];
+                model.combinations = [{ id: 'LC1', ad: 'Test', katsayi: { D: 1, L: 1 } }];
+                model.activeCombination = 'LC1';
+                if (combEl) { if (![...combEl.options].some(o => o.value === 'LC1')) { const o = document.createElement('option'); o.value = 'LC1'; o.textContent = 'LC1'; combEl.appendChild(o); } combEl.value = 'LC1'; }
+                if (swEl) swEl.checked = false;          // kapali cozumler oz agirliksiz
                 cases.forEach(c => {
                     model.nodes = c.nodes;
                     model.elements = c.elements;
@@ -165,6 +178,11 @@
                 model.constraints = backup.constraints;
                 model.loads = backup.loads;
                 model.pressure = backup.pressure;
+                model.loadCases = backup.loadCases;
+                model.combinations = backup.combinations;
+                model.activeCombination = backup.activeCombination;
+                if (combEl) { if (typeof yukSecicileriniTazele === 'function') yukSecicileriniTazele(); if (combEski !== null) combEl.value = combEski; }
+                if (swEl && swEski !== null) swEl.checked = swEski;
                 if (hadTestSec) SECTIONS[SEC] = hadTestSec; else delete SECTIONS[SEC];
             }
             return out;

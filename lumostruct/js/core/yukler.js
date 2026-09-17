@@ -259,7 +259,7 @@
             const durumlar = yukDurumlari(), ks = kombinasyonlar(), say = yukDurumuSayilari();
             const inp = 'style="background:var(--bg-main); border:1px solid var(--border); color:var(--text); border-radius:var(--r-ctl); padding:3px 5px; font-size:var(--fs-sm);"';
             let h = '<div style="font-size:var(--fs-xs); color:var(--text-3); margin-bottom:6px;">Every load carries a case. A combination multiplies each case by its factor; a case with factor 0 is left out. Self weight is always D.</div>';
-            h += '<table class="tablo-kompakt" style="width:100%; margin-bottom:12px;"><thead><tr><th>Case</th><th>Name</th><th style="text-align:right;">Loads</th><th></th></tr></thead><tbody>';
+            h += '<table class="data-table" style="width:100%; margin-bottom:12px;"><thead><tr><th>Case</th><th>Name</th><th style="text-align:right;">Loads</th><th></th></tr></thead><tbody>';
             durumlar.forEach(d => {
                 h += '<tr><td style="font-weight:600; color:var(--accent-info);">' + d.id + '</td>' +
                      '<td><input type="text" value="' + (d.ad || '').replace(/"/g, '&quot;') + '" ' + inp + ' style="width:100%;" onchange="yukDurumuAdlandir(\'' + d.id + '\', this.value)"></td>' +
@@ -272,7 +272,7 @@
                  '<input type="text" id="yeniDurumAd" placeholder="Name (Wind, Tank pressure…)" ' + inp + ' style="flex:1;">' +
                  '<button class="btn-secondary" onclick="yukDurumuEkle(document.getElementById(\'yeniDurumId\').value, document.getElementById(\'yeniDurumAd\').value)">+ Add case</button></div>';
 
-            h += '<table class="tablo-kompakt" style="width:100%;"><thead><tr><th>Combination</th><th>Name</th>';
+            h += '<table class="data-table" style="width:100%;"><thead><tr><th>Combination</th><th>Name</th>';
             durumlar.forEach(d => { h += '<th style="text-align:center;">' + d.id + '</th>'; });
             h += '<th></th></tr></thead><tbody>';
             ks.forEach(k => {

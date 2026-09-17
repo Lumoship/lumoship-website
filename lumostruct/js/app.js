@@ -61,9 +61,20 @@
         if (typeof updateLoadCasesUI === 'function') {
             updateLoadCasesUI();
         }
+        window.isaretKurallariniAcKapa = function (dugme) {
+            const k = document.getElementById('isaretKurallariIcerik');
+            if (!k) return;
+            const acik = k.style.display === 'none';
+            k.style.display = acik ? '' : 'none';
+            const ok = dugme && dugme.querySelector('span'); if (ok) ok.innerHTML = acik ? '&#9652;' : '&#9662;';
+        };
         // Settings > Units: isaret kurallari (yardim.js, tek kaynak)
         const isaretKutu = document.getElementById('isaretKurallariKutusu');
-        if (isaretKutu && typeof isaretKurallariHtml === 'function') isaretKutu.innerHTML = isaretKurallariHtml();
+        // Kapali <details>: 840 px'lik basvuru metni Settings sekmesini
+        // 2 800 px tasiriyordu (panel-yogunluk olcumu); istenince acilir.
+        if (isaretKutu && typeof isaretKurallariHtml === 'function') isaretKutu.innerHTML =
+            '<button class="btn-secondary btn-small" style="width:100%; justify-content:space-between;" onclick="isaretKurallariniAcKapa(this)">± Sign conventions (axes, loads, results) <span>&#9662;</span></button>' +
+            '<div id="isaretKurallariIcerik" style="display:none; margin-top:8px;">' + isaretKurallariHtml() + '</div>';
         
         // Initialize collapsible panels
         document.querySelectorAll('.collapsible-header').forEach(header => {

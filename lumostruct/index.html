@@ -1589,7 +1589,7 @@
                         <tbody id="basincTablo"><tr><td colspan="6" style="color:var(--text-3); text-align:center;">No pressure loads</td></tr></tbody>
                     </table></div>
                     <div class="subpanel-title" style="margin-top:8px;">Add pressure patch</div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
                         <div><small style="color:var(--text-3); font-size:var(--fs-xs);">p (kN/m², + = down)</small><input type="number" id="basincDeger" value="10" step="0.5"></div>
                         <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Carried by</small>
                             <select id="basincTasima" style="width:100%; padding:6px; font-size:var(--fs-sm);"><option value="auto">auto (closer spacing)</option><option value="X">beams along X</option><option value="Y">beams along Y</option></select></div>
@@ -1604,7 +1604,7 @@
                     <div style="display:flex; gap:8px; margin-top:8px;">
                         <button class="btn-primary btn-small" onclick="basincFormdanEkle()" style="flex:1;">Add Pressure</button>
                     </div>
-                    <small style="color:var(--text-3); font-size:var(--fs-xs); display:block; margin-top:6px;">Each beam inside the patch gets q = p × tributary width (half-way to its parallel neighbours). "auto" loads the closer-spaced set only, so the load is not counted twice.</small>
+                    <small style="color:var(--text-3); font-size:var(--fs-xs); display:block; margin-top:8px;">Each beam inside the patch gets q = p × tributary width (half-way to its parallel neighbours). "auto" loads the closer-spaced set only, so the load is not counted twice.</small>
                 </div>
 
                 <!-- Clear Loads Button -->
@@ -1698,14 +1698,14 @@
                         <option value="manual">Manual</option>
                     </select>
                 </div>
-                <div id="hgKutusu" style="display:none; margin:4px 0 8px;">
+                <div id="hgKutusu" style="display:none; margin:0 0 8px;">
                     <label style="display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); cursor:pointer;"><input type="checkbox" id="hgYuklu" onchange="kontrolAyariDegisti()"> Member subjected to hull girder loads</label>
-                    <div class="limit-input" style="margin-top:4px;">
+                    <div class="limit-input" style="margin-bottom:0;">
                         <label>Hull girder stress σ<sub>hg</sub> at the member (MPa)</label>
                         <input type="number" id="sigmaHg" value="0" step="5" onchange="kontrolAyariDegisti()">
                     </div>
                 </div>
-                <div id="bvKutusu" style="display:none; margin:4px 0 8px;">
+                <div id="bvKutusu" style="display:none; margin:0 0 8px;">
                     <div class="limit-input">
                         <label>Condition χ (Ch.7 Sec.4)</label>
                         <select id="bvChi" onchange="kontrolAyariDegisti()" style="width:100%; padding:6px; font-size:var(--fs-sm);">
@@ -1713,7 +1713,7 @@
                             <option value="accidental">Accidental, watertight boundary (not collision bhd) — χ = 1.15</option>
                         </select>
                     </div>
-                    <div class="limit-input" style="margin-top:4px;">
+                    <div class="limit-input" style="margin-bottom:0;">
                         <label>Corrosion coefficient K<sub>corr</sub></label>
                         <select id="bvKcorr" onchange="kontrolAyariDegisti()" style="width:100%; padding:6px; font-size:var(--fs-sm);">
                             <option value="general">In general — 1.0</option>
@@ -2596,7 +2596,7 @@
                         </div>
                         
                         <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                                 <small style="color:var(--text-3);">Point Load (kN):</small>
                                 <select id="infoLoadCase" class="yuk-durumu-secici" title="Load case" style="padding:2px 4px; font-size:var(--fs-xs); max-width:130px;"></select>
                             </div>
@@ -2615,7 +2615,7 @@
                                 </div>
                             </div>
                             <!-- Dugum momentleri (kNm): cozucu zaten okuyordu (fem.js), giris yoktu. -->
-                            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:6px;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:4px;">
                                 <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Mx (kNm)</small>
                                     <input type="number" id="infoLoadMx" value="0" step="1" style="padding:4px; font-size:var(--fs-sm); width:100%;"></div>
                                 <div><small style="color:var(--text-3); font-size:var(--fs-xs);">My (kNm)</small>
@@ -2797,7 +2797,7 @@
 
                     <div class="entity-section" id="beamBucklingSection">
                         <div class="entity-section-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M8 6c2 2 6 2 8 0"/><path d="M8 18c2-2 6-2 8 0"/></svg></span> Buckling length factors</div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
                             <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Ky (strong)</small>
                                 <input type="number" id="infoBeamKy" value="1" step="0.05" min="0.1" style="width:100%; padding:4px; font-size:var(--fs-sm);" onchange="applyInfoBuckling()"></div>
                             <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Kz (weak)</small>
@@ -2807,7 +2807,7 @@
                                     <option value="">auto</option><option value="a0">a0</option><option value="a">a</option><option value="b">b</option><option value="c">c</option><option value="d">d</option>
                                 </select></div>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 2fr; gap:6px; margin-top:6px;">
+                        <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; margin-top:4px;">
                             <div><small style="color:var(--text-3); font-size:var(--fs-xs);">K<sub>LT</sub> (lateral)</small>
                                 <input type="number" id="infoBeamKlt" value="1" step="0.05" min="0.1" style="width:100%; padding:4px; font-size:var(--fs-sm);" onchange="applyInfoBuckling()"></div>
                             <div><small style="color:var(--text-3); font-size:var(--fs-xs);">Compression flange</small>
@@ -2965,7 +2965,7 @@
                             <span class="label">Beams</span>
                             <span class="value highlight" id="infoMultiBeams">0</span>
                         </div>
-                                                <div id="infoMultiNodeNote" style="margin-top:6px; font-family:var(--font-mono,monospace); font-size:var(--fs-xs); color:var(--text-2); line-height:1.6;"></div>
+                                                <div id="infoMultiNodeNote" style="margin-top:8px; font-family:var(--font-mono,monospace); font-size:var(--fs-xs); color:var(--text-2); line-height:1.6;"></div>
                         <!-- Secili kirislerin kutlesi ve agirlik merkezi (DNV 3D Beam "Selection" bolumu) -->
                         <div id="infoMultiMass" style="margin-top:4px; font-family:var(--font-mono,monospace); font-size:var(--fs-xs); color:var(--text-2); line-height:1.6;"></div>
                     </div>
