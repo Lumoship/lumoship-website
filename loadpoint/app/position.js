@@ -43,6 +43,8 @@
     { key: 'nonTightTank',    code: 'NTT', label: 'Non-tight bulkhead in tank',                    group: 'Bulkheads', ext: null,      longit: false, deck: false, hold: false },
     { key: 'nonTight',        code: 'NTB', label: 'Other non-tight bulkhead',                      group: 'Bulkheads', ext: null,      longit: false, deck: false, hold: false },
     { key: 'accWall',         code: 'ACW', label: 'Wall in accommodation',                         group: 'Bulkheads', ext: null,      longit: false, deck: false, hold: false },
+    /* LR Ships only: Tab 1.5.3 (2) has its own sheerstrake rows */
+    { key: 'sheerstrake',     code: 'SHR', label: 'Sheerstrake',                                  group: 'Shell',     ext: 'sea',     longit: true,  deck: false, hold: false, only: 'lr' },
     /* LR SSC only (Pt 5 Ch 2 Sec 7, Pt 6 Ch 3 Tab 3.2.1) - the other classes have no separate rows for these */
     { key: 'ssDeck',          code: 'SSK', label: 'Exposed superstructure / deckhouse deck',      group: 'Decks',     ext: 'weather', longit: false, deck: true,  hold: false, only: 'lrssc' },
     { key: 'coachroof',       code: 'CRF', label: 'Coachroof',                                    group: 'Decks',     ext: 'weather', longit: false, deck: true,  hold: false, only: 'lrssc' },
@@ -53,7 +55,7 @@
   var BY_KEY = {};
   POSITIONS.forEach(function (p) { BY_KEY[p.key] = p; });
   function get(key) { return BY_KEY[key] || BY_KEY.side; }
-  function options(cls) { return POSITIONS.filter(function (p) { return !p.only || p.only === cls; }).map(function (p) { return [p.key, p.code + ' · ' + p.label]; }); }
+  function options(cls) { return POSITIONS.filter(function (p) { return !p.only || p.only === cls || (cls === 'lr' && p.only === 'lrssc'); }).map(function (p) { return [p.key, p.code + ' · ' + p.label]; }); }
   function name(key) { var p = get(key); return p.code + ' ' + p.label; }
 
   /* compartment kinds that are external loads (the only kinds a position can forbid) */

@@ -10,7 +10,7 @@
   'use strict';
   var Sea = root.LoadPoint || require('./calc'), Acc = root.LoadPointAccel || require('./accel'), Tk = root.LoadPointTank || require('./tank');
   var BSea = root.BVSea || require('./bv/sea'), BAcc = root.BVAccel || require('./bv/accel'), BTk = root.BVTank || require('./bv/tank');
-  var SSC = root.LRSSCLoads || require('./lrssc/loads');
+  var SSC = root.LRSSCLoads || require('./lrssc/loads'), LR = root.LRShips || require('./lr/rules');
   var g = 9.81, rho = 1.025;
 
   /* The rule set is chosen on the Ship page (ship.cls). Every class exposes the same
@@ -18,7 +18,8 @@
   var RULES = {
     dnv: { name: 'DNV RU-SHIP Pt 3 (July 2026)', sea: Sea, acc: Acc, tank: Tk },
     bv:  { name: 'BV NR467 Pt B (July 2026)', sea: BSea, acc: BAcc, tank: BTk },
-    lrssc: { name: 'LR SSC (July 2026)', ssc: SSC }
+    lrssc: { name: 'LR SSC (July 2026)', ssc: SSC },
+    lr: { name: 'LR Rules for Ships (July 2026)', lr: LR }
   };
   function rulesOf(ship) { return RULES[ship.cls] || RULES.dnv; }
 
@@ -236,6 +237,8 @@
   function designLoads(ship, col) {
     /* LR SSC: the pressure follows the position (Pt 5 Ch 3 Tab 3.3.1 / Ch 4 Tab 4.3.1), acting on the plate side */
     if (ship.cls === 'lrssc') return { comp1: [], comp2: SSC.designPressures(ship, col.pt, col.member || 'side', col.ssc || {}) };
+    /* LR Ships: heads of the position (Pt 3 Ch 3 Tab 3.5.1, Pt 4 Ch 1 tables) */
+    if (ship.cls === 'lr') return { comp1: [], comp2: LR.pointLoads(ship, col.pt, col.member || 'side', col.lr || {}) };
     var c1 = col.comp1 || { kind: 'none' }, c2 = col.comp2 || { kind: 'none' };
     var fn = ship.cls === 'bv' ? setsForBV : setsFor;
     var out = { comp1: fn(ship, col, c1, c2), comp2: fn(ship, col, c2, c1) };
