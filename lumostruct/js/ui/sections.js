@@ -4,21 +4,26 @@
             currentProfileType = type;
             
             // Update tab buttons (underline tabs use .active class)
-            ['HP', 'FB', 'T', 'L'].forEach(t => {
+            ['HP', 'FB', 'T', 'L', 'PIPE'].forEach(t => {
                 const btn = $(`profTab${t}`);
                 if (btn) {
                     btn.classList.toggle('active', t === type);
                 }
             });
-            
+
             // Show/hide forms
-            ['HP', 'FB', 'T', 'L'].forEach(t => {
+            ['HP', 'FB', 'T', 'L', 'PIPE'].forEach(t => {
                 const form = $(`profileForm${t}`);
                 if (form) {
                     form.style.display = t === type ? 'block' : 'none';
                 }
             });
-            
+
+            // Boruya ekli plaka olmaz: blok gizlenir, kutu kapatilir.
+            const plakaBlok = $('plateBlock');
+            if (plakaBlok) plakaBlok.style.display = type === 'PIPE' ? 'none' : '';
+            if (type === 'PIPE') pipeKatalogDoldur();
+
             // Update preview
             updateProfilePreview();
         }
@@ -74,9 +79,12 @@
                 case 'L':
                     sectionName = `L${$('lA')?.value || 100}x${$('lB')?.value || 100}x${$('lT')?.value || 10}`;
                     break;
+                case 'PIPE':
+                    sectionName = `PIPE${$('pipeD')?.value || 219.1}x${$('pipeT')?.value || 6.3}`;
+                    break;
             }
-            
-            if (plateEnabled) {
+
+            if (plateEnabled && currentProfileType !== 'PIPE') {
                 sectionName += `_${plateW}x${plateT}`;
             }
             
@@ -115,11 +123,16 @@
             const fbMatch = profilePart.match(/FB(\d+)[Xx](\d+)/);
             const tMatch = profilePart.match(/T(\d+)[Xx](\d+)[\/\+](\d+)[Xx](\d+)/);
             const lMatch = profilePart.match(/L(\d+)[Xx](\d+)[Xx](\d+)/);
-            
+            const pipeMatch = profilePart.match(/^PIPE(\d+(?:\.\d+)?)[Xx](\d+(?:\.\d+)?)/i);
+
             let profileData = null;
             let profileType = '';
-            
-            if (hpMatch) {
+
+            if (pipeMatch) {
+                profileData = { d: parseFloat(pipeMatch[1]), t: parseFloat(pipeMatch[2]), h: parseFloat(pipeMatch[1]), maxWidth: parseFloat(pipeMatch[1]) };
+                profileType = 'PIPE';
+                plateW = 0; plateT = 0;   // boruda plaka yok
+            } else if (hpMatch) {
                 const b = parseInt(hpMatch[1]);
                 const t = parseInt(hpMatch[2]);
                 const catalogHP = HP_CATALOG.find(hp => hp.b === b && hp.t === t);
@@ -202,6 +215,9 @@
                     break;
                 case 'L':
                     svgContent += drawLProfileLarge(profileData, cx, topY, scale, plateEnabled);
+                    break;
+                case 'PIPE':
+                    svgContent += drawPipeProfileLarge(profileData, cx, topY, scale);
                     break;
             }
             
@@ -412,10 +428,11 @@
 
             onizlemeRozetiniTazele();
             
-            const plateEnabled = $('plateEnabled')?.checked;
+            // Boruda plaka yok - kutu isaretli kalsa da cizilmez.
+            const plateEnabled = $('plateEnabled')?.checked && currentProfileType !== 'PIPE';
             const plateW = parseFloat($('plateWidth')?.value) || 300;
             const plateT = parseFloat($('plateThickness')?.value) || 12;
-            
+
             let svgContent = '';
             const cx = 140;  // center x
             const viewWidth = 280;
@@ -471,8 +488,11 @@
                 case 'L':
                     svgContent += drawLProfile(profileData, cx, topY, scale, plateEnabled);
                     break;
+                case 'PIPE':
+                    svgContent += drawPipeProfile(profileData, cx, topY, scale);
+                    break;
             }
-            
+
             // Centroid marker
             if (plateEnabled) {
                 let profileH = profileData.h;
@@ -521,8 +541,50 @@
                     const t = parseFloat($('lT')?.value) || 10;
                     return { type: 'L', a, b, t, h: a, maxWidth: b };
                 }
+                case 'PIPE': {
+                    const d = parseFloat($('pipeD')?.value) || 219.1;
+                    const t = parseFloat($('pipeT')?.value) || 6.3;
+                    return { type: 'PIPE', d, t, h: d, maxWidth: d };
+                }
             }
             return null;
+        }
+
+        // Boru onizlemesi: iki es merkezli daire + cap ve et olcusu.
+        function drawPipeProfile(data, cx, topY, scale) {
+            const R = data.d * scale / 2, r = Math.max(0, (data.d / 2 - data.t) * scale);
+            const cy = topY + R;
+            let s = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="rgba(244,114,182,0.15)" stroke="var(--primary)" stroke-width="2"/>`;
+            s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--bg-main)" stroke="var(--primary)" stroke-width="1.5"/>`;
+            s += drawDimLine(cx - R, cy + R + 12, cx + R, cy + R + 12, `D ${data.d}`);
+            s += `<text x="${cx + R + 6}" y="${cy + 4}" fill="var(--text-2)" font-size="10">t ${data.t}</text>`;
+            return s;
+        }
+        function drawPipeProfileLarge(data, cx, topY, scale) {
+            const R = data.d * scale / 2, r = Math.max(0, (data.d / 2 - data.t) * scale);
+            const cy = topY + R;
+            let s = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="rgba(244,114,182,0.12)" stroke="var(--primary)" stroke-width="3"/>`;
+            s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--bg-main)" stroke="var(--primary)" stroke-width="2"/>`;
+            s += `<text x="${cx}" y="${cy + R + 30}" text-anchor="middle" fill="var(--text-2)" font-size="14">D = ${data.d} mm   t = ${data.t} mm</text>`;
+            return s;
+        }
+
+        // Katalog secicisi: EN 10220 olculeri D/t alanlarina yazar.
+        function pipeKatalogDoldur() {
+            const sel = $('pipeCatalog');
+            if (!sel || sel.options.length > 1 || typeof PIPE_CATALOG === 'undefined') return;
+            PIPE_CATALOG.forEach(p => {
+                const o = document.createElement('option');
+                o.value = p.name; o.textContent = `${p.d} × ${p.t}`;
+                sel.appendChild(o);
+            });
+        }
+        function pipeKatalogSec(ad) {
+            const p = (typeof PIPE_CATALOG !== 'undefined') ? PIPE_CATALOG.find(x => x.name === ad) : null;
+            if (!p) return;
+            if ($('pipeD')) $('pipeD').value = p.d;
+            if ($('pipeT')) $('pipeT').value = p.t;
+            updateProfilePreview();
         }
         
         function drawDimLine(x1, y1, x2, y2, value, vertical = false) {
@@ -745,6 +807,14 @@
                     props = profileProperties('L', { a: a, b: b, t: t });
                     break;
                 }
+                case 'PIPE': {
+                    const d = parseFloat($('pipeD')?.value) || 219.1;
+                    const t = parseFloat($('pipeT')?.value) || 6.3;
+                    if (!(t > 0) || !(d > 2 * t)) { showToast('Pipe: wall must be > 0 and D > 2t', true); return; }
+                    name = `PIPE${d}x${t}`;
+                    props = profileProperties('PIPE', { d: d, t: t });
+                    break;
+                }
             }
 
             if (!props) {
@@ -761,8 +831,8 @@
                 return;
             }
             
-            // Check for attached plate
-            const plateEnabled = $('plateEnabled')?.checked;
+            // Check for attached plate (boruya plaka eklenmez)
+            const plateEnabled = $('plateEnabled')?.checked && currentProfileType !== 'PIPE';
             const plateData = getEffectiveBreadth();  // This handles calcByRule logic
             const plateW = plateData.width;
             const plateT = plateData.thickness;

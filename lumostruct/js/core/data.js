@@ -183,6 +183,27 @@
             { name: "FB250x20", h: 250, t: 20 }
         ];
         
+        // Boru (CHS) katalogu - EN 10220 yaygin dis cap x et kalinligi (mm).
+        // Boruya ekli plaka OLMAZ: kullanicinin sozu ("pipe attached plate
+        // olmaz"); arayuz de PIPE secilince plakayi kapatir.
+        const PIPE_CATALOG = [
+            { name: 'PIPE48.3x3.2',  d: 48.3,  t: 3.2 },
+            { name: 'PIPE60.3x3.6',  d: 60.3,  t: 3.6 },
+            { name: 'PIPE76.1x3.6',  d: 76.1,  t: 3.6 },
+            { name: 'PIPE88.9x4',    d: 88.9,  t: 4 },
+            { name: 'PIPE114.3x4.5', d: 114.3, t: 4.5 },
+            { name: 'PIPE139.7x5',   d: 139.7, t: 5 },
+            { name: 'PIPE168.3x5.6', d: 168.3, t: 5.6 },
+            { name: 'PIPE219.1x6.3', d: 219.1, t: 6.3 },
+            { name: 'PIPE273x6.3',   d: 273,   t: 6.3 },
+            { name: 'PIPE323.9x8',   d: 323.9, t: 8 },
+            { name: 'PIPE355.6x8',   d: 355.6, t: 8 },
+            { name: 'PIPE406.4x10',  d: 406.4, t: 10 },
+            { name: 'PIPE457x10',    d: 457,   t: 10 },
+            { name: 'PIPE508x12.5',  d: 508,   t: 12.5 },
+            { name: 'PIPE610x12.5',  d: 610,   t: 12.5 }
+        ];
+
         // Created Sections (starts empty, user adds profiles)
         const SECTIONS = {};
 
@@ -215,8 +236,8 @@
         function kesitTuru(ad) {
             if (kesitRijitMi(ad)) return 'RIGID';
             const s = SECTIONS[ad];
-            if (s && s.type && /^(HP|FB|T|L)$/.test(s.type)) return s.type;
-            const m = String(ad).match(/^(HP|FB|T|L)(?=[\d_x×\s]|$)/i);
+            if (s && s.type && /^(HP|FB|T|L|PIPE)$/.test(s.type)) return s.type;
+            const m = String(ad).match(/^(HP|FB|PIPE|T|L)(?=[\d_x×\s]|$)/i);
             return m ? m[1].toUpperCase() : 'default';
         }
         

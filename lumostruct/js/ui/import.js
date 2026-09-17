@@ -275,6 +275,7 @@
                             <button class="lib-tab" onclick="showLibraryTab('fb')" data-tab="fb" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">Flat Bar</button>
                             <button class="lib-tab" onclick="showLibraryTab('l')" data-tab="l" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">L-Angle</button>
                             <button class="lib-tab" onclick="showLibraryTab('t')" data-tab="t" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">T-Section</button>
+                            <button class="lib-tab" onclick="showLibraryTab('pipe')" data-tab="pipe" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">Pipe</button>
                             <button class="lib-tab" onclick="showLibraryTab('custom')" data-tab="custom" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent;">Custom</button>
                         </div>
                         
@@ -309,6 +310,22 @@
                                 </div>
                             </div>
                             
+                            <!-- Pipe Tab -->
+                            <div id="libTab_pipe" class="lib-tab-content" style="display:none;">
+                                <div style="margin-bottom:12px; color:var(--text-2); font-size:var(--fs-md);">Circular hollow sections per EN 10220 (D × t). No attached plate. Click to add to model.</div>
+                                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px;">
+                                    ${PIPE_CATALOG.map(p => {
+                                        const pr = profileProperties('PIPE', { d: p.d, t: p.t });
+                                        return `
+                                        <div class="section-card" onclick="addSectionFromCatalog('PIPE', '${p.name}')" style="padding:8px; background:var(--bg-main); border-radius:var(--r-ovl); cursor:pointer; text-align:center; border:2px solid ${SECTIONS[p.name] ? 'var(--success)' : '#334155'}; transition:all 0.2s;">
+                                            <div style="font-weight:600; color:#f472b6; font-size:var(--fs-md);">${p.d} × ${p.t}</div>
+                                            <div style="font-size:var(--fs-xs); color:var(--text-2); margin-top:4px;">A: ${pr.A.toFixed(1)} cm²</div>
+                                            ${SECTIONS[p.name] ? '<div style="font-size:var(--fs-xs); color:var(--success); margin-top:2px;">✓ In model</div>' : ''}
+                                        </div>
+                                    `}).join('')}
+                                </div>
+                            </div>
+
                             <!-- L Tab -->
                             <div id="libTab_l" class="lib-tab-content" style="display:none;">
                                 <div style="margin-bottom:12px; color:var(--text-2); font-size:var(--fs-md);">Equal L-Angle profiles per EN 10056. Click to add to model.</div>
@@ -443,6 +460,21 @@
         
         function addSectionFromCatalog(type, name) {
             let props = null;
+
+            // Boru: plaka penceresi acilmaz, dogrudan eklenir.
+            if (type === 'PIPE') {
+                const p = PIPE_CATALOG.find(x => x.name === name);
+                if (!p) return;
+                if (SECTIONS[name]) { showToast(`Profile ${name} already exists!`, true); return; }
+                SECTIONS[name] = Object.assign(profilePropertiesSI(profileProperties('PIPE', { d: p.d, t: p.t })), {
+                    profileName: name, plateWidth: 0, plateThick: 0, isComposite: false, type: 'PIPE'
+                });
+                if (typeof updateProfilesTable === 'function') updateProfilesTable();
+                if (typeof updateSectionDropdowns === 'function') updateSectionDropdowns();
+                showToast(`Profile ${name} added`);
+                showSectionLibrary();
+                return;
+            }
             
             if (type === 'HP') {
                 const hp = HP_CATALOG.find(h => h.name === name);

@@ -347,6 +347,9 @@
                 return { tur: 'HP', dims: { b: +m[1], t: +m[2] }, plaka: plaka, ad: 'HP' + m[1] + 'x' + m[2] };
             if ((m = profil.match(/^FB(\d+)[Xx](\d+)/)))
                 return { tur: 'FB', dims: { h: +m[1], t: +m[2] }, plaka: plaka, ad: 'FB' + m[1] + 'x' + m[2] };
+            // Boru: dis cap ondalikli olabilir (219.1x6.3). Plakasi olmaz.
+            if ((m = profil.match(/^PIPE(\d+(?:\.\d+)?)[Xx](\d+(?:\.\d+)?)/i)))
+                return { tur: 'PIPE', dims: { d: +m[1], t: +m[2] }, plaka: null, ad: 'PIPE' + m[1] + 'x' + m[2] };
             if ((m = profil.match(/^T(\d+)[Xx](\d+)[\/\+](\d+)[Xx](\d+)/)))
                 return { tur: 'T', dims: { h: +m[1], tw: +m[2], bf: +m[3], tf: +m[4] }, plaka: plaka,
                          ad: 'T' + m[1] + 'x' + m[2] + '/' + m[3] + 'x' + m[4] };

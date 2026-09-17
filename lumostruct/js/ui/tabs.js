@@ -901,6 +901,16 @@
             const fbMatch = profilePart.match(/FB(\d+)[Xx](\d+)/);
             const tMatch = profilePart.match(/T(\d+)[Xx](\d+)[\/\+](\d+)[Xx](\d+)/);
             const lMatch = profilePart.match(/L(\d+)[Xx](\d+)[Xx](\d+)/);
+            // Boru: iki daire, plaka yok. Diger dallardan once.
+            const pipeMatch = profilePart.match(/^PIPE(\d+(?:\.\d+)?)[Xx](\d+(?:\.\d+)?)/i);
+            if (pipeMatch) {
+                const D = parseFloat(pipeMatch[1]), tt = parseFloat(pipeMatch[2]);
+                const R = 60, r = Math.max(0, R * (1 - 2 * tt / D));
+                svg.innerHTML = `<circle cx="150" cy="80" r="${R}" fill="rgba(244,114,182,0.15)" stroke="var(--primary)" stroke-width="2"/>` +
+                    `<circle cx="150" cy="80" r="${r}" fill="var(--bg-main)" stroke="var(--primary)" stroke-width="1.5"/>` +
+                    `<text x="150" y="158" text-anchor="middle" fill="var(--text-3)" font-size="11">PIPE ${D} × ${tt}</text>`;
+                return;
+            }
             
             let profileData = null;
             let profileType = '';

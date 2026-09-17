@@ -971,6 +971,7 @@
                             <button id="profTabFB" onclick="selectProfileType('FB')">FB</button>
                             <button id="profTabT" onclick="selectProfileType('T')">T</button>
                             <button id="profTabL" onclick="selectProfileType('L')">L</button>
+                            <button id="profTabPIPE" onclick="selectProfileType('PIPE')">Pipe</button>
                         </div>
                         
                         <!-- Profile Preview SVG -->
@@ -1059,8 +1060,32 @@
                             </div>
                         </div>
                         
+                        <!-- Pipe (CHS) Form: dis cap + et kalinligi; plaka yok -->
+                        <div id="profileFormPIPE" class="profile-form" style="display:none;">
+                            <div class="field-row" style="margin-bottom:var(--space-2);">
+                                <div class="field">
+                                    <span class="field-label">D — Outer diameter (mm)</span>
+                                    <input type="number" id="pipeD" value="219.1" step="0.1" oninput="updateProfilePreview()">
+                                </div>
+                                <div class="field">
+                                    <span class="field-label">t — Wall (mm)</span>
+                                    <input type="number" id="pipeT" value="6.3" step="0.1" oninput="updateProfilePreview()">
+                                </div>
+                            </div>
+                            <div class="field-row">
+                                <div class="field">
+                                    <span class="field-label">EN 10220 catalog</span>
+                                    <select id="pipeCatalog" onchange="pipeKatalogSec(this.value)">
+                                        <option value="">-- Select from catalog --</option>
+                                    </select>
+                                </div>
+                                <div class="field"></div>
+                            </div>
+                            <div style="font-size:var(--fs-xs); color:var(--text-3); margin-top:4px;">Circular hollow section. No attached plate.</div>
+                        </div>
+
                         <!-- Effective Breadth Section (BV NR467) -->
-                        <div style="border-top:1px solid var(--border-default); margin-top:var(--space-3); padding-top:var(--space-4);">
+                        <div id="plateBlock" style="border-top:1px solid var(--border-default); margin-top:var(--space-3); padding-top:var(--space-4);">
                             <div class="check-row" style="margin-bottom:var(--space-3);">
                                 <input type="checkbox" id="plateEnabled" checked onchange="toggleEffectiveBreadth(); updateProfilePreview()">
                                 <label for="plateEnabled">Effective Breadth (Attached Plate)</label>

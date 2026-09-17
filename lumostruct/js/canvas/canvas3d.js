@@ -1940,6 +1940,7 @@
                 FB: 0x14b8a6,         // teal
                 T:  0xf59e0b,         // amber
                 L:  0xa855f7,         // mor
+                PIPE: 0xf472b6,       // pembe
                 RIGID: 0xcbd5e1,      // acik gri
                 default: beamColorInt
             };
@@ -2165,6 +2166,12 @@
                     }
                 }
                 
+                // PIPE: dis cap x et (ondalikli olabilir)
+                const pipeMatch = profilePart.match(/^PIPE(\d+(?:\.\d+)?)[Xx](\d+(?:\.\d+)?)/i);
+                if (pipeMatch) {
+                    return { type: 'PIPE', d: parseFloat(pipeMatch[1]) / 1000, t: parseFloat(pipeMatch[2]) / 1000, h: parseFloat(pipeMatch[1]) / 1000, plateW: 0, plateT: 0 };
+                }
+
                 // FB: height x thickness (stands vertical)
                 const fbMatch = profilePart.match(/FB(\d+)[Xx](\d+)/);
                 if (fbMatch) {
@@ -2341,6 +2348,15 @@
                         flange.position.z = profileTopZ - webH - sec.tf / 2;
                         beamGroup.add(flange);
                         
+                    } else if (sec.type === 'PIPE') {
+                        // Boru: ekseni kiris ekseninde (asilan profil degil, merkezde).
+                        // Ic delik cizilmez - dis silindir yeter, uc kapaklari acik.
+                        const tube = new THREE.Mesh(new THREE.CylinderGeometry(sec.d / 2, sec.d / 2, length, 24, 1, true), mat);
+                        tube.rotation.z = Math.PI / 2;      // silindir ekseni Y -> X (kiris ekseni)
+                        beamGroup.add(tube);
+                        const ic = new THREE.Mesh(new THREE.CylinderGeometry(sec.d / 2 - sec.t, sec.d / 2 - sec.t, length, 24, 1, true), mat);
+                        ic.rotation.z = Math.PI / 2;
+                        beamGroup.add(ic);
                     } else {
                         // Default: simple rectangle hanging down
                         const webGeom = new THREE.BoxGeometry(length, sec.t, sec.h);
@@ -2349,14 +2365,25 @@
                         beamGroup.add(web);
                     }
                     
-                    // Position and orient the entire group
+                    // Position and orient the entire group.
+                    //
+                    // Eskiden yalnizca Z etrafinda donduruluyordu (atan2(dy,dx)):
+                    // dusey kolon ve egik kiris YATAY ciziliyordu - "3B'de
+                    // profiller duzgun calismiyor" gozlemi buydu. Simdi grubun
+                    // yerel eksenleri COZUCUNUN eleman cercevesine (elementFrame:
+                    // x kiris ekseni, y, z) oturtulur; kullanici donmesi
+                    // (orientation) de o cerceveye zaten islenmis geliyor.
                     beamGroup.position.copy(mid);
-                    beamGroup.rotation.z = angle;  // Rotate around Z to align with beam direction
-                    
-                    // Apply user orientation (rotation around beam's local axis)
-                    if (orientation !== 0) {
-                        // This rotates around the beam's length axis (local X after z-rotation)
-                        beamGroup.rotateX(orientation * Math.PI / 180);
+                    const cerceve = (typeof elementFrame === 'function') ? elementFrame(n1, n2, orientation) : null;
+                    if (cerceve) {
+                        const m = new THREE.Matrix4().makeBasis(
+                            new THREE.Vector3(cerceve.x[0], cerceve.x[1], cerceve.x[2]),
+                            new THREE.Vector3(cerceve.y[0], cerceve.y[1], cerceve.y[2]),
+                            new THREE.Vector3(cerceve.z[0], cerceve.z[1], cerceve.z[2]));
+                        beamGroup.quaternion.setFromRotationMatrix(m);
+                    } else {
+                        beamGroup.rotation.z = angle;
+                        if (orientation !== 0) beamGroup.rotateX(orientation * Math.PI / 180);
                     }
                     
                     vurguIcinEtiketle(beamGroup);

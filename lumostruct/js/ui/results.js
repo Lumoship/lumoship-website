@@ -168,6 +168,19 @@
                     const sectionName = elem.section.split('_')[0];
                     const tMatch = sectionName.match(/T(\d+)[Xx](\d+)[\/\+](\d+)[Xx](\d+)/);
 
+                    // Boru: D/t <= 90 (235/fy) - EN 1993-1-1 tablo 5.2, sinif 3 tup.
+                    // hw/tw kontrolu levha icindir, tupe uygulanmaz.
+                    if (sec.type === 'PIPE' || /^PIPE/i.test(sectionName)) {
+                        checked++;
+                        const Dt = (sec.h > 0 && sec.tw > 0) ? sec.h / sec.tw : 0;
+                        const sinir = 90 / (sqrtRatio * sqrtRatio);
+                        if (Dt > sinir) {
+                            bucklingOK = false;
+                            bucklingMsg += `Elem ${elem.id}: D/t=${Dt.toFixed(0)} > ${sinir.toFixed(0)} (tube class 3)\n`;
+                        }
+                        return;
+                    }
+
                     if (!tMatch) {
                         // Not a T-profile name. Fall back to the stored geometry so HP, FB and
                         // L profiles get at least the web check instead of silently passing.
