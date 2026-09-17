@@ -202,6 +202,21 @@
         .ea-btn-delete{background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:var(--radius-sm)}
         .ea-btn-delete:hover{color:var(--error);background:rgba(239,68,68,0.1)}
         .ea-page-actions{display:flex;justify-content:center;gap:var(--spacing-md);padding:var(--spacing-xl) 0}
+        /* inline problem list - replaces alert() popups; the page keeps its state and the list can be read twice */
+        .ea-problems{display:none;max-width:760px;margin:0 auto;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius-lg);padding:var(--spacing-md) var(--spacing-lg);color:var(--text-primary);font-size:var(--fs-sm)}
+        .ea-problems.show{display:block}
+        .ea-problems.ok{background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.35)}
+        .ea-problems-title{font-family:var(--font-mono);font-size:var(--fs-xs);letter-spacing:0.08em;text-transform:uppercase;color:var(--error);margin-bottom:6px}
+        .ea-problems.ok .ea-problems-title{color:var(--success)}
+        .ea-problems ul{margin:0;padding-left:18px}
+        .ea-problems li{margin:3px 0}
+        .ea-field.is-disabled{opacity:0.45;pointer-events:none}
+        .ea-basis{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:6px var(--spacing-lg)}
+        .ea-basis li{font-size:var(--fs-sm);color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:10px}
+        .ea-basis li b{color:var(--text-primary);font-weight:600;min-width:120px;font-family:var(--font-mono);font-size:var(--fs-xs);padding-top:2px}
+        .ea-basis li.no b{color:var(--warning)}
+        .ea-prop-row.gov .val{color:var(--success)}
+        kbd{font-family:var(--font-mono);font-size:var(--fs-xs);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text-secondary)}
 
         /* TABS */
         .ea-tabs{display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-lg)}
@@ -856,8 +871,7 @@
                                 </div>
                                 <div class="ea-prop-readout" style="margin-top:var(--spacing-md);">
                                     <div class="ea-prop-row"><span class="lbl">Height × t</span><span class="val" id="hpDim">—</span></div>
-                                    <div class="ea-prop-row"><span class="lbl">Area A</span><span class="val" id="hpArea">—</span></div>
-                                    <div class="ea-prop-row"><span class="lbl">Inertia I</span><span class="val" id="hpIxx">—</span></div>
+                                    <div class="ea-prop-row"><span class="lbl">Source</span><span class="val" id="hpSource">EN 10067</span></div>
                                 </div>
                             </div>
                             </div><!-- /profile-input-area -->
@@ -868,8 +882,19 @@
                             <div class="ea-section-subtitle">Attached Plate</div>
                             <div class="ea-checkbox-row"><input type="checkbox" id="plate-enabled" onchange="updateSection()"><label for="plate-enabled">Include Plate</label></div>
                             <div class="ea-input-row-2">
-                                <div class="ea-field"><label class="ea-label">Plate Width <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="plate-width" value="300" oninput="updateSection()"></div>
-                                <div class="ea-field"><label class="ea-label">Plate Thick. <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="plate-thickness" value="12" oninput="updateSection()"></div>
+                                <div class="ea-field is-disabled" id="plate-width-field"><label class="ea-label">Plate Width <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="plate-width" value="300" oninput="updateSection()"></div>
+                                <div class="ea-field is-disabled" id="plate-thickness-field"><label class="ea-label">Plate Thick. <span class="lbl-unit">mm</span></label><input type="number" class="ea-input" id="plate-thickness" value="12" oninput="updateSection()"></div>
+                            </div>
+                            <!-- Section properties actually used by the solver. Until 2026-09-18 these
+                                 were hidden inputs: the user could not see the I and W behind the result. -->
+                            <div class="ea-section-subtitle" style="margin-top:var(--spacing-md)">Section Properties <span class="lbl-unit" id="secScope">profile only</span></div>
+                            <div class="ea-prop-readout">
+                                <div class="ea-prop-row"><span class="lbl">Area A</span><span class="val" id="secA">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">Inertia I<sub>xx</sub></span><span class="val" id="secI">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">Neutral axis from bottom</span><span class="val" id="secNA">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">W top fibre</span><span class="val" id="secWtop">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">W bottom fibre</span><span class="val" id="secWbot">—</span></div>
+                                <div class="ea-prop-row gov"><span class="lbl">W used (extreme fibre)</span><span class="val" id="secW">—</span></div>
                             </div>
                             <!-- hidden computed values consumed by solver -->
                             <input type="hidden" id="reH" value="235">
@@ -928,6 +953,11 @@
                             <div class="ea-prop-readout">
                                 <div class="ea-prop-row"><span class="lbl">ReH (yield)</span><span class="val" id="reHReadout">235 N/mm²</span></div>
                                 <div class="ea-prop-row"><span class="lbl">σ_all = ReH × Factor</span><span class="val" id="sigmaReadout">157.5 N/mm²</span></div>
+                                <div class="ea-prop-row"><span class="lbl">τ_all = σ_all / √3</span><span class="val" id="tauReadout">90.9 N/mm²</span></div>
+                            </div>
+                            <div class="ea-field" style="margin-top:var(--spacing-md)"><label class="ea-label">Deflection limit L / n <span class="lbl-unit">design criterion</span></label>
+                                <input type="number" class="ea-input" id="deflRatio" value="250" min="0" step="10">
+                                <p class="ea-info-text">δ_all = L / n. A project criterion, not a class-rule value — leave 0 to skip the check.</p>
                             </div>
                         </div>
                     </div>
@@ -977,9 +1007,10 @@
                 </div>
             </div>
         </div>
+        <div class="ea-problems" id="problems" role="alert"><div class="ea-problems-title" id="problemsTitle">Fix before running</div><ul id="problemsList"></ul></div>
         <div class="ea-page-actions">
             <button class="ea-btn ea-btn-secondary" onclick="goToPage(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back</button>
-            <button class="ea-btn ea-btn-primary" onclick="goToPage(3)">Run Analysis <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+            <button class="ea-btn ea-btn-primary" onclick="goToPage(3)" title="Ctrl+Enter">Run Analysis <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
         </div>
     </main>
 </div>
@@ -1001,6 +1032,13 @@
                 <div class="ea-panel-body">
                     <div class="ea-table-wrap"><table class="ea-table"><thead><tr><th>Check</th><th>Actual</th><th>Allowable</th><th>Utilization</th><th>Status</th></tr></thead><tbody id="checkBody"></tbody></table></div>
                 </div>
+            </div>
+
+            <!-- What the numbers rest on - and what is NOT checked. A result without its
+                 limits invites misuse; this list goes to the PDF as well. -->
+            <div class="ea-panel">
+                <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Analysis Basis &amp; Limits</span></div>
+                <div class="ea-panel-body"><ul class="ea-basis" id="basisList"></ul></div>
             </div>
 
             <!-- Reactions -->
@@ -1538,19 +1576,28 @@ function computeSectionProps(){
         tWeb=p.tWeb||(p.area/p.height); Qmax=p.Qmax||(Ixx/p.height);
     }
     const Wmin=Ixx/Math.max(yTop,yBot); // cm3 (extreme fibre)
-    return {A,Ixx,W:Wmin,tWeb,Qmax};
+    return {A,Ixx,W:Wmin,tWeb,Qmax,yTop,yBot,WTop:Ixx/yTop,WBot:Ixx/yBot,plateOn:!!plateOn,profile:p};
 }
 function updateSection(){
+    const plateOn=document.getElementById('plate-enabled').checked;
+    ['plate-width-field','plate-thickness-field'].forEach(id=>{ const f=document.getElementById(id); if(f) f.classList.toggle('is-disabled',!plateOn); });
     const s=computeSectionProps();
     document.getElementById('momI').value=s.Ixx.toFixed(2);
     document.getElementById('sectionW').value=s.W.toFixed(2);
-    // HP catalog readout
+    const set=(id,t)=>{ const e=document.getElementById(id); if(e) e.textContent=t; };
+    set('secScope', plateOn?'profile + plate':'profile only');
+    set('secA', s.A.toFixed(2)+' cm²');
+    set('secI', s.Ixx.toFixed(1)+' cm⁴');
+    set('secNA', s.yBot.toFixed(2)+' cm');
+    set('secWtop', s.WTop.toFixed(1)+' cm³');
+    set('secWbot', s.WBot.toFixed(1)+' cm³');
+    set('secW', s.W.toFixed(1)+' cm³');
     if(currentProfile==='HP'){
         const hp=_calcHP()._hp;
-        const d=document.getElementById('hpDim'); if(d) d.textContent=hp.b+' × '+hp.t+' mm';
-        const a=document.getElementById('hpArea'); if(a) a.textContent=hp.A.toFixed(1)+' cm²';
-        const i=document.getElementById('hpIxx'); if(i) i.textContent=hp.Ixx.toFixed(0)+' cm⁴';
+        set('hpDim', hp.b+' × '+hp.t+' mm');
+        set('hpSource', 'EN 10067 catalogue');
     }
+    if(document.getElementById('page-2').classList.contains('active')) drawPreview();
 }
 // Shipbuilding steel grades (per classification societies / ASTM A131)
 // ReH = min yield [N/mm2], Rm = tensile range, E in GPa
@@ -1567,6 +1614,7 @@ function recomputeSigmaAll(){
     document.getElementById('sigmaAll').value=sig.toFixed(1);
     const rr=document.getElementById('reHReadout'); if(rr) rr.textContent=reh+' N/mm²';
     const sr=document.getElementById('sigmaReadout'); if(sr) sr.textContent=sig.toFixed(1)+' N/mm²';
+    const tr=document.getElementById('tauReadout'); if(tr) tr.textContent=(sig/Math.sqrt(3)).toFixed(1)+' N/mm²';
 }
 function applyGrade(){
     const g=document.getElementById('steelGrade').value;
@@ -1905,10 +1953,27 @@ function runAnalysis(){
     drawAllDiagrams();
     return true;
 }
+// Problems are shown in the page, not in alert(): the user can read the list
+// while fixing the inputs, and nothing blocks the tab.
+function showProblems(list, ok){
+    const box=document.getElementById('problems'), ul=document.getElementById('problemsList');
+    if(!box) { if(list&&list.length) console.warn(list.join(' | ')); return; }
+    ul.innerHTML='';
+    (list||[]).forEach(p=>{ const li=document.createElement('li'); li.textContent=p; ul.appendChild(li); });
+    box.classList.toggle('ok',!!ok);
+    document.getElementById('problemsTitle').textContent = ok ? 'Done' : 'Fix before running';
+    box.classList.toggle('show',!!(list&&list.length));
+    if(list&&list.length&&!ok){ if(!document.getElementById('page-2').classList.contains('active')) goToPage(2); box.scrollIntoView({block:'center',behavior:'smooth'}); }
+}
+function clearProblems(){ const box=document.getElementById('problems'); if(box) box.classList.remove('show','ok'); }
+// Everything the result page and the PDF print about the checks comes from
+// here - one computation, two renderings.
+let lastChecks=null;
 function computeResults(){
-    if(supports.length<1){ alert('Add at least one support.'); return false; }
+    clearProblems();
+    if(supports.length<1){ showProblems(['Add at least one support.']); return false; }
     const Lspan=parseFloat(document.getElementById('beamLength').value)||0;
-    if(!(Lspan>0)){ alert('Beam length must be greater than 0.'); return false; }
+    if(!(Lspan>0)){ showProblems(['Beam length must be greater than 0.']); return false; }
     // --- geometry validation: everything must lie within [0, L] ---
     const tol=1e-6, problems=[];
     supports.forEach((s,i)=>{ if(s.pos<-tol||s.pos>Lspan+tol) problems.push(`Support ${i+1} at ${s.pos} m is outside the beam (0–${Lspan} m).`); });
@@ -1923,48 +1988,57 @@ function computeResults(){
         for(let j=i+1;j<supports.length;j++)
             if(Math.abs(supports[i].pos-supports[j].pos)<minGap)
                 problems.push(`Supports ${i+1} and ${j+1} are ${Math.abs(supports[i].pos-supports[j].pos).toFixed(4)} m apart — too close to be independent (min ${minGap.toFixed(3)} m).`);
-    if(problems.length){ alert('Please fix before running:\n\n• '+problems.join('\n• ')); return false; }
+    if(problems.length){ showProblems(problems); return false; }
 
     let res;
     try { res=solveBeam(); }
     catch(err){
-        if(err&&err.name==='BeamGeometryError'){ alert('Geometry error: '+err.message); return false; }
+        if(err&&err.name==='BeamGeometryError'){ showProblems(['Geometry error: '+err.message]); return false; }
         throw err;
     }
-    if(!res){ alert('Model is unstable or invalid. Check supports — the beam needs enough restraint (e.g. two pinned/roller at different positions, or one fixed).'); return false; }
+    if(!res){ showProblems(['Model is unstable: the beam needs enough restraint — two pinned/roller supports at different positions, or one fixed support.']); return false; }
     lastResults=res;
-
+    lastChecks=evaluateChecks(res);
+    renderChecks(lastChecks);
+    return true;
+}
+// Stress, shear and deflection checks from a solved model. Pure: no DOM writes.
+function evaluateChecks(res){
+    const Lspan=res.L;
     const Mmax=maxAbs(res.Ms), Vmax=maxAbs(res.Vs), Dmax=maxAbs(res.Ds);
     const sp=computeSectionProps();
     const W=sp.W*1e-6;          // cm3 -> m3
     const Iv=sp.Ixx*1e-8;       // cm4 -> m4
     const tWeb=sp.tWeb*1e-2;    // cm -> m
     const Qmax=sp.Qmax*1e-6;    // cm3 -> m3
-    const sigAll=parseFloat(document.getElementById('sigmaAll').value);  // N/mm2
-    const tauAll=sigAll/Math.sqrt(3); // von Mises shear allowable ≈ 0.577·σ_all
-    const sigmaMPa = W>0 ? (Mmax*1000)/W/1e6 : 0;
+    const sigAll=parseFloat(document.getElementById('sigmaAll').value)||0;  // N/mm2
+    const tauAll=sigAll/Math.sqrt(3); // von Mises shear allowable = 0.577·σ_all
+    const sigma = W>0 ? (Mmax*1000)/W/1e6 : 0;
     // tau_max = V*Q/(I*t) ; V in kN -> N
-    const tauMPa = (Iv>0&&tWeb>0) ? (Vmax*1000)*Qmax/(Iv*tWeb)/1e6 : 0;
-
-    document.getElementById('sumMmax').textContent=Mmax.toFixed(2);
-    document.getElementById('sumVmax').textContent=Vmax.toFixed(2);
-    document.getElementById('sumDefl').textContent=Dmax.toFixed(2);
-
-    const ucStress=sigAll>0?sigmaMPa/sigAll:0;
-    const ucShear=tauAll>0?tauMPa/tauAll:0;
-    const ucGov=Math.max(ucStress,ucShear); // governing utilization
-    // status: FAIL if over capacity, REVIEW if highly utilised (>90%), else PASS
-    let statusText, statusCls;
-    if(ucGov>1.0){ statusText='FAIL'; statusCls='fail'; }
-    else if(ucGov>0.9){ statusText='REVIEW'; statusCls='warn'; }
-    else { statusText='PASS'; statusCls='pass'; }
-    document.getElementById('sumStatus').textContent=statusText;
+    const tau = (Iv>0&&tWeb>0) ? (Vmax*1000)*Qmax/(Iv*tWeb)/1e6 : 0;
+    const n=parseFloat(document.getElementById('deflRatio').value)||0;
+    const dAll = n>0 ? Lspan*1000/n : 0;     // mm
+    const checks=[
+        {name:'Bending stress σ', actual:sigma, allow:sigAll, unit:'N/mm²', uc: sigAll>0?sigma/sigAll:0},
+        {name:'Shear stress τ',   actual:tau,   allow:tauAll, unit:'N/mm²', uc: tauAll>0?tau/tauAll:0}
+    ];
+    if(dAll>0) checks.push({name:'Deflection δ (L/'+n+')', actual:Dmax, allow:dAll, unit:'mm', uc:Dmax/dAll, dp:2});
+    const ucGov=Math.max.apply(null, checks.map(c=>c.uc));
+    // FAIL over capacity, REVIEW above 90%, else PASS
+    const status = ucGov>1.0?'FAIL':ucGov>0.9?'REVIEW':'PASS';
+    return {Mmax,Vmax,Dmax,sigma,tau,sigAll,tauAll,dAll,deflN:n,checks,ucGov,status,section:sp};
+}
+function renderChecks(ck){
+    document.getElementById('sumMmax').textContent=ck.Mmax.toFixed(2);
+    document.getElementById('sumVmax').textContent=ck.Vmax.toFixed(2);
+    document.getElementById('sumDefl').textContent=ck.Dmax.toFixed(2);
+    document.getElementById('sumStatus').textContent=ck.status;
     const cardStatus=document.getElementById('cardStatus');
-    cardStatus.classList.remove('pass','fail','warn'); cardStatus.classList.add(statusCls);
-
+    cardStatus.classList.remove('pass','fail','warn'); cardStatus.classList.add(ck.status==='FAIL'?'fail':ck.status==='REVIEW'?'warn':'pass');
     const cb=document.getElementById('checkBody'); cb.innerHTML='';
-    cb.appendChild(checkRow('Bending Stress σ',sigmaMPa.toFixed(1)+' N/mm²',sigAll.toFixed(1)+' N/mm²',ucStress));
-    cb.appendChild(checkRow('Shear Stress τ',tauMPa.toFixed(1)+' N/mm²',tauAll.toFixed(1)+' N/mm²',ucShear));
+    ck.checks.forEach(c=>{ const dp=c.dp||1; cb.appendChild(checkRow(c.name,c.actual.toFixed(dp)+' '+c.unit,c.allow.toFixed(dp)+' '+c.unit,c.uc)); });
+    renderBasis(ck);
+    const res=lastResults;
 
     const rb=document.getElementById('reactionBody'); rb.innerHTML='';
     let sumR=0;
@@ -1977,7 +2051,27 @@ function computeResults(){
     const trSum=document.createElement('tr');
     trSum.innerHTML=`<td colspan="3" style="text-align:right;color:var(--text-secondary)">Σ Reactions</td><td style="color:var(--accent)">${sumR.toFixed(2)}</td><td>—</td>`;
     rb.appendChild(trSum);
-    return true;
+}
+// The limits list. Same text feeds the PDF (pdfBasisLines) - one source.
+function basisLines(ck){
+    const sp=ck.section, isHP=currentProfile==='HP';
+    const lines=[
+        ['Solver','Direct stiffness method, Euler–Bernoulli beam elements (2 DOF per node). Linear elastic; small deflections; no shear deformation, no P-δ, no plasticity.'],
+        ['Mesh','A node at every support and load point, elements no longer than L/40. Internal forces by direct equilibrium at each station; deflection from the Hermite shape functions.'],
+        ['Bending','σ = M_max / W with W taken at the extreme fibre (W = '+sp.W.toFixed(1)+' cm³, I = '+sp.Ixx.toFixed(1)+' cm⁴'+(sp.plateOn?', profile + plate':', profile only')+').'],
+        ['Shear', isHP ? 'τ = V_max / (t_w · h): the bulb flat is treated as a plain web, conservative ship practice.' : 'τ = V_max · Q / (I · t_w) at the neutral axis (Q of the material above the NA, web thickness t_w).'],
+        ['Allowables','σ_all = ReH × factor = '+ck.sigAll.toFixed(1)+' N/mm²; τ_all = σ_all / √3 = '+ck.tauAll.toFixed(1)+' N/mm² (von Mises). The factor is the user\u2019s choice, not a rule value.'],
+        [ck.dAll>0?'Deflection':'Deflection', ck.dAll>0 ? 'δ_all = L / '+ck.deflN+' = '+ck.dAll.toFixed(1)+' mm — a project criterion set on the Input page.' : 'No limit set (L / n = 0); deflection is reported, not checked.'],
+        ['Loads','Downward loads positive. Point loads and moments go to the nearest node (exact, a node is placed there); UDL as consistent element loads.'],
+        ['Not checked','Member buckling, lateral–torsional buckling, web/plate buckling, local flange stability, fatigue, dynamic effects, effective plate width — none of these are evaluated here.','no'],
+        ['Scope','Results support a scantling estimate; they are not a class approval and are to be verified by a qualified engineer.']
+    ];
+    return lines;
+}
+function renderBasis(ck){
+    const ul=document.getElementById('basisList'); if(!ul) return;
+    ul.innerHTML='';
+    basisLines(ck).forEach(l=>{ const li=document.createElement('li'); if(l[2]) li.classList.add(l[2]); const b=document.createElement('b'); b.textContent=l[0]; const s=document.createElement('span'); s.textContent=l[1]; li.appendChild(b); li.appendChild(s); ul.appendChild(li); });
 }
 function drawAllDiagrams(){
     if(!lastResults) return;
@@ -2359,8 +2453,8 @@ function loadJSON(e){
     const f=e.target.files[0]; if(!f) return;
     const r=new FileReader();
     r.onload=ev=>{
-        try{ applyModelData(JSON.parse(ev.target.result)); alert('Model loaded.'); }
-        catch(err){ alert('Invalid file.'); }
+        try{ applyModelData(JSON.parse(ev.target.result)); showProblems(['Model loaded from '+f.name+'.'], true); }
+        catch(err){ showProblems(['Could not read '+f.name+': not a BeamCore model file.']); }
     };
     r.readAsText(f);
 }
@@ -2487,7 +2581,7 @@ function exportPDF(){
     const plateTxt=document.getElementById('plate-enabled').checked?`with attached plate ${val('plate-width')} x ${val('plate-thickness')} mm`:'(no attached plate)';
     doc.text(`Span L = ${r.L} m     E = ${val('modE')} GPa`,15,y); y+=5;
     doc.text(`Section: ${pdfSectionDesc()}  ${plateTxt}`,15,y); y+=5;
-    doc.text(`I = ${val('momI')} cm⁴     W = ${val('sectionW')} cm³`,15,y); y+=5;
+    { const sp=computeSectionProps(); doc.text(`A = ${sp.A.toFixed(2)} cm²     I = ${sp.Ixx.toFixed(1)} cm⁴     NA = ${sp.yBot.toFixed(2)} cm from bottom     W_top = ${sp.WTop.toFixed(1)} cm³     W_bot = ${sp.WBot.toFixed(1)} cm³`,15,y); y+=5; }
     doc.text(`Material: Grade ${val('steelGrade')}  (ReH ${val('reH')} N/mm²)     Safety Factor = ${val('safetyFactorValue')}     σ_all = ${val('sigmaAll')} N/mm²`,15,y); y+=8;
 
     // supports & loads tables
@@ -2508,20 +2602,17 @@ function exportPDF(){
     });
     y+=4;
 
-    // results summary
-    const Mmax=maxAbs(r.Ms), Vmax=maxAbs(r.Vs), Dmax=maxAbs(r.Ds);
-    const sp=computeSectionProps();
-    const sig=sp.W>0?(Mmax*1000)/(sp.W*1e-6)/1e6:0;
-    const tau=(sp.Ixx>0&&sp.tWeb>0)?(Vmax*1000)*(sp.Qmax*1e-6)/((sp.Ixx*1e-8)*(sp.tWeb*1e-2))/1e6:0;
-    const sigAll=parseFloat(val('sigmaAll'))||1; const tauAll=sigAll/Math.sqrt(3);
-    const ucS=sig/sigAll, ucT=tau/tauAll, uc=Math.max(ucS,ucT);
-    const status=uc>1?'FAIL':uc>0.9?'REVIEW':'PASS';
+    // results summary - the same numbers the page shows (lastChecks), never recomputed here
+    const ck=lastChecks||evaluateChecks(r);
     doc.setFont(FONT,'bold'); doc.setFontSize(10); doc.text('Results Summary',15,y); y+=5;
     doc.setFont(FONT,'normal'); doc.setFontSize(9);
-    doc.text(`Max Moment = ${Mmax.toFixed(2)} kN·m     Max Shear = ${Vmax.toFixed(2)} kN     Max Deflection = ${Dmax.toFixed(2)} mm`,15,y); y+=5;
-    doc.text(`Bending: σ = ${sig.toFixed(1)} vs σ_all = ${sigAll.toFixed(1)} N/mm²  →  UC = ${ucS.toFixed(2)}`,15,y); y+=5;
-    doc.text(`Shear:   τ = ${tau.toFixed(1)} vs τ_all = ${tauAll.toFixed(1)} N/mm² (σ_all/√3)  →  UC = ${ucT.toFixed(2)}`,15,y); y+=5;
-    doc.setFont(FONT,'bold'); doc.text(`Governing UC = ${uc.toFixed(2)}     Status: ${status}`,15,y); doc.setFont(FONT,'normal'); y+=8;
+    doc.text(`Max Moment = ${ck.Mmax.toFixed(2)} kN·m     Max Shear = ${ck.Vmax.toFixed(2)} kN     Max Deflection = ${ck.Dmax.toFixed(2)} mm`,15,y); y+=6;
+    doc.setFont(FONT,'bold'); doc.setFontSize(8.5);
+    doc.text('Check',15,y); doc.text('Actual',70,y); doc.text('Allowable',105,y); doc.text('UC',145,y); doc.text('Status',165,y); y+=1.5;
+    doc.setDrawColor(200); doc.line(15,y,W-15,y); y+=4; doc.setFont(FONT,'normal');
+    ck.checks.forEach(c=>{ const dp=c.dp||1; doc.text(c.name,15,y); doc.text(c.actual.toFixed(dp)+' '+c.unit,70,y); doc.text(c.allow.toFixed(dp)+' '+c.unit,105,y); doc.text(c.uc.toFixed(2),145,y); doc.text(c.uc<=1?'PASS':'FAIL',165,y); y+=4.5; });
+    y+=1;
+    doc.setFont(FONT,'bold'); doc.setFontSize(9); doc.text(`Governing UC = ${ck.ucGov.toFixed(2)}     Status: ${ck.status}`,15,y); doc.setFont(FONT,'normal'); y+=8;
 
     // diagrams as images (rendered in LIGHT theme for white A4)
     const diaImgs=renderDiagramsLight();
@@ -2561,13 +2652,25 @@ function exportPDF(){
         y+=4;
     }
 
+    // analysis basis & limits - same list as the result page
+    if(y>200){ doc.addPage(); y=15; }
+    doc.setFont(FONT,'bold'); doc.setFontSize(11); doc.setTextColor(30,41,59); doc.text('Analysis Basis & Limits',15,y); y+=6;
+    doc.setFontSize(8);
+    basisLines(ck).forEach(l=>{
+        const wrapped=doc.splitTextToSize(l[1], W-30-32);
+        if(y+wrapped.length*4>285){ doc.addPage(); y=15; }
+        doc.setFont(FONT,'bold'); doc.text(l[0],15,y); doc.setFont(FONT,'normal'); doc.text(wrapped,47,y); y+=wrapped.length*4+1.5;
+    });
+
     doc.setFont(FONT,'normal'); doc.setFontSize(7); doc.setTextColor(150);
     doc.text('Generated by BeamCore (lumoship.org/beam) · Direct Stiffness Method. Results to be verified by a qualified engineer.',15,292);
     doc.save((pj.number||'beam')+'_calc.pdf');
 }
 
 // init
-document.getElementById('analysisDate').value=new Date().toISOString().split('T')[0];
+{ const d=new Date(); document.getElementById('analysisDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } // local date, not UTC
+// Ctrl+Enter runs the analysis from the Input page.
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&document.getElementById('page-2').classList.contains('active')){ e.preventDefault(); goToPage(3); } });
 populateHPCatalog();
 renderSupports(); renderLoads(); updateSection(); recomputeSigmaAll();
 window.addEventListener('resize',()=>{ drawPreview(); if(lastResults&&document.getElementById('page-3').classList.contains('active')){ drawAllDiagrams(); } });
