@@ -319,6 +319,17 @@
             });
         });
 
+        // Yayili yukler (.clb dosyasindan; XML modelde yok). q N/m, DNV'de
+        // eksi = asagi; LumoStruct'ta + = asagi (kN/m).
+        if (lc && Array.isArray(lc.hatYukleri)) lc.hatYukleri.forEach(y => {
+            const e = elements[y.kiris + 1];
+            if (!e) { uyarilar.push('yayili yuk: kiris ' + y.kiris + ' yok'); return; }
+            const q1 = -y.q1 / 1000, q2 = -y.q2 / 1000;
+            e.lineLoads = e.lineLoads || [];
+            e.lineLoads.push({ value: q1, q: q1, value2: (Math.abs(q2 - q1) > 1e-9) ? q2 : undefined,
+                               startPct: 0, endPct: 100, start: 0, end: 1, direction: 'global', case: 'L' });
+        });
+
         return {
             nodes: nodes, elements: elements, constraints: constraints,
             loads: loads, sections: sections, uyarilar: uyarilar,

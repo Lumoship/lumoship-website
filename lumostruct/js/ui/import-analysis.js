@@ -39,10 +39,21 @@ function analizDosyasiSec(event) {
             showToast('Import failed: ' + err.message, 'error');
         }
     };
-    reader.readAsText(file);
+    // .clb (DNV 3D Beam ikili) ArrayBuffer ister; XML/.steel metin.
+    if (/\.clb$/i.test(file.name)) reader.readAsArrayBuffer(file);
+    else reader.readAsText(file);
 }
 
 function analizDosyasiIsle(metin, ad) {
+    if (metin instanceof ArrayBuffer) {
+        // DNV 3D Beam .clb: ayni veri sekli, ayni secici ve kurucu (dnvModeliKur)
+        analizTur = 'dnv';
+        analizDosyaAdi = ad;
+        analizVeri = clbDosyasiOku(metin);
+        if (!analizVeri.kirisler.length) { showToast('No beams in this .clb file', 'error'); return; }
+        analizSeciciAc();
+        return;
+    }
     const tur = analizBicimi(metin);
     if (!tur) { showToast('Not a Steel or DNV 3D Beam file', 'error'); return; }
     analizTur = tur;
