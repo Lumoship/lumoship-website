@@ -164,7 +164,10 @@
                     Object.values(model.elements).forEach(e => {
                         if (e.section) sayim[e.section] = (sayim[e.section] || 0) + 1;
                     });
-                    return Object.entries(SECTIONS).map(([ad, s]) => ({
+                    // YALNIZCA modelde kullanilan profiller: kutuphanedeki
+                    // 30 profilin arasinda kullanilan ikisini bulmak kafa
+                    // karistiriyordu. Rijit kiris varsa o da bir satir.
+                    const satirlar = Object.entries(SECTIONS).filter(([ad]) => sayim[ad] > 0).map(([ad, s]) => ({
                         ad: ad,
                         kullanim: sayim[ad] || 0,
                         h: s.h ? s.h * 1000 : null,
@@ -176,6 +179,9 @@
                         Wbot: (s.WyBot || s.Wy) ? (s.WyBot || s.Wy) * 1e6 : null,
                         kutle: s.A ? s.A * TABLO_CELIK_YOGUNLUK : null
                     }));
+                    const rijit = Object.values(model.elements).filter(e => typeof kesitRijitMi === 'function' && kesitRijitMi(e.section)).length;
+                    if (rijit > 0) satirlar.push({ ad: 'RIGID (no profile)', kullanim: rijit, h: null, A: null, Iy: null, Iz: null, J: null, Wtop: null, Wbot: null, kutle: null });
+                    return satirlar;
                 }
             },
             {
@@ -631,6 +637,36 @@
             document.querySelectorAll('.results-bottom-tab').forEach(b =>
                 b.classList.toggle('active', b.dataset.tab === ad));
             altTabloCiz();
+        }
+
+        // ---- Secim -> tablo ----
+        // Kullanici: "sonuc sayfasinda noda tiklayinca Node responses'ta onun
+        // satiri koyu gorunsun; kirise tiklayinca Beam responses." Sahnede
+        // yapilan secim burada karsilanir: Results sekmesindeyken uygun
+        // sekmeye gecilir, tablo yeniden cizilir, secili satir gorunur yere
+        // kaydirilir. Tablodan yapilan secim (selectBeamFromTable) sekme
+        // DEGISTIRMEZ - kullanici zaten o tabloya bakiyor; altTabloIcSecim
+        // bayragi bunu ayirir.
+        let altTabloIcSecim = false;
+        function altTabloSecimiIzle() {
+            const panel = document.getElementById('resultsBottomPanel');
+            if (!panel || panel.style.display === 'none') return;
+            const nK = (typeof selectedElements !== 'undefined') ? selectedElements.size : 0;
+            const nD = (typeof selectedNodes !== 'undefined') ? selectedNodes.size : 0;
+            const tanim = altTabloTanim(altTabloEtkin);
+            let hedef = altTabloEtkin;
+            if (!altTabloIcSecim) {
+                if (nK > 0 && nD === 0 && tanim.secim !== 'kiris') hedef = results ? 'beamresp' : 'beams';
+                else if (nD > 0 && nK === 0 && tanim.secim !== 'dugum') hedef = results ? 'noderesp' : 'nodes';
+            }
+            if (hedef !== altTabloEtkin) switchResultsBottomTab(hedef);
+            else altTabloCiz();
+            // Secili ilk satiri gorunur alana getir.
+            const kap = document.getElementById('resultsBottomContent');
+            const satir = kap && kap.querySelector('tr.selected');
+            if (satir && typeof satir.scrollIntoView === 'function') {
+                try { satir.scrollIntoView({ block: 'nearest' }); } catch (e) { /* eski tarayici */ }
+            }
         }
 
         // Etkin sekme. Sekme dugmeleri JS ile uretildigi icin DOM'a bakarak

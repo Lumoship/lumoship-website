@@ -148,6 +148,8 @@
                 // Multi selection
                 showMultiInfo(nodeCount, beamCount);
             }
+            // Alt tablo secimi izler (Results sekmesinde sekme + vurgu).
+            if (typeof altTabloSecimiIzle === 'function') altTabloSecimiIzle();
         }
         
         function showNodeInfo(nodeId) {

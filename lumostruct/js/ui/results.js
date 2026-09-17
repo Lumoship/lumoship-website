@@ -324,7 +324,8 @@
             selectedNodes.clear();
             selectedElements.clear();
             selectedElements.add(elemId);
-            updateEntityInfoPanel();
+            altTabloIcSecim = true;          // tablodan secim: sekme degismesin
+            try { updateEntityInfoPanel(); } finally { altTabloIcSecim = false; }
             if (currentViewMode === '3d') {
                 update3DScene();
             } else {
@@ -337,7 +338,8 @@
             selectedNodes.clear();
             selectedElements.clear();
             selectedNodes.add(nodeId);
-            updateEntityInfoPanel();
+            altTabloIcSecim = true;
+            try { updateEntityInfoPanel(); } finally { altTabloIcSecim = false; }
             if (currentViewMode === '3d') {
                 update3DScene();
             } else {

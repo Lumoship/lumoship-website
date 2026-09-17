@@ -4192,8 +4192,12 @@
         }
         
         .results-data-table tr.selected {
-            background: rgba(59, 130, 246, 0.3);
+            /* Sahnedeki secim tabloda bir bakista bulunsun: koyu zemin, sol
+               serit, kalin yazi. Eski %30 mavi satirlar arasinda kayboluyordu. */
+            background: rgba(59, 130, 246, 0.35);
+            box-shadow: inset 3px 0 0 var(--primary);
         }
+        .results-data-table tr.selected td { font-weight: 600; color: var(--text); }
         
         .results-data-table .stress-ok { color: var(--success); }
         .results-data-table .stress-warn { color: var(--warning); }
