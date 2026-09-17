@@ -204,7 +204,7 @@
                 <div style="position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:10000; display:flex; align-items:center; justify-content:center;" onclick="if(event.target===this)this.remove()">
                     <div style="background:var(--bg-elev); border-radius:var(--r-ovl); width:400px; max-height:80vh; overflow:hidden;">
                         <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid var(--border);">
-                            <h3 style="margin:0; color:var(--text);">Load Cases</h3>
+                            <h3 style="margin:0; color:var(--text); font-size:var(--fs-md);">Load Cases</h3>
                             <button onclick="this.closest('#loadCasesModal').remove()" style="background:none; border:none; color:var(--text-2); cursor:pointer; font-size:var(--fs-lg);">&times;</button>
                         </div>
                         <div style="padding:16px; max-height:400px; overflow-y:auto;">

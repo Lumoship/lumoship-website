@@ -90,7 +90,7 @@ function analizSeciciAc() {
         ' onclick="if(event.target===this)this.parentElement.remove()">' +
         '  <div style="background:var(--bg-elev); border-radius:var(--r-ovl); width:90%; max-width:560px; overflow:hidden;">' +
         '    <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid var(--border);">' +
-        '      <h3 style="margin:0; color:var(--text);">Import ' + (analizTur === 'dnv' ? 'DNV 3D Beam' : 'Steel') + ' model</h3>' +
+        '      <h3 style="margin:0; color:var(--text); font-size:var(--fs-md);">Import ' + (analizTur === 'dnv' ? 'DNV 3D Beam' : 'Steel') + ' model</h3>' +
         '      <button onclick="document.getElementById(\'analizIceAktarModal\').remove()" style="background:none; border:none; color:var(--text-2); cursor:pointer; font-size:var(--fs-lg);">&times;</button>' +
         '    </div>' +
         '    <div style="padding:16px;">' +

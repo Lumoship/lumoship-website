@@ -1157,9 +1157,10 @@
         /* ============== TOAST NOTIFICATIONS ============== */
         .toast-container {
             position: fixed;
-            /* Ust cubugun ALTINDA: 16px'te bildirim "Sign in" dugmesinin ve
-               logonun ustune biniyordu. Cubuk 48px; 8px pay. */
-            top: 56px;
+            /* Ust cubuk + sekme cubugunun ALTINDA (44 + 32 px): 16px'te bildirim
+               "Sign in" dugmesinin, 56px'te Import/Export dugmelerinin ustune
+               biniyordu. */
+            top: 84px;
             right: var(--space-4);
             z-index: 10000;
             display: flex;
@@ -5541,27 +5542,38 @@
            yeniden olculdu (asagida degerler).
            ================================================================ */
         :root {
-            /* 1280 -> 11.2   1600 -> 11.6   1920 -> 12.0   2560+ -> 12.8 */
-            --fs-taban: clamp(11px, calc(0.125vw + 9.6px), 12.8px);
-            --fs-xs: calc(var(--fs-taban) * var(--ui-olcek) * 0.9167);  /* 11    */
-            --fs-sm: calc(var(--fs-taban) * var(--ui-olcek));           /* 12    */
-            --fs-md: calc(var(--fs-taban) * var(--ui-olcek) * 1.0833);  /* 13    */
-            --fs-lg: calc(var(--fs-taban) * var(--ui-olcek) * 1.3333);  /* 16    */
+            /* Ikinci tur (17 Eylul): 12/11/13/16 hala "bir tik buyuk, yapay zeka
+               programi gibi" bulundu. Referans: masaustu muhendislik yazilimlari
+               Windows'un 8-9 pt'sini kullanir - DNV 3D Beam ve SAP2000 8,25 pt
+               = 11 px govde. Olcek ona oturtuldu:
+                 1280 -> 10.5   1920 -> 11.0   2560+ -> 11.5
+               xs 10 / sm 11 / md 12 / lg 14. Daha asagisi (10 px govde) 27"
+               monitorde okunmuyor; burasi makul sinir. */
+            --fs-taban: clamp(10.5px, calc(0.078vw + 9.5px), 11.5px);
+            --fs-xs: calc(var(--fs-taban) * var(--ui-olcek) * 0.9091);  /* 10    */
+            --fs-sm: calc(var(--fs-taban) * var(--ui-olcek));           /* 11    */
+            --fs-md: calc(var(--fs-taban) * var(--ui-olcek) * 1.0909);  /* 12    */
+            --fs-lg: calc(var(--fs-taban) * var(--ui-olcek) * 1.2727);  /* 14    */
+            /* Kose yaricapi: 4/8 px yuvarlak "web uygulamasi" hissi veriyor;
+               masaustu araclar 2-3 px kullanir. */
+            --r-ctl: 3px;
+            --r-ovl: 5px;
         }
-        body { line-height: 1.35; }
+        body { line-height: 1.3; }
 
-        /* Ust cubuk: 65 -> 48 px. Logo ve baglantilar da bir adim kucuk. */
-        .lumoship-nav { padding: 0.45rem 1rem; }
-        .lumoship-nav-logo-mark { width: 24px; height: 24px; font-size: 0.8rem; }
-        .lumoship-nav-logo-text { font-size: 0.85rem; }
+        /* Ust cubuk: 65 -> 40 px. Logo ve baglantilar da bir adim kucuk. */
+        .lumoship-nav { padding: 0.3rem 1rem; }
+        .lumoship-nav-logo-mark { width: 22px; height: 22px; font-size: 0.72rem; }
+        .lumoship-nav-logo-text { font-size: 0.78rem; }
 
-        /* Sekme cubugu ve Solve: 46/44 -> 36/32 px. */
-        .main-tab { padding: var(--space-2) var(--space-4); }
-        .main-tab-bar .solve-btn, #solveBtn { padding: 5px 14px; }
+        /* Sekme cubugu ve Solve: 46/44 -> 30/26 px. */
+        .main-tab { padding: 6px var(--space-3); }
+        .main-tab-bar .solve-btn, #solveBtn { padding: 3px 12px; }
 
-        /* Kanvas ustu arac cubugu 45 -> 36 px; gorunus dugmeleri bir adim kucuk. */
-        .canvas-toolbar { padding: 2px 4px; }
-        .view-mode-btn, .toolbar-btn { padding: 3px 8px; }
+        /* Kanvas ustu arac cubugu 45 -> 30 px; gorunus dugmeleri bir adim kucuk. */
+        .canvas-toolbar { padding: 1px 4px; }
+        .view-mode-btn, .toolbar-btn { padding: 2px 7px; }
+        .view-mode-bar, .view-controls { gap: 2px; }
 
         /* Girisler: sayi girisi 33 px / 14,6 px idi - govde boyunda, 26 px.
            index.html'de 40 giris/secici satir ici font-size, 44 tanesi satir
@@ -5570,15 +5582,21 @@
            blogunun yaptigi gibi. Kalici cozum satir ici stilleri sokmek. */
         input[type="number"], input[type="text"], select {
             font-size: var(--fs-sm) !important;
-            padding-top: 4px !important;
-            padding-bottom: 4px !important;
+            padding-top: 3px !important;
+            padding-bottom: 3px !important;
         }
-        .btn-primary, .btn-secondary { padding: 5px 10px; }
-        .btn-small { padding: 3px 8px; }
+        .btn-primary, .btn-secondary { padding: 4px 9px; }
+        .btn-small { padding: 2px 7px; }
 
-        /* Tablolar: satir dolgusu 8 -> 5 px; basliklar govdeyle ayni boy. */
-        .results-data-table th, .results-data-table td { padding: 5px 8px; }
-        .data-table th, .data-table td { padding: 4px 6px; }
+        /* Tablolar: satir dolgusu 8 -> 4 px; basliklar govdeyle ayni boy. */
+        .results-data-table th, .results-data-table td { padding: 4px 7px; }
+        .data-table th, .data-table td { padding: 3px 6px; }
+        /* Panel bolum basliklari ve ozellik satirlari da sikisir. */
+        .entity-section { padding: 8px 10px; }
+        .entity-section-title { margin-bottom: 4px; }
+        .panel-section { padding: 8px 10px; }
+        .panel-title, .panel-section-title, .subpanel-title { margin-bottom: 4px; }
+        .command-bar { height: 28px; }
         /* Yalnizca dikey: 'padding: 3px 0' .check-table th'nin sag dolgusunu
            sifirlayip "Plate slendernessPass" yapistiriyordu. */
         .value-table th, .value-table td { padding-top: 3px; padding-bottom: 3px; }

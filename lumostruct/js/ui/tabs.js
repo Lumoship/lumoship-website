@@ -1351,7 +1351,7 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl); margin-bottom:4px;">
                         <span style="color:var(--danger-text);">q=${q} kN/m</span>
                         <span style="color:var(--text-3);">${start}-${end}%</span>
-                        <button onclick="removeInfoLineLoad(${idx})" style="background:var(--danger); border:none; color:white; width:18px; height:18px; border-radius:var(--r-ctl); cursor:pointer; font-size:var(--fs-xs);">✕</button>
+                        <button onclick="removeInfoLineLoad(${idx})" style="background:#b91c1c; border:none; color:white; width:18px; height:18px; border-radius:var(--r-ctl); cursor:pointer; font-size:var(--fs-xs);">✕</button>
                     </div>
                 `;
             }).join('');
