@@ -360,24 +360,24 @@
         
         // ============== MEMORY MANAGEMENT ==============
         // Clean up Three.js objects to prevent memory leaks
+        // userData.paylasimli: sahne onbelleginden gelen (canvas3d.js
+        // onbellekGeometri/onbellekMalzeme) geometri ve malzemeler bircok
+        // mesh'te ortak; sahne her tazelendiginde dispose edilmezler.
         function disposeThreeObject(obj) {
             if (!obj) return;
-            
-            if (obj.geometry) {
+
+            if (obj.geometry && !(obj.geometry.userData && obj.geometry.userData.paylasimli)) {
                 obj.geometry.dispose();
             }
             if (obj.material) {
-                if (Array.isArray(obj.material)) {
-                    obj.material.forEach(m => {
-                        if (m.map) m.map.dispose();
-                        m.dispose();
-                    });
-                } else {
-                    if (obj.material.map) obj.material.map.dispose();
-                    obj.material.dispose();
-                }
+                const at = m => {
+                    if (m.userData && m.userData.paylasimli) return;
+                    if (m.map) m.map.dispose();
+                    m.dispose();
+                };
+                if (Array.isArray(obj.material)) obj.material.forEach(at); else at(obj.material);
             }
-            if (obj.children) {
+if (obj.children) {
                 obj.children.forEach(child => disposeThreeObject(child));
             }
         }

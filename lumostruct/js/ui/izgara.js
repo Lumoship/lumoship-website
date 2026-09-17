@@ -86,19 +86,29 @@
         function izgarayiModeleYaz(u, degistir) {
             saveState();
             if (degistir) { model.nodes = {}; model.elements = {}; model.constraints = {}; model.loads = []; model.pressure = []; nextNodeId = 1; nextElementId = 1; }
+            // Eslestirme yalnizca MEVCUT dugum/kirislere karsi yapilir (uretici
+            // kendi icinde tekrarsiz). Eskiden her dugum icin findNodeAtLocation
+            // buyuyen listeyi, her kiris icin Object.values(model.elements) hepsini
+            // tariyordu: 1 582 dugum / 2 915 kiriste 9.3 s olculdu.
             const harita = {};
+            const mevcutDugumler = Object.entries(model.nodes).map(([id, n]) => ({ id: parseInt(id), x: n.x, y: n.y, z: n.z || 0 }));
+            const yakinMevcut = (x, y, z) => { for (const n of mevcutDugumler) { if (Math.abs(n.x - x) < 0.01 && Math.abs(n.y - y) < 0.01 && Math.abs(n.z - z) < 0.01) return n.id; } return null; };
             Object.entries(u.nodes).forEach(([id, n]) => {
-                const var_ = findNodeAtLocation(n.x, n.y, n.z);
-                if (var_ !== null && var_ !== undefined) { harita[id] = var_; return; }
+                const var_ = yakinMevcut(n.x, n.y, n.z || 0);
+                if (var_ !== null) { harita[id] = var_; return; }
                 const yeni = nextNodeId++;
                 model.nodes[yeni] = { x: n.x, y: n.y, z: n.z };
                 harita[id] = yeni;
             });
             const yeniKirisler = [];
+            const ciftAnahtar = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+            const mevcutCiftler = new Set(Object.values(model.elements).map(x => ciftAnahtar(x.n1, x.n2)));
             Object.values(u.elements).forEach(e => {
                 const a = harita[e.n1], b = harita[e.n2];
                 // ayni iki dugum arasinda kiris varsa yeniden acma
-                if (Object.values(model.elements).some(x => (x.n1 === a && x.n2 === b) || (x.n1 === b && x.n2 === a))) return;
+                const ak = ciftAnahtar(a, b);
+                if (mevcutCiftler.has(ak)) return;
+                mevcutCiftler.add(ak);
                 const id = nextElementId++;
                 model.elements[id] = { n1: a, n2: b, section: e.section, ad: e.ad, lineLoads: [] };
                 yeniKirisler.push(id);

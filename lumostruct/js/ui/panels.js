@@ -2109,6 +2109,8 @@
             showToast(`Removed ${removedCount} beam(s)`);
         }
         
+        let modelTablolariTumu = false;
+        function modelTablolariniTumGoster() { modelTablolariTumu = true; updateModelTables(); }
         function updateModelTables() {
             // Update Nodes count
             const nNodes = Object.keys(model.nodes).length;
@@ -2135,7 +2137,10 @@
                     // ID sutunu "undefined", BC sutunu mesnetli dugumlerde bile "-", secim
                     // vurgusu hic calismiyor ve satira tiklamak selectNodeById(undefined)
                     // cagiriyordu. Hemen asagidaki kiris tablosu zaten dogru kalibi kullaniyor.
-                    nodesTable.innerHTML = Object.entries(model.nodes).map(([nodeId, node]) => {
+                    const dugumKirp = (typeof tabloSatirlariniKirp === 'function' && !modelTablolariTumu)
+                        ? tabloSatirlariniKirp(Object.entries(model.nodes), ([id]) => selectedNodes.has(parseInt(id)))
+                        : { satirlar: Object.entries(model.nodes), kirpildi: 0 };
+                    nodesTable.innerHTML = dugumKirp.satirlar.map(([nodeId, node]) => {
                         const id = parseInt(nodeId);
                         const bc = model.constraints[nodeId];
                         let bcStr = '-';
@@ -2168,7 +2173,7 @@
                             <td>${((node.z || 0) * 1000).toFixed(0)}</td>
                             <td>${bcStr}</td>
                         </tr>`;
-                    }).join('');
+                    }).join('') + (dugumKirp.kirpildi ? '<tr><td colspan="5" style="color:var(--text-3); text-align:center;">Showing ' + dugumKirp.satirlar.length + ' of ' + nNodes + ' nodes (selected always shown). <a href="#" onclick="modelTablolariniTumGoster(); return false;" style="color:var(--accent-info);">Show all</a></td></tr>' : '');
                 }
             }
             
@@ -2178,7 +2183,10 @@
                 if (nBeams === 0) {
                     beamsTable.innerHTML = '<tr><td colspan="5" style="color:var(--text-3); text-align:center;">No beams</td></tr>';
                 } else {
-                    beamsTable.innerHTML = Object.entries(model.elements).map(([id, elem]) => {
+                    const kirisKirp = (typeof tabloSatirlariniKirp === 'function' && !modelTablolariTumu)
+                        ? tabloSatirlariniKirp(Object.entries(model.elements), ([id]) => selectedElements.has(parseInt(id)))
+                        : { satirlar: Object.entries(model.elements), kirpildi: 0 };
+                    beamsTable.innerHTML = kirisKirp.satirlar.map(([id, elem]) => {
                         const elemId = parseInt(id);
                         const n1 = model.nodes[elem.n1];
                         const n2 = model.nodes[elem.n2];
@@ -2195,7 +2203,7 @@
                             <td style="color:${elem.section ? 'var(--success)' : 'var(--text-3)'};">${elem.section || 'no section'}</td>
                             <td>${length.toFixed(0)}</td>
                         </tr>`;
-                    }).join('');
+                    }).join('') + (kirisKirp.kirpildi ? '<tr><td colspan="5" style="color:var(--text-3); text-align:center;">Showing ' + kirisKirp.satirlar.length + ' of ' + nBeams + ' beams (selected always shown). <a href="#" onclick="modelTablolariniTumGoster(); return false;" style="color:var(--accent-info);">Show all</a></td></tr>' : '');
                 }
             }
         }

@@ -69,8 +69,14 @@
 
         // Kirise dusen serit genisligi: komsu paralel kirislere yarim uzaklik,
         // kenarda yama sinirina kadar.
-        function seritGenisligi(k, liste, sLo, sHi) {
-            const konum = [...new Set(liste.map(x => +x.d.sabit.toFixed(6)))].sort((u, v) => u - v);
+        // konum: listedeki kiris cizgilerinin sirali konumlari (bir kez
+        // hesaplanir; eskiden her kiris icin yeniden kurulup siralaniyordu -
+        // 1 475 kiriste 2 milyon islem, basinc dagilimi 300 ms - 1.6 s).
+        function cizgiKonumlari(liste) {
+            return [...new Set(liste.map(x => +x.d.sabit.toFixed(6)))].sort((u, v) => u - v);
+        }
+        function seritGenisligi(k, liste, sLo, sHi, konum) {
+            if (!konum) konum = cizgiKonumlari(liste);
             const v = +k.d.sabit.toFixed(6);
             const i = konum.indexOf(v);
             const sol = (i <= 0) ? sLo : (konum[i - 1] + v) / 2;
@@ -92,8 +98,9 @@
             const liste = aday[yon];
             if (!liste.length) { if (uyarilar) uyarilar.push('Pressure "' + (p.ad || '') + '": no ' + yon + ' beam inside the patch'); return out; }
             const [sLo, sHi] = yon === 'X' ? [p.y1, p.y2] : [p.x1, p.x2];
+            const konum = cizgiKonumlari(liste);
             liste.forEach(k => {
-                const b = seritGenisligi(k, liste, sLo, sHi);
+                const b = seritGenisligi(k, liste, sLo, sHi, konum);
                 if (b <= 1e-9) return;
                 const q = p.value * b;                              // kN/m
                 // yama icinde kalan parca -> kiris kesri (n1 -> n2 yonunde)

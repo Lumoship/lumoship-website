@@ -41,35 +41,10 @@
             setIfExists('scaleMid', (sigmaLimit / 2).toFixed(0));
             setIfExists('scaleMax', sigmaLimit + ' MPa');
             
-            // Displacement table (old)
-            const dispTable = document.getElementById('dispTable');
-            if (dispTable) {
-                dispTable.innerHTML = '';
-                Object.entries(results.displacements).forEach(([nodeId, disp]) => {
-                    dispTable.innerHTML += `<tr>
-                        <td>${nodeId}</td>
-                        <td>${(disp.Uz * 1000).toFixed(2)}</td>
-                        <td>${(disp.Rx * 180 / Math.PI).toFixed(3)}</td>
-                        <td>${(disp.Ry * 180 / Math.PI).toFixed(3)}</td>
-                    </tr>`;
-                });
-            }
-            
-            // Stress table (old)
-            const stressTable = document.getElementById('stressTable');
-            if (stressTable) {
-                stressTable.innerHTML = '';
-                Object.entries(results.elementResults).forEach(([elemId, res]) => {
-                    const color = res.vonMises > sigmaLimit ? 'color:var(--danger-text);font-weight:600;' : '';
-                    stressTable.innerHTML += `<tr style="${color}">
-                        <td>${elemId}</td>
-                        <td>${res.sigma.toFixed(1)}</td>
-                        <td>${res.tau.toFixed(1)}</td>
-                        <td>${res.vonMises.toFixed(1)}</td>
-                    </tr>`;
-                });
-            }
-            
+            // Eski gizli dispTable / stressTable artik DOLDURULMUYOR: gorunmeyen
+            // 4 500 satir her cozumde ayristiriliyordu (index.html'deki bos
+            // tbody'ler uyumluluk icin duruyor).
+
             // ===== NEW LEFT PANEL RESULTS TAB =====
             const resultsContent = document.getElementById('resultsContent');
             if (noResultsMsg) noResultsMsg.style.display = 'none';
@@ -99,22 +74,23 @@
             // Reactions table
             const reactionsTable = document.getElementById('reactionsTable');
             if (reactionsTable && results.reactions) {
-                reactionsTable.innerHTML = '';
+                const satirlar = [];
                 Object.entries(results.reactions).forEach(([nodeId, r]) => {
                     // Gorunurluk kontrolu TUM bilesenlere bakar. Eskiden sadece
                     // Fz/Mx/My'ye bakiyordu: yalnizca yatay ya da Mz tepkisi olan
                     // bir mesnet tablodan tamamen dusuyordu.
                     const bilesenler = [r.Fx, r.Fy, r.Fz, r.Mx, r.My, r.Mz];
                     if (bilesenler.some(v => v)) {
-                        reactionsTable.innerHTML += `<tr>
+                        satirlar.push(`<tr>
                             <td>${nodeId}</td>
                             <td>${r.Fz.toFixed(2)}</td>
                             <td>${r.Mx.toFixed(3)}</td>
                             <td>${r.My.toFixed(3)}</td>
                             <td>${(r.Mz || 0).toFixed(3)}</td>
-                        </tr>`;
+                        </tr>`);
                     }
                 });
+                reactionsTable.innerHTML = satirlar.join('');
             }
             
             // Equilibrium - the load that went in against the load the supports gave back.

@@ -474,6 +474,26 @@
             }
         ];
 
+        // BUYUK MODEL: 3 000 satirlik tablonun yerlesimi (layout) tek basina
+        // 0.4 s (arka planda 2.4 s) olculdu; her secim/cozum sonrasi tablo
+        // yeniden kurulup yerlestiginden arayuz surunuyordu. Siralanmis ilk
+        // TABLO_SATIR_SINIRI satir + secili satirlar gosterilir; altta
+        // "Show all" ile tamami acilir (sekme degisince sinir geri gelir).
+        const TABLO_SATIR_SINIRI = 500;
+        let altTabloTumu = false;
+        function tabloSatirlariniKirp(satirlar, seciliMi, sinir) {
+            const n = (typeof sinir === 'number') ? sinir : TABLO_SATIR_SINIRI;
+            if (satirlar.length <= n) return { satirlar: satirlar, kirpildi: 0 };
+            const secim = satirlar.filter(s => seciliMi(s));
+            const secimIds = new Set(secim);
+            const kesik = satirlar.slice(0, n).filter(s => !secimIds.has(s)).concat(secim);
+            return { satirlar: kesik, kirpildi: satirlar.length - kesik.length };
+        }
+        function tabloKirpmaNotu(kirpildi, toplam, tumuFn) {
+            return '<div class="results-empty-note" style="padding:6px 10px;">Showing ' + (toplam - kirpildi) + ' of ' + toplam +
+                   ' rows (sorted; selected rows always shown). <a href="#" onclick="' + tumuFn + '; return false;" style="color:var(--accent-info);">Show all ' + toplam + '</a></div>';
+        }
+        function altTabloTumunuGoster() { altTabloTumu = true; altTabloCiz(); }
         let altTabloEtkin = 'beams';
         let altTabloSiraSutun = 'id';
         let altTabloSiraArtan = true;
@@ -679,9 +699,12 @@
                 '<th onclick="altTabloSirala(\'' + c.a + '\')"' +
                 (c.a === sutun ? ' class="sorted"' : '') + '>' + c.b + ' ' + ok + '</th>').join('');
 
-            const govde = satirlar.map(s => {
-                const secili = (tanim.secim === 'kiris' && typeof selectedElements !== 'undefined' && selectedElements.has(s.id)) ||
-                               (tanim.secim === 'dugum' && typeof selectedNodes !== 'undefined' && selectedNodes.has(s.id));
+            const seciliMi = s => (tanim.secim === 'kiris' && typeof selectedElements !== 'undefined' && selectedElements.has(s.id)) ||
+                                  (tanim.secim === 'dugum' && typeof selectedNodes !== 'undefined' && selectedNodes.has(s.id));
+            const toplamSatir = satirlar.length;
+            const kirp = altTabloTumu ? { satirlar: satirlar, kirpildi: 0 } : tabloSatirlariniKirp(satirlar, seciliMi);
+            const govde = kirp.satirlar.map(s => {
+                const secili = seciliMi(s);
                 let tik = '';
                 if (tanim.secim === 'kiris') tik = ' onclick="selectBeamFromTable(' + s.id + ')" ondblclick="openBeamDetailModal(' + s.id + ')"';
                 else if (tanim.secim === 'dugum') tik = ' onclick="selectNodeFromTable(' + s.id + ')"';
@@ -697,7 +720,8 @@
             }).join('');
 
             kap.innerHTML = '<table class="results-data-table"><thead><tr>' + bas +
-                            '</tr></thead><tbody>' + govde + '</tbody></table>';
+                            '</tr></thead><tbody>' + govde + '</tbody></table>' +
+                            (kirp.kirpildi ? tabloKirpmaNotu(kirp.kirpildi, toplamSatir, 'altTabloTumunuGoster()') : '');
         }
 
         function altTabloSeritleriniKur() {
@@ -719,6 +743,7 @@
             altTabloEtkin = ad;
             altTabloSiraSutun = 'id';
             altTabloSiraArtan = true;
+            altTabloTumu = false;
             document.querySelectorAll('.results-bottom-tab').forEach(b =>
                 b.classList.toggle('active', b.dataset.tab === ad));
             altTabloCiz();

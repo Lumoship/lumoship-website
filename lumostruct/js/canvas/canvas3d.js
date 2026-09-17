@@ -1,5 +1,31 @@
         // ============== 3D VIEW (Three.js) ==============
         let threeScene, threeCamera, threeRenderer, threeControls;
+
+        // SAHNE ONBELLEGI. Sahne her tazelendiginde her kiris icin yeni geometri
+        // ve yeni malzeme kuruluyordu: gerilme modunda 8 parca x (geometri +
+        // MeshStandardMaterial) - 2 915 kiriste 23 000 geometri/malzeme,
+        // update3DScene 1.3-2.6 s, 500 kiris secmek 4.7 s olculdu. Izgarada
+        // kirislerin cogu ayni boy ve kesittedir; ayni olculerdeki geometri ve
+        // ayni renkteki malzeme paylasilir (userData.paylasimli - disposeThreeObject
+        // bunlara dokunmaz). Anahtar olculerden uretilir; tema rengi anahtara girer.
+        const SAHNE_ONBELLEK = { geo: new Map(), mat: new Map() };
+        function onbellekGeometri(anahtar, yap) {
+            let g = SAHNE_ONBELLEK.geo.get(anahtar);
+            if (!g) { g = yap(); g.userData.paylasimli = true; SAHNE_ONBELLEK.geo.set(anahtar, g); }
+            return g;
+        }
+        function onbellekMalzeme(anahtar, yap) {
+            let m = SAHNE_ONBELLEK.mat.get(anahtar);
+            if (!m) { m = yap(); m.userData.paylasimli = true; SAHNE_ONBELLEK.mat.set(anahtar, m); }
+            return m;
+        }
+        function sahneOnbelleginiBosalt() {
+            SAHNE_ONBELLEK.geo.forEach(g => g.dispose()); SAHNE_ONBELLEK.mat.forEach(m => m.dispose());
+            SAHNE_ONBELLEK.geo.clear(); SAHNE_ONBELLEK.mat.clear();
+        }
+        const ok6 = v => (+v).toFixed(6);
+        const kutuGeometri = (a, b, c) => onbellekGeometri('box|' + ok6(a) + '|' + ok6(b) + '|' + ok6(c), () => new THREE.BoxGeometry(a, b, c));
+        const silindirGeometri = (r1, r2, h, seg, acik) => onbellekGeometri('cyl|' + ok6(r1) + '|' + ok6(r2) + '|' + ok6(h) + '|' + seg + '|' + (acik ? 1 : 0), () => new THREE.CylinderGeometry(r1, r2, h, seg, 1, !!acik));
         let gizmoScene = null, gizmoCamera = null;  // corner navigation gizmo
         // Active work plane for sketching: null = default (Z=0 / XY plane).
         // {axis:'X'|'Y'|'Z', offset: meters} — axis is the plane NORMAL.
@@ -1554,7 +1580,7 @@
                 });
                 
                 // Check each element
-                Object.entries(model.elements).forEach(([id, elem]) => {
+            Object.entries(model.elements).forEach(([id, elem]) => {
                     const elemId = parseInt(id);
                     const n1 = model.nodes[elem.n1];
                     const n2 = model.nodes[elem.n2];
@@ -2228,13 +2254,14 @@
             function gerilmeMalzemesi(stress, sinir, ekstra) {
                 const renk = getStressColorHex(stress, sinir);
                 const asti = sinirAsildi(stress, sinir);
-                return new THREE.MeshStandardMaterial(Object.assign({
+                const ek = ekstra || {};
+                return onbellekMalzeme('gerilme|' + renk + '|' + (asti ? 1 : 0) + '|' + JSON.stringify(ek), () => new THREE.MeshStandardMaterial(Object.assign({
                     color: renk,
                     emissive: renk,
                     emissiveIntensity: asti ? 0.55 : 0.15,
                     metalness: 0.3,
                     roughness: 0.6
-                }, ekstra || {}));
+                }, ek)));
             }
 
             // Get deformation scale
@@ -2307,6 +2334,7 @@
             
             // Draw elements (beams)
             if (view.showBeams) {
+            const elemanSayisi = Object.keys(model.elements).length;
             Object.entries(model.elements).forEach(([id, elem]) => {
                 const elemId = parseInt(id);
                 const n1 = model.nodes[elem.n1];
@@ -2386,7 +2414,7 @@
                     
                     // Plate (if exists) - at Z=0 level (top surface)
                     if (sec.plateW > 0 && sec.plateT > 0) {
-                        const plateGeom = new THREE.BoxGeometry(length, sec.plateW, sec.plateT);
+                        const plateGeom = kutuGeometri(length, sec.plateW, sec.plateT);
                         const plate = new THREE.Mesh(plateGeom, pMat);
                         plate.position.z = -sec.plateT / 2;  // Plate hangs slightly below Z=0
                         beamGroup.add(plate);
@@ -2397,7 +2425,7 @@
                     
                     if (sec.type === 'FB') {
                         // Flat Bar: thin rectangle hanging down
-                        const webGeom = new THREE.BoxGeometry(length, sec.t, sec.h);
+                        const webGeom = kutuGeometri(length, sec.t, sec.h);
                         const web = new THREE.Mesh(webGeom, mat);
                         web.position.z = profileTopZ - sec.h / 2;
                         beamGroup.add(web);
@@ -2410,7 +2438,7 @@
                         const bulbW = sec.t * 3.2;  // Bulb width ~3.2x web thickness
                         
                         // Web (hanging down from plate)
-                        const webGeom = new THREE.BoxGeometry(length, sec.t, webH);
+                        const webGeom = kutuGeometri(length, sec.t, webH);
                         const web = new THREE.Mesh(webGeom, mat);
                         web.position.z = profileTopZ - webH / 2;
                         beamGroup.add(web);
@@ -2420,14 +2448,14 @@
                         const bulbCenterZ = profileTopZ - webH - bulbH / 2;
                         
                         // Main bulb body (wider than web)
-                        const bulbGeom = new THREE.BoxGeometry(length, bulbW, bulbH);
+                        const bulbGeom = kutuGeometri(length, bulbW, bulbH);
                         const bulb = new THREE.Mesh(bulbGeom, flangeMaterial);
                         bulb.position.z = bulbCenterZ;
                         beamGroup.add(bulb);
                         
                         // Round the bulb edges with small cylinders at sides
                         const edgeRadius = bulbH / 2;
-                        const edgeGeom = new THREE.CylinderGeometry(edgeRadius, edgeRadius, length, 8);
+                        const edgeGeom = silindirGeometri(edgeRadius, edgeRadius, length, 8);
                         
                         // Left edge
                         const leftEdge = new THREE.Mesh(edgeGeom, flangeMaterial);
@@ -2445,13 +2473,13 @@
                         // T-section (inverted T): Web at top (connects to plate), Flange at bottom
                         // Web (vertical, hanging from plate)
                         const webH = sec.hw - sec.tf;
-                        const webGeom = new THREE.BoxGeometry(length, sec.tw, webH);
+                        const webGeom = kutuGeometri(length, sec.tw, webH);
                         const web = new THREE.Mesh(webGeom, mat);
                         web.position.z = profileTopZ - webH / 2;
                         beamGroup.add(web);
                         
                         // Flange (horizontal, at bottom of web)
-                        const flangeGeom = new THREE.BoxGeometry(length, sec.bf, sec.tf);
+                        const flangeGeom = kutuGeometri(length, sec.bf, sec.tf);
                         const flange = new THREE.Mesh(flangeGeom, flangeMaterial);
                         flange.position.z = profileTopZ - webH - sec.tf / 2;
                         beamGroup.add(flange);
@@ -2459,15 +2487,15 @@
                     } else if (sec.type === 'PIPE') {
                         // Boru: ekseni kiris ekseninde (asilan profil degil, merkezde).
                         // Ic delik cizilmez - dis silindir yeter, uc kapaklari acik.
-                        const tube = new THREE.Mesh(new THREE.CylinderGeometry(sec.d / 2, sec.d / 2, length, 24, 1, true), mat);
+                        const tube = new THREE.Mesh(silindirGeometri(sec.d / 2, sec.d / 2, length, 24, true), mat);
                         tube.rotation.z = Math.PI / 2;      // silindir ekseni Y -> X (kiris ekseni)
                         beamGroup.add(tube);
-                        const ic = new THREE.Mesh(new THREE.CylinderGeometry(sec.d / 2 - sec.t, sec.d / 2 - sec.t, length, 24, 1, true), mat);
+                        const ic = new THREE.Mesh(silindirGeometri(sec.d / 2 - sec.t, sec.d / 2 - sec.t, length, 24, true), mat);
                         ic.rotation.z = Math.PI / 2;
                         beamGroup.add(ic);
                     } else {
                         // Default: simple rectangle hanging down
-                        const webGeom = new THREE.BoxGeometry(length, sec.t, sec.h);
+                        const webGeom = kutuGeometri(length, sec.t, sec.h);
                         const web = new THREE.Mesh(webGeom, mat);
                         web.position.z = profileTopZ - sec.h / 2;
                         beamGroup.add(web);
@@ -2527,8 +2555,11 @@
                             return a * (1 - t) + b * t;
                         };
                         
-                        // Number of segments
-                        const numSegments = 8;
+                        // Parca sayisi model buyudukce azalir: 8 parca x 3 000 kiris
+                        // = 24 000 mesh, cizim cagrisi basina maliyet sahneyi
+                        // surunduruyordu. Buyuk modelde 2 parca yine uc/orta farkini
+                        // gosterir; ayrinti secili kiriste ve diyagramlarda.
+                        const numSegments = elemanSayisi > 1500 ? 2 : (elemanSayisi > 500 ? 4 : 8);
                         const segLength = length / numSegments;
                         
                         const beamGroup = new THREE.Group();
@@ -2545,7 +2576,7 @@
                             const stress = stressRatio * (elemResult.sigma || 0);
                             const segMat = gerilmeMalzemesi(stress, sigmaLimit, { emissiveIntensity: sinirAsildi(stress, sigmaLimit) ? 0.55 : 0.2 });
                             
-                            const segGeom = new THREE.CylinderGeometry(beamRadius, beamRadius, segLength * 1.02, 8);
+                            const segGeom = silindirGeometri(beamRadius, beamRadius, segLength * 1.02, 8);
                             const segMesh = new THREE.Mesh(segGeom, segMat);
                             
                             // Position along beam axis (Y in local coords before rotation)
@@ -2580,15 +2611,16 @@
                         const gerilmeAsti = !isSelected && shouldShowStress && results.elementResults[elemId] &&
                             sinirAsildi(results.elementResults[elemId].vonMises || 0,
                                         parseFloat(document.getElementById('sigmaLimit')?.value) || 355);
-                        const beamMat = new THREE.MeshStandardMaterial({
+                        const beamEmis = isSelected ? 0.4 : (gerilmeAsti ? 0.55 : 0.15);
+                        const beamMat = onbellekMalzeme('kiris|' + beamColor + '|' + beamEmis, () => new THREE.MeshStandardMaterial({
                             color: beamColor,
                             emissive: beamColor,
-                            emissiveIntensity: isSelected ? 0.4 : (gerilmeAsti ? 0.55 : 0.15),
+                            emissiveIntensity: beamEmis,
                             metalness: 0.3,
                             roughness: 0.6
-                        });
+                        }));
                         
-                        const beamGeometry = new THREE.CylinderGeometry(beamRadius, beamRadius, length, 8);
+                        const beamGeometry = silindirGeometri(beamRadius, beamRadius, length, 8);
                         const beam = new THREE.Mesh(beamGeometry, beamMat);
                         
                         beam.position.copy(mid);
@@ -2631,7 +2663,7 @@
                     const nodeOlcek = isNodeSelected ? 1.5 : (isConstrained ? 1.3 : 1);
                     
                     // Diamond shape (octahedron) for premium look
-                    const nodeGeometry = new THREE.OctahedronGeometry(nodeSize);
+                    const nodeGeometry = onbellekGeometri('okta|' + ok6(nodeSize), () => new THREE.OctahedronGeometry(nodeSize));
                     
                     // Select material based on selection state
                     let nMat = nodeMaterial;
@@ -3307,7 +3339,7 @@
             
             // Element ID Labels
             if (view.showElemIds) {
-                Object.entries(model.elements).forEach(([id, elem]) => {
+            Object.entries(model.elements).forEach(([id, elem]) => {
                     const n1 = model.nodes[elem.n1];
                     const n2 = model.nodes[elem.n2];
                     if (!n1 || !n2) return;
@@ -3325,7 +3357,7 @@
             
             // Section Labels (Beam labels)
             if (view.showLabels) {
-                Object.entries(model.elements).forEach(([id, elem]) => {
+            Object.entries(model.elements).forEach(([id, elem]) => {
                     const n1 = model.nodes[elem.n1];
                     const n2 = model.nodes[elem.n2];
                     if (!n1 || !n2) return;
