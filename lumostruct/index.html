@@ -1692,6 +1692,9 @@
                         <option value="yield">Yield stress (σy, σy/√3)</option>
                         <option value="dnv-ac1">DNV RU-SHIP Pt.3 Ch.6 Sec.6 — AC-I (static)</option>
                         <option value="dnv-ac2">DNV RU-SHIP Pt.3 Ch.6 Sec.6 — AC-II/III (static + dynamic)</option>
+                        <option value="bv-ac1">BV NR467 Pt.B Ch.7 Sec.6 — AC-1 (harbour)</option>
+                        <option value="bv-ac2">BV NR467 Pt.B Ch.7 Sec.6 — AC-2 (seagoing)</option>
+                        <option value="bv-ac3">BV NR467 Pt.B Ch.7 Sec.6 — AC-3 (tank test / flooded)</option>
                         <option value="manual">Manual</option>
                     </select>
                 </div>
@@ -1700,6 +1703,22 @@
                     <div class="limit-input" style="margin-top:4px;">
                         <label>Hull girder stress σ<sub>hg</sub> at the member (MPa)</label>
                         <input type="number" id="sigmaHg" value="0" step="5" onchange="kontrolAyariDegisti()">
+                    </div>
+                </div>
+                <div id="bvKutusu" style="display:none; margin:4px 0 8px;">
+                    <div class="limit-input">
+                        <label>Condition χ (Ch.7 Sec.4)</label>
+                        <select id="bvChi" onchange="kontrolAyariDegisti()" style="width:100%; padding:6px; font-size:var(--fs-sm);">
+                            <option value="intact">Intact — χ = 1.00</option>
+                            <option value="accidental">Accidental, watertight boundary (not collision bhd) — χ = 1.15</option>
+                        </select>
+                    </div>
+                    <div class="limit-input" style="margin-top:4px;">
+                        <label>Corrosion coefficient K<sub>corr</sub></label>
+                        <select id="bvKcorr" onchange="kontrolAyariDegisti()" style="width:100%; padding:6px; font-size:var(--fs-sm);">
+                            <option value="general">In general — 1.0</option>
+                            <option value="tanktest">Tank testing at construction stage — 1.2</option>
+                        </select>
                     </div>
                 </div>
                 <div class="limit-input">

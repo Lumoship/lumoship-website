@@ -22,13 +22,30 @@
         //                    HG yuksuz beta 0.85 alpha 0
         // Sehim: DNV'de PSM icin genel bir L/x yok (ambar kapagi 0.0056 lg);
         // gemi uygulamasinda L/250-L/300 yaygin - kullanici girer.
+        //
+        // BV NR467 (Jul 2026) Pt.B Ch.7 Sec.6 [5.1.4] izgara (grillage) analizi:
+        //   sigma_eq <= chi * Kcorr * Ccomb * ReH   (von Mises)
+        //   tek kiris: sigma <= chi Kcorr Cs ReH,  tau <= chi Kcorr Ct tau_eH
+        //   Tab 2 (butun sinirlar, guverte/flat dahil): AC-1 0.70, AC-2 0.85,
+        //   AC-3 0.90 (Cs = Ct = Ccomb). Tab 23: AC-1 liman, AC-2 seyir,
+        //   AC-3 tank testi / su almis durum.
+        //   chi (Ch.7 Sec.4): saglam 1.00; kaza durumu su gecirmez sinir 1.15
+        //   (carpisma perdesi 1.00). Kcorr: genel 1.0; insaatta tank testi 1.2.
+        //   model.kontrol.chi = 'intact' | 'accidental', .kcorr = 'general' | 'tanktest'
 
         const GERILME_TABANLARI = {
             'manual':  { ad: 'Manual (enter limits)' },
             'yield':   { ad: 'Yield stress (σy, σy/√3)' },
             'dnv-ac1': { ad: 'DNV RU-SHIP Ch.6 Sec.6 AC-I (static)', hgli: { beta: 0.85, alpha: 1, csMax: 0.70 }, hgsiz: { beta: 0.70, alpha: 0, csMax: 0.70 }, ct: 0.70 },
-            'dnv-ac2': { ad: 'DNV RU-SHIP Ch.6 Sec.6 AC-II/III (static + dynamic)', hgli: { beta: 0.95, alpha: 1, csMax: 0.85 }, hgsiz: { beta: 0.85, alpha: 0, csMax: 0.85 }, ct: 0.85 }
+            'dnv-ac2': { ad: 'DNV RU-SHIP Ch.6 Sec.6 AC-II/III (static + dynamic)', hgli: { beta: 0.95, alpha: 1, csMax: 0.85 }, hgsiz: { beta: 0.85, alpha: 0, csMax: 0.85 }, ct: 0.85 },
+            'bv-ac1':  { ad: 'BV NR467 Ch.7 Sec.6 AC-1 (harbour)',            bv: true, cs: 0.70, ct: 0.70, ccomb: 0.70 },
+            'bv-ac2':  { ad: 'BV NR467 Ch.7 Sec.6 AC-2 (seagoing)',           bv: true, cs: 0.85, ct: 0.85, ccomb: 0.85 },
+            'bv-ac3':  { ad: 'BV NR467 Ch.7 Sec.6 AC-3 (tank test / flooded)', bv: true, cs: 0.90, ct: 0.90, ccomb: 0.90 }
         };
+        const BV_CHI = { intact: 1.00, accidental: 1.15 };
+        const BV_KCORR = { general: 1.0, tanktest: 1.2 };
+        function tabanDnvMi(taban) { return taban === 'dnv-ac1' || taban === 'dnv-ac2'; }
+        function tabanBvMi(taban) { return !!(GERILME_TABANLARI[taban] && GERILME_TABANLARI[taban].bv); }
 
         function kontrolAyarlari() {
             if (typeof model === 'undefined' || !model) return { taban: 'yield' };
@@ -55,6 +72,15 @@
             if (k.taban === 'yield') {
                 return { sigma: fy, tau: fy / Math.sqrt(3), aciklama: 'σy = ' + fy.toFixed(0) + ' MPa, τ = σy/√3', Cs: 1, Ct: 1 };
             }
+            if (t.bv) {
+                // Izgara analizi: von Mises sinir chi*Kcorr*Ccomb*ReH; kayma chi*Kcorr*Ct*tau_eH
+                const chi = BV_CHI[k.chi] || 1.0, kc = BV_KCORR[k.kcorr] || 1.0;
+                const Cs = chi * kc * t.ccomb, Ct = chi * kc * t.ct;
+                return {
+                    sigma: Cs * fy, tau: Ct * fy / Math.sqrt(3), Cs: Cs, Ct: Ct, chi: chi, kcorr: kc,
+                    aciklama: 'σeq ≤ χ·Kcorr·Ccomb·ReH = ' + chi.toFixed(2) + '·' + kc.toFixed(1) + '·' + t.ccomb.toFixed(2) + '·' + fy.toFixed(0) + ' = ' + (Cs * fy).toFixed(0) + ' MPa;  τ ≤ χ·Kcorr·Ct·τeH = ' + (Ct * fy / Math.sqrt(3)).toFixed(0) + ' MPa  (Pt.B Ch.7 Sec.6 [5.1.4], Tab 2)'
+                };
+            }
             const p = k.hg ? t.hgli : t.hgsiz;
             const shg = k.hg ? Math.abs(parseFloat(k.sigmaHg) || 0) : 0;
             const Cs = Math.min(p.csMax, p.beta - p.alpha * shg / fy);
@@ -76,7 +102,10 @@
             const taban = document.getElementById('gerilmeTabani'); if (taban && taban.value !== k.taban) taban.value = k.taban;
             const hg = document.getElementById('hgYuklu'); if (hg) hg.checked = !!k.hg;
             const shg = document.getElementById('sigmaHg'); if (shg && k.sigmaHg !== undefined && document.activeElement !== shg) shg.value = k.sigmaHg;
-            const hgKutu = document.getElementById('hgKutusu'); if (hgKutu) hgKutu.style.display = (k.taban === 'dnv-ac1' || k.taban === 'dnv-ac2') ? '' : 'none';
+            const hgKutu = document.getElementById('hgKutusu'); if (hgKutu) hgKutu.style.display = tabanDnvMi(k.taban) ? '' : 'none';
+            const bvKutu = document.getElementById('bvKutusu'); if (bvKutu) bvKutu.style.display = tabanBvMi(k.taban) ? '' : 'none';
+            const chiEl = document.getElementById('bvChi'); if (chiEl) chiEl.value = BV_CHI[k.chi] ? k.chi : 'intact';
+            const kcEl = document.getElementById('bvKcorr'); if (kcEl) kcEl.value = BV_KCORR[k.kcorr] ? k.kcorr : 'general';
             const ac = document.getElementById('gerilmeTabaniAciklama'); if (ac) ac.textContent = s.aciklama;
             const so = document.getElementById('sehimOran'); if (so && document.activeElement !== so) so.value = (k.sehimOran > 0) ? k.sehimOran : '';
             const sm = document.getElementById('sehimMm'); if (sm && document.activeElement !== sm) sm.value = (k.sehimMm > 0) ? k.sehimMm : '';
@@ -89,6 +118,8 @@
             if (oku('gerilmeTabani')) k.taban = oku('gerilmeTabani').value;
             if (oku('hgYuklu')) k.hg = !!oku('hgYuklu').checked;
             if (oku('sigmaHg')) k.sigmaHg = parseFloat(oku('sigmaHg').value) || 0;
+            if (oku('bvChi')) k.chi = oku('bvChi').value;
+            if (oku('bvKcorr')) k.kcorr = oku('bvKcorr').value;
             if (k.taban === 'manual') {
                 k.sigma = parseFloat(oku('sigmaLimit')?.value) || genelAkma();
                 k.tau = parseFloat(oku('tauLimit')?.value) || genelAkma() / Math.sqrt(3);
