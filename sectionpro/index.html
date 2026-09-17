@@ -898,7 +898,7 @@
                 <div id="T-section" class="profile-section">
                     <div class="ea-input-row-2">
                         <div class="ea-field">
-                            <label class="ea-label">h (Web Height)</label>
+                            <label class="ea-label">h (Web Height, excl. flange)</label>
                             <div class="ea-input-row"><input type="number" class="ea-input" id="T-h" value="150" min="10"><span class="ea-unit">mm</span></div>
                         </div>
                         <div class="ea-field">
@@ -960,6 +960,7 @@
                             <div class="ea-input-row"><input type="number" class="ea-input" id="HP-r" value="8" min="1"><span class="ea-unit">mm</span></div>
                         </div>
                     </div>
+                    <div class="ea-info-badge" id="hp-source-note" style="display:none"></div>
                 </div>
 
                 <div class="ea-divider"></div>
@@ -990,7 +991,7 @@
                     <label for="corrosion-enabled">Apply Corrosion (BV NR467)</label>
                 </div>
                 <div id="corrosion-section" style="display:none;">
-                    <div class="ea-info-badge">HP profiles: corrosion N/A — catalog values used</div>
+                    <div class="ea-info-badge">HP profiles: net section via the BV NR467 Pt B Ch 4 Sec 6 [1.4.1] equivalent built-up section, applied as a ratio to the catalogue values</div>
                     <div class="ea-field">
                         <label class="ea-label">Plate Inner / Stiffener (tk₁)</label>
                         <select class="ea-select ea-select-sm" id="plate-compartment-inner" onchange="updateCorrosionValues()">
@@ -1187,66 +1188,92 @@
          */
 
         // === HP Catalog (EN 10067) ===
+        // Source: LumoStruct js/core/data.js (re-derived from EN 10067 on
+        // 2026-09-14, checked by LumoStruct tests/verify-hp-katalog.js).
+        // The table that lived here before was a different, wrong copy:
+        // Ixx was 12-27% low across the range (40-50% for HP60), dx up to
+        // 2 cm off. dx is measured from the web foot (plate face).
         const HP_CATALOG = [
-            { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.08, dx:3.24, Ixx:8.82 },
-            { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:3.79, dx:3.32, Ixx:10.6 },
-            { name:"HP 60x6", b:60, t:6, c:13, r:3.5, A:4.49, dx:3.40, Ixx:12.2 },
-            { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.09, dx:4.33, Ixx:26.3 },
-            { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.03, dx:4.43, Ixx:30.4 },
-            { name:"HP 80x7", b:80, t:7, c:14, r:4, A:6.95, dx:4.52, Ixx:34.2 },
-            { name:"HP 80x8", b:80, t:8, c:14, r:4, A:7.86, dx:4.61, Ixx:37.7 },
-            { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.64, dx:5.40, Ixx:61.7 },
-            { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.82, dx:5.51, Ixx:69.7 },
-            { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.98, dx:5.61, Ixx:77.2 },
-            { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.24, dx:6.48, Ixx:112 },
-            { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.7, dx:6.60, Ixx:127 },
-            { name:"HP 120x8", b:120, t:8, c:17, r:5, A:11.72, dx:6.96, Ixx:165 },
-            { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.6, dx:7.68, Ixx:208 },
-            { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:14.3, dx:7.81, Ixx:232 },
-            { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.9, dx:7.93, Ixx:254 },
-            { name:"HP 160x7", b:160, t:7, c:22, r:6, A:14.5, dx:8.83, Ixx:322 },
-            { name:"HP 160x8", b:160, t:8, c:22, r:6, A:16.4, dx:8.97, Ixx:359 },
-            { name:"HP 160x9", b:160, t:9, c:22, r:6, A:18.3, dx:9.10, Ixx:394 },
-            { name:"HP 180x8", b:180, t:8, c:25, r:7, A:18.6, dx:10.10, Ixx:526 },
-            { name:"HP 180x9", b:180, t:9, c:25, r:7, A:20.8, dx:10.25, Ixx:579 },
-            { name:"HP 180x10", b:180, t:10, c:25, r:7, A:22.9, dx:10.39, Ixx:629 },
-            { name:"HP 180x11", b:180, t:11, c:25, r:7, A:25.0, dx:10.52, Ixx:677 },
-            { name:"HP 200x9", b:200, t:9, c:28, r:8, A:23.3, dx:11.38, Ixx:814 },
-            { name:"HP 200x10", b:200, t:10, c:28, r:8, A:25.7, dx:11.54, Ixx:886 },
-            { name:"HP 200x11", b:200, t:11, c:28, r:8, A:28.1, dx:11.69, Ixx:955 },
-            { name:"HP 200x12", b:200, t:12, c:28, r:8, A:30.4, dx:11.83, Ixx:1020 },
-            { name:"HP 220x10", b:220, t:10, c:31, r:9, A:28.6, dx:12.68, Ixx:1210 },
-            { name:"HP 220x11", b:220, t:11, c:31, r:9, A:31.2, dx:12.84, Ixx:1300 },
-            { name:"HP 220x12", b:220, t:12, c:31, r:9, A:33.8, dx:12.99, Ixx:1400 },
-            { name:"HP 240x10", b:240, t:10, c:34, r:10, A:31.4, dx:13.82, Ixx:1610 },
-            { name:"HP 240x11", b:240, t:11, c:34, r:10, A:34.4, dx:13.99, Ixx:1740 },
-            { name:"HP 240x12", b:240, t:12, c:34, r:10, A:37.3, dx:14.15, Ixx:1870 },
-            { name:"HP 260x10", b:260, t:10, c:37, r:11, A:34.3, dx:14.96, Ixx:2100 },
-            { name:"HP 260x11", b:260, t:11, c:37, r:11, A:37.5, dx:15.14, Ixx:2270 },
-            { name:"HP 260x12", b:260, t:12, c:37, r:11, A:40.7, dx:15.31, Ixx:2440 },
-            { name:"HP 280x11", b:280, t:11, c:40, r:12, A:40.7, dx:16.28, Ixx:2900 },
-            { name:"HP 280x12", b:280, t:12, c:40, r:12, A:44.2, dx:16.46, Ixx:3120 },
-            { name:"HP 280x13", b:280, t:13, c:40, r:12, A:47.6, dx:16.63, Ixx:3330 },
-            { name:"HP 300x11", b:300, t:11, c:43, r:13, A:43.8, dx:17.42, Ixx:3640 },
-            { name:"HP 300x12", b:300, t:12, c:43, r:13, A:47.6, dx:17.61, Ixx:3920 },
-            { name:"HP 300x13", b:300, t:13, c:43, r:13, A:51.3, dx:17.79, Ixx:4190 },
-            { name:"HP 320x12", b:320, t:12, c:46, r:14, A:51.0, dx:18.75, Ixx:4840 },
-            { name:"HP 320x13", b:320, t:13, c:46, r:14, A:55.0, dx:18.94, Ixx:5180 },
-            { name:"HP 320x14", b:320, t:14, c:46, r:14, A:59.0, dx:19.12, Ixx:5510 },
-            { name:"HP 340x12", b:340, t:12, c:49, r:15, A:54.4, dx:19.89, Ixx:5900 },
-            { name:"HP 340x13", b:340, t:13, c:49, r:15, A:58.7, dx:20.09, Ixx:6310 },
-            { name:"HP 340x14", b:340, t:14, c:49, r:15, A:62.9, dx:20.28, Ixx:6710 },
-            { name:"HP 370x13", b:370, t:13, c:53.5, r:16.5, A:64.1, dx:21.73, Ixx:8230 },
-            { name:"HP 370x14", b:370, t:14, c:53.5, r:16.5, A:68.7, dx:21.94, Ixx:8760 },
-            { name:"HP 370x15", b:370, t:15, c:53.5, r:16.5, A:73.3, dx:22.14, Ixx:9270 },
-            { name:"HP 400x14", b:400, t:14, c:58, r:18, A:74.6, dx:23.59, Ixx:11200 },
-            { name:"HP 400x15", b:400, t:15, c:58, r:18, A:79.6, dx:23.81, Ixx:11900 },
-            { name:"HP 400x16", b:400, t:16, c:58, r:18, A:84.6, dx:24.02, Ixx:12500 },
-            { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:80.5, dx:25.32, Ixx:14100 },
-            { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:85.9, dx:25.55, Ixx:14900 },
-            { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:96.5, dx:25.99, Ixx:16500 },
-            { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:107, dx:26.41, Ixx:18000 },
-            { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:112, dx:26.61, Ixx:18700 }
+            { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.58, dx:3.48, Ixx:13.2 },
+            { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:4.18, dx:3.41, Ixx:15.12 },
+            { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.41, dx:4.96, Ixx:33.36 },
+            { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.21, dx:4.84, Ixx:38.27 },
+            { name:"HP 80x7", b:80, t:7, c:14, r:4, A:7.01, dx:4.74, Ixx:43.04 },
+            { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.74, dx:6.03, Ixx:75.87 },
+            { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.74, dx:5.91, Ixx:85.14 },
+            { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.74, dx:5.82, Ixx:94.22 },
+            { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.32, dx:7.25, Ixx:132.9 },
+            { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.52, dx:7.11, Ixx:149 },
+            { name:"HP 120x8", b:120, t:8, c:17, r:5, A:11.72, dx:6.99, Ixx:164.7 },
+            { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.43, dx:8.35, Ixx:241.2 },
+            { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:13.83, dx:8.21, Ixx:266.3 },
+            { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.2, dx:8.09, Ixx:290.3 },
+            { name:"HP 140x10", b:140, t:10, c:19, r:5.5, A:16.63, dx:8.01, Ixx:315.5 },
+            { name:"HP 160x7", b:160, t:7, c:22, r:6, A:14.6, dx:9.67, Ixx:371.1 },
+            { name:"HP 160x8", b:160, t:8, c:22, r:6, A:16.2, dx:9.51, Ixx:409.3 },
+            { name:"HP 160x9", b:160, t:9, c:22, r:6, A:17.8, dx:9.37, Ixx:446.7 },
+            { name:"HP 160x10", b:160, t:10, c:22, r:6, A:19.34, dx:9.26, Ixx:481.3 },
+            { name:"HP 160x11", b:160, t:11, c:22, r:6, A:21, dx:9.17, Ixx:517.8 },
+            { name:"HP 160x11.5", b:160, t:11.5, c:22, r:6, A:21.74, dx:9.13, Ixx:535.9 },
+            { name:"HP 180x8", b:180, t:8, c:25, r:7, A:18.86, dx:10.9, Ixx:606.6 },
+            { name:"HP 180x9", b:180, t:9, c:25, r:7, A:20.66, dx:10.74, Ixx:661.1 },
+            { name:"HP 180x10", b:180, t:10, c:25, r:7, A:22.46, dx:10.6, Ixx:711.7 },
+            { name:"HP 180x11", b:180, t:11, c:25, r:7, A:24.26, dx:10.48, Ixx:764.6 },
+            { name:"HP 180x11.5", b:180, t:11.5, c:25, r:7, A:25.1, dx:10.43, Ixx:790.8 },
+            { name:"HP 200x8.5", b:200, t:8.5, c:28, r:8, A:22.63, dx:12.22, Ixx:901.1 },
+            { name:"HP 200x9", b:200, t:9, c:28, r:8, A:23.66, dx:12.13, Ixx:939.1 },
+            { name:"HP 200x10", b:200, t:10, c:28, r:8, A:25.66, dx:11.97, Ixx:1010 },
+            { name:"HP 200x11", b:200, t:11, c:28, r:8, A:27.66, dx:11.83, Ixx:1084 },
+            { name:"HP 200x11.5", b:200, t:11.5, c:28, r:8, A:28.6, dx:11.76, Ixx:1121 },
+            { name:"HP 200x12", b:200, t:12, c:28, r:8, A:29.66, dx:11.7, Ixx:1157 },
+            { name:"HP 220x9", b:220, t:9, c:31, r:9, A:26.78, dx:13.55, Ixx:1290 },
+            { name:"HP 220x10", b:220, t:10, c:31, r:9, A:29, dx:13.37, Ixx:1388 },
+            { name:"HP 220x11", b:220, t:11, c:31, r:9, A:31.2, dx:13.2, Ixx:1488 },
+            { name:"HP 220x11.5", b:220, t:11.5, c:31, r:9, A:32.24, dx:13.12, Ixx:1538 },
+            { name:"HP 220x12", b:220, t:12, c:31, r:9, A:33.4, dx:13.05, Ixx:1587 },
+            { name:"HP 240x9.5", b:240, t:9.5, c:34, r:10, A:31.23, dx:14.89, Ixx:1787 },
+            { name:"HP 240x10", b:240, t:10, c:34, r:10, A:32.49, dx:14.79, Ixx:1855 },
+            { name:"HP 240x10.5", b:240, t:10.5, c:34, r:10, A:33.63, dx:14.69, Ixx:1921 },
+            { name:"HP 240x11", b:240, t:11, c:34, r:10, A:34.89, dx:14.59, Ixx:1987 },
+            { name:"HP 240x11.5", b:240, t:11.5, c:34, r:10, A:36.03, dx:14.51, Ixx:2053 },
+            { name:"HP 240x12", b:240, t:12, c:34, r:10, A:37.29, dx:14.43, Ixx:2118 },
+            { name:"HP 260x10", b:260, t:10, c:37, r:11, A:36.11, dx:16.23, Ixx:2422 },
+            { name:"HP 260x11", b:260, t:11, c:37, r:11, A:38.71, dx:16.01, Ixx:2593 },
+            { name:"HP 260x12", b:260, t:12, c:37, r:11, A:41.31, dx:15.82, Ixx:2762 },
+            { name:"HP 260x13", b:260, t:13, c:37, r:11, A:43.85, dx:15.65, Ixx:2928 },
+            { name:"HP 280x10.5", b:280, t:10.5, c:40, r:12, A:41.22, dx:17.57, Ixx:3210 },
+            { name:"HP 280x11", b:280, t:11, c:40, r:12, A:42.68, dx:17.45, Ixx:3319 },
+            { name:"HP 280x12", b:280, t:12, c:40, r:12, A:45.48, dx:17.24, Ixx:3533 },
+            { name:"HP 280x13", b:280, t:13, c:40, r:12, A:48.28, dx:17.05, Ixx:3744 },
+            { name:"HP 300x11", b:300, t:11, c:43, r:13, A:46.75, dx:18.91, Ixx:4175 },
+            { name:"HP 300x12", b:300, t:12, c:43, r:13, A:49.79, dx:18.67, Ixx:4443 },
+            { name:"HP 300x13", b:300, t:13, c:43, r:13, A:52.79, dx:18.46, Ixx:4707 },
+            { name:"HP 320x11.5", b:320, t:11.5, c:46, r:14, A:52.59, dx:20.25, Ixx:5342 },
+            { name:"HP 320x12", b:320, t:12, c:46, r:14, A:54.25, dx:20.13, Ixx:5507 },
+            { name:"HP 320x12.5", b:320, t:12.5, c:46, r:14, A:55.79, dx:20.01, Ixx:5670 },
+            { name:"HP 320x13", b:320, t:13, c:46, r:14, A:57.45, dx:19.9, Ixx:5831 },
+            { name:"HP 320x13.5", b:320, t:13.5, c:46, r:14, A:58.94, dx:19.8, Ixx:5978 },
+            { name:"HP 320x14", b:320, t:14, c:46, r:14, A:60.64, dx:19.7, Ixx:6137 },
+            { name:"HP 340x12", b:340, t:12, c:49, r:15, A:58.84, dx:21.6, Ixx:6736 },
+            { name:"HP 340x12.5", b:340, t:12.5, c:49, r:15, A:60.48, dx:21.47, Ixx:6935 },
+            { name:"HP 340x13", b:340, t:13, c:49, r:15, A:62.24, dx:21.35, Ixx:7132 },
+            { name:"HP 340x14", b:340, t:14, c:49, r:15, A:65.61, dx:21.13, Ixx:7504 },
+            { name:"HP 340x15", b:340, t:15, c:49, r:15, A:68.94, dx:20.92, Ixx:7887 },
+            { name:"HP 370x12.5", b:370, t:12.5, c:53.5, r:16.5, A:67.79, dx:23.69, Ixx:9185 },
+            { name:"HP 370x13", b:370, t:13, c:53.5, r:16.5, A:69.7, dx:23.55, Ixx:9444 },
+            { name:"HP 370x14", b:370, t:14, c:53.5, r:16.5, A:73.4, dx:23.3, Ixx:9937 },
+            { name:"HP 370x15", b:370, t:15, c:53.5, r:16.5, A:77.07, dx:23.07, Ixx:10440 },
+            { name:"HP 370x16", b:370, t:16, c:53.5, r:16.5, A:80.7, dx:22.86, Ixx:10936 },
+            { name:"HP 400x13", b:400, t:13, c:58, r:18, A:77.43, dx:25.79, Ixx:12235 },
+            { name:"HP 400x14", b:400, t:14, c:58, r:18, A:81.48, dx:25.51, Ixx:12873 },
+            { name:"HP 400x15", b:400, t:15, c:58, r:18, A:85.48, dx:25.25, Ixx:13522 },
+            { name:"HP 400x16", b:400, t:16, c:58, r:18, A:89.43, dx:25.02, Ixx:14161 },
+            { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:89.94, dx:27.75, Ixx:16367 },
+            { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:94.14, dx:27.46, Ixx:17189 },
+            { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:102.79, dx:26.96, Ixx:18794 },
+            { name:"HP 430x18", b:430, t:18, c:62.5, r:19.5, A:106.98, dx:26.74, Ixx:19580 },
+            { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:111.34, dx:26.54, Ixx:20356 },
+            { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:115.67, dx:26.35, Ixx:21124 }
         ];
 
         // === State ===
@@ -1271,14 +1298,19 @@
             const Ixy = A1*(x1-centroidX)*(y1-centroidY) + A2*(x2-centroidX)*(y2-centroidY);
             return { type:'L', area, centroidX, centroidY, Ixx, Iyy, Ixy, height:aCm, maxWidth:bCm, xOffsetFromWebCenter: centroidX - tCm/2, dimensions:{a,b,t} };
         }
+        // h is the WEB height (flange excluded) - the rule notation (h_w in
+        // DNV/BV) and what the input label says. Until 2026-09-18 the formula
+        // silently treated h as the overall height while the label said "web",
+        // so a T entered per the label came out 5% light in area and ~24% low
+        // in Ixx. LumoStruct (teeProperties) has always used the web height.
         function _calcT(h, tw, bf, tf) {
             const hCm=h/10, twCm=tw/10, bfCm=bf/10, tfCm=tf/10;
-            const webArea = (hCm-tfCm)*twCm, flangeArea = bfCm*tfCm, area = webArea+flangeArea;
-            const webCY = tfCm + (hCm-tfCm)/2, flangeCY = tfCm/2;
+            const webArea = hCm*twCm, flangeArea = bfCm*tfCm, area = webArea+flangeArea;
+            const webCY = tfCm + hCm/2, flangeCY = tfCm/2;
             const centroidY = (webArea*webCY + flangeArea*flangeCY) / area;
-            const Ixx = (twCm*(hCm-tfCm)**3)/12 + webArea*(webCY-centroidY)**2 + (bfCm*tfCm**3)/12 + flangeArea*(flangeCY-centroidY)**2;
-            const Iyy = ((hCm-tfCm)*twCm**3)/12 + (tfCm*bfCm**3)/12;
-            return { type:'T', area, centroidX:bfCm/2, centroidY, Ixx, Iyy, Ixy:0, height:hCm, maxWidth:bfCm, xOffsetFromWebCenter:0, dimensions:{h,tw,bf,tf} };
+            const Ixx = (twCm*hCm**3)/12 + webArea*(webCY-centroidY)**2 + (bfCm*tfCm**3)/12 + flangeArea*(flangeCY-centroidY)**2;
+            const Iyy = (hCm*twCm**3)/12 + (tfCm*bfCm**3)/12;
+            return { type:'T', area, centroidX:bfCm/2, centroidY, Ixx, Iyy, Ixy:0, height:hCm+tfCm, maxWidth:bfCm, xOffsetFromWebCenter:0, dimensions:{h,tw,bf,tf} };
         }
         function _calcFB(h, t) {
             const hCm=h/10, tCm=t/10, area=hCm*tCm;
@@ -1288,25 +1320,71 @@
         function calculateLProfile() { return _calcL(pv('L-a',100), pv('L-b',100), pv('L-t',10)); }
         function calculateTProfile() { return _calcT(pv('T-h',150), pv('T-tw',10), pv('T-bf',100), pv('T-tf',12)); }
         function calculateFBProfile() { return _calcFB(pv('FB-h',150), pv('FB-t',12)); }
-        function calculateHPProfile() {
-            const b=pv('HP-b',200), t=pv('HP-t',10), c=pv('HP-c',28), r=pv('HP-r',8);
-            const bCm=b/10, tCm=t/10, cCm=c/10, rCm=r/10;
-            const cat = HP_CATALOG.find(hp => hp.b===b && hp.t===t);
-            let area, centroidY, Ixx;
-            if (cat) { area=cat.A; centroidY=cat.dx; Ixx=cat.Ixx; }
-            else {
-                const wH=bCm-cCm, wA=tCm*wH, bA=((tCm+cCm)/2)*cCm*0.5 + Math.PI*rCm**2/4;
-                area=wA+bA; const wCY=wH/2, bCY=wH+cCm*0.6;
-                centroidY=(wA*wCY+bA*bCY)/area;
-                Ixx=(tCm*wH**3)/12+wA*(wCY-centroidY)**2+bA*(cCm*0.3)**2+bA*(bCY-centroidY)**2;
+        // --- Bulb flat outside the catalogue ---
+        // The old closed-form guess (web + a hand-fitted bulb area) was 20-30%
+        // low against EN 10067 across the whole range, so it is gone. Two
+        // fallbacks, in order:
+        //   1. same height family in the catalogue -> linear in t between the
+        //      two nearest rows (A, dx, Ixx are all near-linear in t; checked
+        //      leave-one-out on the table: Ixx within 0.2%).
+        //   2. otherwise the BV NR467 Pt B, Ch 4, Sec 6, [1.4.1] equivalent
+        //      built-up section (web + flange). Approximate: about 8% on the
+        //      plate-fibre modulus, 14% at the free edge.
+        function bulbEquivalentDims(hw, tw) {
+            const alfa = hw <= 120 ? 1.1 + Math.pow(120 - hw, 2) / 3000 : 1.0;
+            return { h: hw - hw / 9.2 + 2, tw: tw, bf: alfa * (tw + hw / 6.7 - 2), tf: hw / 9.2 - 2 };
+        }
+        // mm in; A cm2, I cm4, yc cm (from the web foot, same datum as catalogue dx)
+        function bulbEquivalentProps(e) {
+            const Aw = e.h * e.tw, Af = Math.max(e.bf, 0) * Math.max(e.tf, 0), A = Aw + Af;
+            if (!(A > 0)) return { A: 0, I: 0, yc: 0 };
+            const yw = e.h / 2, yf = e.h + e.tf / 2, yc = (Aw * yw + Af * yf) / A;
+            const I = e.tw * Math.pow(e.h, 3) / 12 + Aw * Math.pow(yw - yc, 2)
+                    + Math.max(e.bf, 0) * Math.pow(Math.max(e.tf, 0), 3) / 12 + Af * Math.pow(yf - yc, 2);
+            return { A: A / 100, I: I / 1e4, yc: yc / 10 };
+        }
+        function hpBaseProps(b, t) {
+            const cat = HP_CATALOG.find(hp => hp.b === b && hp.t === t);
+            if (cat) return { A: cat.A, dx: cat.dx, Ixx: cat.Ixx, source: 'catalog' };
+            const fam = HP_CATALOG.filter(hp => hp.b === b).sort((p, q) => p.t - q.t);
+            if (fam.length >= 2 && t >= fam[0].t - 2 && t <= fam[fam.length - 1].t + 2) {
+                let lo = fam[0], hi = fam[1];
+                for (let i = 0; i < fam.length - 1; i++) { if (t >= fam[i].t) { lo = fam[i]; hi = fam[i + 1]; } }
+                const s = (t - lo.t) / (hi.t - lo.t), L = (p, q) => p + (q - p) * s;
+                return { A: L(lo.A, hi.A), dx: L(lo.dx, hi.dx), Ixx: L(lo.Ixx, hi.Ixx), source: 'interp' };
             }
-            // Iyy approximation: web rectangle (b × t) + bulb area offset (c-t)/2 from web axis.
-            // Much better than the previous A·c²/12 which ignored the web entirely.
+            const e = bulbEquivalentProps(bulbEquivalentDims(b, t));
+            return { A: e.A, dx: e.yc, Ixx: e.I, source: 'bv' };
+        }
+        // corrMM: corrosion to deduct from the web (BV NR467 net section).
+        // The bulb is rolled, not parametric, so thickness cannot be deducted
+        // from it directly. Same approach as LumoStruct: build the BV
+        // equivalent section gross and net and apply the RATIO to the
+        // catalogue values - with zero corrosion the result is unchanged.
+        function calculateHPProfile(corrMM) {
+            const b=pv('HP-b',200), t=pv('HP-t',10), c=pv('HP-c',28), r=pv('HP-r',8);
+            const bCm=b/10, cCm=c/10;
+            let tCm=t/10;
+            const base = hpBaseProps(b, t);
+            let area=base.A, centroidY=base.dx, Ixx=base.Ixx;
+            const kor = (typeof corrMM==='number' && isFinite(corrMM) && corrMM>0) ? corrMM : 0;
+            if (kor > 0) {
+                const brut = bulbEquivalentProps(bulbEquivalentDims(b, t));
+                const net  = bulbEquivalentProps(bulbEquivalentDims(b, Math.max(t - kor, 0.5)));
+                if (brut.A > 0 && brut.I > 0 && brut.yc > 0) {
+                    area *= net.A / brut.A; Ixx *= net.I / brut.I; centroidY *= net.yc / brut.yc;
+                }
+                tCm = Math.max(tCm - kor/10, 0.05);
+            }
+            // Iyy: web strip + bulb as an equal-area circle (same model as
+            // LumoStruct; HP200x10 -> 3.99 cm4, published 3.2-4). The previous
+            // "bulb as a c-wide rectangle" guess gave 10 cm4 - 2.5x too high.
             const Aweb = bCm*tCm;
-            const Abulb = Math.max(0, area - Aweb);
-            const bulbOffset = (cCm - tCm) / 2;
-            const Iyy = (bCm*tCm**3)/12 + (Abulb*cCm**2)/12 + Abulb*bulbOffset**2;
-            return { type:'HP', area, centroidX:cCm/2, centroidY, Ixx, Iyy, Ixy:0, height:bCm, maxWidth:cCm, xOffsetFromWebCenter:(cCm-tCm)/2*0.4, dimensions:{b,t,c,r} };
+            let d = Math.sqrt(Math.max(area - Aweb, 0) * 4 / Math.PI);
+            if (!(d > tCm)) d = tCm;
+            const webW = Math.max(bCm - d, 0);
+            const Iyy = webW*tCm**3/12 + Math.PI*d**4/64;
+            return { type:'HP', area, centroidX:cCm/2, centroidY, Ixx, Iyy, Ixy:0, height:bCm, maxWidth:cCm, xOffsetFromWebCenter:(cCm-tCm)/2*0.4, dimensions:{b,t,c,r}, source:base.source };
         }
 
         function calculateProfileWithThickness(type, t1, t2) {
@@ -1413,7 +1491,7 @@
 
             // Net section
             const corrOn = el('corrosion-enabled').checked;
-            if (corrOn && currentProfile!=='HP' && plateOn) {
+            if (corrOn) {
                 const ptCorr=parseFloat(el('plate-corr-total').value)||0;
                 const stCorr=parseFloat(el('stiffener-corr-total').value)||0;
                 const netPt=Math.max(0,pt-ptCorr);
@@ -1422,23 +1500,25 @@
                     case 'L': netPd=calculateProfileWithThickness('L',Math.max(1,pv('L-t',10)-stCorr)); break;
                     case 'T': netPd=calculateProfileWithThickness('T',Math.max(1,pv('T-tw',10)-stCorr),Math.max(1,pv('T-tf',12)-stCorr)); break;
                     case 'FB': netPd=calculateProfileWithThickness('FB',Math.max(1,pv('FB-t',12)-stCorr)); break;
+                    case 'HP': netPd=calculateHPProfile(stCorr); break;
                 }
-                const nr=computeCombinedSection(netPd,true,pw,netPt,angle);
+                const nr=computeCombinedSection(netPd,plateOn,pw,netPt,angle);
                 el('result-net-wxx-top').innerHTML=f(nr.WxxTop,'cm³');
                 el('result-net-wxx-bot').innerHTML=f(nr.WxxBot,'cm³');
                 el('result-reduction-top').textContent=`↓ −${((r.WxxTop-nr.WxxTop)/r.WxxTop*100).toFixed(1)}%`;
                 el('result-reduction-bot').textContent=`↓ −${((r.WxxBot-nr.WxxBot)/r.WxxBot*100).toFixed(1)}%`;
-                el('result-plate-corr').textContent=`${ptCorr.toFixed(2)} mm`;
+                el('result-plate-corr').textContent=plateOn?`${ptCorr.toFixed(2)} mm`:'—';
                 el('result-stiff-corr').textContent=`${stCorr.toFixed(2)} mm`;
-                el('result-net-plate-t').textContent=`${netPt.toFixed(1)} mm`;
-                el('net-results-section').style.display='block';
-            } else if (corrOn && currentProfile==='HP') {
-                el('result-net-wxx-top').innerHTML='<span style="color:var(--text-muted)">N/A (HP)</span>';
-                el('result-net-wxx-bot').innerHTML='<span style="color:var(--text-muted)">N/A (HP)</span>';
-                el('result-reduction-top').textContent=''; el('result-reduction-bot').textContent='';
-                el('result-plate-corr').textContent='—'; el('result-stiff-corr').textContent='—'; el('result-net-plate-t').textContent='—';
+                el('result-net-plate-t').textContent=plateOn?`${netPt.toFixed(1)} mm`:'—';
                 el('net-results-section').style.display='block';
             } else { el('net-results-section').style.display='none'; }
+            const note=el('hp-source-note');
+            if (note) {
+                if (currentProfile!=='HP') note.style.display='none';
+                else { note.style.display='block'; note.textContent = pd.source==='catalog' ? 'Catalogue values (EN 10067).'
+                    : pd.source==='interp' ? 'Not a catalogue size — interpolated in t within the HP '+pd.dimensions.b+' family.'
+                    : 'Not a catalogue size — BV NR467 Pt B Ch 4 Sec 6 [1.4.1] equivalent built-up section (approx. ±10%).'; }
+            }
 
             drawProfile(pd, plateOn, pw, pt, r.combinedCentroidY, r.totalHeight, angle);
         }
@@ -1460,6 +1540,7 @@
                 case 'L': stGross=pv('L-t',0); break;
                 case 'T': stGross=Math.min(pv('T-tw',0),pv('T-tf',0)); break;
                 case 'FB': stGross=pv('FB-t',0); break;
+                case 'HP': stGross=pv('HP-t',0); break;
             }
             const tres=0.5;
             let ptCorr = (tk1===0&&tk2===0) ? 0 : ptGross<=10 ? Math.min(tk1+tk2+tres,0.2*ptGross) : tk1+tk2+tres;
@@ -1553,11 +1634,11 @@
             const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
             let s=`<path d="M ${rp.map(p=>`${p.x} ${p.y}`).join(' L ')} Z" class="profile-fill"/>`;
             if(ang===90){s+=drawDim(rp[1].x,rp[1].y+25,rp[2].x,rp[2].y+25,`${b}`,false,'L-b');s+=drawDim(cx+bS/2+35,tY,cx+bS/2+35,tY+aS,`${a}`,true,'L-a');}return s;}
-        function drawTDown(d,cx,tY,sc,ang){const{h,tw,bf,tf}=d.dimensions;const ar=ang*Math.PI/180,hS=h*sc,twS=tw*sc,bfS=bf*sc,tfS=tf*sc;
+        function drawTDown(d,cx,tY,sc,ang){const{h,tw,bf,tf}=d.dimensions;const ar=ang*Math.PI/180,hS=(h+tf)*sc,twS=tw*sc,bfS=bf*sc,tfS=tf*sc;
             const pts=[{x:-twS/2,y:0},{x:-twS/2,y:hS-tfS},{x:-bfS/2,y:hS-tfS},{x:-bfS/2,y:hS},{x:bfS/2,y:hS},{x:bfS/2,y:hS-tfS},{x:twS/2,y:hS-tfS},{x:twS/2,y:0}];
             const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
             let s=`<path d="M ${rp.map(p=>`${p.x} ${p.y}`).join(' L ')} Z" class="profile-fill"/>`;
-            if(ang===90){s+=drawDim(cx+bfS/2+35,tY,cx+bfS/2+35,tY+hS,`${h}`,true,'T-h');s+=drawDim(cx-bfS/2,tY+hS+25,cx+bfS/2,tY+hS+25,`${bf}`,false,'T-bf');}return s;}
+            if(ang===90){s+=drawDim(cx+bfS/2+35,tY,cx+bfS/2+35,tY+hS-tfS,`${h}`,true,'T-h');s+=drawDim(cx-bfS/2,tY+hS+25,cx+bfS/2,tY+hS+25,`${bf}`,false,'T-bf');}return s;}
         function drawFBDown(d,cx,tY,sc,ang){const{h,t}=d.dimensions;const ar=ang*Math.PI/180,hS=h*sc,tS=t*sc;
             const pts=[{x:-tS/2,y:0},{x:-tS/2,y:hS},{x:tS/2,y:hS},{x:tS/2,y:0}];
             const rp=pts.map(p=>({x:cx+p.x*Math.cos(ar-Math.PI/2)-p.y*Math.sin(ar-Math.PI/2),y:tY+p.x*Math.sin(ar-Math.PI/2)+p.y*Math.cos(ar-Math.PI/2)}));
@@ -1647,20 +1728,20 @@
                 const r = _calcL(150,100,10);
                 return { actual: r.Ixx, expected: 557.62, unit: 'cm⁴' };
             }},
-            { group: 'Bare Profile Properties', name: 'T 150×10/100×12: area', fn: () => {
-                const r = _calcT(150,10,100,12);
+            { group: 'Bare Profile Properties', name: 'T web138+fl12 ×10/100: area', fn: () => {
+                const r = _calcT(138,10,100,12);
                 return { actual: r.area, expected: 25.80, unit: 'cm²' };
             }},
-            { group: 'Bare Profile Properties', name: 'T 150×10/100×12: centroidY', fn: () => {
-                const r = _calcT(150,10,100,12);
+            { group: 'Bare Profile Properties', name: 'T web138+fl12 ×10/100: centroidY', fn: () => {
+                const r = _calcT(138,10,100,12);
                 return { actual: r.centroidY, expected: 4.6116, unit: 'cm' };
             }},
-            { group: 'Bare Profile Properties', name: 'T 150×10/100×12: Ixx', fn: () => {
-                const r = _calcT(150,10,100,12);
+            { group: 'Bare Profile Properties', name: 'T web138+fl12 ×10/100: Ixx', fn: () => {
+                const r = _calcT(138,10,100,12);
                 return { actual: r.Ixx, expected: 581.4925, unit: 'cm⁴' };
             }},
             { group: 'Bare Profile Properties', name: 'T: Ixy must be 0 (symmetric)', fn: () => {
-                const r = _calcT(150,10,100,12);
+                const r = _calcT(138,10,100,12);
                 return { actual: r.Ixy, expected: 0, unit: 'cm⁴' };
             }},
             { group: 'Bare Profile Properties', name: 'FB 150×12: area', fn: () => {
@@ -1697,24 +1778,24 @@
                 const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 90);
                 return { actual: r.WxxBot, expected: 89.9859, unit: 'cm³' };
             }},
-            { group: 'Combined Section @ 90°', name: 'T 150×10/100×12 + Plate 600×10: Ixx', fn: () => {
-                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+            { group: 'Combined Section @ 90°', name: 'T web138+fl12 ×10/100 + Plate 600×10: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(138,10,100,12), true, 600, 10, 90);
                 return { actual: r.combinedIxx, expected: 2725.4866, unit: 'cm⁴' };
             }},
-            { group: 'Combined Section @ 90°', name: 'T 150×10/100×12 + Plate 600×10: Wxx_top', fn: () => {
-                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+            { group: 'Combined Section @ 90°', name: 'T web138+fl12 ×10/100 + Plate 600×10: Wxx_top', fn: () => {
+                const r = computeCombinedSection(_calcT(138,10,100,12), true, 600, 10, 90);
                 return { actual: r.WxxTop, expected: 722.1504, unit: 'cm³' };
             }},
             { group: 'Combined Section @ 90°', name: 'L 100×100×10 + Plate 600×10: Ixx', fn: () => {
                 const r = computeCombinedSection(_calcL(100,100,10), true, 600, 10, 90);
                 return { actual: r.combinedIxx, expected: 1025.4441, unit: 'cm⁴' };
             }},
-            { group: 'Combined Section @ 90°', name: 'T 200×12/150×15 + Plate 800×12: Ixx', fn: () => {
-                const r = computeCombinedSection(_calcT(200,12,150,15), true, 800, 12, 90);
+            { group: 'Combined Section @ 90°', name: 'T web185+fl15 ×12/150 + Plate 800×12: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(185,12,150,15), true, 800, 12, 90);
                 return { actual: r.combinedIxx, expected: 8522.4830, unit: 'cm⁴' };
             }},
-            { group: 'Combined Section @ 90°', name: 'T 200×12/150×15 + Plate 800×12: weight', fn: () => {
-                const r = computeCombinedSection(_calcT(200,12,150,15), true, 800, 12, 90);
+            { group: 'Combined Section @ 90°', name: 'T web185+fl15 ×12/150 + Plate 800×12: weight', fn: () => {
+                const r = computeCombinedSection(_calcT(185,12,150,15), true, 800, 12, 90);
                 return { actual: r.weight, expected: 110.4495, unit: 'kg/m' };
             }},
 
@@ -1731,8 +1812,8 @@
                 const r = computeCombinedSection(_calcFB(150,12), true, 600, 10, 45);
                 return { actual: r.combinedIxx, expected: 641.1449, unit: 'cm⁴' };
             }},
-            { group: 'Inclined Profile (Mohr transform)', name: 'T 100×8/80×10 + Plate @ 75°: Ixx', fn: () => {
-                const r = computeCombinedSection(_calcT(100,8,80,10), true, 400, 8, 75);
+            { group: 'Inclined Profile (Mohr transform)', name: 'T web90+fl10 ×8/80 + Plate @ 75°: Ixx', fn: () => {
+                const r = computeCombinedSection(_calcT(90,8,80,10), true, 400, 8, 75);
                 return { actual: r.combinedIxx, expected: 686.3882, unit: 'cm⁴' };
             }},
             { group: 'Inclined Profile (Mohr transform)', name: 'FB @ 90° == effH equals full height', fn: () => {
@@ -1752,25 +1833,66 @@
 
             // ===== GROUP: Sanity checks (invariants) =====
             { group: 'Sanity Checks', name: 'Wxx_top × cY ≈ Ixx (definition)', fn: () => {
-                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                const r = computeCombinedSection(_calcT(138,10,100,12), true, 600, 10, 90);
                 return { actual: r.WxxTop * r.combinedCentroidY, expected: r.combinedIxx, unit: 'cm⁴' };
             }},
             { group: 'Sanity Checks', name: 'Wxx_bot × (H − cY) ≈ Ixx', fn: () => {
-                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                const r = computeCombinedSection(_calcT(138,10,100,12), true, 600, 10, 90);
                 return { actual: r.WxxBot * (r.totalHeight - r.combinedCentroidY), expected: r.combinedIxx, unit: 'cm⁴' };
             }},
             { group: 'Sanity Checks', name: 'ix² = Ixx / A (radius of gyration)', fn: () => {
-                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                const r = computeCombinedSection(_calcT(138,10,100,12), true, 600, 10, 90);
                 return { actual: r.ix * r.ix * r.totalArea, expected: r.combinedIxx, unit: 'cm⁴' };
             }},
             { group: 'Sanity Checks', name: 'Profile area + plate area = total area', fn: () => {
-                const pd = _calcT(150,10,100,12);
+                const pd = _calcT(138,10,100,12);
                 const r = computeCombinedSection(pd, true, 600, 10, 90);
                 return { actual: pd.area + r.plateArea, expected: r.totalArea, unit: 'cm²' };
             }},
             { group: 'Sanity Checks', name: 'Weight = total area × 0.785 (kg/m)', fn: () => {
-                const r = computeCombinedSection(_calcT(150,10,100,12), true, 600, 10, 90);
+                const r = computeCombinedSection(_calcT(138,10,100,12), true, 600, 10, 90);
                 return { actual: r.totalArea * 0.785, expected: r.weight, unit: 'kg/m', tolAbs: 0.01 };
+            }},
+
+            // ===== GROUP: T convention (h = web height, as LumoStruct) =====
+            { group: 'T convention (h = web height)', name: 'T web150 fl12 ×10/100: area', fn: () => {
+                return { actual: _calcT(150,10,100,12).area, expected: 27.0, unit: 'cm²' };
+            }},
+            { group: 'T convention (h = web height)', name: 'T web150 fl12 ×10/100: centroidY', fn: () => {
+                return { actual: _calcT(150,10,100,12).centroidY, expected: 5.10, unit: 'cm' };
+            }},
+            { group: 'T convention (h = web height)', name: 'T web150 fl12 ×10/100: Ixx (LumoStruct 720.09)', fn: () => {
+                return { actual: _calcT(150,10,100,12).Ixx, expected: 720.09, unit: 'cm⁴' };
+            }},
+            { group: 'T convention (h = web height)', name: 'T overall height = h + tf', fn: () => {
+                return { actual: _calcT(150,10,100,12).height, expected: 16.2, unit: 'cm' };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP 200×10: dx from web foot (EN 10067: 11.97)', fn: () => {
+                return { actual: hpBaseProps(200,10).dx, expected: 11.97, unit: 'cm' };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP 200×10.5 (not listed): interpolated between 10 and 11', fn: () => {
+                const p = hpBaseProps(200,10.5);
+                return { actual: p.source==='interp' ? p.A : -1, expected: (25.66+27.66)/2, unit: 'cm²' };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP 250×10 (family not listed): BV equivalent, within 15% of neighbours', fn: () => {
+                const p = hpBaseProps(250,10);
+                const lo = hpBaseProps(240,10).Ixx, hi = hpBaseProps(260,10).Ixx;
+                return { actual: p.source==='bv' ? p.Ixx : -1, expected: (lo+hi)/2, unit: 'cm⁴', tolRel: 0.15 };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP corrosion 0 mm leaves catalogue values untouched', fn: () => {
+                const saved={b:el('HP-b').value, t:el('HP-t').value};
+                el('HP-b').value=200; el('HP-t').value=10;
+                const a = calculateHPProfile(0).Ixx, b = calculateHPProfile(undefined).Ixx;
+                el('HP-b').value=saved.b; el('HP-t').value=saved.t;
+                return { actual: a, expected: b, unit: 'cm⁴' };
+            }},
+            { group: 'HP Catalog Lookup', name: 'HP corrosion 2 mm reduces Ixx by 10-25%', fn: () => {
+                const saved={b:el('HP-b').value, t:el('HP-t').value};
+                el('HP-b').value=200; el('HP-t').value=10;
+                const g = calculateHPProfile(0).Ixx, n = calculateHPProfile(2).Ixx;
+                el('HP-b').value=saved.b; el('HP-t').value=saved.t;
+                const red = (g-n)/g;
+                return { actual: (red>0.10&&red<0.25)?1:0, expected: 1, unit: '' };
             }},
 
             // ===== GROUP: HP catalog values =====
@@ -1779,22 +1901,22 @@
                 el('HP-b').value=200; el('HP-t').value=10; el('HP-c').value=28; el('HP-r').value=8;
                 const r = calculateHPProfile();
                 el('HP-b').value=saved.b; el('HP-t').value=saved.t; el('HP-c').value=saved.c; el('HP-r').value=saved.r;
-                return { actual: r.area, expected: 25.7, unit: 'cm²' };
+                return { actual: r.area, expected: 25.66, unit: 'cm²' };
             }},
             { group: 'HP Catalog Lookup', name: 'HP 200×10: catalog Ixx', fn: () => {
                 const saved={b:el('HP-b').value, t:el('HP-t').value, c:el('HP-c').value, r:el('HP-r').value};
                 el('HP-b').value=200; el('HP-t').value=10; el('HP-c').value=28; el('HP-r').value=8;
                 const r = calculateHPProfile();
                 el('HP-b').value=saved.b; el('HP-t').value=saved.t; el('HP-c').value=saved.c; el('HP-r').value=saved.r;
-                return { actual: r.Ixx, expected: 886, unit: 'cm⁴' };
+                return { actual: r.Ixx, expected: 1010, unit: 'cm⁴' };
             }},
-            { group: 'HP Catalog Lookup', name: 'HP 200×10: Iyy includes web (not just A·c²/12)', fn: () => {
+            { group: 'HP Catalog Lookup', name: 'HP 200×10: Iyy (web strip + circular bulb)', fn: () => {
                 const saved={b:el('HP-b').value, t:el('HP-t').value, c:el('HP-c').value, r:el('HP-r').value};
                 el('HP-b').value=200; el('HP-t').value=10; el('HP-c').value=28; el('HP-r').value=8;
                 const r = calculateHPProfile();
                 el('HP-b').value=saved.b; el('HP-t').value=saved.t; el('HP-c').value=saved.c; el('HP-r').value=saved.r;
-                // Iyy approximation should give around 10 cm⁴, definitely less than the old buggy A·c²/12 = 16.79
-                return { actual: r.Iyy, expected: 10.01, unit: 'cm⁴', tolRel: 0.03 };
+                // equal-area-circle bulb model; LumoStruct gives 3.99, published 3.2-4
+                return { actual: r.Iyy, expected: 3.99, unit: 'cm⁴', tolRel: 0.03 };
             }},
         ];
 
