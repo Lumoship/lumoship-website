@@ -76,6 +76,10 @@
             '<button class="btn-secondary btn-small" style="width:100%; justify-content:space-between;" onclick="isaretKurallariniAcKapa(this)">± Sign conventions (axes, loads, results) <span>&#9662;</span></button>' +
             '<div id="isaretKurallariIcerik" style="display:none; margin-top:8px;">' + isaretKurallariHtml() + '</div>';
         
+        // Katlanabilir bolumler (Settings basliklari, Loads alt basliklari, sag
+        // panel kutulari) - js/ui/katlama.js; isaret kutusu yazildiktan sonra
+        if (typeof katlamalariKur === 'function') katlamalariKur();
+
         // Initialize collapsible panels
         document.querySelectorAll('.collapsible-header').forEach(header => {
             header.addEventListener('click', function() {

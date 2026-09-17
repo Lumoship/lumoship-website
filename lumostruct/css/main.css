@@ -5646,3 +5646,7 @@
         body.sonuc-kipi .context-menu-item[onclick*="AddLoad"],
         body.sonuc-kipi .context-menu-item[onclick*="Delete"],
         body.sonuc-kipi .context-menu-item[onclick*="Split"] { display: none; }
+
+        /* Katlanabilir bolum oku (js/ui/katlama.js) */
+        .katlama-ok { margin-left: 6px; color: var(--text-3); font-weight: 400; }
+        [data-katlama]:hover .katlama-ok { color: var(--text); }

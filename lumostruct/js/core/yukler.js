@@ -208,8 +208,13 @@
             const lc = document.getElementById('loadCombSelect');
             if (lc) {
                 const secili = etkinKombinasyonId();
+                // ENV tek kombinasyonda anlamsiz; secenek yine listede durur ama
+                // devre disi ve nedeni yazar (eskiden hic gorunmuyor, kullanici
+                // "zarf nerede" diye ariyordu).
                 lc.innerHTML = kombinasyonlar().map(k => '<option value="' + k.id + '">' + kombinasyonEtiketi(k) + '</option>').join('') +
-                    (kombinasyonlar().length > 1 ? '<option value="ENV">ENV: Envelope (worst of all ' + kombinasyonlar().length + ')</option>' : '');
+                    (kombinasyonlar().length > 1
+                        ? '<option value="ENV">ENV: Envelope (worst of all ' + kombinasyonlar().length + ')</option>'
+                        : '<option value="ENV" disabled>ENV: Envelope — needs 2+ combinations (Edit…)</option>');
                 lc.value = secili;
                 model.activeCombination = secili;
             }
@@ -285,6 +290,7 @@
                 h += '<td style="text-align:right;">' + (ks.length > 1 ? '<button class="btn-small" title="Remove combination" onclick="kombinasyonSil(\'' + k.id + '\')">&times;</button>' : '') + '</td></tr>';
             });
             h += '</tbody></table>';
-            h += '<div style="margin-top:8px;"><button class="btn-secondary" onclick="kombinasyonEkle()">+ Add combination</button></div>';
+            h += '<div style="margin-top:8px; display:flex; align-items:center; gap:12px;"><button class="btn-secondary" onclick="kombinasyonEkle()">+ Add combination</button>' +
+                 (kombinasyonlar().length < 2 ? '<span style="font-size:var(--fs-xs); color:var(--text-3);">Add a second combination to enable the envelope (ENV = worst of all combinations).</span>' : '') + '</div>';
             g.innerHTML = h;
         }

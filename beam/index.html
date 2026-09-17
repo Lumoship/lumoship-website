@@ -3,7 +3,7 @@
     Created by Ebubekir Akarsu — Structural Engineer
     Beam Structural Analysis Calculator
     3-Page Layout: Setup → Input → Results
-    Solver: Direct Stiffness Method (Euler-Bernoulli, 2-DOF/node)
+    Solver: Direct Stiffness Method (Euler-Bernoulli, 2-DOF/node) — runs in the browser
     Handles statically determinate AND indeterminate beams.
 -->
 <!DOCTYPE html>
@@ -118,6 +118,7 @@
         .ea-table .highlight td{background:rgba(239,68,68,0.08)!important}
         .ea-table input,.ea-table select{width:100%;padding:6px 8px;text-align:center;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-mono);font-size:var(--fs-xs)}
         .ea-table input:focus,.ea-table select:focus{border-color:var(--accent);outline:none}
+        .ea-table input.out-of-range{border-color:var(--error);color:var(--error);box-shadow:0 0 0 2px rgba(239,68,68,0.18)}
         /* Loads table: fixed layout so inputs get real width and align */
         .ea-table.loads{table-layout:fixed}
         .ea-table.loads col.c-num{width:34px}
@@ -1598,7 +1599,7 @@ function renderSupports(){
     supports.forEach((s,i)=>{
         const tr=document.createElement('tr');
         tr.innerHTML=`<td>${i+1}</td>
-            <td><input type="number" step="0.1" value="${s.pos}" onchange="supports[${i}].pos=parseFloat(this.value)||0;drawPreview()"></td>
+            <td><input type="number" step="0.1" data-pos value="${s.pos}" onchange="supports[${i}].pos=parseFloat(this.value)||0;refreshRangeFlags();drawPreview()"></td>
             <td><select onchange="supports[${i}].type=this.value;drawPreview()">
                 <option value="pinned" ${s.type==='pinned'?'selected':''}>Pinned</option>
                 <option value="fixed" ${s.type==='fixed'?'selected':''}>Fixed</option>
@@ -1607,11 +1608,41 @@ function renderSupports(){
             <td><button class="ea-btn-delete" onclick="removeSupport(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></td>`;
         tb.appendChild(tr);
     });
+    refreshRangeFlags();
     drawPreview();
 }
-function addSupport(){ const L=parseFloat(document.getElementById('beamLength').value)||6; supports.push({pos:L/2,type:'pinned'}); renderSupports(); }
+function addSupport(){ const L=beamL(); supports.push({pos:L/2,type:'pinned'}); renderSupports(); }
 function removeSupport(i){ supports.splice(i,1); renderSupports(); }
-function rebuildSupportsOnLength(){ drawPreview(); }
+// Beam length edits. Anything sitting at the old end of the beam (support,
+// point load, UDL end) is anchored to the end and moves with it; interior
+// positions are absolute and stay put. Nothing is clamped silently - a row that
+// falls off the beam is flagged in the table and refused at solve time.
+let committedL=6;
+function rebuildSupportsOnLength(){
+    const newL=parseFloat(document.getElementById('beamLength').value);
+    if(!(newL>0)){ refreshRangeFlags(); drawPreview(); return; }
+    const oldL=committedL, tol=1e-9;
+    if(Math.abs(newL-oldL)>tol){
+        const follow=v=>Math.abs(v-oldL)<tol?newL:v;
+        supports.forEach(s=>{ s.pos=follow(s.pos); });
+        loads.forEach(ld=>{
+            ld.start=follow(ld.start);
+            if(ld.type==='udl') ld.end=follow(ld.end); else ld.end=ld.start;
+        });
+        committedL=newL;
+        renderSupports(); renderLoads();
+    } else { refreshRangeFlags(); drawPreview(); }
+}
+function beamL(){ return parseFloat(document.getElementById('beamLength').value)||0; }
+function refreshRangeFlags(){
+    const L=beamL(), tol=1e-6;
+    document.querySelectorAll('#supportTableBody input[data-pos], #loadTableBody input[data-pos]').forEach(inp=>{
+        const v=parseFloat(inp.value);
+        const bad=!(L>0)||!(v>=-tol&&v<=L+tol);
+        inp.classList.toggle('out-of-range',bad);
+        inp.title=bad?`Outside the beam (0–${L} m)`:'';
+    });
+}
 
 // ============================================================
 //  Loads table
@@ -1626,15 +1657,16 @@ function renderLoads(){
         tr.innerHTML=`<td>${i+1}</td>
             <td><div class="cell-type">${tname}<span class="cell-unit">${unit}</span></div></td>
             <td><div class="cell-input"><input type="number" step="0.1" value="${ld.mag}" onchange="loads[${i}].mag=parseFloat(this.value)||0;drawPreview()"></div></td>
-            <td><div class="cell-input"><input type="number" step="0.1" value="${ld.start}" onchange="loads[${i}].start=parseFloat(this.value)||0;drawPreview()"></div></td>
-            <td><div class="cell-input">${isUdl?`<input type="number" step="0.1" value="${ld.end}" onchange="loads[${i}].end=parseFloat(this.value)||0;drawPreview()">`:'<span class="cell-dash">—</span>'}</div></td>
+            <td><div class="cell-input"><input type="number" step="0.1" data-pos value="${ld.start}" onchange="loads[${i}].start=parseFloat(this.value)||0;if(!${isUdl})loads[${i}].end=loads[${i}].start;refreshRangeFlags();drawPreview()"></div></td>
+            <td><div class="cell-input">${isUdl?`<input type="number" step="0.1" data-pos value="${ld.end}" onchange="loads[${i}].end=parseFloat(this.value)||0;refreshRangeFlags();drawPreview()">`:'<span class="cell-dash">—</span>'}</div></td>
             <td><button class="ea-btn-delete" onclick="removeLoad(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></td>`;
         tb.appendChild(tr);
     });
+    refreshRangeFlags();
     drawPreview();
 }
 function addLoad(type){
-    const L=parseFloat(document.getElementById('beamLength').value)||6;
+    const L=beamL();
     if(type==='point') loads.push({type:'point',mag:10,start:L/2,end:L/2});
     else if(type==='udl') loads.push({type:'udl',mag:10,start:0,end:L});
     else loads.push({type:'moment',mag:10,start:L/2,end:L/2});
@@ -1667,109 +1699,207 @@ function linspaceNodes(L){
 }
 function round(x){ return Math.round(x*1e6)/1e6; }
 
-async function solveBeam(){
-    const L = parseFloat(document.getElementById('beamLength').value);
-    const E = parseFloat(document.getElementById('modE').value);
-    const I = parseFloat(document.getElementById('momI').value);
-    
-    if(!(L>0) || !(E>0) || !(I>0)){
-        console.error('Invalid inputs');
-        return null;
+function solveBeam(){
+    const L=parseFloat(document.getElementById('beamLength').value);
+    const E=parseFloat(document.getElementById('modE').value)*1e9;      // Pa
+    const I=parseFloat(document.getElementById('momI').value)*1e-8;     // m^4
+    const EI=E*I;
+    if(!(L>0)||!(EI>0)) return null;
+
+    const nodes=linspaceNodes(L);
+    const nn=nodes.length;
+    const ndof=2*nn;
+    // global K and F
+    const K=Array.from({length:ndof},()=>new Array(ndof).fill(0));
+    const F=new Array(ndof).fill(0);
+
+    // element stiffness + consistent load vector
+    for(let e=0;e<nn-1;e++){
+        const le=nodes[e+1]-nodes[e];
+        const ke=elementK(EI,le);
+        const map=[2*e,2*e+1,2*e+2,2*e+3];
+        for(let a=0;a<4;a++)for(let b=0;b<4;b++) K[map[a]][map[b]]+=ke[a][b];
+        // equivalent nodal loads from UDL portion within this element
+        const fe=elementLoadVector(nodes[e],nodes[e+1],le);
+        for(let a=0;a<4;a++) F[map[a]]+=fe[a];
     }
-    
-    // Convert internal loads/supports format to API format
-    const apiSupports = supports.map(s => ({
-        pos: parseFloat(s.pos),
-        type: s.type
-    }));
-    
-    const apiLoads = loads.map(ld => ({
-        type: ld.type,
-        start: parseFloat(ld.start),
-        end: ld.end !== undefined ? parseFloat(ld.end) : null,
-        mag: parseFloat(ld.mag)
-    }));
-    
-    const requestBody = {
-        L: L,
-        E: E,
-        I: I,
-        supports: apiSupports,
-        loads: apiLoads
-    };
-    
-    try {
-        // Show loading state
-        const solveBtn = document.querySelector('button[onclick*="runAnalysis"]');
-        const originalText = solveBtn ? solveBtn.textContent : null;
-        if(solveBtn) {
-            solveBtn.textContent = 'Calculating...';
-            solveBtn.disabled = true;
+    // point loads & moments -> directly to nearest node DOF
+    loads.forEach(ld=>{
+        if(ld.type==='point'){
+            const ni=nearestNode(nodes,ld.start);
+            F[2*ni]+= -ld.mag*1000; // downward positive load -> negative force in +w(up) convention
+        } else if(ld.type==='moment'){
+            const ni=nearestNode(nodes,ld.start);
+            F[2*ni+1]+= -ld.mag*1000; // CCW-positive applied moment, consistent with section-cut convention
         }
-        
-        const response = await fetch('https://api.lumoship.org/api/beam/solve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
+    });
+
+    // boundary conditions
+    const fixed=new Array(ndof).fill(false);
+    supports.forEach(s=>{
+        const ni=nearestNode(nodes,s.pos);
+        if(s.type==='pinned'||s.type==='roller'){ fixed[2*ni]=true; }
+        if(s.type==='fixed'){ fixed[2*ni]=true; fixed[2*ni+1]=true; }
+    });
+
+    // reduce & solve
+    // --- stability screen: a plane beam needs vertical restraint + rotation restraint ---
+    // Each pinned/roller gives 1 vertical restraint; each fixed gives vertical + rotational.
+    let nVert=0, nFixed=0;
+    supports.forEach(s=>{ if(s.type==='fixed'){ nVert++; nFixed++; } else nVert++; });
+    // Distinct vertical restraint locations (coincident supports are not independent).
+    const distinct=new Set(supports.map(s=>Math.round(s.pos*1e6))).size;
+    if(nFixed===0 && distinct<2) return null;   // mechanism: rotates / translates freely
+    if(nVert===0) return null;
+
+    const freeIdx=[]; for(let i=0;i<ndof;i++) if(!fixed[i]) freeIdx.push(i);
+    if(freeIdx.length===0) return null;
+    const Kr=freeIdx.map(r=>freeIdx.map(c=>K[r][c]));
+    const Fr=freeIdx.map(r=>F[r]);
+    const Ur=gaussSolve(Kr,Fr);
+    if(!Ur) return null;
+    const U=new Array(ndof).fill(0);
+    freeIdx.forEach((gi,k)=>U[gi]=Ur[k]);
+
+    // reactions: R = K_full*U - F  (at constrained dofs)
+    const R=new Array(ndof).fill(0);
+    for(let i=0;i<ndof;i++){ let s=0; for(let j=0;j<ndof;j++) s+=K[i][j]*U[j]; R[i]=s-F[i]; }
+
+    // ===== Internal forces by DIRECT EQUILIBRIUM (no zigzag) =====
+    // Build reaction list first (vertical R at each support node, moment at fixed)
+    const rNode={};
+    supports.forEach(s=>{ const ni=nearestNode(nodes,s.pos); rNode[ni]=true; });
+    // sampling stations: dense, includes every node and a fine sweep
+    const NS=Math.max(120, nn*4);
+    const stations=[]; for(let k=0;k<=NS;k++) stations.push(L*k/NS);
+    // ensure node coords + just-after points around concentrated actions for jumps
+    nodes.forEach(n=>{ stations.push(n); });
+    supports.forEach(s=>{ stations.push(s.pos-1e-6); stations.push(s.pos+1e-6); });
+    loads.forEach(ld=>{ if(ld.type!=='udl'){ stations.push(ld.start-1e-6); stations.push(ld.start+1e-6); } });
+    stations.sort((a,b)=>a-b);
+
+    // helper: vertical reaction (N, upward +) at a support node
+    function reactionAt(pos){ const ni=nearestNode(nodes,pos); return R[2*ni]; }
+    function reactionMomentAt(pos){ const ni=nearestNode(nodes,pos); return R[2*ni+1]; }
+
+    // section cut at x: sum of everything to the LEFT (x' <= x)
+    // sign convention: V = sum of upward forces left of cut ; M = sum of moments of left forces about cut
+    const xs=[],Vs=[],Ms=[],Ds=[];
+    stations.forEach(xc=>{
+        if(xc<-1e-9||xc>L+1e-9) return;
+        let V=0, M=0; // N, N·m
+        // support reactions left of cut (upward +)
+        supports.forEach(s=>{ if(s.pos<=xc+1e-9){ const Rv=reactionAt(s.pos); V+=Rv; M+=Rv*(xc-s.pos); if(s.type==='fixed'){ M-=reactionMomentAt(s.pos); } } });
+        // applied loads left of cut (downward +, so they reduce V)
+        loads.forEach(ld=>{
+            if(ld.type==='point'){
+                if(ld.start<=xc+1e-9){ const P=ld.mag*1000; V-=P; M-=P*(xc-ld.start); }
+            } else if(ld.type==='moment'){
+                if(ld.start<=xc+1e-9){ M+=ld.mag*1000; } // matches CCW-positive FEM convention at line ~946
+            } else { // udl
+                const a=Math.min(ld.start,ld.end), b=Math.max(ld.start,ld.end);
+                if(xc>a){ const wv=ld.mag*1000; const seg=Math.min(xc,b)-a; if(seg>0){ const Wt=wv*seg; const cg=a+seg/2; V-=Wt; M-=Wt*(xc-cg); } }
+            }
         });
-        
-        if(solveBtn) {
-            solveBtn.textContent = originalText;
-            solveBtn.disabled = false;
+        xs.push(xc); Vs.push(V/1000); Ms.push(M/1000);
+    });
+
+    // ===== Deflection via FEM Hermite shape functions (accurate) =====
+    const xsD=[],Ds2=[];
+    for(let e=0;e<nn-1;e++){
+        const le=nodes[e+1]-nodes[e];
+        const ue=[U[2*e],U[2*e+1],U[2*e+2],U[2*e+3]];
+        const steps=10;
+        for(let k=0;k<=steps;k++){
+            const xi=k/steps;
+            const N1=1-3*xi*xi+2*xi*xi*xi, N2=le*(xi-2*xi*xi+xi*xi*xi), N3=3*xi*xi-2*xi*xi*xi, N4=le*(-xi*xi+xi*xi*xi);
+            const wdef=N1*ue[0]+N2*ue[1]+N3*ue[2]+N4*ue[3];
+            xsD.push(nodes[e]+le*xi); Ds2.push(wdef*1000);
         }
-        
-        if(!response.ok){
-            const err = await response.json();
-            console.error('API Error:', err);
-            alert('Calculation error: ' + (err.detail || 'Unknown error'));
-            return null;
-        }
-        
-        const data = await response.json();
-        
-        if(!data.success){
-            console.error('Calculation failed:', data);
-            return null;
-        }
-        
-        // Normalize backend field names to match frontend expectations
-        const results = data.results;
-        if(results.reactions){
-            results.reactions = results.reactions.map(r => ({
-                pos: r.pos,
-                type: r.type,
-                R: r.R_kN !== undefined ? r.R_kN : r.R,
-                M: r.M_kNm !== undefined ? r.M_kNm : r.M
-            }));
-        }
-        
-        return results;
-        
-    } catch(err) {
-        console.error('Network error:', err);
-        alert('Cannot reach Lumoship server. Please check your internet connection.');
-        return null;
     }
+    // map deflection to the V/M station list
+    function interp(xq){
+        if(xq<=xsD[0]) return Ds2[0];
+        if(xq>=xsD[xsD.length-1]) return Ds2[Ds2.length-1];
+        let lo=0,hi=xsD.length-1;
+        for(let i=0;i<xsD.length-1;i++){ if(xsD[i]<=xq&&xq<=xsD[i+1]){ lo=i;hi=i+1;break; } }
+        const t=(xq-xsD[lo])/(xsD[hi]-xsD[lo]||1);
+        return Ds2[lo]+t*(Ds2[hi]-Ds2[lo]);
+    }
+    xs.forEach(xq=>Ds.push(interp(xq)));
+
+    // reactions per support
+    const reactions=supports.map(s=>{
+        const ni=nearestNode(nodes,s.pos);
+        return { pos:s.pos, type:s.type, R:R[2*ni]/1000, M:(s.type==='fixed'?R[2*ni+1]/1000:0) };
+    });
+
+    return {L,xs,Vs,Ms,Ds,reactions,nodes};
 }
 
+function elementK(EI,l){
+    const c=EI/(l*l*l);
+    return [
+        [12*c, 6*l*c, -12*c, 6*l*c],
+        [6*l*c, 4*l*l*c, -6*l*c, 2*l*l*c],
+        [-12*c, -6*l*c, 12*c, -6*l*c],
+        [6*l*c, 2*l*l*c, -6*l*c, 4*l*l*c]
+    ];
+}
 // consistent nodal load vector for UDL w (N/m, downward positive => acts in -w direction)
+function elementLoadVector(xa,xb,l){
+    const w=getElemUDL(xa,xb); // N/m
+    // For downward load, equivalent: [ -wl/2, -wl^2/12, -wl/2, wl^2/12 ]
+    return [ -w*l/2, -w*l*l/12, -w*l/2, w*l*l/12 ];
+}
+function getElemUDL(xa,xb){
+    // total uniform intensity covering this element (assumes element fully inside a udl span)
+    let w=0;
+    loads.forEach(ld=>{
+        if(ld.type==='udl'){
+            const s=Math.min(ld.start,ld.end), en=Math.max(ld.start,ld.end);
+            const mid=(xa+xb)/2;
+            if(mid>=s-1e-9&&mid<=en+1e-9) w+=ld.mag*1000; // N/m
+        }
+    });
+    return w;
+}
 function nearestNode(nodes,pos){
     let bi=0,bd=Infinity;
     nodes.forEach((n,i)=>{ const d=Math.abs(n-pos); if(d<bd){bd=d;bi=i;} });
+    // Guard: linspaceNodes() inserts an exact node at every support/load position,
+    // so a genuine match is always within round-off. A large gap means the item
+    // lies off the beam and would otherwise be silently relocated.
+    if(bd>1e-6) throw new BeamGeometryError(pos);
     return bi;
 }
+function BeamGeometryError(pos){ this.name='BeamGeometryError'; this.pos=pos;
+    this.message='Position '+pos+' m does not lie on the beam.'; }
+BeamGeometryError.prototype=Object.create(Error.prototype);
 // Gaussian elimination with partial pivoting
-
+function gaussSolve(A,b){
+    const n=A.length;
+    const M=A.map((row,i)=>[...row,b[i]]);
+    for(let col=0;col<n;col++){
+        let mx=col; for(let r=col+1;r<n;r++) if(Math.abs(M[r][col])>Math.abs(M[mx][col])) mx=r;
+        [M[col],M[mx]]=[M[mx],M[col]];
+        if(Math.abs(M[col][col])<1e-12) return null; // singular -> unstable
+        for(let r=col+1;r<n;r++){ const f=M[r][col]/M[col][col]; for(let j=col;j<=n;j++) M[r][j]-=f*M[col][j]; }
+    }
+    const x=new Array(n).fill(0);
+    for(let i=n-1;i>=0;i--){ let s=M[i][n]; for(let j=i+1;j<n;j++) s-=M[i][j]*x[j]; x[i]=s/M[i][i]; }
+    return x;
+}
 
 // ============================================================
 //  Run analysis + render results
 // ============================================================
-async function runAnalysis(){
-    if(!(await computeResults())) return false;
+function runAnalysis(){
+    if(!computeResults()) return false;
     drawAllDiagrams();
     return true;
 }
-async function computeResults(){
+function computeResults(){
     if(supports.length<1){ alert('Add at least one support.'); return false; }
     const Lspan=parseFloat(document.getElementById('beamLength').value)||0;
     if(!(Lspan>0)){ alert('Beam length must be greater than 0.'); return false; }
@@ -1781,10 +1911,21 @@ async function computeResults(){
         if(ld.type==='udl'&&(ld.end<-tol||ld.end>Lspan+tol)) problems.push(`Load ${i+1} end ${ld.end} m is outside the beam (0–${Lspan} m).`);
         if(ld.type==='udl'&&Math.abs(ld.end-ld.start)<tol) problems.push(`Load ${i+1} is a UDL with zero length (start = end). Set a Start and End span.`);
     });
+    // --- supports too close together produce a near-singular system ---
+    const minGap=Math.max(1e-3, Lspan/1000);
+    for(let i=0;i<supports.length;i++)
+        for(let j=i+1;j<supports.length;j++)
+            if(Math.abs(supports[i].pos-supports[j].pos)<minGap)
+                problems.push(`Supports ${i+1} and ${j+1} are ${Math.abs(supports[i].pos-supports[j].pos).toFixed(4)} m apart — too close to be independent (min ${minGap.toFixed(3)} m).`);
     if(problems.length){ alert('Please fix before running:\n\n• '+problems.join('\n• ')); return false; }
 
-    const res=await solveBeam();
-    if(!res){ alert('Model is unstable or invalid. Check supports — the beam needs enough restraint (e.g. two pinned, or one fixed).'); return false; }
+    let res;
+    try { res=solveBeam(); }
+    catch(err){
+        if(err&&err.name==='BeamGeometryError'){ alert('Geometry error: '+err.message); return false; }
+        throw err;
+    }
+    if(!res){ alert('Model is unstable or invalid. Check supports — the beam needs enough restraint (e.g. two pinned/roller at different positions, or one fixed).'); return false; }
     lastResults=res;
 
     const Mmax=maxAbs(res.Ms), Vmax=maxAbs(res.Vs), Dmax=maxAbs(res.Ds);
@@ -1869,10 +2010,12 @@ function setupCanvas(id){
 function drawModel(res){
     const {ctx,W,H}=setupCanvas('canvasModel');
     ctx.fillStyle=DIA_COL.bg; ctx.fillRect(0,0,W,H);
-    const L=res.L; const padX=Math.max(50,W*0.07); const y0=H*0.46;
+    const L=res.L; const padX=Math.max(50,W*0.07);
     const sx=v=>padX+(W-2*padX)*(v/L);
-    // dimension line
-    const dimY=y0-58;
+    const rows=loadLabelRows(sx,L,46);
+    const y0=Math.max(H*0.5,88+13*rows);
+    // dimension line - above the highest load label row
+    const dimY=y0-71-13*rows;
     ctx.strokeStyle=DIA_COL.axis; ctx.lineWidth=1; ctx.setLineDash([4,3]);
     ctx.beginPath(); ctx.moveTo(sx(0),dimY); ctx.lineTo(sx(L),dimY); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle=DIA_COL.text; ctx.font=Math.round(11*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom';
@@ -1973,11 +2116,13 @@ function renderBeam(canvasId,w,H){
     if(!(L>0)){ ctx.fillStyle='#64748b'; ctx.font='13px JetBrains Mono'; ctx.textAlign='center'; ctx.fillText('Enter a beam length to preview',w/2,H/2); return; }
     const scaleF=H/260;                 // scale fonts/offsets for large canvas
     const fpx=n=>Math.round(n*scaleF);
-    const mx=Math.max(48,w*0.06), y0=H*0.55;
+    const mx=Math.max(48,w*0.06);
+    const rows=loadLabelRows(v=>mx+(w-2*mx)*(v/L),L,fpx(46));
+    const y0=Math.max(H*0.55,fpx(96+13*rows));
     const sx=v=>mx+(w-2*mx)*(v/L);
 
-    // dimension line (top)
-    const dimY=y0-fpx(86);
+    // dimension line (top) - above the highest load label row
+    const dimY=y0-fpx(80+13*rows);
     ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
     ctx.beginPath(); ctx.moveTo(sx(0),dimY); ctx.lineTo(sx(L),dimY); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle='#94a3b8'; ctx.font=fpx(11)+'px JetBrains Mono'; ctx.textAlign='center';
@@ -2050,6 +2195,19 @@ function renderBeam(canvasId,w,H){
             ctx.fillText(ld.mag+' kN·m',x,y0-fpx(48)-lvl*fpx(13));
         }
     });
+}
+// Label rows the load labels will occupy (0 = one row). Same rule as the
+// per-load stacking below; used to lift the dimension line clear of them.
+function loadLabelRows(sx,L,minGap){
+    const slots=[]; let max=0;
+    loads.forEach(ld=>{
+        let px;
+        if(ld.type==='udl'){ const a=Math.max(0,Math.min(ld.start,ld.end)), b=Math.min(L,Math.max(ld.start,ld.end)); px=(sx(a)+sx(b))/2; }
+        else px=sx(ld.start);
+        let l=0; while(slots.some(s=>Math.abs(s.x-px)<minGap&&s.l===l)) l++;
+        slots.push({x:px,l}); if(l>max) max=l;
+    });
+    return max;
 }
 function arrow(ctx,x1,y1,x2,y2,head){
     head=head||6;
@@ -2188,6 +2346,7 @@ function applyModelData(d){
     if(d.supports) supports=JSON.parse(JSON.stringify(d.supports));
     if(d.loads) loads=JSON.parse(JSON.stringify(d.loads));
     if(d.logoData){ logoData=d.logoData; const img=document.getElementById('logoPreview'); img.src=logoData; img.style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
+    committedL=beamL()||committedL;
     renderSupports(); renderLoads(); updateSection(); recomputeSigmaAll();
 }
 function loadJSON(e){
