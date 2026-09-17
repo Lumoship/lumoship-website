@@ -15,8 +15,24 @@
         //   UF     = |N| / Nb,Rd                 (yalnizca BASINC; cekmede 0)
         // DNV RU-SHIP Pt.3 Ch.8 pilar kontrolu de ayni Euler + egri
         // mantigiyla yurur; kullanici "Pillar" sekmesindeki alanlarin
-        // karsiligini burada bulur. Egilme + eksenel etkilesimi (6.3.3)
-        // YOK: bu bir pilar/kolon kontrolu, sonuc tablosunda oyle yazar.
+        // karsiligini burada bulur.
+        //
+        // EKSENEL + EGILME ETKILESIMI - EN 1993-1-1 6.3.3, denklem (6.61)/(6.62),
+        // etkilesim katsayilari Ek B (Yontem 2), Tablo B.2 (sinif 3 - elastik):
+        //   UF_y = n_y + k_yy My/(My,Rk/gM1) + k_yz Mz/(Mz,Rk/gM1)
+        //   UF_z = n_z + k_zy My/(My,Rk/gM1) + k_zz Mz/(Mz,Rk/gM1)
+        //   n_y = N/(chi_y A fy/gM1), n_z = N/(chi_z A fy/gM1)
+        //   k_yy = Cmy (1 + 0.6 lambda_y n_y) <= Cmy (1 + 0.6 n_y)
+        //   k_zz = Cmz (1 + 0.6 lambda_z n_z) <= Cmz (1 + 0.6 n_z)
+        //   k_yz = k_zz,  k_zy = 0.8 k_yy   (burulmaya duyarsiz eleman)
+        //   Cm (Tablo B.3): dogrusal moment psi = M_kucuk/M_buyuk ->
+        //     Cm = 0.6 + 0.4 psi >= 0.4; tepe aciklik icindeyse (enine yuk)
+        //     Cm = 1.0 alinir (tablonun ust siniri, guvenli taraf).
+        //   My,Rk = Wel,y fy (kucuk lif), Mz,Rk = Wel,z fy. chi_LT = 1
+        //   (yanal burkulma AYRI; gemi izgarasinda flans plakaya bagli).
+        // Eskiden yalnizca N/Nb,Rd bakiliyordu: egilmeli kolonda (portal
+        // ayak, yuklu payanda) kullanim orani oldugundan KUCUK cikiyordu.
+        // UF artik etkilesim orani; UFN saf eksenel oran olarak ayrica verilir.
         //
         // Kusur katsayisi alpha: kesit turune gore EN 1993-1-1 tablo 6.2.
         //   boru (sicak) a = 0.21; lama/bulb/T/L (kaynakli, kalin) c = 0.49.
@@ -40,9 +56,22 @@
             return Math.min(1, 1 / (Phi + kok));
         }
 
+        // Tablo B.3 esdegeri uniform moment katsayisi. M1, M2 uc momentleri
+        // (isaretli, kNm), Mmax aciklik boyunca en buyuk mutlak deger.
+        function cmKatsayisi(M1, M2, Mmax) {
+            const a = Math.abs(M1 || 0), b = Math.abs(M2 || 0), m = Math.abs(Mmax || 0);
+            const buyuk = Math.max(a, b);
+            if (m < 1e-9 && buyuk < 1e-9) return 1;
+            if (m > buyuk * 1.001 + 1e-9) return 1;             // tepe aciklik icinde: enine yuk
+            if (buyuk < 1e-9) return 1;
+            const psi = (a >= b) ? (M2 || 0) / (M1 || 1e-12) : (M1 || 0) / (M2 || 1e-12);
+            return Math.max(0.4, 0.6 + 0.4 * Math.max(-1, Math.min(1, psi)));
+        }
+
         // Tek eleman. N_kN: eksenel kuvvet (kN, cekme +). Donus null: kontrol
-        // yapilamadi (rijit, kesitsiz, sifir boy).
-        function elemanBurkulma(elem, sec, mat, L, N_kN, gammaM1) {
+        // yapilamadi (rijit, kesitsiz, sifir boy). momentler (istege bagli):
+        // { M1, M2, Mmax, Mz1, Mz2, Mz } kNm - verilirse 6.3.3 etkilesimi eklenir.
+        function elemanBurkulma(elem, sec, mat, L, N_kN, gammaM1, momentler) {
             if (!sec || sec.rigid || !(sec.A > 0) || !(sec.Iy > 0) || !(sec.Iz > 0) || !(L > 0)) return null;
             const E = mat.E, fy = mat.yield;
             const g = (gammaM1 > 0) ? gammaM1 : 1;
@@ -59,9 +88,31 @@
             const y = eksen(sec.Iy, kY), z = eksen(sec.Iz, kZ);
             const kritik = (y.NbRd <= z.NbRd) ? y : z;
             const basinc = Math.max(0, -N_kN) * 1e3;             // N, yalnizca basinc
-            const UF = basinc / kritik.NbRd;
+            const UFN = basinc / kritik.NbRd;
+            // --- 6.3.3 etkilesimi ---
+            const m = momentler || {};
+            const My = Math.max(Math.abs(m.M1 || 0), Math.abs(m.M2 || 0), Math.abs(m.Mmax || 0)) * 1e3;   // N·m
+            const Mz = Math.max(Math.abs(m.Mz1 || 0), Math.abs(m.Mz2 || 0), Math.abs(m.Mz || 0)) * 1e3;
+            const WyT = (sec.WyTop > 0) ? sec.WyTop : sec.Wy, WyB = (sec.WyBot > 0) ? sec.WyBot : sec.Wy;
+            const Wy = (WyT > 0 && WyB > 0) ? Math.min(WyT, WyB) : (sec.Wy > 0 ? sec.Wy : 0);
+            const Wz = (sec.Wz > 0) ? sec.Wz : 0;
+            let etk = null;
+            if (basinc > 0 && (My > 0 || Mz > 0) && (Wy > 0 || My === 0) && (Wz > 0 || Mz === 0)) {
+                const ny = basinc / y.NbRd, nz = basinc / z.NbRd;
+                const Cmy = cmKatsayisi(m.M1, m.M2, m.Mmax), Cmz = cmKatsayisi(m.Mz1, m.Mz2, m.Mz);
+                const kyy = Math.min(Cmy * (1 + 0.6 * y.lambda * ny), Cmy * (1 + 0.6 * ny));
+                const kzz = Math.min(Cmz * (1 + 0.6 * z.lambda * nz), Cmz * (1 + 0.6 * nz));
+                const kyz = kzz, kzy = 0.8 * kyy;
+                const MyRd = Wy > 0 ? Wy * fy / g : Infinity, MzRd = Wz > 0 ? Wz * fy / g : Infinity;
+                const my = My / MyRd, mz = Mz / MzRd;
+                etk = { My: My / 1e3, Mz: Mz / 1e3, MyRd: MyRd / 1e3, MzRd: MzRd / 1e3, Cmy: Cmy, Cmz: Cmz,
+                        kyy: kyy, kzz: kzz, kyz: kyz, kzy: kzy, ny: ny, nz: nz,
+                        UFy: ny + kyy * my + kyz * mz, UFz: nz + kzy * my + kzz * mz };
+            }
+            const UF = etk ? Math.max(etk.UFy, etk.UFz) : UFN;
             return {
                 N: N_kN, basinc: basinc / 1e3,
+                UFN: UFN, etkilesim: etk,
                 kY: kY, kZ: kZ, LcrY: y.Lcr, LcrZ: z.Lcr,
                 lambdaY: y.lambda, lambdaZ: z.lambda, chiY: y.chi, chiZ: z.chi,
                 NcrY: y.Ncr / 1e3, NcrZ: z.Ncr / 1e3,
@@ -87,7 +138,8 @@
                 const L = Math.sqrt((n2.x - n1.x) ** 2 + (n2.y - n1.y) ** 2 + ((n2.z || 0) - (n1.z || 0)) ** 2);
                 const sec = (typeof kesitBul === 'function') ? kesitBul(elem.section) : SECTIONS[elem.section];
                 const mat = (typeof elemanMalzemesi === 'function') ? elemanMalzemesi(elem, genelMat) : genelMat;
-                const b = elemanBurkulma(elem, sec, mat, L, r.N || 0, gammaM1);
+                const b = elemanBurkulma(elem, sec, mat, L, r.N || 0, gammaM1,
+                    { M1: r.M1, M2: r.M2, Mmax: r.Mmax, Mz1: r.Mz1, Mz2: r.Mz2, Mz: r.Mz });
                 if (b) out[id] = b;
             });
             return out;

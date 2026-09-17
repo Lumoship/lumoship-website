@@ -446,7 +446,10 @@
                     { a: 'chi', b: 'χ (crit.)', o: 3 },
                     { a: 'NbRd', b: 'Nb,Rd [kN]', o: 1 },
                     { a: 'egri', b: 'Curve', m: true },
-                    { a: 'UF', b: 'UF', o: 3 },
+                    { a: 'UFN', b: 'UF N', o: 3 },
+                    { a: 'My', b: 'My [kNm]', o: 2 }, { a: 'Mz', b: 'Mz [kNm]', o: 2 },
+                    { a: 'kyy', b: 'kyy', o: 3 }, { a: 'kzz', b: 'kzz', o: 3 },
+                    { a: 'UF', b: 'UF N+M', o: 3 },
                     { a: 'durum', b: 'Status', m: true }
                 ],
                 satirlar: () => {
@@ -458,6 +461,9 @@
                         kY: r.kY, kZ: r.kZ, lamY: r.lambdaY, lamZ: r.lambdaZ,
                         chi: r.eksenKritik === 'y' ? r.chiY : r.chiZ,
                         NbRd: r.NbRd, egri: r.egri + ' (' + r.eksenKritik + ')',
+                        UFN: r.UFN,
+                        My: r.etkilesim ? r.etkilesim.My : null, Mz: r.etkilesim ? r.etkilesim.Mz : null,
+                        kyy: r.etkilesim ? r.etkilesim.kyy : null, kzz: r.etkilesim ? r.etkilesim.kzz : null,
                         UF: r.UF, durum: r.durum,
                         _vurgu: r.durum === 'FAIL' ? 'stress-fail' : (r.durum === 'check' ? 'stress-warn' : (r.durum === 'ok' ? 'stress-ok' : ''))
                     }));

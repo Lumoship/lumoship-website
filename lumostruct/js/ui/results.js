@@ -143,7 +143,7 @@
                 if (!basinc.length) return 'Member buckling: no member in compression.';
                 const enKotu = basinc.reduce((m, x) => x.UF > m.UF ? x : m, basinc[0]);
                 const fail = basinc.filter(x => x.UF > 1).length;
-                return 'Member buckling (EN 1993-1-1 6.3.1): max UF ' + enKotu.UF.toFixed(2) +
+                return 'Member buckling (EN 1993-1-1 6.3.1 + 6.3.3 N+M interaction): max UF ' + enKotu.UF.toFixed(2) +
                     (fail ? ' - ' + fail + ' member(s) FAIL' : ' - OK') + '. See Buckling tab.';
             }
 
