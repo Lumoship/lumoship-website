@@ -45,7 +45,7 @@
             
             setTimeout(() => {
                 try {
-                    results = solve();
+                    results = (typeof zarfSecildiMi === 'function' && zarfSecildiMi()) ? zarfCoz() : solve();
 
                 // Cozucu, adindan cozulebilen bir kesidi kutuphaneye KENDISI
                 // ekler (fem.js -> layerToSection). Panel bunu ogrenmezse

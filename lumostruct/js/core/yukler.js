@@ -29,7 +29,7 @@
             { id: 'LC2', ad: 'Factored',  katsayi: { D: 1.2, L: 1.5 } },
             { id: 'LC3', ad: 'Dead only', katsayi: { D: 1.0, L: 0.0 } }
         ];
-        const YUK_DURUMU_VARSAYILAN_ID = 'L';
+        const YUK_DURUMU_VARSAYILAN_ID = 'L';   // ZARF: bkz. js/core/zarf.js
 
         const yukKopya = v => JSON.parse(JSON.stringify(v));
 
@@ -67,8 +67,14 @@
         function etkinKombinasyonId() {
             const el = (typeof document !== 'undefined') ? document.getElementById('loadCombSelect') : null;
             const aday = (el && el.value) || (model && model.activeCombination) || null;
+            if (aday === 'ENV') return 'ENV';                // zarf: butun kombinasyonlar (js/core/zarf.js)
             const ks = kombinasyonlar();
             return ks.some(k => k.id === aday) ? aday : ks[0].id;
+        }
+        // Rapor ve ozet icin etiket; zarfta kombinasyon listesi
+        function etkinKombinasyonEtiketi() {
+            if (etkinKombinasyonId() === 'ENV') return 'ENV: Envelope of ' + kombinasyonlar().map(k => k.id).join(', ');
+            return kombinasyonEtiketi(etkinKombinasyon());
         }
         function etkinKombinasyon() {
             const id = etkinKombinasyonId();
@@ -201,13 +207,14 @@
             const lc = document.getElementById('loadCombSelect');
             if (lc) {
                 const secili = etkinKombinasyonId();
-                lc.innerHTML = kombinasyonlar().map(k => '<option value="' + k.id + '">' + kombinasyonEtiketi(k) + '</option>').join('');
+                lc.innerHTML = kombinasyonlar().map(k => '<option value="' + k.id + '">' + kombinasyonEtiketi(k) + '</option>').join('') +
+                    (kombinasyonlar().length > 1 ? '<option value="ENV">ENV: Envelope (worst of all ' + kombinasyonlar().length + ')</option>' : '');
                 lc.value = secili;
                 model.activeCombination = secili;
             }
             const cur = document.getElementById('currentLC'), curF = document.getElementById('currentLCFactor');
             if (cur) cur.textContent = etkinKombinasyonId();
-            if (curF) curF.textContent = kombinasyonEtiketi(etkinKombinasyon()).replace(/^[^(]*\(|\)$/g, '');
+            if (curF) curF.textContent = (etkinKombinasyonId() === 'ENV') ? 'worst of all combinations' : kombinasyonEtiketi(etkinKombinasyon()).replace(/^[^(]*\(|\)$/g, '');
             const etkinAd = document.getElementById('activeLoadCaseName');
             if (etkinAd) { const d = durumlar.find(x => x.id === etkinYukDurumu()); etkinAd.textContent = d ? (d.id + ' - ' + d.ad) : '-'; }
             if (document.getElementById('loadCasesModal')) yukKombPenceresiniDoldur();

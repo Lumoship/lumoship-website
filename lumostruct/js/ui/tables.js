@@ -248,7 +248,8 @@
                     { a: 'Mymax', b: 'My max [kNm]', o: 3 },
                     { a: 'xMy', b: 'at x [mm]', o: 0 },
                     { a: 'Mzmax', b: 'Mz max [kNm]', o: 3 },
-                    { a: 'd', b: 'd max [mm]', o: 4 }
+                    { a: 'd', b: 'd max [mm]', o: 4 },
+                    { a: 'lc', b: 'LC', m: true }
                 ],
                 satirlar: () => Object.entries(results.elementResults || {}).map(([id, e]) => ({
                     id: parseInt(id, 10),
@@ -262,7 +263,10 @@
                     // diyagramdan, |M| en buyuk olan istasyon.
                     xMy: (() => { const d = e.diagram; if (!d || !d.M || !d.x) return null; let k = 0; for (let i = 1; i < d.M.length; i++) if (Math.abs(d.M[i]) > Math.abs(d.M[k])) k = i; return d.x[k] * 1000; })(),
                     Mzmax: e.Mz || 0,
-                    d: e.dmax || 0
+                    d: e.dmax || 0,
+                    // Zarfta: kaydin geldigi (von Mises'e gore) kombinasyon;
+                    // tek kombinasyonda o kombinasyon.
+                    lc: e.lc || (typeof etkinKombinasyonId === 'function' ? etkinKombinasyonId() : '')
                 }))
             },
             {
@@ -276,7 +280,8 @@
                     { a: 'Px', b: 'Px [kN]', o: 3 }, { a: 'Py', b: 'Py [kN]', o: 3 },
                     { a: 'Pz', b: 'Pz [kN]', o: 3 },
                     { a: 'Mx', b: 'Mx [kNm]', o: 4 }, { a: 'My', b: 'My [kNm]', o: 4 },
-                    { a: 'Mz', b: 'Mz [kNm]', o: 4 }
+                    { a: 'Mz', b: 'Mz [kNm]', o: 4 },
+                    { a: 'lc', b: 'LC (dZ)', m: true }
                 ],
                 satirlar: () => {
                     const DER = 180 / Math.PI;
@@ -292,7 +297,8 @@
                             Px: t ? (t.Fx || 0) : null, Py: t ? (t.Fy || 0) : null,
                             Pz: t ? (t.Fz || 0) : null,
                             Mx: t ? (t.Mx || 0) : null, My: t ? (t.My || 0) : null,
-                            Mz: t ? (t.Mz || 0) : null
+                            Mz: t ? (t.Mz || 0) : null,
+                            lc: d.UzLc || (typeof etkinKombinasyonId === 'function' ? etkinKombinasyonId() : '')
                         };
                     });
                 }
@@ -376,7 +382,8 @@
                     { a: 'vm', b: 'sigma_vm [MPa]', o: 2 },
                     { a: 'sinir', b: 'Limit [MPa]', o: 0 },
                     { a: 'oran', b: 'Utilisation [%]', o: 1 },
-                    { a: 'durum', b: 'Status', m: true }
+                    { a: 'durum', b: 'Status', m: true },
+                    { a: 'lc', b: 'LC', m: true }
                 ],
                 satirlar: () => {
                     const sinir = tabloGerilmeSiniri();
@@ -393,6 +400,7 @@
                             oran: oran,
                             // Rijit kiriste gerilme hesaplanmaz; "ok" yazmak yanlis guven verir.
                             durum: e.rigid ? 'rigid' : (oran > 100 ? 'OVER' : (oran > 80 ? 'check' : 'ok')),
+                            lc: e.lc || (typeof etkinKombinasyonId === 'function' ? etkinKombinasyonId() : ''),
                             _vurgu: e.rigid ? '' : (oran > 100 ? 'stress-fail' : (oran > 80 ? 'stress-warn' : 'stress-ok'))
                         };
                     });
@@ -533,7 +541,11 @@
 
             const d = results.maxDeflection;
             s.push('ANALYSIS');
-            s.push('  Max deflection       ' + ((d || 0) * 1000).toFixed(3) + ' mm');
+            s.push('  Combination          ' + (typeof etkinKombinasyonEtiketi === 'function' ? etkinKombinasyonEtiketi() : '-'));
+            if (typeof sonucZarfMi === 'function' && sonucZarfMi(results)) {
+                s.push('  Envelope             worst value per beam/node; LC column names the governing combination');
+            }
+            s.push('  Max deflection       ' + ((d || 0) * 1000).toFixed(3) + ' mm' + (results.maxDeflectionLc ? '   (' + results.maxDeflectionLc + ')' : ''));
             s.push('  Max bending moment   ' + (results.maxMoment || 0).toFixed(3) + ' kNm');
             s.push('  Max shear force      ' + (results.maxShear || 0).toFixed(3) + ' kN');
             s.push('  Max normal stress    ' + (results.maxSigma || 0).toFixed(2) + ' MPa');

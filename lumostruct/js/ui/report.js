@@ -32,7 +32,7 @@
             const xs = nodeIds.map(id => nodes[id].x), ys = nodeIds.map(id => nodes[id].y);
             const grade = document.getElementById('steelGrade')?.value || '-';
             const mat = (typeof MATERIALS !== 'undefined' && MATERIALS[grade]) ? MATERIALS[grade] : null;
-            const lc = { value: (typeof kombinasyonEtiketi === 'function') ? kombinasyonEtiketi(etkinKombinasyon()) : (document.getElementById('loadCombSelect') || {}).value };
+            const lc = { value: (typeof etkinKombinasyonEtiketi === 'function') ? etkinKombinasyonEtiketi() : (document.getElementById('loadCombSelect') || {}).value };
 
             return {
                 tarih: new Date().toLocaleString(),

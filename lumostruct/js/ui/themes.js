@@ -431,7 +431,7 @@
             // combination gave identical results.
             model.activeCombination = lc;
             yukSecicileriniTazele();
-            showToast('Solving ' + kombinasyonEtiketi(etkinKombinasyon()));
+            showToast('Solving ' + etkinKombinasyonEtiketi());
             
             // Re-solve with new factor
             solveModel();

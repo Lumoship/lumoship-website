@@ -450,6 +450,17 @@
             return toplam;
         }
 
+        // Geri kazanimin gorecegi yayili yukler: hat yukleri (kombinasyon
+        // katsayisiyla) + oz agirlik (D katsayisiyla, tam boy, asagi). Montaj
+        // (addDistributedLoad cagrilari) ile ayni kaynaklar, ayni carpanlar.
+        function elemanGeriYukleri(elem, sec, loadFactors, selfWeightOn) {
+            const out = (elem.lineLoads || []).map(l => ({ load: l, kat: yukKatsayisiOku(loadFactors, l.case) }));
+            if (selfWeightOn && sec && sec.A > 0 && !sec.rigid) {
+                out.push({ load: { value: sec.A * STEEL_DENSITY * GRAVITY / 1000, startPct: 0, endPct: 100, angle: 90 }, kat: loadFactors.D });
+            }
+            return out;
+        }
+
         // Burulma sabiti TEK yerde. Rijitlik montaji ile ic kuvvet geri
         // kazanimi ayni degeri kullanmak ZORUNDA: iki ayri kopya zamanla
         // birbirinden ayrilir ve burulma moment cikti ile rijitlik farkli
@@ -1296,9 +1307,16 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 // --- Distributed loads on this element (local a..b, vertical intensity wv N/m) ---
                 const spanLoads = [];
                 let fefV_i = 0, fefM_i = 0;  // fixed-end forces (montajla tutarlı)
-                if (elem.lineLoads && elem.lineLoads.length > 0) {
-                    elem.lineLoads.forEach(load => {
-                        const q = (load.value ?? load.q ?? 0) * 1000; // N/m
+                // Geri kazanimdaki yayili yukler MONTAJLA AYNI: kombinasyon
+                // katsayisi uygulanir ve oz agirlik da listededir. Eskiden ikisi
+                // de yoktu: LC2 (1.2D + 1.5L) secilince yer degistirmeler
+                // carpanli, moment diyagrami carpansiz hesaplaniyordu -
+                // mafsalli ucta 1.8 kNm "moment" cikiyordu; oz agirlik acikken
+                // basit kirisin momenti wL2/8 yerine sabit wL/2 gorunuyordu.
+                const geriYukler = elemanGeriYukleri(elem, sec, loadFactors, selfWeightOn);
+                if (geriYukler.length > 0) {
+                    geriYukler.forEach(({ load, kat }) => {
+                        const q = (load.value ?? load.q ?? 0) * 1000 * kat; // N/m
                         const sPct = (load.startPct !== undefined) ? load.startPct : (load.start !== undefined ? load.start * 100 : 0);
                         const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
                         const a = L * sPct / 100, b = L * ePct / 100;
@@ -1308,7 +1326,7 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                         // montajla ayni yerden okunuyor.
                         const frameR = elementFrame(n1, n2, elem.orientation);
                         const wv = yayiliYukYonu(load, frameR, q).wz;
-                        const q2 = load.value2;
+                        const q2 = (typeof load.value2 === 'number' && isFinite(load.value2)) ? load.value2 * kat : undefined;
                         const wv2 = (typeof q2 === 'number' && isFinite(q2) && q2 * 1000 !== q)
                             ? yayiliYukYonu(load, frameR, q2 * 1000).wz : wv;
                         if (ll > 1e-9 && (Math.abs(wv) > 1e-12 || Math.abs(wv2) > 1e-12)) {
@@ -1442,16 +1460,16 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 // Bu elemandaki yanal dağılı yükler (local y bileşeni)
                 const spanLoadsZ = [];
                 let fefVz = 0, fefMz = 0;
-                if (elem.lineLoads && elem.lineLoads.length > 0) {
+                if (geriYukler.length > 0) {
                     const frameZ = elementFrame(n1, n2, elem.orientation);
-                    elem.lineLoads.forEach(load => {
-                        const q = (load.value ?? load.q ?? 0) * 1000; // N/m
+                    geriYukler.forEach(({ load, kat }) => {
+                        const q = (load.value ?? load.q ?? 0) * 1000 * kat; // N/m
                         const sPct = (load.startPct !== undefined) ? load.startPct : (load.start !== undefined ? load.start * 100 : 0);
                         const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
                         const a = L * sPct / 100, b = L * ePct / 100;
                         // montajla ayni: yanal bilesen local y ekseni boyunca
                         const wl = yayiliYukYonu(load, frameZ, q).wy;
-                        const q2z = load.value2;
+                        const q2z = (typeof load.value2 === 'number' && isFinite(load.value2)) ? load.value2 * kat : undefined;
                         const wl2 = (typeof q2z === 'number' && isFinite(q2z) && q2z * 1000 !== q)
                             ? yayiliYukYonu(load, frameZ, q2z * 1000).wy : wl;
                         if (b - a > 1e-9 && (Math.abs(wl) > 1e-12 || Math.abs(wl2) > 1e-12) && frameZ) {
