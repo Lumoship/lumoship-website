@@ -184,6 +184,10 @@
             e.pointLoads.splice(idx, 1);
             if (!e.pointLoads.length) delete e.pointLoads;
             results = null;
+            // Loads sekmesindeki tablo ve kiris paneli ayni veriyi gosterir
+            if (typeof updateBCLoadsTable === 'function') updateBCLoadsTable();
+            if (typeof updateEntityInfoPanel === 'function') updateEntityInfoPanel();
+            if (typeof update3DScene === 'function' && typeof threeScene !== 'undefined' && threeScene) update3DScene();
         }
 
         // ---- duzenleme (Loads sekmesi) ----

@@ -180,6 +180,21 @@
         }
 
         // Var olan bir yukun durumunu degistir. tur: 'node' | 'line' | 'pressure'
+        // Bir durumun kombinasyonlardaki katsayilari: "LC1 ×1 · LC2 ×1.5";
+        // sifir olanlar soluk. Loads sekmesinde her yukun altinda yazar -
+        // kullanici "bu yuk hangi kombinasyonda etkin" diye pencere acmaz.
+        function yukDurumuKombOzeti(durum) {
+            const ks = kombinasyonlar();
+            if (!ks.length) return '';
+            const tanimli = yukDurumlari().some(d => d.id === durum);
+            if (!tanimli) return '<span style="color:var(--danger-text);">case "' + durum + '" not defined - ignored</span>';
+            return ks.map(k => {
+                const v = parseFloat(k.katsayi[durum]);
+                const f = isFinite(v) ? v : 0;
+                return '<span style="' + (f ? '' : 'opacity:0.45;') + '">' + k.id + ' ×' + (Math.round(f * 100) / 100) + '</span>';
+            }).join(' · ');
+        }
+
         function yukDurumuAta(tur, a, b, durum) {
             if (!yukDurumlari().some(d => d.id === durum)) return;
             saveState();

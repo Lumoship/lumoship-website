@@ -736,3 +736,31 @@
   color:var(--text-secondary);
   word-break:break-all;
 }
+
+/* ── Six-step design flow (96-steps.js) ─────────────────────────────────────
+   A strip under the header on every page: where you are, what to do here,
+   what is still blank, and Back / Next. On the Geometry page the viewport is
+   locked, so the strip stays a single compact row (max two lines of checks). */
+.step-strip-host{flex-shrink:0}
+.step-strip{display:flex;align-items:stretch;gap:var(--spacing-lg);margin:0 0 var(--spacing-md);padding:10px 16px;
+  background:linear-gradient(180deg,rgba(37,99,235,0.10),rgba(37,99,235,0.04));border:1px solid rgba(59,130,246,0.35);
+  border-radius:var(--radius-md);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04)}
+.step-strip-main{flex:1 1 34%;min-width:220px}
+.step-strip-title{font-family:var(--font-display);font-weight:700;font-size:var(--fs-base);color:var(--text-primary);display:flex;align-items:center;gap:10px}
+.step-strip-num{font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:700;color:white;background:#2563eb;border-radius:999px;padding:2px 9px;line-height:1.4}
+.step-strip-num span{opacity:0.7;font-weight:500}
+.step-strip-hint{font-size:var(--fs-xs);color:var(--text-secondary);line-height:1.45;margin-top:3px}
+.step-strip-checks{flex:1 1 40%;min-width:220px;list-style:none;margin:0;padding:0 var(--spacing-md);border-left:1px solid var(--border);
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px;align-content:center;font-family:var(--font-mono);font-size:0.68rem;line-height:1.5}
+.step-strip-checks li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-strip-checks li.ok{color:var(--success)}
+.step-strip-checks li.todo{color:var(--warning)}
+.step-strip-nav{display:flex;flex-direction:column;justify-content:center;gap:6px;flex:0 0 auto}
+.step-strip-nav .ea-btn{white-space:nowrap;justify-content:center}
+.step-strip-open{font-family:var(--font-mono);font-size:0.62rem;opacity:0.85;margin-left:6px;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,0.25)}
+body.geometry-active .step-strip{margin-bottom:var(--spacing-sm);padding:7px 14px}
+body.geometry-active .step-strip-hint{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ea-wizard-line{width:36px}
+.ea-wizard-step{padding:10px 14px}
+@media (max-width:1100px){.step-strip{flex-wrap:wrap}.step-strip-checks{border-left:none;padding:0;grid-template-columns:1fr}}
+.np-group[hidden]{display:none}

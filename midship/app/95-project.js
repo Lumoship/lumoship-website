@@ -635,7 +635,7 @@
            'These describe the specific ship and cannot be derived from the principal ' +
            'particulars, so they were left blank rather than carried over:<br>\u2022 ' +
            pending.join('<br>\u2022 ') +
-           '<br><span style="opacity:.75">Fill them in on the Setup page before trusting any result.</span>');
+           '<br><span style="opacity:.75">M<sub>s</sub> and the side-tank head belong to step 1 (Ship), l<sub>e</sub> to step 5 (Stiffeners). Fill them in before trusting any result.</span>');
   }
 
   // =====================================================================

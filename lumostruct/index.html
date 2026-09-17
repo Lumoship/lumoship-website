@@ -1532,6 +1532,28 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Kiris tekil yukleri (js/ui/import.js updateBCLoadsTable doldurur) -->
+                <div class="panel-card">
+                    <h3 class="panel-title"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><line x1="3" y1="20" x2="21" y2="20"/></svg></span> Beam Point Loads</h3>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <table class="data-table" style="font-size:var(--fs-sm);">
+                            <thead>
+                                <tr>
+                                    <th>Elem</th>
+                                    <th>Nodes</th>
+                                    <th>P (kN)</th>
+                                    <th>Position</th>
+                                    <th>Case</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="kirisNoktaYukTablosu">
+                                <tr><td colspan="6" style="color:var(--text-3); text-align:center;">No beam point loads (add from the beam panel)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 
                 <!-- Quick Load Add -->
                 <div class="panel-card">

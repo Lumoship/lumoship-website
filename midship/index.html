@@ -244,13 +244,13 @@
         <div class="ea-brand">
           <div class="ea-logo">L</div>
           <div class="ea-title-group">
-            <h1>Midship Scantling Viewer</h1>
+            <h1>Midship Scantling Designer</h1>
             <p id="headerSubtitle">Baltic Laker GC — LR Pt 4 Ch 1</p>
           </div>
         </div>
       </div>
       <div class="ea-header-actions">
-        <span class="ea-header-badge">v1.0</span>
+        <span class="ea-header-badge">v1.1</span>
         <button class="ea-header-btn" onclick="Project.newProject()" title="Start a new project from principal particulars">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
           New
@@ -282,13 +282,18 @@
         </button>
       </div>
     </div>
-    <nav class="ea-wizard">
-      <button class="ea-wizard-step active" onclick="goToPage(1)"><span class="ea-wizard-num">1</span> Setup</button>
+    <nav class="ea-wizard" aria-label="Design steps">
+      <button class="ea-wizard-step active" data-step="1" onclick="goToStep(1)" title="Identification, main dimensions, loads, materials, ice"><span class="ea-wizard-num">1</span> Ship</button>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" onclick="goToPage(2)" style="display:none" aria-hidden="true"><span class="ea-wizard-num">—</span> Scantling</button>
-      <button class="ea-wizard-step" onclick="goToPage(3)"><span class="ea-wizard-num">2</span> Geometry</button>
+      <button class="ea-wizard-step" data-step="2" onclick="goToStep(2)" title="Section geometry parameters"><span class="ea-wizard-num">2</span> Section</button>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" onclick="goToPage(4)"><span class="ea-wizard-num">3</span> Summary</button>
+      <button class="ea-wizard-step" data-step="3" onclick="goToStep(3)" title="Side girders, deck levels, compartments, watertightness"><span class="ea-wizard-num">3</span> Positions</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" data-step="4" onclick="goToStep(4)" title="Strake layout, thickness and grade"><span class="ea-wizard-num">4</span> Strakes</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" data-step="5" onclick="goToStep(5)" title="Stiffener spacing and profile sizes"><span class="ea-wizard-num">5</span> Stiffeners</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" data-step="6" onclick="goToStep(6)" title="Rule check summary and report"><span class="ea-wizard-num">6</span> Check</button>
     </nav>
   </div>
 </header>
@@ -1217,7 +1222,7 @@
     <!-- BOTTOM STATUS BAR — quick KPIs + page navigation, single row.
          Combines what was previously two separate strips (status bar + page-actions). -->
     <div class="status-bar" id="bottomStatusBar">
-      <button class="sb-nav-btn back" onclick="goToPage(1)" title="Back to Setup">← Back</button>
+      <button class="sb-nav-btn back" onclick="stepPrev()" title="Previous step">← Back</button>
       <div class="sb-sep"></div>
       <div class="sb-item">
         <span class="sb-label">M_max</span>
@@ -1243,7 +1248,7 @@
         <span class="sb-value" id="sbStiffs">—</span>
       </div>
       <button class="sb-expand" onclick="window.toggleSidePanel('left', true)" title="Open Info panel for full breakdown">↗ Details</button>
-      <button class="sb-nav-btn fwd" onclick="goToPage(4)" title="Go to Summary page">View Summary →</button>
+      <button class="sb-nav-btn fwd" onclick="stepNext()" title="Next step">Next →</button>
     </div>
 
     <!-- Rule summary panel — collapsible drawer in Analysis Mode -->
@@ -1810,7 +1815,7 @@
     <div class="np-head">
       <div>
         <h2 id="npTitle">New Project</h2>
-        <p>Principal particulars in, a clean midship section out. Everything stays editable afterwards.</p>
+        <p>Identification and principal particulars only. The section geometry is shaped in step 2, spacings and profiles in step 5 &mdash; both start from rule-of-thumb values derived from B and D.</p>
       </div>
       <button class="ea-btn ea-btn-sm ea-btn-secondary" onclick="Project.closeWizard()">Close</button>
     </div>
@@ -1858,7 +1863,7 @@
         </div>
       </div>
 
-      <div class="np-group">
+      <div class="np-group np-deferred" hidden>
         <h3>Section Geometry (mm)</h3>
         <p class="np-hint">Prefilled from B and D. Edit any of them &mdash; once you type in a box it stops auto-updating.</p>
         <div class="np-row c5">
@@ -1877,7 +1882,7 @@
         </div>
       </div>
 
-      <div class="np-group">
+      <div class="np-group np-deferred" hidden>
         <h3>Stiffener Spacing (mm)</h3>
         <div class="np-row c4">
           <div class="ea-field"><label class="ea-label" for="np_dbSpacing">Double Bottom</label><input type="number" step="5" class="ea-input" id="np_dbSpacing"></div>
@@ -1893,7 +1898,7 @@
 
       <div class="np-group">
         <h3>Still-Water Bending Moment (kN&middot;m)</h3>
-        <div class="np-note warn">M<sub>s</sub> comes from the loading manual &mdash; it cannot be derived from the principal particulars, so nothing is assumed here. The wave moment M<sub>w</sub> <em>is</em> computed from the rules. Leave these blank and fill them in on the Setup page if you do not have them yet.</div>
+        <div class="np-note warn">M<sub>s</sub> comes from the loading manual &mdash; it cannot be derived from the principal particulars, so nothing is assumed here. The wave moment M<sub>w</sub> <em>is</em> computed from the rules. Leave these blank and fill them in at step 1 (Ship) if you do not have them yet.</div>
         <div class="np-row c4" style="margin-top:var(--spacing-sm)">
           <div class="ea-field"><label class="ea-label" for="np_MsHog">Hogging (+)</label><input type="number" step="1000" class="ea-input" id="np_MsHog" placeholder="blank"></div>
           <div class="ea-field"><label class="ea-label" for="np_MsSag">Sagging (&minus;)</label><input type="number" step="1000" class="ea-input" id="np_MsSag" placeholder="blank"></div>
@@ -1904,7 +1909,7 @@
 
     <div class="np-foot">
       <button class="ea-btn ea-btn-secondary" onclick="Project.closeWizard()">Cancel</button>
-      <button class="ea-btn ea-btn-primary" onclick="Project.createProject()">Create Project &rarr;</button>
+      <button class="ea-btn ea-btn-primary" onclick="Project.createProject()">Create Project &rarr; Step 2</button>
     </div>
   </div>
 </div>
@@ -1929,6 +1934,7 @@
 <script src="app/90-custom-profile.js"></script>
 <script src="app/91-profile-picker.js"></script>
 <script src="app/95-project.js"></script>
+<script src="app/96-steps.js"></script>
 <script src="app/99-info-overlay.js"></script>
     <script type="module">
 
