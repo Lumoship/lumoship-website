@@ -183,13 +183,15 @@
             const spacingX = parseFloat(document.getElementById('copySpacingX')?.value) || 1;
             const spacingY = parseFloat(document.getElementById('copySpacingY')?.value) || 1;
             const spacingZ = parseFloat(document.getElementById('copySpacingZ')?.value) || 0;
+            const n = diziKopyala(getSelectedBeamIds(), cols, rows, lays, spacingX, spacingY, spacingZ);
+            if (n !== null) closeCopyModal();
+        }
 
-            const selectedBeamIds = getSelectedBeamIds();
-            if (selectedBeamIds.length === 0) {
-                closeCopyModal();
-                return;
-            }
-
+        // Dizi kopyasi (pencere ve ARRAY komutu ortak): cols x rows x lays,
+        // araliklar metre. Yeni kirislerin sayisini dondurur; secim yoksa null.
+        function diziKopyala(selectedBeamIds, cols, rows, lays, spacingX, spacingY, spacingZ) {
+            if (!selectedBeamIds || selectedBeamIds.length === 0) { showToast('Select beams first', 'warning'); return null; }
+            saveState();
             const allNewBeamIds = [];
             const allNewNodeIds = [];
             const kaynak = secilenKirisDugumleri(selectedBeamIds);
@@ -209,16 +211,17 @@
 
             clearSelection();
             allNewBeamIds.forEach(id => selectedElements.add(id));
-            allNewNodeIds.forEach(id => selectedElements.add(id));
+            // (yeni dugum kimlikleri selectedElements'a yaziliyordu - kiris
+            // kumesine dugum karisiyordu; dugumler kendi kumesine)
+            allNewNodeIds.forEach(id => selectedNodes.add(id));
 
             results = null;
             if (currentViewMode === '3d') update3DScene();
             else draw();
 
             updateEntityInfoPanel();
-            saveState();
-            closeCopyModal();
             showToast(`Created ${cols}×${rows}${lays > 1 ? '×' + lays : ''} array (${allNewBeamIds.length} new beams)`);
+            return allNewBeamIds.length;
         }
         
         // ----- MIRROR MODAL -----

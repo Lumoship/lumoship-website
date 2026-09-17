@@ -13,7 +13,8 @@
             LINE: 'line',
             OFFSET: 'offset',
             JOIN: 'join',
-            NODE_MOVE: 'node_move'
+            NODE_MOVE: 'node_move',
+            ARRAY: 'array'
         };
 
         // ============== KOMUT SOZLUGU VE TAMAMLAMA ==============
@@ -33,6 +34,7 @@
             { ad: 'ROTATE', kisa: ['RO', 'R'], aciklama: 'Rotate about a centre' },
             { ad: 'MIRROR', kisa: ['MI'],      aciklama: 'Mirror about a line' },
             { ad: 'OFFSET', kisa: ['O'],       aciklama: 'Parallel copy at a distance' },
+            { ad: 'ARRAY',  kisa: ['AR'],      aciklama: 'Copy selection in a grid: n@dx,dy[,dz] or nx,ny@dx,dy' },
             { ad: 'SPLIT',  kisa: ['SP'],      aciklama: 'Split a beam at a point' },
             { ad: 'EXTEND', kisa: ['EX'],      aciklama: 'Extend a beam to a boundary' },
             { ad: 'TRIM',   kisa: ['TR'],      aciklama: 'Trim a beam at a boundary' },
@@ -573,6 +575,8 @@
                 if (cmdState.phase === PHASE.DESTINATION || cmdState.phase === PHASE.SELECT) {
                     processSplitInput(value);
                 }
+            } else if (cmdState.active === CMD.ARRAY) {
+                if (cmdState.phase === PHASE.DESTINATION) diziGirdisiIsle(value);
             } else if (cmdState.active === CMD.OFFSET) {
                 if (cmdState.phase === PHASE.DESTINATION) {
                     // Parse distance input
@@ -587,6 +591,56 @@
             }
         }
         
+        // ARRAY girdisi: "n@dx,dy[,dz]" ya da "nx,ny@dx,dy[,dz]" (mm). Sayilar
+        // KOPYA sayisidir (orijinal haric). Bos girdi pencereyi acar.
+        function diziGirdisiIsle(value) {
+            const v = String(value || '').trim();
+            if (!v) { if (typeof showCopyModal === 'function') showCopyModal(); return; }
+            const m = v.match(/^(\d+)(?:\s*[,x]\s*(\d+))?\s*@\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)(?:\s*,\s*(-?[\d.]+))?$/i);
+            if (!m) { showToast('Format: n@dx,dy[,dz]  or  nx,ny@dx,dy  (mm)', 'warning'); return; }
+            const nx = parseInt(m[1], 10), ny = m[2] ? parseInt(m[2], 10) : 1;
+            const dx = parseFloat(m[3]) / 1000, dy = parseFloat(m[4]) / 1000, dz = m[5] ? parseFloat(m[5]) / 1000 : 0;
+            if (!(nx >= 1) || !(ny >= 1)) { showToast('Copy counts must be at least 1', 'warning'); return; }
+            // diziKopyala cols/rows/lays ORIJINAL DAHIL sayar: tek yonlu "3@dx,dy":
+            // kopyalar dx,dy ile ilerler -> cols = n+1, spacing (dx, dy) tek eksende
+            // ise; capraz vektor icin katman mantigi: her kopya k*(dx,dy,dz)
+            let yeni;
+            if (!m[2]) {
+                yeni = diziKopyalaVektor(cmdState.selectedBeamIds, nx, dx, dy, dz);
+            } else {
+                yeni = diziKopyala(cmdState.selectedBeamIds, nx + 1, ny + 1, 1, dx, dy, dz);
+            }
+            if (yeni !== null) showToast('ARRAY: ' + yeni + ' new beam(s)');
+            cancelCommand();
+        }
+
+        // Tek vektor boyunca n kopya: k = 1..n, kayma k*(dx,dy,dz)
+        function diziKopyalaVektor(selectedBeamIds, n, dx, dy, dz) {
+            if (!selectedBeamIds || !selectedBeamIds.length) { showToast('Select beams first', 'warning'); return null; }
+            saveState();
+            const kaynak = secilenKirisDugumleri(selectedBeamIds);
+            const yeniKirisler = [];
+            for (let k = 1; k <= n; k++) {
+                const harita = dugumleriTuret(kaynak, d => ({ x: d.x + k * dx, y: d.y + k * dy, z: (d.z || 0) + k * dz }));
+                kirisleriTuret(selectedBeamIds, harita, yeniKirisler);
+            }
+            clearSelection();
+            yeniKirisler.forEach(id => selectedElements.add(id));
+            results = null;
+            if (currentViewMode === '3d') update3DScene(); else draw();
+            updateEntityInfoPanel();
+            return yeniKirisler.length;
+        }
+
+        // Secili kirislerin uc dugumlerini de sec (yuk/mesnet atarken)
+        function secimeUcDugumleriniEkle() {
+            let n = 0;
+            selectedElements.forEach(id => { const e = model.elements[id]; if (e) { [e.n1, e.n2].forEach(d => { if (!selectedNodes.has(d)) { selectedNodes.add(d); n++; } }); } });
+            if (currentViewMode === '3d') update3DScene(); else draw();
+            updateEntityInfoPanel();
+            showToast(n ? n + ' end node(s) added to selection' : 'No beams selected', n ? 'info' : 'warning');
+        }
+
         // ============== LINE: TEK GIRIS NOKTASI ==============
         //
         // Kiris kuran BES kopya vardi: 3B tiklama, komut cubugundan koordinat,
@@ -769,6 +823,18 @@
                     cmdState.stretchNodes = null;
                     cmdState.phase = hasSelection ? PHASE.BASE_POINT : PHASE.SELECT;
                     showToast(hasSelection ? `MOVE ${selectedBeamIds.length}: Click base point` : 'Select beams, then Space');
+                    break;
+
+                // ARRAY: secili kirisleri dizide kopyala. Girdi komut cubugundan:
+                //   3@2000,0      -> 3 kopya, her biri (2000, 0) mm kaydirilmis
+                //   3,2@2000,1500 -> 3 x 2 izgara (x, y araliklari)
+                //   3@0,0,3000    -> uc kat (z)
+                case 'AR':
+                case 'ARRAY':
+                    cmdState.active = CMD.ARRAY;
+                    cmdState.selectedBeamIds = hasSelection ? selectedBeamIds : [];
+                    cmdState.phase = hasSelection ? PHASE.DESTINATION : PHASE.SELECT;
+                    showToast(hasSelection ? `ARRAY ${selectedBeamIds.length}: type n@dx,dy[,dz] or nx,ny@dx,dy (mm)` : 'Select beams, then Space');
                     break;
 
                 // STRETCH: secili DUGUMLER tasinir, bagli kirisler uzar/kisalir

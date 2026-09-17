@@ -39,6 +39,7 @@
             ['MIRROR', 'select, two points of the mirror line (in the active plane); Y removes the original.'],
             ['SPLIT', 'hover a beam: <b>50%</b>, <b>R0.3</b> (ratio), <b>D1500</b> (mm from start), <b>P3</b> (equal parts); or <b>X1500</b> / <b>Y2000</b> / <b>Z3000</b> splits every beam crossing that coordinate.'],
             ['OFFSET', 'select a beam, side, distance in mm (parallel copy with loads and properties).'],
+            ['ARRAY', 'select beams, then <b>3@2000,0</b> (3 copies stepped 2000 mm in X), <b>3,2@2000,1500</b> (3 × 2 grid), <b>2@0,0,3000</b> (two decks up); Enter with no text opens the dialog.'],
             ['EXTEND / TRIM', 'click the beam end / the part to remove; the boundary is another beam.'],
             ['JOIN', 'two collinear beams sharing a node → one beam (loads re-spanned).'],
             ['PURGE', 'merge coincident nodes (3D), drop duplicate and zero-length beams.'],

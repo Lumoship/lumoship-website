@@ -188,7 +188,7 @@
                             if (cmdState.active === CMD.EXTEND || cmdState.active === CMD.TRIM) {
                                 cmdState.boundaryEdges = [];
                                 cmdState.phase = PHASE.DESTINATION;
-                            } else if (cmdState.active === CMD.SPLIT) {
+                            } else if (cmdState.active === CMD.SPLIT || cmdState.active === CMD.ARRAY) {
                                 cmdState.phase = PHASE.DESTINATION;
                             } else {
                                 cmdState.phase = PHASE.BASE_POINT;
