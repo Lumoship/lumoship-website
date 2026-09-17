@@ -138,6 +138,12 @@
             const H = hMM / 10, TW = twMM / 10, BF = bfMM / 10, TF = tfMM / 10;
             const Aw = H * TW, Af = BF * TF, A = Aw + Af;
             const total = H + TF;
+            // KURAL KAYMA ALANI (DNV RU-SHIP Pt.3 Ch.3 Sec.7 [1.4.2]-[1.4.3],
+            // PSM icin [1.4.6]): A_shr = (h_stf + t_p) * t_w - takviye
+            // yuksekligi FLANS DAHIL, plaka kalinligi plakaliKesitSI'de
+            // eklenir. Eskiden yalnizca govde (hw*tw) aliniyordu; kural
+            // izin verilebilir tau'yu bu alana gore kalibre eder.
+            const AwShr = (H + TF) * TW;
 
             const yf = TF / 2, yw = TF + H / 2;
             const c = (Af * yf + Aw * yw) / A;
@@ -149,7 +155,7 @@
             const yTop = Math.max(total - c, 1e-9), yBot = Math.max(c, 1e-9);
             return {
                 // T kesitte yanal kesmeyi FLANS tasir, govde degil.
-                type: 'T', A: A, Aweb: Aw, Aflange: Af, Iy: Iy, Iz: Iz, J: openJ([[BF, TF], [H, TW]]),
+                type: 'T', A: A, Aweb: AwShr, Aflange: Af, Iy: Iy, Iz: Iz, J: openJ([[BF, TF], [H, TW]]),
                 Wt: openJ([[BF, TF], [H, TW]]) / Math.max(TF, TW),
                 Wy: Iy / Math.max(yTop, yBot), WyTop: Iy / yTop, WyBot: Iy / yBot,
                 Wz: Iz / (BF / 2),                     // en genis boyutun yarisi
@@ -483,7 +489,10 @@
                 J: J_cm4 * 1e-8,
                 Wt: J_cm4 / Math.max(plateTCm, webThickCm || plateTCm) * 1e-6,
                 tw: webThickCm / 100,
-                Aweb: (props.Aweb || props.A * 0.6) * 1e-4,     // plaka haric govde
+                // Kural kayma alani: (h_stf + t_p) * t_w  (DNV RU-SHIP Pt.3 Ch.3
+                // Sec.7 [1.4.3] d_shr = h_stf + t_p; PSM [1.4.6] (hw+tf+tp)*tw).
+                // Profil kendi h_stf*t_w'sini getirir, plaka kalinligi burada.
+                Aweb: ((props.Aweb || props.A * 0.6) + webThickCm * plateTCm) * 1e-4,
                 Aflange: plateArea * 1e-4,                      // yanal kesmeyi plaka tasir
                 Iy: combinedIxx * 1e-8,
                 Iz: combinedIyy * 1e-8,

@@ -261,11 +261,12 @@
             sections[k.ad] = o.plaka
                 ? plakaliKesitSI(props, o.plaka.w, o.plaka.t, 0)
                 : profilePropertiesSI(props);
-            // DNV kendi kayma carpanlarini veriyor - varsa onlari kullan.
-            if (k.kayma && k.kayma.fy > 0 && k.kayma.fz > 0 && sections[k.ad]) {
-                sections[k.ad].Aweb = sections[k.ad].A * k.kayma.fz;
-                sections[k.ad].Aflange = sections[k.ad].A * k.kayma.fy;
-            }
+            // DNV 3D Beam'in kayma alani (Az = I*t/S, tarafsiz eksendeki TEPE
+            // gerilme) KULLANILMAZ: kural kontrolu (RU-SHIP Pt.3 Ch.3 Sec.7)
+            // ortalama gerilmeyi (h_stf + t_p) * t_w uzerinden ister; tepe
+            // degerle kural sinirini kiyaslamak %10-20 gereksiz ceza olur.
+            // Kesit kendi kural alanini profiles.js'te kurar. (k.kayma yalnizca
+            // bilgi olarak dosyada kalir.)
         });
 
         // Kirisler
