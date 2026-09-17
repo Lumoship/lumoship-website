@@ -134,8 +134,21 @@
                     ' kN, reactions ' + eq.reactionFz.toFixed(2) + ' kN';
             }
 
+            // Eleman burkulmasi ozeti (burkulma.js): en buyuk UF ve kac elemanin
+            // basinc altinda oldugu. Levha narinligi satirinin devamina yazilir.
+            function burkulmaOzeti() {
+                if (typeof modelBurkulma !== 'function' || !results) return '';
+                const b = Object.values(modelBurkulma(results));
+                const basinc = b.filter(x => x.basinc > 0);
+                if (!basinc.length) return 'Member buckling: no member in compression.';
+                const enKotu = basinc.reduce((m, x) => x.UF > m.UF ? x : m, basinc[0]);
+                const fail = basinc.filter(x => x.UF > 1).length;
+                return 'Member buckling (EN 1993-1-1 6.3.1): max UF ' + enKotu.UF.toFixed(2) +
+                    (fail ? ' - ' + fail + ' member(s) FAIL' : ' - OK') + '. See Buckling tab.';
+            }
+
             // KESIT levha narinligi kontrolu (hw/tw, bf/tf). Eleman/kolon burkulmasi
-            // DEGIL: eksenel kuvvet, burkulma boyu ve kritik yuk hesaba girmiyor.
+            // asagida burkulmaOzeti ile; buradaki yalnizca levha.
             const bucklingStatus = document.getElementById('bucklingStatus');
             const bucklingDetail = document.getElementById('bucklingDetail');
             const bucklingCard = document.getElementById('bucklingCard');
@@ -234,15 +247,15 @@
                         ? unchecked + ' element(s) have no usable web geometry'
                         : 'No elements to check';
                     bucklingCard.className = 'result-card warning';
-                } else if (bucklingOK) {
+                } else if (bucklingOK && !/FAIL/.test(burkulmaOzeti())) {
                     bucklingStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> Pass</span>';
                     bucklingDetail.textContent = unchecked
                         ? checked + ' checked OK, ' + unchecked + ' skipped (no web geometry)'
-                        : 'hw/tw and bf/tf OK on ' + checked + ' element(s). Member buckling is NOT checked.';
+                        : 'hw/tw and bf/tf OK on ' + checked + ' element(s). ' + burkulmaOzeti();
                     bucklingCard.className = unchecked ? 'result-card warning' : 'result-card success';
                 } else {
                     bucklingStatus.innerHTML = '<span style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> FAIL</span>';
-                    bucklingDetail.textContent = bucklingMsg.trim();
+                    bucklingDetail.textContent = (bucklingMsg.trim() + ' ' + burkulmaOzeti()).trim();
                     bucklingCard.className = 'result-card danger';
                 }
             }

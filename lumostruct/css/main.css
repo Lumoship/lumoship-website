@@ -5627,6 +5627,8 @@
         body.sonuc-kipi #beamNodeCoordsSection,
         body.sonuc-kipi #beamEditSectionSection,
         body.sonuc-kipi #beamOrientationSection,
+        body.sonuc-kipi #beamHingeSection,
+        body.sonuc-kipi #beamBucklingSection,
         body.sonuc-kipi #beamLineLoadSection,
         body.sonuc-kipi #beamActionsSection,
         body.sonuc-kipi #infoMultiNodeCards,

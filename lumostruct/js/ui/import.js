@@ -1280,7 +1280,7 @@
             const ll = elem.lineLoads[idx];
             const currentValue = ll.value || ll.q || 10;
             
-            const newValue = prompt(`Edit Line Load on Element #${elemId}\n\nCurrent: ${currentValue} kN/m\nEnter new value (negative = downward):`, currentValue);
+            const newValue = prompt(`Edit Line Load on Element #${elemId}\n\nCurrent: ${currentValue} kN/m\nEnter new value (positive = downward):`, currentValue);
             
             if (newValue !== null && !isNaN(parseFloat(newValue))) {
                 saveState();

@@ -199,6 +199,249 @@
             }
         }
 
+        // ---- Yerel eleman rijitligi (12x12, Timoshenko) ----
+        // Montaj (solve), mafsal kondansasyonu ve mafsalli uc donmesinin geri
+        // kazanimi hep bu matrisi kullanir. Eskiden montajin icinde satir
+        // satir kuruluyordu; mafsal icin ikinci bir kopya gerekince cikarildi.
+        function yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk) {
+            // Shear deformation parameter: Φ = 12EI / (κAGL²)
+            // Iy guclu eksen (yerel z sehimi) -> govde alani;
+            // Iz zayif eksen (yerel y sehimi) -> flans alani.
+            const phi_y = 12 * E * Iy / (kappa.z * A * G * Lk * Lk);
+            const phi_z = 12 * E * Iz / (kappa.y * A * G * Lk * Lk);
+            const EA_L = E * A / Lk;
+            const GJ_L = G * J / Lk;
+            const k = [];
+            for (let i = 0; i < 12; i++) k[i] = new Array(12).fill(0);
+            
+            // Axial (in local x) - unchanged
+            k[0][0] = EA_L; k[0][6] = -EA_L;
+            k[6][0] = -EA_L; k[6][6] = EA_L;
+            
+            // Torsion - unchanged
+            k[3][3] = GJ_L; k[3][9] = -GJ_L;
+            k[9][3] = -GJ_L; k[9][9] = GJ_L;
+            
+            // Bending about local y (vertical displacement Uz, rotation Ry)
+            // Timoshenko beam stiffness coefficients
+            const EI_y = E * Iy;
+            const L2 = Lk * Lk;
+            const L3 = L2 * Lk;
+            const denom_y = 1 + phi_y;
+            
+            const k11_y = 12 * EI_y / (L3 * denom_y);
+            const k12_y = 6 * EI_y / (L2 * denom_y);
+            const k22_y = (4 + phi_y) * EI_y / (Lk * denom_y);
+            const k24_y = (2 - phi_y) * EI_y / (Lk * denom_y);
+            
+            k[2][2] = k11_y;
+            k[2][4] = k12_y;
+            k[2][8] = -k11_y;
+            k[2][10] = k12_y;
+            
+            k[4][2] = k12_y;
+            k[4][4] = k22_y;
+            k[4][8] = -k12_y;
+            k[4][10] = k24_y;
+            
+            k[8][2] = -k11_y;
+            k[8][4] = -k12_y;
+            k[8][8] = k11_y;
+            k[8][10] = -k12_y;
+            
+            k[10][2] = k12_y;
+            k[10][4] = k24_y;
+            k[10][8] = -k12_y;
+            k[10][10] = k22_y;
+            
+            // Bending about local z (in-plane, Uy and Rz)
+            const EI_z = E * Iz;
+            const denom_z = 1 + phi_z;
+            
+            const k11_z = 12 * EI_z / (L3 * denom_z);
+            const k12_z = 6 * EI_z / (L2 * denom_z);
+            const k22_z = (4 + phi_z) * EI_z / (Lk * denom_z);
+            const k24_z = (2 - phi_z) * EI_z / (Lk * denom_z);
+            
+            k[1][1] = k11_z;
+            k[1][5] = -k12_z;
+            k[1][7] = -k11_z;
+            k[1][11] = -k12_z;
+            
+            k[5][1] = -k12_z;
+            k[5][5] = k22_z;
+            k[5][7] = k12_z;
+            k[5][11] = k24_z;
+            
+            k[7][1] = -k11_z;
+            k[7][5] = k12_z;
+            k[7][7] = k11_z;
+            k[7][11] = k12_z;
+            
+            k[11][1] = -k12_z;
+            k[11][5] = k24_z;
+            k[11][7] = k12_z;
+            k[11][11] = k22_z;
+            return k;
+        }
+
+        // ---- MAFSAL (moment serbestligi) ----
+        // DNV 3D Beam'deki "Hinges at start / end". elem.hingeStart /
+        // elem.hingeEnd: o ucta iki egilme donmesi (yerel Ry, Rz) serbest;
+        // eleman o uca moment aktarmaz. Burulma serbest birakilmaz.
+        //
+        // Yontem: statik kondansasyon. Yerel k = [[Kcc, Kcr],[Krc, Krr]];
+        //   Kcc' = Kcc - Kcr Krr^-1 Krc,  serbest satir/sutunlar sifir.
+        // Yayili yukun esdeger dugum kuvvetleri de ayni sekilde:
+        //   fc' = fc - Kcr Krr^-1 fr.
+        // Cozumden sonra elemanin KENDI uc donmesi geri alinir:
+        //   ur = Krr^-1 (fr - Krc uc)
+        // - dugumun donmesi degil (mafsalda ikisi farkli). Ic kuvvetler bu
+        // donmeyle hesaplanir, boylece mafsaldaki moment tam sifir cikar.
+        function mafsalIndeksleri(elem) {
+            const r = [];
+            if (elem && elem.hingeStart) r.push(4, 5);
+            if (elem && elem.hingeEnd) r.push(10, 11);
+            return r;
+        }
+
+        function kondanse(k, r) {
+            const n = 12;
+            const c = [];
+            for (let i = 0; i < n; i++) if (!r.includes(i)) c.push(i);
+            const m = r.length;
+            // Krr ve tersi (kucuk, Gauss-Jordan)
+            const Krr = r.map(i => r.map(j => k[i][j]));
+            const inv = Krr.map((satir, i) => satir.map((v, j) => (i === j ? 1 : 0)));
+            for (let p = 0; p < m; p++) {
+                let piv = p;
+                for (let i = p + 1; i < m; i++) if (Math.abs(Krr[i][p]) > Math.abs(Krr[piv][p])) piv = i;
+                [Krr[p], Krr[piv]] = [Krr[piv], Krr[p]]; [inv[p], inv[piv]] = [inv[piv], inv[p]];
+                const d = Krr[p][p];
+                if (Math.abs(d) < 1e-300) throw new Error('Hinge condensation: singular Krr');
+                for (let j = 0; j < m; j++) { Krr[p][j] /= d; inv[p][j] /= d; }
+                for (let i = 0; i < m; i++) {
+                    if (i === p) continue;
+                    const f = Krr[i][p];
+                    if (f === 0) continue;
+                    for (let j = 0; j < m; j++) { Krr[i][j] -= f * Krr[p][j]; inv[i][j] -= f * inv[p][j]; }
+                }
+            }
+            const Krc = r.map(i => c.map(j => k[i][j]));           // m x (n-m)
+            // Kcc' = Kcc - Kcr Krr^-1 Krc
+            const kc = k.map(s => s.slice());
+            r.forEach(i => { for (let j = 0; j < n; j++) { kc[i][j] = 0; kc[j][i] = 0; } });
+            for (let ci = 0; ci < c.length; ci++) {
+                for (let cj = 0; cj < c.length; cj++) {
+                    let s = 0;
+                    for (let p = 0; p < m; p++) for (let q = 0; q < m; q++) s += Krc[p][ci] * inv[p][q] * Krc[q][cj];
+                    kc[c[ci]][c[cj]] -= s;
+                }
+            }
+            // fr -> f' (yuk vektoru, 12)
+            const yukKondanse = f => {
+                const g = f.slice();
+                const fr = r.map(i => f[i]);
+                for (let ci = 0; ci < c.length; ci++) {
+                    let s = 0;
+                    for (let p = 0; p < m; p++) for (let q = 0; q < m; q++) s += Krc[p][ci] * inv[p][q] * fr[q];
+                    g[c[ci]] -= s;
+                }
+                r.forEach(i => { g[i] = 0; });
+                return g;
+            };
+            // ur = Krr^-1 (fr - Krc uc)
+            const cozR = (u, f) => {
+                const rhs = r.map((i, p) => {
+                    let s = (f ? f[i] : 0);
+                    for (let ci = 0; ci < c.length; ci++) s -= Krc[p][ci] * u[c[ci]];
+                    return s;
+                });
+                return r.map((_, p) => { let s = 0; for (let q = 0; q < m; q++) s += inv[p][q] * rhs[q]; return s; });
+            };
+            return { k: kc, yukKondanse: yukKondanse, cozR: cozR, r: r, c: c };
+        }
+
+        // Mafsalli ucta rijit kol anlamsiz: o ucun kolu sifirlanir.
+        function mafsalRijitUc(elem, rij, L) {
+            if (elem.hingeStart && rij.a) { rij.a = 0; rij.Lf = L - rij.b; }
+            if (elem.hingeEnd && rij.b) { rij.b = 0; rij.Lf = L - rij.a; }
+            return rij;
+        }
+
+        // Elemanin yerel rijitligi, kesit/malzeme/boyla birlikte. Mafsal
+        // kondansasyonu ve geri kazanim icin (montajla AYNI girdiler).
+        function elemanYerelK(elem, n1, n2, genelMat, yayiliVar) {
+            const sec = kesitBul(elem.section);
+            if (!sec) return null;
+            const dx = n2.x - n1.x, dy = n2.y - n1.y, dz = (n2.z || 0) - (n1.z || 0);
+            const L = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (L < 1e-10) return null;
+            const rij = mafsalRijitUc(elem, rijitUclar(elem, L, yayiliVar, true), L);
+            const mat = elemanMalzemesi(elem, genelMat);
+            const J = torsiyonSabiti(sec, sec.Iy, sec.Iz, elem.section);
+            const k = yerelRijitlik(mat.E, mat.G, sec.A, sec.Iy, sec.Iz, J, kaymaKappalari(sec), rij.Lf);
+            return { k: k, L: L, Lk: rij.Lf, rij: rij, sec: sec, mat: mat };
+        }
+
+        // Yayili yukun YEREL esdeger dugum kuvvetleri (12). addDistributedLoad
+        // global bilesenlerle calisir; ona birim yerel cerceve ve yerele
+        // cevrilmis yuk verilir - ayni fonksiyon, ayni sayilar.
+        function yerelEsdegerYuk(frame, wVec, a, b, wVec2) {
+            const R = [frame.x, frame.y, frame.z];
+            const yerel = v => v ? [R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2],
+                                    R[1][0] * v[0] + R[1][1] * v[1] + R[1][2] * v[2],
+                                    R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2]] : null;
+            const f = new Float64Array(12);
+            addDistributedLoad(f, [0, 1, 2, 3, 4, 5], [6, 7, 8, 9, 10, 11],
+                { L: frame.L, x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] }, yerel(wVec), a, b, yerel(wVec2));
+            return Array.from(f);
+        }
+
+        // Yayili yuku elemana ekler; mafsalli elemanda once kondanse eder.
+        function elemanaYayiliYuk(F, elem, kb, dofs1, dofs2, frame, wVec, a, b, wVec2) {
+            const mafsal = mafsalIndeksleri(elem);
+            if (!mafsal.length || !kb) {
+                addDistributedLoad(F, dofs1, dofs2, frame, wVec, a, b, wVec2);
+                return;
+            }
+            const fLoc = kondanse(kb.k, mafsal).yukKondanse(yerelEsdegerYuk(frame, wVec, a, b, wVec2));
+            // yerel -> global: her blokta R^T
+            const R = [frame.x, frame.y, frame.z];
+            const dofs = [...dofs1, ...dofs2];
+            for (let blok = 0; blok < 4; blok++) {
+                for (let i = 0; i < 3; i++) {
+                    let s = 0;
+                    for (let j = 0; j < 3; j++) s += R[j][i] * fLoc[blok * 3 + j];
+                    F[dofs[blok * 3 + i]] += s;
+                }
+            }
+        }
+
+        // Elemandaki BUTUN yayili yuklerin (hat yukleri + oz agirlik) yerel
+        // esdeger dugum kuvvetleri - mafsal donmesinin geri kazanimi icin.
+        function elemanYerelYukToplami(elem, frame, L, loadFactors, selfWeightOn, sec) {
+            const toplam = new Array(12).fill(0);
+            const ekle = f => { for (let i = 0; i < 12; i++) toplam[i] += f[i]; };
+            (elem.lineLoads || []).forEach(load => {
+                const qValue = (load.value ?? load.q ?? 0);
+                const sPct = (load.startPct !== undefined) ? load.startPct : (load.start !== undefined ? load.start * 100 : 0);
+                const ePct = (load.endPct !== undefined) ? load.endPct : (load.end !== undefined ? load.end * 100 : 100);
+                const a = L * sPct / 100, b = L * ePct / 100;
+                if (b - a < 1e-12 || !qValue) return;
+                const kat = (loadFactors[load.case] !== undefined ? loadFactors[load.case] : loadFactors.L);
+                const wVec = yayiliYukYonu(load, frame, qValue * 1000 * kat).vec;
+                const q2 = load.value2;
+                const wVec2 = (typeof q2 === 'number' && isFinite(q2) && q2 !== qValue)
+                    ? yayiliYukYonu(load, frame, q2 * 1000 * kat).vec : null;
+                ekle(yerelEsdegerYuk(frame, wVec, a, b, wVec2));
+            });
+            if (selfWeightOn && sec && sec.A > 0 && !sec.rigid) {
+                ekle(yerelEsdegerYuk(frame, [0, 0, -sec.A * STEEL_DENSITY * GRAVITY * loadFactors.D], 0, L));
+            }
+            return toplam;
+        }
+
         // Burulma sabiti TEK yerde. Rijitlik montaji ile ic kuvvet geri
         // kazanimi ayni degeri kullanmak ZORUNDA: iki ayri kopya zamanla
         // birbirinden ayrilir ve burulma moment cikti ile rijitlik farkli
@@ -529,7 +772,7 @@
                 // Rijitlik ESNEK boy uzerinden kurulur; dogrultu kosinusleri
                 // ve yayili yuk acikligi tam boyu kullanmaya devam eder.
                 const yayiliVar = !!(elem.lineLoads && elem.lineLoads.length) || selfWeightOn;
-                const rij = rijitUclar(elem, L, yayiliVar);
+                const rij = mafsalRijitUc(elem, rijitUclar(elem, L, yayiliVar), L);
                 const Lk = rij.Lf;
                 
                 // Elemanin KENDI sinifi varsa o kullanilir (bkz. data.js
@@ -557,91 +800,9 @@
                 // 5/6 (the rectangular value) only when no web area is known.
                 const kappa = kaymaKappalari(sec);
                 
-                // Shear deformation parameter: Φ = 12EI / (κAGL²)
-                // Iy guclu eksen (yerel z sehimi) -> govde alani;
-                // Iz zayif eksen (yerel y sehimi) -> flans alani.
-                const phi_y = 12 * E * Iy / (kappa.z * A * G * Lk * Lk);
-                const phi_z = 12 * E * Iz / (kappa.y * A * G * Lk * Lk);
-                
-                // Local stiffness with Timoshenko correction
-                const EA_L = E * A / Lk;
-                const GJ_L = G * J / Lk;
-                
-                // 6 DOF per node: Ux, Uy, Uz, Rx, Ry, Rz
-                // For 2D grillage in XY plane:
-                // - Uz (vertical), Rx (rotation about X), Ry (rotation about Y) are active
-                
-                const k = [];
-                for (let i = 0; i < 12; i++) k[i] = new Array(12).fill(0);
-                
-                // Axial (in local x) - unchanged
-                k[0][0] = EA_L; k[0][6] = -EA_L;
-                k[6][0] = -EA_L; k[6][6] = EA_L;
-                
-                // Torsion - unchanged
-                k[3][3] = GJ_L; k[3][9] = -GJ_L;
-                k[9][3] = -GJ_L; k[9][9] = GJ_L;
-                
-                // Bending about local y (vertical displacement Uz, rotation Ry)
-                // Timoshenko beam stiffness coefficients
-                const EI_y = E * Iy;
-                const L2 = Lk * Lk;
-                const L3 = L2 * Lk;
-                const denom_y = 1 + phi_y;
-                
-                const k11_y = 12 * EI_y / (L3 * denom_y);
-                const k12_y = 6 * EI_y / (L2 * denom_y);
-                const k22_y = (4 + phi_y) * EI_y / (Lk * denom_y);
-                const k24_y = (2 - phi_y) * EI_y / (Lk * denom_y);
-                
-                k[2][2] = k11_y;
-                k[2][4] = k12_y;
-                k[2][8] = -k11_y;
-                k[2][10] = k12_y;
-                
-                k[4][2] = k12_y;
-                k[4][4] = k22_y;
-                k[4][8] = -k12_y;
-                k[4][10] = k24_y;
-                
-                k[8][2] = -k11_y;
-                k[8][4] = -k12_y;
-                k[8][8] = k11_y;
-                k[8][10] = -k12_y;
-                
-                k[10][2] = k12_y;
-                k[10][4] = k24_y;
-                k[10][8] = -k12_y;
-                k[10][10] = k22_y;
-                
-                // Bending about local z (in-plane, Uy and Rz)
-                const EI_z = E * Iz;
-                const denom_z = 1 + phi_z;
-                
-                const k11_z = 12 * EI_z / (L3 * denom_z);
-                const k12_z = 6 * EI_z / (L2 * denom_z);
-                const k22_z = (4 + phi_z) * EI_z / (Lk * denom_z);
-                const k24_z = (2 - phi_z) * EI_z / (Lk * denom_z);
-                
-                k[1][1] = k11_z;
-                k[1][5] = -k12_z;
-                k[1][7] = -k11_z;
-                k[1][11] = -k12_z;
-                
-                k[5][1] = -k12_z;
-                k[5][5] = k22_z;
-                k[5][7] = k12_z;
-                k[5][11] = k24_z;
-                
-                k[7][1] = -k11_z;
-                k[7][5] = k12_z;
-                k[7][7] = k11_z;
-                k[7][11] = k12_z;
-                
-                k[11][1] = -k12_z;
-                k[11][5] = k24_z;
-                k[11][7] = k12_z;
-                k[11][11] = k22_z;
+                // Yerel 12x12 rijitlik TEK yerden (yerelRijitlik): mafsal cozumu
+                // ve yuk kondansasyonu da ayni matrisi kullanir.
+const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 
                 // Transformation matrix
                 const T = [];
@@ -660,10 +821,12 @@
                 // Elemanin sekil fonksiyonlari rijit koldan etkilenmedigi icin
                 // esdeger dugum kuvvetleri oldugu gibi dogrudur.
                 const eOtele = kesitOtelemesi(sec);
-                let kSon = k;
+                // Mafsal: serbest donmeler kondanse edilir (bkz. kondanse).
+                const mafsal = mafsalIndeksleri(elem);
+                let kSon = mafsal.length ? kondanse(k, mafsal).k : k;
                 if (eOtele || rij.a || rij.b) {
                     const To = rijitKolDonusumu(rij.a, -eOtele, -rij.b, -eOtele);
-                    kSon = matMult(transpose(To), matMult(k, To));
+                    kSon = matMult(transpose(To), matMult(kSon, To));
                 }
 
                 const R = [frame.x, frame.y, frame.z];
@@ -788,7 +951,8 @@
                     const wVec2 = (typeof q2 === 'number' && isFinite(q2) && q2 !== qValue)
                         ? yayiliYukYonu(load, frame, q2 * 1000 * kat).vec : null;
 
-                    addDistributedLoad(F, dofs1, dofs2, frame, wVec, loadStart, loadEnd, wVec2);
+                    const kbY = mafsalIndeksleri(elem).length ? elemanYerelK(elem, n1, n2, genelMat, true) : null;
+                    elemanaYayiliYuk(F, elem, kbY, dofs1, dofs2, frame, wVec, loadStart, loadEnd, wVec2);
                 });
             });
 
@@ -806,7 +970,8 @@
                     if (!dofs1 || !dofs2) return;
 
                     const w = sec.A * STEEL_DENSITY * GRAVITY * loadFactors.D;   // N/m
-                    addDistributedLoad(F, dofs1, dofs2, frame, [0, 0, -w], 0, frame.L);
+                    const kbA = mafsalIndeksleri(elem).length ? elemanYerelK(elem, n1, n2, genelMat, true) : null;
+                    elemanaYayiliYuk(F, elem, kbA, dofs1, dofs2, frame, [0, 0, -w], 0, frame.L);
                 });
             }
             
@@ -1004,7 +1169,7 @@
                 //   xA..xB : elemanin gercekten egilen bolgesi
                 // Rijit uc yokken xA=0, xB=L, Lk=L - bugunku davranis birebir.
                 const yayiliVar = !!(elem.lineLoads && elem.lineLoads.length) || selfWeightOn;
-                const rij = rijitUclar(elem, L, yayiliVar, true);
+                const rij = mafsalRijitUc(elem, rijitUclar(elem, L, yayiliVar, true), L);
                 const Lk = rij.Lf;
                 const xA = rij.a, xB = L - rij.b;
                 const esnekte = (x) => x >= xA - 1e-9 && x <= xB + 1e-9;
@@ -1074,6 +1239,20 @@
                         let toplam = 0;
                         for (let j = 0; j < 12; j++) toplam += To[i][j] * uD[j];
                         uLocal[i] = toplam;
+                    }
+                }
+
+                // MAFSAL: serbest birakilan uc donmeleri dugumden degil elemanin
+                // kendi dengesinden gelir: ur = Krr^-1 (fr - Krc uc). Bu donmeyle
+                // hesaplanan uc momenti tam sifirdir - mafsalin tanimi.
+                const mafsalR = mafsalIndeksleri(elem);
+                if (mafsalR.length) {
+                    const kb = elemanYerelK(elem, n1, n2, genelMat, yayiliVar);
+                    if (kb) {
+                        const frameM = elementFrame(n1, n2, elem.orientation || 0);
+                        const fLoc = elemanYerelYukToplami(elem, frameM, L, loadFactors, selfWeightOn, sec);
+                        const ur = kondanse(kb.k, mafsalR).cozR(uLocal, fLoc);
+                        mafsalR.forEach((idx, p) => { uLocal[idx] = ur[p]; });
                     }
                 }
 

@@ -2256,6 +2256,24 @@
                 
                 // Get orientation (default: web vertical, top up)
                 const orientation = elem.orientation || 0;
+
+                // Mafsal isareti: ucta ici bos halka (DNV'deki gibi). Dugumun
+                // biraz icinde durur ki dugum kuresiyle karismasin.
+                if (elem.hingeStart || elem.hingeEnd) {
+                    const yaricap = modelSize * 0.03 * (typeof nodeDisplaySize === 'number' ? nodeDisplaySize : 1);
+                    const halkaMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, side: THREE.DoubleSide });
+                    [[elem.hingeStart, start], [elem.hingeEnd, end]].forEach(([var_, uc]) => {
+                        if (!var_) return;
+                        const halka = new THREE.Mesh(new THREE.TorusGeometry(yaricap, yaricap * 0.22, 8, 24), halkaMat);
+                        const ic = Math.min(length * 0.15, yaricap * 2.6);
+                        halka.position.copy(uc).addScaledVector(dir, uc === start ? ic : -ic);
+                        halka.lookAt(new THREE.Vector3().addVectors(halka.position, dir));
+                        halka.userData.isModelObject = true;
+                        halka.userData.elemId = elemId;
+                        applyWorkPlaneGhost(halka, n1, n2);
+                        threeScene.add(halka);
+                    });
+                }
                 
                 if (view.showSection) {
                     // Draw with real cross-section geometry

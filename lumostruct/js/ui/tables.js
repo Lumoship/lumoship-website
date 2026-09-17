@@ -79,6 +79,7 @@
                     { a: 'profil', b: 'Profile', m: true },
                     { a: 'kutle', b: 'Mass [kg]', o: 1 },
                     { a: 'rijit', b: 'Rigid ends [mm]', m: true },
+                    { a: 'mafsal', b: 'Hinges', m: true },
                     { a: 'korozyon', b: 'Corrosion w/f/p [mm]', m: true },
                     { a: 'yuk', b: 'Line loads', m: true }
                 ],
@@ -102,6 +103,9 @@
                             ? (Math.round((e.rigidStart || 0) * 1000) + ' / ' +
                                Math.round((e.rigidEnd || 0) * 1000) +
                                ((e.lineLoads && e.lineLoads.length) ? ' (ignored)' : ''))
+                            : '-',
+                        mafsal: (e.hingeStart || e.hingeEnd)
+                            ? [(e.hingeStart ? 'start' : null), (e.hingeEnd ? 'end' : null)].filter(Boolean).join(' + ')
                             : '-',
                         yuk: (e.lineLoads && e.lineLoads.length)
                             ? e.lineLoads.map(l => (l.value ?? l.q ?? 0) + ' kN/m').join(', ')
@@ -240,6 +244,7 @@
                     { a: 'My1', b: 'My start [kNm]', o: 3 },
                     { a: 'My2', b: 'My end [kNm]', o: 3 },
                     { a: 'Mymax', b: 'My max [kNm]', o: 3 },
+                    { a: 'xMy', b: 'at x [mm]', o: 0 },
                     { a: 'Mzmax', b: 'Mz max [kNm]', o: 3 },
                     { a: 'd', b: 'd max [mm]', o: 4 }
                 ],
@@ -251,6 +256,9 @@
                     Mx: e.T || 0,
                     My1: e.M1 || 0, My2: e.M2 || 0,
                     Mymax: e.Mmax || 0,
+                    // Mmax'in kiris uzerindeki yeri (DNV: "Max My at pos."):
+                    // diyagramdan, |M| en buyuk olan istasyon.
+                    xMy: (() => { const d = e.diagram; if (!d || !d.M || !d.x) return null; let k = 0; for (let i = 1; i < d.M.length; i++) if (Math.abs(d.M[i]) > Math.abs(d.M[k])) k = i; return d.x[k] * 1000; })(),
                     Mzmax: e.Mz || 0,
                     d: e.dmax || 0
                 }))
@@ -386,6 +394,36 @@
                             _vurgu: e.rigid ? '' : (oran > 100 ? 'stress-fail' : (oran > 80 ? 'stress-warn' : 'stress-ok'))
                         };
                     });
+                }
+            },
+            {
+                // Eleman burkulmasi (js/core/burkulma.js). DNV 3D Beam'in
+                // Code / Pillar sekmelerinin karsiligi.
+                ad: 'buckling', baslik: 'Buckling', secim: 'kiris', sonuc: true,
+                sut: [
+                    { a: 'id', b: 'Beam', o: 0 },
+                    { a: 'N', b: 'N [kN]', o: 2 },
+                    { a: 'L', b: 'L [mm]', o: 0 },
+                    { a: 'kY', b: 'Ky', o: 2 }, { a: 'kZ', b: 'Kz', o: 2 },
+                    { a: 'lamY', b: 'λ̄y', o: 3 }, { a: 'lamZ', b: 'λ̄z', o: 3 },
+                    { a: 'chi', b: 'χ (crit.)', o: 3 },
+                    { a: 'NbRd', b: 'Nb,Rd [kN]', o: 1 },
+                    { a: 'egri', b: 'Curve', m: true },
+                    { a: 'UF', b: 'UF', o: 3 },
+                    { a: 'durum', b: 'Status', m: true }
+                ],
+                satirlar: () => {
+                    if (typeof modelBurkulma !== 'function') return [];
+                    const b = modelBurkulma(results);
+                    return Object.entries(b).map(([id, r]) => ({
+                        id: parseInt(id, 10),
+                        N: r.N, L: tabloKirisBoyu(model.elements[id]) * 1000,
+                        kY: r.kY, kZ: r.kZ, lamY: r.lambdaY, lamZ: r.lambdaZ,
+                        chi: r.eksenKritik === 'y' ? r.chiY : r.chiZ,
+                        NbRd: r.NbRd, egri: r.egri + ' (' + r.eksenKritik + ')',
+                        UF: r.UF, durum: r.durum,
+                        _vurgu: r.durum === 'FAIL' ? 'stress-fail' : (r.durum === 'check' ? 'stress-warn' : (r.durum === 'ok' ? 'stress-ok' : ''))
+                    }));
                 }
             },
             {

@@ -240,6 +240,7 @@
                 if (fxInput) fxInput.value = load.Fx || 0;
                 if (fyInput) fyInput.value = load.Fy || 0;
                 if (fzInput) fzInput.value = load.Fz || 0;
+                ['Mx', 'My', 'Mz'].forEach(k => { const el = document.getElementById('infoLoad' + k); if (el) el.value = load[k] || 0; });
             } else {
                 loadsContainer.innerHTML = `<div style="color:var(--text-3); font-size:var(--fs-md);">No loads on this node</div>`;
                 
@@ -250,6 +251,7 @@
                 if (fxInput) fxInput.value = 0;
                 if (fyInput) fyInput.value = 0;
                 if (fzInput) fzInput.value = 0;
+                ['Mx', 'My', 'Mz'].forEach(k => { const el = document.getElementById('infoLoad' + k); if (el) el.value = 0; });
             }
             
             // Results
@@ -281,10 +283,19 @@
             // Basic info
             const n1 = model.nodes[elem.n1];
             const n2 = model.nodes[elem.n2];
-            const length = n1 && n2 ? Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2)) : 0;
-            
+            // Uc boyutlu boy: kolonun boyu sifir gorunuyordu (z yoktu).
+            const length = n1 && n2 ? Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2) + Math.pow((n2.z || 0) - (n1.z || 0), 2)) : 0;
+
             setText('infoBeamId', beamId);
             setText('infoBeamNodes', `${elem.n1} → ${elem.n2}`);
+            // Burkulma carpanlari
+            const kyEl = document.getElementById('infoBeamKy'), kzEl = document.getElementById('infoBeamKz'), egEl = document.getElementById('infoBeamCurve');
+            if (kyEl) kyEl.value = elem.kY || 1;
+            if (kzEl) kzEl.value = elem.kZ || 1;
+            if (egEl) egEl.value = elem.burkulmaEgrisi || '';
+            const hsEl = document.getElementById('infoHingeStart'), heEl = document.getElementById('infoHingeEnd');
+            if (hsEl) hsEl.checked = !!elem.hingeStart;
+            if (heEl) heEl.checked = !!elem.hingeEnd;
             setText('infoBeamLength', (length * 1000).toFixed(0) + ' mm');
             setText('infoBeamSection', elem.section || 'no section');
             setText('infoBeamGrade', elem.grade || 'AH36');
@@ -656,6 +667,7 @@
             setText('infoMultiBeams', beamCount);
             cokluDugumKartlariniYaz();
             cokluMesnetKutulariniOku();
+            cokluKutleYaz();
             
             // Show/hide sections based on selection
             const nodeBCSection = document.getElementById('multiNodeBCSection');
@@ -746,6 +758,29 @@
                         : `distance N${ids[0]}–N${ids[1]}: <span style="color:var(--text-primary,#e2e8f0)">${(d * 1000).toFixed(0)} mm</span>`;
                 } else not.innerHTML = '';
             }
+        }
+
+        // Secili kirislerin toplam boyu, kutlesi ve agirlik merkezi (DNV 3D
+        // Beam'in "Selection: Beams / Mass / CoG" satirlari). Rijit kirisin
+        // kutlesi yok; kutle profil alani x boy x 7850.
+        function cokluKutleYaz() {
+            const kap = document.getElementById('infoMultiMass');
+            if (!kap) return;
+            const ids = Array.from(selectedElements);
+            if (ids.length === 0) { kap.innerHTML = ''; return; }
+            let L = 0, m = 0, sx = 0, sy = 0, sz = 0, sL = 0;
+            ids.forEach(id => {
+                const e = model.elements[id]; if (!e) return;
+                const a = model.nodes[e.n1], b = model.nodes[e.n2]; if (!a || !b) return;
+                const l = Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2 + ((b.z || 0) - (a.z || 0)) ** 2);
+                const sec = SECTIONS[e.section];
+                const mi = (sec && sec.A > 0) ? sec.A * l * 7850 : 0;
+                L += l; m += mi;
+                const w = mi > 0 ? mi : l;          // kutlesizde boyla agirlikli
+                sL += w; sx += w * (a.x + b.x) / 2; sy += w * (a.y + b.y) / 2; sz += w * ((a.z || 0) + (b.z || 0)) / 2;
+            });
+            const cog = sL > 0 ? `${Math.round(sx / sL * 1000)}, ${Math.round(sy / sL * 1000)}, ${Math.round(sz / sL * 1000)}` : '-';
+            kap.innerHTML = `length: <span style="color:var(--text-primary,#e2e8f0)">${(L * 1000).toFixed(0)} mm</span> · mass: <span style="color:var(--text-primary,#e2e8f0)">${m.toFixed(1)} kg</span><br>CoG (mm): <span style="color:var(--text-primary,#e2e8f0)">${cog}</span>`;
         }
 
         // Kart degisince model ve ekran tazelenir; kartlar yeniden yazilir
@@ -1221,8 +1256,11 @@
             const fx = parseFloat($('infoLoadFx')?.value) || 0;
             const fy = parseFloat($('infoLoadFy')?.value) || 0;
             const fz = parseFloat($('infoLoadFz')?.value) || 0;
-            
-            if (fx === 0 && fy === 0 && fz === 0) {
+            const mx = parseFloat($('infoLoadMx')?.value) || 0;
+            const my = parseFloat($('infoLoadMy')?.value) || 0;
+            const mz = parseFloat($('infoLoadMz')?.value) || 0;
+
+            if (fx === 0 && fy === 0 && fz === 0 && mx === 0 && my === 0 && mz === 0) {
                 showToast('Enter at least one non-zero load value', 'warning');
                 return;
             }
@@ -1234,16 +1272,14 @@
             
             if (existingLoadIndex >= 0) {
                 // Update existing load
-                model.loads[existingLoadIndex].Fx = fx;
-                model.loads[existingLoadIndex].Fy = fy;
-                model.loads[existingLoadIndex].Fz = fz;
+                Object.assign(model.loads[existingLoadIndex], { Fx: fx, Fy: fy, Fz: fz, Mx: mx, My: my, Mz: mz });
                 showToast(`Load updated on Node #${currentInfoNode}`);
             } else {
                 // Add new load
                 model.loads.push({
                     nodeId: currentInfoNode,
                     Fx: fx, Fy: fy, Fz: fz,
-                    Mx: 0, My: 0, Mz: 0
+                    Mx: mx, My: my, Mz: mz
                 });
                 
                 // Build load description
@@ -1251,6 +1287,9 @@
                 if (fx !== 0) loadParts.push(`Fx=${fx}`);
                 if (fy !== 0) loadParts.push(`Fy=${fy}`);
                 if (fz !== 0) loadParts.push(`Fz=${fz}`);
+                if (mx !== 0) loadParts.push(`Mx=${mx} kNm`);
+                if (my !== 0) loadParts.push(`My=${my} kNm`);
+                if (mz !== 0) loadParts.push(`Mz=${mz} kNm`);
                 showToast(`Load ${loadParts.join(', ')} kN added to Node #${currentInfoNode}`);
             }
             
@@ -1307,7 +1346,11 @@
                 return;
             }
             
-            const q = parseFloat(document.getElementById('infoLineLoadQ')?.value) || -10;
+            const q = parseFloat(document.getElementById('infoLineLoadQ')?.value) || 10;   // + = asagi (cozucu: lineLoadDirection)
+            // Trapez yuk: son siddet bos birakilirsa sabit yuk. Cozucu value2'yi
+            // zaten isliyordu (fem.js), giris yoktu.
+            const q2Ham = document.getElementById('infoLineLoadQ2')?.value;
+            const q2 = (q2Ham !== undefined && String(q2Ham).trim() !== '' && isFinite(parseFloat(q2Ham))) ? parseFloat(q2Ham) : null;
             const direction = document.getElementById('infoLineLoadDir')?.value || 'global';
             const startPct = parseFloat(document.getElementById('infoLineLoadStart')?.value) || 0;
             const endPct = parseFloat(document.getElementById('infoLineLoadEnd')?.value) || 100;
@@ -1325,6 +1368,7 @@
             elem.lineLoads.push({
                 value: q,
                 q: q,
+                value2: (q2 !== null && q2 !== q) ? q2 : undefined,
                 direction: direction,
                 start: startPct / 100,
                 end: endPct / 100,
@@ -1365,7 +1409,7 @@
                 const end = (ll.endPct !== undefined ? ll.endPct : (ll.end || 1) * 100).toFixed(0);
                 return `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl); margin-bottom:4px;">
-                        <span style="color:var(--danger-text);">q=${q} kN/m</span>
+                        <span style="color:var(--danger-text);">q=${q}${(typeof ll.value2 === 'number' && ll.value2 !== q) ? '→' + ll.value2 : ''} kN/m</span>
                         <span style="color:var(--text-3);">${start}-${end}%</span>
                         <button onclick="removeInfoLineLoad(${idx})" style="background:#b91c1c; border:none; color:white; width:18px; height:18px; border-radius:var(--r-ctl); cursor:pointer; font-size:var(--fs-xs);">✕</button>
                     </div>
@@ -1397,6 +1441,36 @@
         }
         
         // Info panel orientation functions
+        function applyInfoBuckling() {
+            if (currentInfoBeam == null) return;
+            const elem = model.elements[currentInfoBeam];
+            if (!elem) return;
+            const ky = parseFloat(document.getElementById('infoBeamKy')?.value), kz = parseFloat(document.getElementById('infoBeamKz')?.value);
+            const eg = document.getElementById('infoBeamCurve')?.value || '';
+            saveState();
+            if (ky > 0 && ky !== 1) elem.kY = ky; else delete elem.kY;
+            if (kz > 0 && kz !== 1) elem.kZ = kz; else delete elem.kZ;
+            if (eg) elem.burkulmaEgrisi = eg; else delete elem.burkulmaEgrisi;
+            if (results && typeof updateResultsBottomPanel === 'function') updateResultsBottomPanel();
+            if (results && typeof displayResults === 'function') displayResults();
+        }
+
+        // Mafsal kutulari: elem.hingeStart / hingeEnd. Sonuc varsa bayatlar;
+        // sahne yeniden cizilir (mafsal isareti icin).
+        function applyInfoHinges() {
+            if (currentInfoBeam == null) return;
+            const elem = model.elements[currentInfoBeam];
+            if (!elem) return;
+            saveState();
+            const hs = !!document.getElementById('infoHingeStart')?.checked;
+            const he = !!document.getElementById('infoHingeEnd')?.checked;
+            if (hs) elem.hingeStart = true; else delete elem.hingeStart;
+            if (he) elem.hingeEnd = true; else delete elem.hingeEnd;
+            results = null;
+            if (currentViewMode === '3d') update3DScene(); else draw();
+            updateEntityInfoPanel();
+        }
+
         function updateInfoOrientation(value) {
             const orientValue = document.getElementById('infoOrientationValue');
             if (orientValue) orientValue.textContent = value + '°';
@@ -1695,7 +1769,7 @@
                 return;
             }
             
-            const q = parseFloat(document.getElementById('multiLineLoadQ')?.value) || -10;
+            const q = parseFloat(document.getElementById('multiLineLoadQ')?.value) || 10;
             const direction = document.getElementById('multiLineLoadDir')?.value || 'global';
             
             if (q === 0) {
