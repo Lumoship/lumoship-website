@@ -375,8 +375,9 @@
                             vm: e.vonMises || 0,
                             sinir: sinir,
                             oran: oran,
-                            durum: oran > 100 ? 'OVER' : (oran > 80 ? 'check' : 'ok'),
-                            _vurgu: oran > 100 ? 'stress-fail' : (oran > 80 ? 'stress-warn' : 'stress-ok')
+                            // Rijit kiriste gerilme hesaplanmaz; "ok" yazmak yanlis guven verir.
+                            durum: e.rigid ? 'rigid' : (oran > 100 ? 'OVER' : (oran > 80 ? 'check' : 'ok')),
+                            _vurgu: e.rigid ? '' : (oran > 100 ? 'stress-fail' : (oran > 80 ? 'stress-warn' : 'stress-ok'))
                         };
                     });
                 }

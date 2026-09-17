@@ -480,13 +480,17 @@
             // eder); cozulemiyorsa model EKSIKTIR ve durulur. Hepsi birden
             // toplanip yaziliyor - kullanici kirisleri teker teker
             // kovalamasin.
+            // Profilsiz kiris RIJIT sayilir (kesitBul -> RIGID_KESIT); bu
+            // bir varsayim degil, kullanicinin istedigi davranis: profil
+            // verilene kadar kiris sonsuz rijit baglanti gibi calisir ve
+            // ekranda ayri renkte gorunur.
             const kesitsiz = [];
             Object.entries(model.elements).forEach(([anahtar, elem]) => {
-                if (SECTIONS[elem.section]) return;
+                if (kesitBul(elem.section)) return;
                 if (elem.section && typeof layerToSection === 'function') {
                     try { layerToSection(elem.section); } catch (e) { /* ad cozulemedi */ }
                 }
-                if (!SECTIONS[elem.section]) kesitsiz.push(elem.id != null ? elem.id : anahtar);
+                if (!kesitBul(elem.section)) kesitsiz.push(elem.id != null ? elem.id : anahtar);
             });
             if (kesitsiz.length) {
                 const liste = kesitsiz.slice(0, 6).join(', ') + (kesitsiz.length > 6 ? ', ...' : '');
@@ -506,7 +510,7 @@
                 
                 // Yukaridaki on pas her elemanin kesidini cozdu ya da
                 // durdu; burada arama guvenli.
-                const sec = SECTIONS[elem.section];
+                const sec = kesitBul(elem.section);
                 
                 const dx = n2.x - n1.x;
                 const dy = n2.y - n1.y;
@@ -794,8 +798,8 @@
                 Object.values(model.elements).forEach(elem => {
                     const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
                     if (!n1 || !n2) return;
-                    const sec = SECTIONS[elem.section];
-                    if (!sec || !(sec.A > 0)) return;
+                    const sec = kesitBul(elem.section);
+                    if (!sec || !(sec.A > 0) || sec.rigid) return;   // rijitin kutlesi yok
                     const frame = elementFrame(n1, n2, elem.orientation || 0);
                     if (!frame) return;
                     const dofs1 = nodeDofs[elem.n1], dofs2 = nodeDofs[elem.n2];
@@ -960,7 +964,7 @@
                 const mat = elemanMalzemesi(elem, genelMat);
                 const n1 = model.nodes[elem.n1];
                 const n2 = model.nodes[elem.n2];
-                const sec = SECTIONS[elem.section];
+                const sec = kesitBul(elem.section);
                 
                 // Check if nodes exist
                 if (!n1 || !n2) {
@@ -1412,6 +1416,18 @@
                     dmax: diagram.d ? diagram.d.reduce((m, v) => Math.abs(v) > Math.abs(m) ? v : m, 0) : 0
                 };
                 
+                // Rijit eleman: ic kuvvetler gercek (baglanti onlari tasir),
+                // gerilme anlamsiz - kesit uydurma. Sifir yazilir, bayrak
+                // konur; tablo "rigid" der, renk skalasina girmez.
+                if (sec.rigid) {
+                    const r = elementResults[elemId];
+                    r.rigid = true;
+                    r.sigma = 0; r.sigmaTop = 0; r.sigmaBot = 0;
+                    r.tau = 0; r.tauV = 0; r.tauT = 0; r.vonMises = 0;
+                    if (r.diagram && r.diagram.s) r.diagram.s = r.diagram.s.map(() => 0);
+                    return;
+                }
+
                 if (Math.abs(sigma) > maxSigma) maxSigma = Math.abs(sigma);
                 if (Math.abs(tau) > maxTau) maxTau = Math.abs(tau);
                 if (vonMises > maxVonMises) maxVonMises = vonMises;

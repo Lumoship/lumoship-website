@@ -8,6 +8,9 @@
             document.querySelectorAll('.main-tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(`tabContent${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
             
+            // Results sekmesi salt okunur (css: body.sonuc-kipi)
+            document.body.classList.toggle('sonuc-kipi', tabName === 'results');
+
             // Control results visualization based on tab
             const wasShowingResults = showResultsVisualization;
             showResultsVisualization = (tabName === 'results') && results && !modelChangedAfterSolve;
@@ -81,7 +84,8 @@
                 totalLength += L;
                 const sec = SECTIONS[el.section];
                 if (sec && sec.A > 0) mass += sec.A * L * 7850;      // kg
-                if (el.section) profiles.add(el.section);
+                // RIGID profil degil: sayilmaz.
+                if (el.section && !(typeof kesitRijitMi === 'function' && kesitRijitMi(el.section))) profiles.add(el.section);
                 if (el.lineLoads && el.lineLoads.length > 0) loadedBeams++;
             });
 

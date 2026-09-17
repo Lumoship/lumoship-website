@@ -1931,49 +1931,29 @@
             // Convert hex string to integer for THREE.Color
             const beamColorInt = temaRenginiInt(beamColorHex, '#60a5fa');
             const beamThemeColor = new THREE.Color(beamColorInt);
-            const sectionMaterials = {
-                'HP': new THREE.MeshStandardMaterial({ 
-                    color: beamThemeColor.clone(),
-                    emissive: beamThemeColor.clone().multiplyScalar(0.4),
-                    emissiveIntensity: 0.15,
-                    metalness: 0.3, 
-                    roughness: 0.6,
-                    side: THREE.DoubleSide 
-                }),
-                'FB': new THREE.MeshStandardMaterial({ 
-                    color: beamThemeColor.clone(),
-                    emissive: beamThemeColor.clone().multiplyScalar(0.4),
-                    emissiveIntensity: 0.15,
-                    metalness: 0.3, 
-                    roughness: 0.6,
-                    side: THREE.DoubleSide 
-                }),
-                'T': new THREE.MeshStandardMaterial({ 
-                    color: beamThemeColor.clone(),
-                    emissive: beamThemeColor.clone().multiplyScalar(0.4),
-                    emissiveIntensity: 0.15,
-                    metalness: 0.3, 
-                    roughness: 0.6,
-                    side: THREE.DoubleSide 
-                }),
-                'L': new THREE.MeshStandardMaterial({ 
-                    color: beamThemeColor.clone(),
-                    emissive: beamThemeColor.clone().multiplyScalar(0.4),
-                    emissiveIntensity: 0.15,
-                    metalness: 0.3, 
-                    roughness: 0.6,
-                    side: THREE.DoubleSide 
-                }),
-                'default': new THREE.MeshStandardMaterial({ 
-                    color: beamThemeColor.clone(),
-                    emissive: beamThemeColor.clone().multiplyScalar(0.3),
-                    emissiveIntensity: 0.1,
-                    metalness: 0.3, 
-                    roughness: 0.6,
-                    side: THREE.DoubleSide 
-                })
+            // Profil turu basina renk. Dort tur + rijit hep ayni maviydi;
+            // kullanici hangi kirisin ne oldugunu ekrandan okuyamiyordu.
+            // Renkler birbirinden ton olarak uzak, koyu ve acik temada
+            // gorunur; rijit gri-beyaz (yapinin "iskeleti", kesit degil).
+            const TUR_RENKLERI = {
+                HP: beamColorInt,     // tema mavisi
+                FB: 0x14b8a6,         // teal
+                T:  0xf59e0b,         // amber
+                L:  0xa855f7,         // mor
+                RIGID: 0xcbd5e1,      // acik gri
+                default: beamColorInt
             };
-            
+            const turMalzemesi = (renkInt, rijit) => new THREE.MeshStandardMaterial({
+                color: new THREE.Color(renkInt),
+                emissive: new THREE.Color(renkInt).multiplyScalar(0.4),
+                emissiveIntensity: rijit ? 0.25 : 0.15,
+                metalness: rijit ? 0.1 : 0.3,
+                roughness: rijit ? 0.8 : 0.6,
+                side: THREE.DoubleSide
+            });
+            const sectionMaterials = {};
+            Object.entries(TUR_RENKLERI).forEach(([tur, renk]) => { sectionMaterials[tur] = turMalzemesi(renk, tur === 'RIGID'); });
+
             // Selected material with strong emissive glow - use theme color
             const selectionColorHex = window.colorTheme?.selection || '#fef08a';
             const selectionColorInt = temaRenginiInt(selectionColorHex, '#fef08a');
@@ -2078,14 +2058,15 @@
                 // Check for stress visualization
                 if (shouldShowStress && elemId !== null) {
                     const elemResult = results.elementResults[elemId];
-                    if (elemResult) {
+                    if (elemResult && !elemResult.rigid) {
                         const stress = elemResult.vonMises || 0;
                         const sigmaLimit = parseFloat(document.getElementById('sigmaLimit')?.value) || 355;
                         return gerilmeMalzemesi(stress, sigmaLimit, { metalness: 0.4, roughness: 0.5, side: THREE.DoubleSide });
                     }
                 }
                 
-                const sectionType = sectionName ? sectionName.match(/^(HP|FB|T|L)/)?.[1] || 'default' : 'default';
+                const sectionType = (typeof kesitTuru === 'function') ? kesitTuru(sectionName)
+                    : (sectionName ? sectionName.match(/^(HP|FB|T|L)/)?.[1] || 'default' : 'default');
                 return sectionMaterials[sectionType] || sectionMaterials['default'];
             }
 
@@ -2390,7 +2371,7 @@
                     // Beam thickness based on model size and display multiplier
                     const beamRadius = modelSize * 0.008 * beamDisplaySize;
                     
-                    if (shouldShowStress && results.elementResults[elemId] && !isSelected) {
+                    if (shouldShowStress && results.elementResults[elemId] && !results.elementResults[elemId].rigid && !isSelected) {
                         // GRADIENT: Draw beam as multiple segments with varying colors
                         const elemResult = results.elementResults[elemId];
                         const sigmaLimit = parseFloat(document.getElementById('sigmaLimit')?.value) || 355;
@@ -2451,12 +2432,14 @@
                         let beamColor;
                         if (isSelected) {
                             beamColor = selectionColorInt;
-                        } else if (shouldShowStress && results.elementResults[elemId]) {
+                        } else if (shouldShowStress && results.elementResults[elemId] && !results.elementResults[elemId].rigid) {
                             const stress = results.elementResults[elemId].vonMises || 0;
                             const sigmaLimit = parseFloat(document.getElementById('sigmaLimit')?.value) || 355;
                             beamColor = getStressColorHex(stress, sigmaLimit);
                         } else {
-                            beamColor = beamColorInt;
+                            // Ince cizgi kiris de turunun rengini tasir.
+                            const tur = (typeof kesitTuru === 'function') ? kesitTuru(elem.section) : 'default';
+                            beamColor = TUR_RENKLERI[tur] !== undefined ? TUR_RENKLERI[tur] : beamColorInt;
                         }
                         
                         const gerilmeAsti = !isSelected && shouldShowStress && results.elementResults[elemId] &&

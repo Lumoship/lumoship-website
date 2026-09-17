@@ -139,7 +139,9 @@
             // 7. MISSING SECTIONS
             const missingSections = [];
             Object.entries(model.elements).forEach(([id, elem]) => {
-                if (!elem.section || !SECTIONS[elem.section]) {
+                // Profilsiz kiris rijit (kesitBul); yalnizca ADI olup
+                // kutuphanede bulunmayan kesit eksiktir.
+                if (!kesitBul(elem.section)) {
                     missingSections.push(parseInt(id));
                 }
             });

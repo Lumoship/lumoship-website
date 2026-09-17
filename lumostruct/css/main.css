@@ -5608,3 +5608,34 @@
         /* Lejant: "Max: 1625.8 MPa (692% - OVER LIMIT)" tek satirda kutudan
            tasiyordu; metin sarilir. */
         #stressLegend { white-space: normal; }
+
+        /* ================================================================
+           SONUC KIPI (Results sekmesi) - ozellik paneli salt okunur.
+           Kullanici: "results sayfasindayken tiklayinca yuk ekle/cikar,
+           mesnet degistir olmasin; orasi sonuclari gorme yeri."
+           Duzenleme bolumleri gizlenir, koordinat girisleri kilitlenir;
+           sonuc ve kesit ozellik bolumleri kalir. Sekme degisince body
+           sinifi kalkar, her sey geri gelir (tabs.js -> switchMainTab).
+           ================================================================ */
+        body.sonuc-kipi #sonucKipiNotu { display: block !important; }
+        body.sonuc-kipi #nodeBCSection,
+        body.sonuc-kipi #nodeLoadSection,
+        body.sonuc-kipi #beamNodeCoordsSection,
+        body.sonuc-kipi #beamEditSectionSection,
+        body.sonuc-kipi #beamOrientationSection,
+        body.sonuc-kipi #beamLineLoadSection,
+        body.sonuc-kipi #beamActionsSection,
+        body.sonuc-kipi #infoMultiNodeCards,
+        body.sonuc-kipi #multiNodeBCSection,
+        body.sonuc-kipi #multiNodeLoadSection,
+        body.sonuc-kipi #multiBeamLoadSection,
+        body.sonuc-kipi #multiBeamSectionSection,
+        body.sonuc-kipi #multiBeamActionsSection { display: none !important; }
+        body.sonuc-kipi #infoNodeX,
+        body.sonuc-kipi #infoNodeY,
+        body.sonuc-kipi #infoNodeZ { pointer-events: none; opacity: 0.7; }
+        /* Sag tik menusundeki duzenleme satirlari da kapali */
+        body.sonuc-kipi .context-menu-item[onclick*="AddBC"],
+        body.sonuc-kipi .context-menu-item[onclick*="AddLoad"],
+        body.sonuc-kipi .context-menu-item[onclick*="Delete"],
+        body.sonuc-kipi .context-menu-item[onclick*="Split"] { display: none; }

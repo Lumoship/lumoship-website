@@ -901,9 +901,10 @@
         function kesitSec() {
             const secici = document.getElementById('addBeamSection');
             const secim = secici && secici.value;
-            if (secim && SECTIONS[secim]) return secim;
-            const ilk = Object.keys(SECTIONS)[0];
-            return ilk || null;
+            if (secim && (SECTIONS[secim] || secim === RIGID_KESIT_ADI)) return secim;
+            // Profil yoksa kiris RIJIT kurulur (data.js RIGID_KESIT); kullanici
+            // sonra profil atar. Eskiden null donup "once profil olustur" diyordu.
+            return RIGID_KESIT_ADI;
         }
 
         // Kiris kuran yollarin ortak uyarisi - tek cumle, tek yerde.
@@ -914,9 +915,10 @@
 
         function updateSectionDropdowns() {
             const profiles = Object.keys(SECTIONS);
-            const optionsHtml = profiles.length > 0 
-                ? profiles.map(p => `<option value="${p}">${p}</option>`).join('')
-                : '<option value="">No profiles - create in General tab</option>';
+            // RIGID her zaman listede: profilsiz kiris ve acikca rijit
+            // baglanti icin. Gercek profiller onun ustunde.
+            const optionsHtml = profiles.map(p => `<option value="${p}">${p}</option>`).join('') +
+                `<option value="${RIGID_KESIT_ADI}">RIGID (no profile)</option>`;
             
             // Update all section dropdowns
             const dropdowns = [
@@ -934,7 +936,7 @@
                     const currentValue = select.value;
                     select.innerHTML = optionsHtml;
                     // Try to restore previous selection
-                    if (profiles.includes(currentValue)) {
+                    if (profiles.includes(currentValue) || currentValue === RIGID_KESIT_ADI) {
                         select.value = currentValue;
                     }
                 }

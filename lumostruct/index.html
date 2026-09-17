@@ -2153,6 +2153,7 @@
                     
                     <button class="toolbar-btn active" id="btnLoads" onclick="toggleDisplay('loads')" title="Toggle Loads [L]">Loads</button>
                     <button class="toolbar-btn" id="btnDeformed" onclick="toggleDisplay('deformed')" title="Show Deformed Shape [D]">Deformed</button>
+                    <button class="toolbar-btn" id="btnDeformAnim" onclick="deformeAnimToggle()" title="Animate deformation: 0 → scale → 0, repeats">▶ Animate</button>
                 </div>
                 
                 <!-- SNAP Group -->
@@ -2454,6 +2455,12 @@
                 </div>
                 
                 <!-- Node Info -->
+                <!-- Results sekmesinde ozellik paneli SALT OKUNUR: duzenleme
+                     bolumleri (mesnet, yuk, kesit, koordinat) CSS ile gizlenir
+                     (body.sonuc-kipi), yalnizca bu not ve sonuc bolumleri kalir. -->
+                <div id="sonucKipiNotu" style="display:none; font-size:var(--fs-xs); color:var(--text-3); padding:6px 10px; border-bottom:1px solid var(--border);">
+                    Results view — read-only. Edit on the Model, Boundary or Loads tab.
+                </div>
                 <div id="entityInfoNode" style="display:none;">
                     <div class="entity-section">
                         <div class="entity-section-title"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span> Node</div>
@@ -2478,7 +2485,7 @@
                         </div>
                     </div>
                     
-                    <div class="entity-section">
+                    <div class="entity-section" id="nodeBCSection">
                         <div class="entity-section-title"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Boundary Condition</div>
                         <div id="infoNodeBC" style="font-size:var(--fs-md); color:var(--text-2);">Free</div>
                         
@@ -2547,7 +2554,7 @@
                         </div>
                     </div>
                     
-                    <div class="entity-section">
+                    <div class="entity-section" id="nodeLoadSection">
                         <div class="entity-section-title"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Loads on Node</div>
                         <div id="infoNodeLoadsContainer">
                             <!-- Dynamic load list will be inserted here -->
@@ -3324,6 +3331,7 @@
     <script src="js/canvas/canvas2d.js"></script>
     <script src="js/canvas/canvas3d.js"></script>
     <script src="js/canvas/planes.js"></script>
+    <script src="js/canvas/deforme.js"></script>
     
     <!-- UI Modules -->
     <script src="js/ui/themes.js"></script>

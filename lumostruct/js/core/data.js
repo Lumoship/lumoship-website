@@ -185,6 +185,40 @@
         
         // Created Sections (starts empty, user adds profiles)
         const SECTIONS = {};
+
+        // ---- RIJIT kesit ----
+        // Profil secilmemis kiris rijit sayilir; kullanici isterse acikca
+        // 'RIGID' de secer. SECTIONS'a KONMAZ: kutuphane sayaci, profil
+        // listesi, agirlik ve oz agirlik onu saymamali. Cozucu kesidi
+        // kesitBul() ile alir; SECTIONS'ta yoksa ve ad bos ya da RIGID ise
+        // bu nesne doner.
+        //
+        // Buyukluk: tipik HP kirisinin (Iy ~1e-5..1e-4 m4, A ~2e-3..1e-2)
+        // 1000-5000 kati. Daha buyugu rijitlik matrisinin kosulunu bozup
+        // sayisal gurultu uretir, daha kucugu "rijit" olmaz. Gerilme
+        // hesaplanmaz (rigid: true; fem.js sifir yazar), kutle yok.
+        const RIGID_KESIT_ADI = 'RIGID';
+        const RIGID_KESIT = Object.freeze({
+            rigid: true, profileName: RIGID_KESIT_ADI, type: 'RIGID',
+            A: 0.5, Iy: 0.05, Iz: 0.05, J: 0.1,
+            Wy: 1, Wz: 1, Aweb: 0.5, Aflange: 0.5, h: 0.2, tw: 0.05
+        });
+        function kesitRijitMi(ad) {
+            return !ad || ad === RIGID_KESIT_ADI;
+        }
+        function kesitBul(ad) {
+            if (ad && SECTIONS[ad]) return SECTIONS[ad];
+            if (kesitRijitMi(ad)) return RIGID_KESIT;
+            return null;
+        }
+        // Kesit turu: HP / FB / T / L / RIGID / default. Renk ve simge bundan.
+        function kesitTuru(ad) {
+            if (kesitRijitMi(ad)) return 'RIGID';
+            const s = SECTIONS[ad];
+            if (s && s.type && /^(HP|FB|T|L)$/.test(s.type)) return s.type;
+            const m = String(ad).match(/^(HP|FB|T|L)(?=[\d_x×\s]|$)/i);
+            return m ? m[1].toUpperCase() : 'default';
+        }
         
         // Current profile type being edited
         let currentProfileType = 'HP';

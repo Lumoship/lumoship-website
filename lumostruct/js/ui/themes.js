@@ -277,6 +277,7 @@
                     return;
                 }
                 requestAnimationFrame(renderLoop);
+                if (typeof deformeAnimAdim === 'function') deformeAnimAdim(performance.now());
                 threeRenderer.render(threeScene, threeCamera);
                 if (typeof renderGizmo === 'function') renderGizmo();
             }
@@ -589,11 +590,14 @@
                     btn.classList.remove('active', 'success');
                     if (view.showDeformed) btn.classList.add('success');
                 }
+                // Statik deforme sekil ile animasyon ayni anda degil.
+                if (view.showDeformed && typeof deformeAnimAcikMi === 'function' && deformeAnimAcikMi()) deformeAnimToggle();
                 
                 // Show/hide exaggeration control
                 const exagControl = document.getElementById('exaggerationControl');
                 if (exagControl) {
-                    exagControl.style.display = view.showDeformed ? 'flex' : 'none';
+                    const animAcik = (typeof deformeAnimAcikMi === 'function') && deformeAnimAcikMi();
+                    exagControl.style.display = (view.showDeformed || animAcik) ? 'flex' : 'none';
                 }
             }
             if (what === 'section') {

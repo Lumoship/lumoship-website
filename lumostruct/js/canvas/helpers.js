@@ -320,13 +320,34 @@
             model.constraints = {};
             model.loads = [];
             model.pressure = [];
+            if (Array.isArray(model.planes)) model.planes = [];
             results = null;
             nextNodeId = 1;
             nextElementId = 1;
             
+            // ACILIS DURUMU. saveState yukarida sonucu "bayat" isaretledi,
+            // results de sonra sifirlandi: bos modelde "Re-solve" uyarisi
+            // kaliyordu. Bayraklar sifirlanir, gorunus General sekmesine ve
+            // kalan panel/lejant temizlenir - ilk acilistaki ekran.
+            modelChangedAfterSolve = false;
+            showResultsVisualization = false;
+            if (typeof updateResultsWarning === 'function') updateResultsWarning();
+            const lejant = document.getElementById('stressLegend');
+            if (lejant) lejant.style.display = 'none';
+            if (typeof clearWorkPlane === 'function' && typeof activeWorkPlane !== 'undefined' && activeWorkPlane) clearWorkPlane();
+            if (typeof cancelCommand === 'function') cancelCommand();
+            
             updateModelSummary();
             updateLoadsList();
             clearSelection();
+            if (typeof updateEntityInfoPanel === 'function') updateEntityInfoPanel();
+            if (typeof updateResultsBottomPanel === 'function') updateResultsBottomPanel();
+            // Sonuc sekmesi "henuz cozum yok" haline doner (displayResults sonuc ister).
+            const yok = document.getElementById('noResults'), var_ = document.getElementById('resultsPanel');
+            if (yok) yok.style.display = 'block';
+            if (var_) var_.style.display = 'none';
+            if (typeof switchMainTab === 'function') switchMainTab('general');
+            if (typeof updateCommandUI === 'function') updateCommandUI();   // "1 selected" kalintisi
             
             if (currentViewMode === '3d') {
                 update3DScene();
@@ -334,7 +355,7 @@
                 draw();
             }
             
-            showToast('Model cleared (including loads & boundaries)', 'success');
+            showToast('Model cleared - new model', 'success');
         }
         
         // Clear only boundary conditions
