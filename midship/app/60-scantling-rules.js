@@ -212,7 +212,7 @@ window._resolveAirpipeTop_m = _resolveAirpipeTop_m;
 function _findTankComp() {
   try {
     const G = (window.Draw && window.Draw.GEOMETRY) || {};
-    const IB = G.IB || 1800, TT = G.TT || 12900;
+    const IB = G.IB || 1800, TT = (G.TT != null ? G.TT : (G.UD || 12900));   // no tween deck: side tank runs to UD
     const IS = G.IS || 10030, Bh = G.B_half || 11880;
     const yMid = (IS + Bh) / 2;
     const zMid = (IB + TT) / 2;
@@ -1440,7 +1440,7 @@ function calcInnerSideGroupsBase() {
   const G = (window.Draw && window.Draw.GEOMETRY) || {};
   // IB and tank-top levels — read from current state, not hardcoded.
   const IB_mm = G.IB || p.ibLevel || 1800;
-  const TT_mm = G.TT || p.ttLevel || 12900;
+  const TT_mm = (G.TT != null ? G.TT : (p.ttLevel || G.UD || 12900));   // tank top = tween deck, or UD without one
   // Find representative tank compartment outboard of IS (rho + airpipe).
   let tankComp = null;
   try {
@@ -2088,7 +2088,7 @@ function calcSidePlate() {
     // Strake that crosses the tank-top level: tank-top acts as a ring support
     // so it subdivides the panel. Use the live IB/TT levels if present.
     const G_tt = (window.Draw && window.Draw.GEOMETRY) ? window.Draw.GEOMETRY.TT : 12900;
-    if (z1 < G_tt && z2 > G_tt) points.push(G_tt);
+    if (G_tt != null && z1 < G_tt && z2 > G_tt) points.push(G_tt);
     points.sort((a,b)=>a-b);
     let max_sp = 0;
     for (let j = 1; j < points.length; j++) max_sp = Math.max(max_sp, points[j]-points[j-1]);
@@ -2430,7 +2430,7 @@ function calcInnerSide() {
   const G = (window.Draw && window.Draw.GEOMETRY) || {};
   // IB / TT / B_half — read live state instead of hardcoded 1800 / 12900 / etc.
   const IB_mm = G.IB || p.ibLevel || 1800;
-  const TT_mm = G.TT || p.ttLevel || 12900;
+  const TT_mm = (G.TT != null ? G.TT : (p.ttLevel || G.UD || 12900));
   const HC_mm = G.HC || p.hcLevel || 16350;
   // Find tank compartment outboard of IS for rho + airpipe top.
   let tankComp = null;

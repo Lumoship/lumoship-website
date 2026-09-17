@@ -1313,6 +1313,16 @@ let spacingWarnings = [];  // Populated by computeProfiles, displayed in the edi
 // =========================================================================
 window._SKIP_EXCEL_DEFAULTS = false;
 
+// The Excel pin is the Baltic Laker's as-built layout. It only makes sense on
+// the Laker's own geometry; on any other ship it would plant the Laker's
+// stiffener positions and coaming on a hull they do not belong to. Detect the
+// example by its signature dimensions instead of asking the caller to remember
+// a flag.
+function isExampleGeometry() {
+  const g = GEOMETRY;
+  return g.B_half === 11880 && g.IB === 1800 && g.IS === 10030 && (g.UD === 15300 || g.UD === 15500);
+}
+
 // =========================================================================
 // VARIANT_TWEEN_UD_PROFILES — how many equally-spaced IS longitudinals to
 // place in the Tank-Top → Upper-Deck segment. 3 for 1B (default), 4 for 2A.
@@ -1322,7 +1332,7 @@ window._SKIP_EXCEL_DEFAULTS = false;
 window.VARIANT_TWEEN_UD_PROFILES = 3;
 
 function applyExcelDefaultProfiles() {
-  if (window._SKIP_EXCEL_DEFAULTS) return;
+  if (window._SKIP_EXCEL_DEFAULTS || !isExampleGeometry()) return;
   // Excel pin'i 1B geometrisine (UD=15300, HC=16350) göre kayıtlı sabit
   // z koordinatları taşıyor. Variant 2A (UD=15500) için TT üstündeki ve
   // UD üstündeki sabit z'ler artık eşit aralık vermiyor — bu yüzden
@@ -1384,6 +1394,12 @@ function applyExcelDefaultProfiles() {
       copy = [...below_TT, ...ttToUD, ...aboveUD].sort((a, b) => a.z - b.z);
     }
 
+    // Elements switched off in the Geom tab stay off: no coaming stiffener,
+    // no inner-side longitudinals above the upper deck.
+    if (!(PARAMS.coamingTop > 0)) {
+      if (grp === 'coamingStiff') copy = [];
+      if (grp === 'innerSide') copy = copy.filter(p => !(p.z > GEOMETRY.UD));
+    }
     profiles[grp] = copy;
 
     if (preservedIce.length) {
@@ -1440,7 +1456,7 @@ function applyExcelDefaultProfiles() {
 }
 
 function applyExcelDefaultStrakes() {
-  if (window._SKIP_EXCEL_DEFAULTS) return;
+  if (window._SKIP_EXCEL_DEFAULTS || !isExampleGeometry()) return;
 
   // Detect current variant. Default to 1B if the dropdown is missing.
   const variantEl = document.getElementById('variant');
@@ -1449,6 +1465,7 @@ function applyExcelDefaultStrakes() {
   for (const grp in EXCEL_DEFAULT_STRAKES) {
     const ref = EXCEL_DEFAULT_STRAKES[grp];
     if (!Array.isArray(ref) || ref.length === 0) continue;
+    if (grp === 'coamingTop' && !(PARAMS.coamingTop > 0)) { STRAKES.coamingTop = []; continue; }   // coaming switched off
 
     // VARIANT 2A — for the shell group, the Excel pin's WIDTHS belong to 1B
     // geometry (UD=15300, side span=13500). For 2A (UD=15500, side span=13700)
@@ -1544,6 +1561,62 @@ function applyExcelDefaultStrakes() {
 }
 
 
+// =========================================================================
+// HORIZONTAL LEVELS (stringer plates, tween decks) — state, not literals
+// -------------------------------------------------------------------------
+// PARAMS.stringerZs / PARAMS.tweenZs are the source of truth. An empty list
+// means the ship has none of that element. Projects saved before the field
+// existed fall back to GEOMETRY.TT (tween) and to the Baltic Laker seed
+// (stringer), which is what they were getting anyway.
+// =========================================================================
+function levelZs(kind) {
+  const key = kind === 'tween' ? 'tweenZs' : 'stringerZs';
+  if (Array.isArray(PARAMS[key])) return PARAMS[key].filter(z => typeof z === 'number' && isFinite(z)).slice().sort((a, b) => a - b);
+  if (kind === 'tween') return (GEOMETRY.TT != null && isFinite(GEOMETRY.TT)) ? [GEOMETRY.TT] : [];
+  // legacy stringer seed (example project): variant 2A has three stringers
+  const el = (typeof document !== 'undefined') ? document.getElementById('variant') : null;
+  return (el && el.value === '2A') ? [8590, 10435, 11665] : [8590];
+}
+// Copy the live profile lists back into PARAMS so a regeneration keeps what
+// the user placed, and keep GEOMETRY.TT (= first tween level) in step.
+function syncLevelParams() {
+  const st = (profiles.stringer || []).map(p => p.z).filter(z => isFinite(z)).sort((a, b) => a - b);
+  const tw = (profiles.tweenDeck || []).map(p => p.z).filter(z => isFinite(z)).sort((a, b) => a - b);
+  PARAMS.stringerZs = st;
+  PARAMS.tweenZs = tw;
+  GEOMETRY.TT = tw.length ? tw[0] : null;
+}
+// Which optional elements the section has. Used by the Geom tab switches.
+function hasElement(name) {
+  switch (name) {
+    case 'tween':    return levelZs('tween').length > 0;
+    case 'stringer': return levelZs('stringer').length > 0;
+    case 'coaming':  return GEOMETRY.HC > GEOMETRY.UD && PARAMS.coamingTop > 0;
+    case 'duct':     return GEOMETRY.duct_half > 0;
+  }
+  return false;
+}
+function setElement(name, on) {
+  const g = GEOMETRY;
+  if (name === 'tween') {
+    PARAMS.tweenZs = on ? [Math.round(Math.max(g.IB + 1500, g.UD - 2400) / 10) * 10] : [];
+  } else if (name === 'stringer') {
+    const top = levelZs('tween')[0] || g.UD;
+    PARAMS.stringerZs = on ? [Math.round((g.IB + top) / 2 / 10) * 10] : [];
+  } else if (name === 'coaming') {
+    if (on) { g.HC = g.UD + 1050; PARAMS.coamingTop = 950; }
+    else    { g.HC = g.UD;        PARAMS.coamingTop = 0; STRAKES.coamingTop = []; profiles.coamingStiff = []; }
+  } else if (name === 'duct') {
+    g.duct_half = on ? 900 : 0;
+  }
+  // Mirror into the Setup-form inputs the Bridge reads back, so a recalc
+  // does not resurrect the element.
+  const setForm = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
+  if (name === 'tween')   { const tw = levelZs('tween'); setForm('ttLevel', tw.length ? tw[0] : null); setForm('twnDeckLevel', tw.length ? tw[0] : null); }
+  if (name === 'stringer'){ const st = levelZs('stringer'); setForm('strDeckLevel', st.length ? st[0] : null); }
+  if (name === 'coaming') { setForm('hcLevel', g.HC); }
+}
+
 function computeProfiles() {
   // Clear and regenerate from state (GEOMETRY, PARAMS, SIDE_GIRDERS)
   const g = GEOMETRY;
@@ -1599,16 +1672,11 @@ function computeProfiles() {
   // replace the side-shell/inner-side longitudinals that previously lived
   // at those z's (user spec, May 2026). Excel pin (applyExcelDefaultProfiles)
   // also applies this same 2A override, so the two paths agree.
-  {
-    const _variantEl = (typeof document !== 'undefined') ? document.getElementById('variant') : null;
-    const _variant = (_variantEl && _variantEl.value) ? _variantEl.value : '1B';
-    if (_variant === '2A') {
-      profiles.stringer = [{ z: 8590 }, { z: 10435 }, { z: 11665 }];
-    } else {
-      profiles.stringer = [{ z: 8590 }];
-    }
-  }
-  profiles.tweenDeck = [{ z: 12900 }];
+  // Levels are state (PARAMS.stringerZs / tweenZs), see levelZs(). The Laker
+  // literals survive only as the example's implicit default.
+  profiles.stringer  = levelZs('stringer').map(z => ({ z }));
+  profiles.tweenDeck = levelZs('tween').map(z => ({ z }));
+  GEOMETRY.TT = profiles.tweenDeck.length ? profiles.tweenDeck[0].z : null;
   // ---- STRINGER DECK & TWEEN DECK STIFFENERS ----------------------------
   // Same Y positions as the IB after-IS segment (plates span IS..shell).
   // Render will filter per-plate strake bounds.
@@ -3199,6 +3267,42 @@ function focusEditorRow(kind, keyOrGroup, idx) {
 }
 window.focusEditorRow = focusEditorRow;
 
+function renderWTBlock() {
+  let h = '';
+  // === WT / NON-WT classification panel ===
+  h += `<div class="ed-group">`;
+  h += `<div class="ed-group-header"><span style="color:#22c55e">WT / Non-WT</span></div>`;
+  const wtOptions = (key) => `
+    <select class="ed-input wt-select" data-wt-key="${key}" style="width:90px">
+      <option value="WT"     ${WT_FLAGS[key] === 'WT'     ? 'selected':''}>WT</option>
+      <option value="Non-WT" ${WT_FLAGS[key] === 'Non-WT' ? 'selected':''}>Non-WT</option>
+    </select>`;
+  // Side Girders (dynamic, one per SG)
+  SIDE_GIRDERS.forEach((sg, i) => {
+    const k = 'sg' + i;
+    if (WT_FLAGS[k] === undefined) WT_FLAGS[k] = 'WT';
+    h += `<div class="ed-row">
+      <span class="ed-id" style="min-width:120px;font-size:0.68rem">Side Girder ${i+1}</span>
+      ${wtOptions(k)}
+    </div>`;
+  });
+  // Decks / horizontal plates (only stringer, tween deck, upper deck)
+  const deckWTs = [
+    { key:'stringerPlate',   label:'Stringer Plate'     },
+    { key:'tweenDeckPlate',  label:'Tween Deck Plate'   },
+    { key:'upperDeckPlate',  label:'Upper Deck'         },
+  ];
+  deckWTs.forEach(d => {
+    h += `<div class="ed-row">
+      <span class="ed-id" style="min-width:120px;font-size:0.68rem">${d.label}</span>
+      ${wtOptions(d.key)}
+    </div>`;
+  });
+  h += `</div>`;
+
+  return h;
+}
+
 function renderEditor() {
   const ec = document.getElementById('edContent');
   let html = '';
@@ -3226,6 +3330,7 @@ function renderEditor() {
   // === TAB NAVIGATION ===
   const tabs = [
     { key:'geometry',     label:'Geom'    },
+    { key:'positions',    label:'Layout'  },
     { key:'params',       label:'Params'  },
     { key:'profiles',     label:'Prof'    },
     { key:'strakes',      label:'Strakes' },
@@ -3248,11 +3353,30 @@ function renderEditor() {
   </div>`;
   GEOMETRY_META.forEach(meta => {
     const v = GEOMETRY[meta.key];
-    html += `<div class="ed-row">
+    const off = (meta.key === 'TT' && !hasElement('tween')) || (meta.key === 'HC' && !hasElement('coaming')) || (meta.key === 'duct_half' && !hasElement('duct'));
+    html += `<div class="ed-row" ${off ? 'style="opacity:.45"' : ''}>
       <span class="ed-id" style="min-width:150px;font-size:0.68rem">${meta.label}</span>
-      <input class="ed-input geom-input" type="number" value="${v}" data-geom-key="${meta.key}" min="${meta.min}" max="${meta.max}" step="${meta.step}">
+      <input class="ed-input geom-input" type="number" value="${v == null ? '' : v}" data-geom-key="${meta.key}" min="${meta.min}" max="${meta.max}" step="${meta.step}" ${off ? 'disabled title="Element switched off below"' : ''}>
       <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span>
     </div>`;
+  });
+  html += `</div>`;
+
+  // Optional elements. Off = the element does not exist in this section:
+  // no levels, no strakes, no stiffeners, no rule rows.
+  html += `<div class="ed-group"><div class="ed-group-header"><span style="color:#f59e0b">Elements</span></div>`;
+  [
+    { key:'tween',    label:'Tween deck',      hint:'Horizontal deck between the inner sides. Off: single-deck hold from inner bottom to upper deck.' },
+    { key:'stringer', label:'Side stringer',   hint:'Horizontal stringer plate in the double side. Off: side longitudinals run from inner bottom to the next level.' },
+    { key:'coaming',  label:'Hatch coaming',   hint:'Coaming wall above the upper deck with a top plate. Off: inner side stops at the upper deck.' },
+    { key:'duct',     label:'Duct keel',       hint:'Centreline duct in the double bottom. Off: bottom longitudinals start at the centreline.' },
+  ].forEach(el => {
+    const on = hasElement(el.key);
+    html += `<label class="ed-row" style="cursor:pointer" title="${el.hint}">
+      <input type="checkbox" class="elem-toggle" data-elem="${el.key}" ${on ? 'checked' : ''} style="accent-color:var(--accent)">
+      <span class="ed-id" style="min-width:150px;font-size:0.68rem">${el.label}</span>
+      <span class="ed-label" style="color:${on ? 'var(--success)' : 'var(--text-muted)'};font-size:0.65rem">${on ? 'present' : 'none'}</span>
+    </label>`;
   });
   html += `</div>`;
   html += `</div>`;  // close geometry tab pane
@@ -3740,7 +3864,7 @@ function renderEditor() {
   });
   // Add-girder button after the list
   html += `<div style="display:flex;justify-content:flex-end;margin-top:4px;margin-bottom:var(--spacing-md)">
-    <button class="ed-add-btn" id="sgAdd">+ add Side Girder</button>
+    <button class="ed-add-btn sg-add" id="sgAdd">+ add Side Girder</button>
   </div>`;
 
   // 8) Stringer Decks — one sub-panel per level (STRAKES.stringer0, stringer1, ...)
@@ -3783,38 +3907,79 @@ function renderEditor() {
   html += `</div>`;  // close strakes tab pane
 
   // === TAB: LAYERS (WT / Non-WT classification) ===
+  // === TAB: LAYOUT (step 3 — positions & arrangement) ===
+  // One place for the things that fix *where* structure is before any strake
+  // or profile is sized: side girders, horizontal levels, watertightness,
+  // compartments. The rows below carry the same data attributes as their
+  // twins in the Strakes / Prof / Layers panes, so the handlers bound further
+  // down (sg-input, [data-sg-del], .sg-add, [data-group][data-coord],
+  // .ed-del[data-del-group], [data-add], .wt-select) drive both copies.
+  html += `<div class="ed-tab-pane ${EDITOR_TAB === 'positions' ? 'active' : ''}" data-tab-pane="positions">`;
+  html += `<div style="font-size:0.68rem;color:var(--text-muted);padding:4px 0 8px;line-height:1.4">Where things are. Side girders and deck levels here; their strakes and stiffeners are sized in the Strakes and Prof tabs afterwards.</div>`;
+
+  // -- Side girders (Y from CL, vertical web Z=0 -> IB)
+  {
+    const sorted = SIDE_GIRDERS.map((g, i) => ({ ...g, _idx: i })).sort((a, b) => a.y - b.y);
+    html += `<div class="ed-group"><div class="ed-group-header"><span style="color:${DEFAULT_PALETTE.sideGirder}">Side Girders <span class="ed-count">(${sorted.length})</span></span>
+      <button class="ed-add-btn sg-add" title="Add a side girder outboard of the last one">+ add</button></div>`;
+    if (!sorted.length) html += `<div class="ed-row" style="color:var(--text-muted);font-size:0.68rem">No side girders — double bottom spans duct keel to inner side.</div>`;
+    sorted.forEach((sg, k) => {
+      html += `<div class="ed-row" style="border-left:3px solid ${DEFAULT_PALETTE.sideGirder}">
+        <span class="ed-id" style="color:${DEFAULT_PALETTE.sideGirder}">SG${k + 1}</span>
+        <span class="ed-label" style="font-size:0.68rem;color:var(--text-muted)">Y =</span>
+        <input class="ed-input sg-input" type="number" value="${sg.y}" data-sg-idx="${sg._idx}" step="50" style="width:80px">
+        <span class="ed-label" style="color:var(--text-muted);font-size:0.65rem">mm from CL</span>
+        <span style="flex:1"></span>
+        <button class="ed-del" data-sg-del="${sg._idx}" title="Delete this side girder">${icon('close','10px')}</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // -- Horizontal levels between inner bottom and upper deck
+  [
+    { key: 'stringer',  label: 'Stringer Plates', color: '#a855f7', hint: 'side stringer (between shell and inner side)' },
+    { key: 'tweenDeck', label: 'Tween Decks',     color: '#06b6d4', hint: 'deck between inner sides' }
+  ].forEach(lv => {
+    const rows = (profiles[lv.key] || []).map((p, i) => ({ ...p, _idx: i })).sort((a, b) => a.z - b.z);
+    html += `<div class="ed-group"><div class="ed-group-header"><span style="color:${lv.color}">${lv.label} <span class="ed-count">(${rows.length})</span></span>
+      <button class="ed-add-btn" data-add="${lv.key}" title="Add a ${lv.hint} at a given height">+ add</button></div>`;
+    if (!rows.length) html += `<div class="ed-row" style="color:var(--text-muted);font-size:0.68rem">None.</div>`;
+    rows.forEach((p, k) => {
+      const inRange = p.z > GEOMETRY.IB && p.z < GEOMETRY.UD;
+      html += `<div class="ed-row" data-row-group="${lv.key}" data-row-idx="${p._idx}" style="border-left:3px solid ${lv.color}">
+        <span class="ed-id" style="color:${lv.color}">${lv.key === 'stringer' ? 'STR' : 'TD'}${k + 1}</span>
+        <span class="ed-label" style="font-size:0.68rem;color:var(--text-muted)">Z =</span>
+        <input class="ed-input" type="number" value="${p.z}" data-group="${lv.key}" data-idx="${p._idx}" data-coord="z" step="10" style="width:78px" title="Height above baseline, mm">
+        <span class="ed-label" style="color:var(--text-muted);font-size:0.65rem">mm AB</span>
+        ${inRange ? '' : `<span title="Outside inner bottom .. upper deck — not drawn as a level" style="color:var(--warning);font-size:0.65rem">off-range</span>`}
+        <span style="flex:1"></span>
+        <button class="ed-del" data-del-group="${lv.key}" data-del-idx="${p._idx}" title="Delete">${icon('close','10px')}</button>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  // -- Watertightness (same block as the Layers tab)
+  html += renderWTBlock();
+
+  // -- Compartments: summary + jump. The full editor (node pick, contents,
+  //    density) stays in its own tab; duplicating it would double the pick flow.
+  {
+    const n = COMPARTMENTS.length;
+    html += `<div class="ed-group"><div class="ed-group-header"><span style="color:#06b6d4">Compartments <span class="ed-count">(${n})</span></span>
+      <button class="ed-add-btn" data-goto-tab="compartments" title="Open the compartment editor">edit →</button></div>`;
+    COMPARTMENTS.slice(0, 12).forEach(c => {
+      html += `<div class="ed-row" style="font-size:0.68rem"><span class="ed-id" style="min-width:140px">${c.name || c.id || '—'}</span><span style="color:var(--text-muted)">${c.type || c.contents || ''}</span></div>`;
+    });
+    if (n > 12) html += `<div class="ed-row" style="color:var(--text-muted);font-size:0.65rem">… ${n - 12} more</div>`;
+    html += `</div>`;
+  }
+  html += `</div>`;  // close positions tab pane
+
   html += `<div class="ed-tab-pane ${EDITOR_TAB === 'layers' ? 'active' : ''}" data-tab-pane="layers">`;
 
-  // === WT / NON-WT classification panel ===
-  html += `<div class="ed-group">`;
-  html += `<div class="ed-group-header"><span style="color:#22c55e">WT / Non-WT</span></div>`;
-  const wtOptions = (key) => `
-    <select class="ed-input wt-select" data-wt-key="${key}" style="width:90px">
-      <option value="WT"     ${WT_FLAGS[key] === 'WT'     ? 'selected':''}>WT</option>
-      <option value="Non-WT" ${WT_FLAGS[key] === 'Non-WT' ? 'selected':''}>Non-WT</option>
-    </select>`;
-  // Side Girders (dynamic, one per SG)
-  SIDE_GIRDERS.forEach((sg, i) => {
-    const k = 'sg' + i;
-    if (WT_FLAGS[k] === undefined) WT_FLAGS[k] = 'WT';
-    html += `<div class="ed-row">
-      <span class="ed-id" style="min-width:120px;font-size:0.68rem">Side Girder ${i+1}</span>
-      ${wtOptions(k)}
-    </div>`;
-  });
-  // Decks / horizontal plates (only stringer, tween deck, upper deck)
-  const deckWTs = [
-    { key:'stringerPlate',   label:'Stringer Plate'     },
-    { key:'tweenDeckPlate',  label:'Tween Deck Plate'   },
-    { key:'upperDeckPlate',  label:'Upper Deck'         },
-  ];
-  deckWTs.forEach(d => {
-    html += `<div class="ed-row">
-      <span class="ed-id" style="min-width:120px;font-size:0.68rem">${d.label}</span>
-      ${wtOptions(d.key)}
-    </div>`;
-  });
-  html += `</div>`;
+  html += renderWTBlock();
 
   html += `</div>`;  // close layers tab pane
 
@@ -4210,8 +4375,28 @@ function renderEditor() {
       const v = parseFloat(e.target.value);
       if (!isNaN(v)) {
         GEOMETRY[k] = v;
+        if (k === 'TT') {
+          // The tween deck height is the first tween level; move it.
+          const tw = levelZs('tween');
+          if (tw.length) tw[0] = v; else tw.push(v);
+          PARAMS.tweenZs = tw.sort((a, b) => a - b);
+          computeProfiles();
+          renderEditor();
+        }
         render();
       }
+    });
+  });
+  ec.querySelectorAll('.elem-toggle').forEach(cb => {
+    cb.addEventListener('change', e => {
+      if (window.HistoryManager && typeof window.HistoryManager.recordChange === 'function') window.HistoryManager.recordChange();
+      setElement(e.target.dataset.elem, e.target.checked);
+      computeProfiles();
+      if (typeof computeStrakes === 'function') computeStrakes();
+      renderEditor();
+      render();
+      fitView();
+      if (typeof recalcAll === 'function') { try { recalcAll(); } catch (_) {} }
     });
   });
   const geomResetBtn = document.getElementById('geomReset');
@@ -4221,6 +4406,9 @@ function renderEditor() {
         B_half: 11880, IB: 1800, TT: 12900, UD: 15300, HC: 16350,
         R_B: 1800, keel_half: 900, duct_half: 900, IS: 10030
       };
+      delete PARAMS.stringerZs; delete PARAMS.tweenZs;   // back to the example seed
+      if (!(PARAMS.coamingTop > 0)) PARAMS.coamingTop = 950;
+      computeProfiles();
       renderEditor();
       render();
     });
@@ -4350,12 +4538,17 @@ function renderEditor() {
       }
     });
   });
-  const sgAddBtn = document.getElementById('sgAdd');
-  if (sgAddBtn) {
+  ec.querySelectorAll('.sg-add').forEach(sgAddBtn => {
     sgAddBtn.addEventListener('click', () => {
       const ys = SIDE_GIRDERS.map(s=>s.y);
       const last = ys.length ? Math.max(...ys) : GEOMETRY.duct_half + 2800;
       const next = Math.min(last + 2800, GEOMETRY.IS - 500);
+      // No room outboard of the last girder: say so instead of stacking a
+      // girder on top of the previous one or on the inner side.
+      if (next - last < 600 && ys.length) {
+        if (window.eaToast) window.eaToast('No room for another side girder between ' + last + ' mm and the inner side (' + GEOMETRY.IS + ' mm). Move the existing ones first.', 'warn');
+        return;
+      }
       SIDE_GIRDERS.push({ y: Math.round(next) });
       computeProfiles();
       renderEditor();
@@ -4364,7 +4557,7 @@ function renderEditor() {
         window.Bridge.onSideGirdersChangedFromDrawing();
       }
     });
-  }
+  });
 
   // --- Coordinate input handler (profile groups only, skip geometry/params/sg/select/wt/comp) ---
   ec.querySelectorAll('.ed-input:not(.geom-input):not(.param-input):not(.sg-input):not(.proftype-select):not(.wt-select):not(.comp-name):not(.comp-y-min):not(.comp-y-max):not(.comp-z-min):not(.comp-z-max):not(.ed-spacing-edit)').forEach(inp => {
@@ -4391,6 +4584,7 @@ function renderEditor() {
       }
 
       profiles[grpKey][idx][c] = v;
+      if (grpKey === 'stringer' || grpKey === 'tweenDeck') syncLevelParams();
 
       // Linked alignment: if this group is linked, mirror the value to the partner at the same index.
       // EXTRA RULE: Side Shell ↔ Inner Side mirror only when Z < (UD - 600).
@@ -4466,6 +4660,7 @@ function renderEditor() {
       }
       const deletedZ = (profiles[grpKey][idx] && profiles[grpKey][idx].z) || null;
       profiles[grpKey].splice(idx, 1);
+      if (grpKey === 'stringer' || grpKey === 'tweenDeck') syncLevelParams();
       // If linked, also remove partner's same-index item
       // EXTRA RULE: Side ↔ IS shared delete only when Z < (UD - 600)
       const grp = EDITOR_GROUPS.find(g => g.key === grpKey);
@@ -4957,6 +5152,15 @@ function renderEditor() {
       if (typeof recalcAll === 'function') recalcAll();
       renderEditor();
       render();
+    });
+  });
+
+  // --- Jump-to-tab buttons inside panes (Layout -> Compartments) ---
+  ec.querySelectorAll('[data-goto-tab]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const k = e.currentTarget.dataset.gotoTab;
+      const tab = ec.querySelector(`.ed-tab[data-ed-tab="${k}"]`);
+      if (tab) tab.click();
     });
   });
 
@@ -6505,7 +6709,7 @@ function render() {
   const svgBilgeY = X(g.B_half - g.R_B);
   const svgBilgeZ = Y(g.R_B);
   const svgIB = Y(g.IB);
-  const svgTT = Y(g.TT);
+  const svgTT = g.TT != null ? Y(g.TT) : null;
   const svgUD = Y(g.UD);
   const svgHC = Y(g.HC);
   const svgIS = X(g.IS);
@@ -6621,7 +6825,7 @@ function render() {
   
   // Z levels — labels on the right side (outside shell): value + "AB" (Above Baseline)
   // Collect all named Z levels + stringer/tween deck plate Zs (in case user adds extras).
-  const zLevels = new Set([g.IB, g.TT, g.UD, g.HC]);
+  const zLevels = new Set([g.IB, g.TT, g.UD, g.HC].filter(z => z != null && isFinite(z)));
   profiles.stringer.forEach(p => { if (p.z > g.IB && p.z < g.UD) zLevels.add(p.z); });
   profiles.tweenDeck.forEach(p => { if (p.z > g.IB && p.z < g.UD) zLevels.add(p.z); });
   Array.from(zLevels).sort((a,b) => a - b).forEach(z => {
@@ -6722,7 +6926,7 @@ function render() {
   html += `<path class="ib" d="M 0,${svgIB} L ${svgShell},${svgIB}"/>`;
   
   // Tank top (IS → shell, cyan dashed)
-  html += `<path class="tanktop" d="M ${svgIS},${svgTT} L ${svgShell},${svgTT}"/>`;
+  if (svgTT != null) html += `<path class="tanktop" d="M ${svgIS},${svgTT} L ${svgShell},${svgTT}"/>`;
   
   // Inner side (IB → HC, single green line — full panel as one color).
   // The inboard coaming wall is part of Inner Side now, so the green line
@@ -8798,9 +9002,9 @@ function resolveWholePlateFamily(key) {
   let z_mm;
   if (key === 'upperDeck')     z_mm = G.UD;
   else if (key === 'stringer' || key.startsWith('stringer'))
-                                z_mm = G.TT || ((G.IB || 0) + (G.UD || 0)) / 2;
+                                z_mm = (G.TT != null ? G.TT : ((G.IB || 0) + (G.UD || 0)) / 2);
   else if (key === 'tween' || key.startsWith('tween'))
-                                z_mm = G.TT || ((G.IB || 0) + (G.UD || 0)) / 2;
+                                z_mm = (G.TT != null ? G.TT : ((G.IB || 0) + (G.UD || 0)) / 2);
   else if (key === 'coamingTop') z_mm = G.HC || (G.UD ? G.UD + 500 : null);
   else if (key === 'duct')       z_mm = (G.IB || 0) / 2;
   else if (key.startsWith('sg')) z_mm = (G.IB || 0) / 2;
@@ -10588,11 +10792,23 @@ function escapeXml(s) {
 // =========================================================================
 // ZOOM & PAN — viewBox manipulation
 // =========================================================================
-const VIEW_INITIAL_HALF = { x: -120, y: 0, w: 700, h: 720 };
-const VIEW_INITIAL_FULL = { x: -620, y: 0, w: 1240, h: 720 };
+// Initial view fits the current section — the Laker's fixed 700x720 box
+// left a 17 m ship as a thumbnail in the corner. Margins: 120 units on the
+// left for the CL / info gutter, 130 on the right for the AB labels, 40 above
+// the highest member, 60 below the baseline for the Y dimension strip.
 function currentViewInitial() {
-  return MIRROR_BODY ? VIEW_INITIAL_FULL : VIEW_INITIAL_HALF;
+  const g = GEOMETRY || {};
+  const top = Math.max(g.HC || 0, g.UD || 0, 1000);
+  const xMax = X(g.B_half || 12000) + 130;
+  const yMin = Y(top) - 40, yMax = BASELINE_Y + 60;
+  const h = yMax - yMin;
+  let w = h * (700 / 720);
+  const needW = MIRROR_BODY ? 2 * xMax : xMax + 120;
+  if (needW > w) w = needW;
+  const hh = w * (720 / 700);
+  return { x: MIRROR_BODY ? -w / 2 : -120, y: yMax - hh, w: w, h: hh };
 }
+function fitView() { view = { ...currentViewInitial() }; applyView(); }
 let view = { ...currentViewInitial() };
 let svgEl = null;
 let zoomInfoEl = null;
@@ -10792,6 +11008,11 @@ function loadDrawingJSON(event) {
         ['bottomShell','innerBottom','stringerStiff','tweenStiff','coamingStiff','sideShell','innerSide','stringer','tweenDeck','upperDeck'].forEach(k => {
           if (Array.isArray(data.profiles[k])) profiles[k] = data.profiles[k];
         });
+        // Levels: a file that carries PARAMS.stringerZs / tweenZs is authoritative.
+      // Older files derive them from their stringer / tweenDeck lists — but an
+      // empty list means "regenerate", not "no deck", so leave those alone.
+      if (!(data.PARAMS && (Array.isArray(data.PARAMS.tweenZs) || Array.isArray(data.PARAMS.stringerZs)))
+          && ((profiles.stringer || []).length || (profiles.tweenDeck || []).length)) syncLevelParams();
       }
       if (typeof data.linkBS_IB === 'boolean') linkBS_IB = data.linkBS_IB;
       if (typeof data.linkSS_IS === 'boolean') linkSS_IS = data.linkSS_IS;
@@ -11751,6 +11972,11 @@ window.Draw.BRACKETS = BRACKETS;
 window.Draw.COMPARTMENTS = COMPARTMENTS;
 window.Draw.computeSectionProperties = computeSectionProperties;
 window.Draw.computeProfiles = computeProfiles;
+window.Draw.levelZs = levelZs;
+window.Draw.fitView = fitView;
+window.Draw.syncLevelParams = syncLevelParams;
+window.Draw.hasElement = hasElement;
+window.Draw.setElement = setElement;
 // Variant geometry overrides — variant change handler reads/writes these
 window.Draw.applyExcelDefaultProfiles = applyExcelDefaultProfiles;
 window.Draw.applyExcelDefaultStrakes = applyExcelDefaultStrakes;
@@ -11890,6 +12116,11 @@ window.importFullState = function(data) {
       Object.keys(data.profiles).forEach(k => {
         if (Array.isArray(data.profiles[k])) profiles[k] = data.profiles[k];
       });
+      // Levels: a file that carries PARAMS.stringerZs / tweenZs is authoritative.
+      // Older files derive them from their stringer / tweenDeck lists — but an
+      // empty list means "regenerate", not "no deck", so leave those alone.
+      if (!(data.PARAMS && (Array.isArray(data.PARAMS.tweenZs) || Array.isArray(data.PARAMS.stringerZs)))
+          && ((profiles.stringer || []).length || (profiles.tweenDeck || []).length)) syncLevelParams();
     }
     if (data.BAND_ASSIGNMENTS) window.BAND_ASSIGNMENTS = data.BAND_ASSIGNMENTS;
     if (typeof data.linkBS_IB === 'boolean') linkBS_IB = data.linkBS_IB;
@@ -11967,6 +12198,7 @@ window.importFullState = function(data) {
 
     if (typeof renderEditor === 'function') renderEditor();
     if (typeof render === 'function') render();
+    try { fitView(); } catch (_) {}
     // Do NOT call recalcAll() here — it would re-sync from scantling and
     // regenerate strakes. The form-change events above have already kept
     // analysis panels in sync.
@@ -11981,6 +12213,10 @@ window.importFullState = function(data) {
 window.Draw.sync = function(patch){
   try {
     if (patch.GEOMETRY) Object.assign(GEOMETRY, patch.GEOMETRY);
+    // The scantling form still carries TT / HC inputs; the drawing's element
+    // state wins over them (no tween deck -> no TT, no coaming -> HC = UD).
+    if (Array.isArray(PARAMS.tweenZs)) GEOMETRY.TT = PARAMS.tweenZs.length ? PARAMS.tweenZs[0] : null;
+    if (PARAMS.coamingTop === 0) GEOMETRY.HC = GEOMETRY.UD;
     if (patch.PLATE_THICKNESS) Object.assign(PLATE_THICKNESS, patch.PLATE_THICKNESS);
     if (patch.PARAMS) Object.assign(PARAMS, patch.PARAMS);
     if (patch.SIDE_GIRDERS) {

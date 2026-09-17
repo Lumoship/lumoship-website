@@ -364,6 +364,7 @@ window.confirmEqualSpacing = function() {
   const before = D.profiles[grpKey].length;
   D.profiles[grpKey].length = 0;
   items.forEach(it => D.profiles[grpKey].push(it));
+  if ((grpKey === 'stringer' || grpKey === 'tweenDeck') && D.syncLevelParams) D.syncLevelParams();
 
   // Mirror to linked partner where allowed
   try {

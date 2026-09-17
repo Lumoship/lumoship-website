@@ -22,9 +22,9 @@
     { n: 2, key: 'section',    label: 'Section',    page: 3, tab: 'geometry', view: 'general',
       title: 'Section geometry',
       hint: 'Set the nine geometry parameters — half beam, inner bottom, tween and upper deck, coaming, bilge radius, keel, duct keel, inner side. The drawing follows every change.' },
-    { n: 3, key: 'positions',  label: 'Positions',  page: 3, tab: 'layers', view: 'position',
+    { n: 3, key: 'positions',  label: 'Positions',  page: 3, tab: 'positions', view: 'position',
       title: 'Positions & arrangement',
-      hint: 'Side girders (Strakes tab), stringer / tween levels (Prof tab), compartments and their contents (Comp tab), watertight flags (Layers tab). Position codes are shown on the drawing.' },
+      hint: 'Side girders, stringer / tween deck levels, watertight flags and compartments — all in the Layout tab. Position codes are shown on the drawing; compartment contents are edited in the Comp tab.' },
     { n: 4, key: 'strakes',    label: 'Strakes',    page: 3, tab: 'strakes', view: 'thickness',
       title: 'Strakes & plate thickness',
       hint: 'Divide each panel into strakes and set thickness and grade. Keep Auto on to let the engine seed them, or edit freely — the last strake fits the panel. Run the plate optimizer from Analysis mode when the layout is right.' },
@@ -76,8 +76,11 @@
       var ok = function (c, t) { items.push({ ok: !!c, text: t }); };
       ok(g.B_half > 0, 'Half beam ' + (g.B_half || '—') + ' mm');
       ok(g.IB > 0 && g.IB < g.UD, 'Inner bottom below upper deck');
-      ok(g.TT > g.IB && g.TT <= g.UD, 'Tween deck between inner bottom and upper deck');
-      ok(g.HC >= g.UD, 'Coaming top at or above upper deck');
+      var lv = D().levelZs ? D().levelZs('tween') : (g.TT != null ? [g.TT] : []);
+      ok(!lv.length || (lv[0] > g.IB && lv[0] <= g.UD), lv.length ? 'Tween deck at ' + lv[0] + ' mm, between inner bottom and upper deck' : 'No tween deck (single-deck hold)');
+      var st = D().levelZs ? D().levelZs('stringer') : [];
+      ok(true, st.length ? st.length + ' side stringer level' + (st.length > 1 ? 's' : '') : 'No side stringer');
+      ok(g.HC >= g.UD, (g.HC > g.UD) ? 'Hatch coaming ' + (g.HC - g.UD) + ' mm above deck' : 'No hatch coaming');
       ok(g.IS > g.duct_half && g.IS < g.B_half, 'Inner side between duct keel and half beam');
       ok(g.R_B > 0 && g.R_B <= g.UD, 'Bilge radius');
       return items;
@@ -85,19 +88,23 @@
     3: function () {
       var d = D(); var items = [];
       var sg = (d.SIDE_GIRDERS || []).length, comp = (d.COMPARTMENTS || []).length;
-      items.push({ ok: sg > 0, text: sg + ' side girder' + (sg === 1 ? '' : 's') + ' (Strakes tab)' });
+      items.push({ ok: sg > 0, text: sg + ' side girder' + (sg === 1 ? '' : 's') });
       var lv = ((d.profiles || {}).stringer || []).length + ((d.profiles || {}).tweenDeck || []).length;
-      items.push({ ok: lv > 0, text: lv + ' stringer / tween level' + (lv === 1 ? '' : 's') + ' (Prof tab)' });
+      items.push({ ok: lv > 0, text: lv + ' stringer / tween level' + (lv === 1 ? '' : 's') });
       items.push({ ok: comp > 0, text: comp + ' compartment' + (comp === 1 ? '' : 's') + ' defined (Comp tab)' });
       var wt = d.WT_FLAGS || {}; var wtN = Object.keys(wt).length;
-      items.push({ ok: wtN > 0, text: 'Watertight flags set (Layers tab)' });
+      items.push({ ok: wtN > 0, text: 'Watertight flags set' });
       return items;
     },
     4: function () {
       var d = D(); var S = d.STRAKES || {}; var items = [];
       var panels = 0, empty = [], thin = [];
+      var d0 = D();
       Object.keys(S).forEach(function (k) {
         var arr = S[k]; if (!Array.isArray(arr)) return;
+        // legacy flat unions and switched-off elements are not panels
+        if (k === 'stringer' || k === 'tween') return;
+        if (k === 'coamingTop' && !(d0.PARAMS && d0.PARAMS.coamingTop > 0)) return;
         panels++;
         if (!arr.length) empty.push(k);
         arr.forEach(function (s) { if (!(s.thick > 0 || s.t > 0 || s.thickness > 0)) thin.push(k); });
@@ -199,6 +206,18 @@
     paintNav(current);
     mountStrip(step);
     if (step.page === 3) {
+      // First visit with no remembered layout: start with the left panel as
+      // a rail and the floating Info card closed, so the model has the room.
+      try {
+        if (!localStorage.getItem('midship_layout')) {
+          var grid = document.querySelector('.main-grid');
+          if (grid && !grid.classList.contains('left-collapsed') && window.toggleSidePanel) window.toggleSidePanel('left');
+        }
+        if (!localStorage.getItem('midship_info_overlay')) {
+          var ov = $('infoOverlay'), sb = $('infoOverlayShowBtn');
+          if (ov && sb && ov.style.display !== 'none') { ov.style.display = 'none'; sb.style.display = 'inline-flex'; }
+        }
+      } catch (_) {}
       // goToPage(3) initialises the drawing on a 50 ms tick and the editor a
       // little after; switch tab/view once both exist, then refresh the checks.
       var tries = 0;

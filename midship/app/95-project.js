@@ -284,6 +284,10 @@
       PARAMS: {
         dbSpacing: spec.dbSpacing,
         sideSpacing: spec.sideSpacing,
+        // Levels are state: one tween deck at TT, one side stringer midway
+        // between inner bottom and tween deck. Both editable at step 3.
+        tweenZs: spec.TT ? [spec.TT] : [],
+        stringerZs: [Math.round((spec.IB + (spec.TT || spec.UD)) / 2 / 10) * 10],
         sideZ0: spec.IB + Math.round(spec.sideSpacing * 0.8),
         coamingTop: 950,
         coamingEdgeH: 200,

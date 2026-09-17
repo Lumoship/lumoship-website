@@ -26,6 +26,7 @@
     e.stopPropagation();
     overlay.style.display = 'block';
     showBt.style.display  = 'none';
+    try { localStorage.setItem('midship_info_overlay', 'open'); } catch (_) {}
   });
 
   // ---- Drag (header only) ----

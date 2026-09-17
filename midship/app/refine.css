@@ -764,3 +764,45 @@ body.geometry-active .step-strip-hint{display:-webkit-box;-webkit-line-clamp:2;-
 .ea-wizard-step{padding:10px 14px}
 @media (max-width:1100px){.step-strip{flex-wrap:wrap}.step-strip-checks{border-left:none;padding:0;grid-template-columns:1fr}}
 .np-group[hidden]{display:none}
+/* Eight editor tabs since the Layout tab: wrap into two rows instead of scrolling. */
+.ed-tabs{flex-wrap:wrap;overflow:visible}
+.ed-tab{flex:1 1 22%;min-width:0;padding:5px 3px;font-size:0.62rem;letter-spacing:0.2px}
+
+/* ── Compact chrome on the Geometry page ────────────────────────────────────
+   The model is the point. While page-3 is active the site bar and footer go,
+   the app header collapses to one row, the step strip becomes a single line,
+   the side panels narrow. Everything is scoped to body.geometry-active so the
+   Setup and Summary pages keep their roomier layout. */
+body.geometry-active .lumoship-nav,
+body.geometry-active .ea-footer{display:none}
+body.geometry-active .ea-header-inner{padding:4px var(--spacing-md)}
+body.geometry-active .ea-header-top{margin-bottom:2px;gap:var(--spacing-md)}
+body.geometry-active .ea-logo{width:26px;height:26px;border-radius:var(--radius-sm);font-size:0.8rem}
+body.geometry-active .ea-title-group h1{font-size:var(--fs-base)}
+body.geometry-active .ea-title-group p{display:none}
+body.geometry-active .ea-header-btn{padding:4px 9px;font-size:0.68rem}
+body.geometry-active .ea-header-badge{display:none}
+body.geometry-active .ea-wizard-step{padding:3px 10px;font-size:var(--fs-xs)}
+body.geometry-active .ea-wizard-num{width:18px;height:18px;font-size:0.6rem}
+body.geometry-active .ea-wizard-line{width:22px}
+/* step strip: one line — title, checks, nav; the hint lives in the title tooltip */
+body.geometry-active .step-strip{padding:4px 12px;margin-bottom:4px;align-items:center;gap:var(--spacing-md)}
+body.geometry-active .step-strip-main{flex:0 0 auto;min-width:0}
+body.geometry-active .step-strip-title{font-size:var(--fs-sm)}
+body.geometry-active .step-strip-hint{display:none}
+body.geometry-active .step-strip-checks{grid-template-columns:repeat(4,minmax(0,1fr));gap:0 12px;font-size:0.62rem;padding:0 var(--spacing-sm)}
+body.geometry-active .step-strip-nav{flex-direction:row;gap:6px}
+body.geometry-active .step-strip-nav .ea-btn{padding:3px 9px;font-size:0.65rem}
+/* toolbars */
+body.geometry-active .draw-bridge-bar{padding:4px 10px;min-height:0}
+body.geometry-active .draw-bridge-bar #modeHelp{display:none}
+body.geometry-active .status-bar{padding:3px 10px;min-height:26px;font-size:0.66rem}
+body.geometry-active .ea-page#page-3 > .ea-main{padding:4px var(--spacing-sm);gap:4px}
+/* side panels: narrower, and the left one starts as a rail */
+body.geometry-active .main-grid{grid-template-columns:240px 1fr 320px;gap:var(--spacing-sm)}
+body.geometry-active .main-grid.left-collapsed{grid-template-columns:30px 1fr 320px}
+body.geometry-active .main-grid.right-collapsed{grid-template-columns:240px 1fr 30px}
+body.geometry-active .main-grid.left-collapsed.right-collapsed{grid-template-columns:30px 1fr 30px}
+body.geometry-active .editor-header,body.geometry-active .ea-panel-header{padding:6px 10px}
+body.geometry-active #recalcBtn{padding:5px 8px;font-size:0.66rem}
+@media(max-width:1400px){body.geometry-active .step-strip-checks{grid-template-columns:repeat(2,minmax(0,1fr))}}
