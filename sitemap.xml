@@ -46,6 +46,7 @@
     <url><loc>https://lumoship.org/lumocad/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
     <url><loc>https://lumoship.org/nr467/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
     <url><loc>https://lumoship.org/nr615/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://lumoship.org/loadpoint/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
     <url><loc>https://lumoship.org/midship/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
     <url><loc>https://lumoship.org/shipstruct/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>
