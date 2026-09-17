@@ -125,7 +125,7 @@
             // model.loads/pressure'a bakmak, sadece hat yuku tasiyan bir
             // modele "yuk yok" dedirtiyordu.
             const hasLoads = model.loads.length > 0 || model.pressure.length > 0 ||
-                Object.values(model.elements).some(e => e.lineLoads && e.lineLoads.length > 0);
+                Object.values(model.elements).some(e => (e.lineLoads && e.lineLoads.length > 0) || (e.pointLoads && e.pointLoads.length > 0));
             if (!hasLoads) {
                 issues.warnings.push({
                     type: 'no_loads',

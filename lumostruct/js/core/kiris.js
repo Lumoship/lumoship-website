@@ -68,7 +68,21 @@
             if (uclar === 'ikisi' || uclar === 'bas') KIRIS_UC_OZELLIKLERI.bas.forEach(k => { if (kaynak[k] !== undefined) y[k] = kaynak[k]; });
             if (uclar === 'ikisi' || uclar === 'son') KIRIS_UC_OZELLIKLERI.son.forEach(k => { if (kaynak[k] !== undefined) y[k] = kaynak[k]; });
             y.lineLoads = (sec.yukler === null) ? [] : (sec.yukler !== undefined ? sec.yukler : (kirisDerinKopya(kaynak.lineLoads) || []));
+            // Tekil yukler: verilmezse derin kopya, null ise yok
+            if (sec.noktalar === null) { /* yok */ }
+            else if (sec.noktalar !== undefined) { if (sec.noktalar.length) y.pointLoads = sec.noktalar; }
+            else if (kaynak.pointLoads && kaynak.pointLoads.length) y.pointLoads = kirisDerinKopya(kaynak.pointLoads);
             return y;
+        }
+
+        // Tekil yukleri [a0,b0] kesrinden hedefin [a1,b1] kesrine tasir
+        // (parcaya dusmeyenler atlanir; sinirdaki yuk ilk parcaya).
+        function noktaYukleriniYenidenOlcekle(noktalar, a0, b0, a1, b1, sonParca) {
+            if (!Array.isArray(noktalar) || b0 - a0 <= 1e-12) return [];
+            return noktalar.filter(p => {
+                const x = +p.pos || 0;
+                return (x >= a0 - 1e-9 && x < b0 - 1e-9) || (sonParca && Math.abs(x - b0) <= 1e-9);
+            }).map(p => Object.assign(kirisDerinKopya(p), { pos: a1 + ((+p.pos || 0) - a0) / (b0 - a0) * (b1 - a1) }));
         }
 
         // Kaynak kirisi verilen dugumlerde (0..1 kesirleri artan sirada)
@@ -86,7 +100,8 @@
                 const ucTuru = (uclar.length === 2) ? 'ikisi' : (i === 0 ? 'bas' : (i === uclar.length - 2 ? 'son' : 'hic'));
                 const parca = kirisTuret(kaynak, uclar[i], uclar[i + 1], {
                     uclar: ucTuru,
-                    yukler: hatYukleriniYenidenOlcekle(kaynak.lineLoads, sinir[i], sinir[i + 1], 0, 1)
+                    yukler: hatYukleriniYenidenOlcekle(kaynak.lineLoads, sinir[i], sinir[i + 1], 0, 1),
+                    noktalar: noktaYukleriniYenidenOlcekle(kaynak.pointLoads, sinir[i], sinir[i + 1], 0, 1, i === uclar.length - 2)
                 });
                 const id = nextElementId++;
                 parca.id = id;
@@ -130,6 +145,7 @@
                 }
                 return c;
             });
+            if (e.pointLoads && e.pointLoads.length) y.pointLoads = e.pointLoads.map(p => Object.assign(kirisDerinKopya(p), { pos: 1 - (+p.pos || 0) }));
             return y;
         }
 
@@ -143,7 +159,11 @@
                 ...hatYukleriniYenidenOlcekle(e1.lineLoads, 0, 1, 0, k),
                 ...hatYukleriniYenidenOlcekle(e2.lineLoads, 0, 1, k, 1)
             ];
-            const y = kirisTuret(e1, n1, n2, { uclar: 'bas', yukler: yukler });
+            const noktalar = [
+                ...noktaYukleriniYenidenOlcekle(e1.pointLoads, 0, 1, 0, k, true),
+                ...noktaYukleriniYenidenOlcekle(e2.pointLoads, 0, 1, k, 1, true)
+            ];
+            const y = kirisTuret(e1, n1, n2, { uclar: 'bas', yukler: yukler, noktalar: noktalar });
             KIRIS_UC_OZELLIKLERI.son.forEach(p => { if (e2[p] !== undefined) y[p] = e2[p]; });
             return y;
         }

@@ -112,7 +112,7 @@
             yukDurumlari().forEach(d => { say[d.id] = 0; });
             const ekle = c => { const id = (c === undefined || c === null) ? YUK_DURUMU_VARSAYILAN_ID : c; say[id] = (say[id] || 0) + 1; };
             (model.loads || []).forEach(l => ekle(l.case));
-            Object.values(model.elements || {}).forEach(e => (e.lineLoads || []).forEach(l => ekle(l.case)));
+            Object.values(model.elements || {}).forEach(e => { (e.lineLoads || []).forEach(l => ekle(l.case)); (e.pointLoads || []).forEach(l => ekle(l.case)); });
             (model.pressure || []).forEach(p => ekle(p.case));
             return say;
         }
@@ -186,6 +186,7 @@
             if (tur === 'node' && model.loads[a]) model.loads[a].case = durum;
             else if (tur === 'line' && model.elements[a] && model.elements[a].lineLoads && model.elements[a].lineLoads[b]) model.elements[a].lineLoads[b].case = durum;
             else if (tur === 'pressure' && model.pressure[a]) model.pressure[a].case = durum;
+            else if (tur === 'point' && model.elements[a] && model.elements[a].pointLoads && model.elements[a].pointLoads[b]) model.elements[a].pointLoads[b].case = durum;
             results = null;
             if (typeof updateBCLoadsTable === 'function') updateBCLoadsTable();
             if (typeof updateEntityInfoPanel === 'function') updateEntityInfoPanel();

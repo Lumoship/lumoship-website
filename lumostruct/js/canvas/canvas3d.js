@@ -1858,6 +1858,46 @@
             });
         }
 
+        // Kiris ustu tekil yukler (elem.pointLoads): yuk noktasinda dusey ok.
+        function kirisNoktaYukleriniCiz(taban, enBuyuk, matAsagi, matYukari, deformScale) {
+            Object.values(model.elements).forEach(elem => {
+                if (!elem.pointLoads || !elem.pointLoads.length) return;
+                const n1 = model.nodes[elem.n1], n2 = model.nodes[elem.n2];
+                if (!n1 || !n2) return;
+                elem.pointLoads.forEach(p => {
+                    const t = Math.max(0, Math.min(1, +p.pos || 0));
+                    const x = n1.x + (n2.x - n1.x) * t, y = n1.y + (n2.y - n1.y) * t, z = (n1.z || 0) + ((n2.z || 0) - (n1.z || 0)) * t;
+                    const asagi = p.P > 0;                 // + = asagi
+                    const oran = Math.sqrt(Math.abs(p.P) / Math.max(enBuyuk, Math.abs(p.P), 1e-9));
+                    const olcek = taban * (0.4 + oran * 0.6);
+                    const koniH = olcek * 0.35, koniR = olcek * 0.12, govdeR = olcek * 0.04, govdeL = olcek - koniH;
+                    const g = new THREE.Group();
+                    const mat = asagi ? matAsagi : matYukari;
+                    const koni = new THREE.Mesh(new THREE.ConeGeometry(koniR, koniH, 16), mat);
+                    const govde = new THREE.Mesh(new THREE.CylinderGeometry(govdeR, govdeR * 0.8, govdeL, 12), mat);
+                    // Asagi yuk: ok ucu kiriste, govde yukarida
+                    koni.rotation.x = asagi ? Math.PI : 0;
+                    koni.position.z = asagi ? koniH / 2 : govdeL + koniH / 2;
+                    govde.position.z = asagi ? koniH + govdeL / 2 : govdeL / 2;
+                    koni.rotation.x += Math.PI / 2; govde.rotation.x = Math.PI / 2;
+                    g.add(koni); g.add(govde);
+                    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+                    const cx = c.getContext('2d');
+                    cx.font = 'bold 52px Inter, Arial, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+                    const yazi = 'P ' + Math.abs(p.P).toFixed(1) + ' kN';
+                    cx.strokeStyle = 'rgba(15, 23, 42, 0.95)'; cx.lineWidth = 6; cx.strokeText(yazi, 128, 64);
+                    cx.fillStyle = asagi ? '#ef4444' : '#22c55e'; cx.fillText(yazi, 128, 64);
+                    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true }));
+                    const m = window.labelSizes?.load || 1.0;
+                    sp.scale.set(taban * 1.8 * m, taban * 0.9 * m, 1);
+                    sp.position.z = olcek + olcek * 0.55;
+                    g.add(sp);
+                    g.position.set(x, y, z + 0.02);
+                    threeScene.add(g);
+                });
+            });
+        }
+
         // Basinc yamalari (model.pressure) - yamanin kotu verilmemisse
         // modeldeki kirislerin en sik kotu (tek kotlu izgarada o kot).
         function basincYamalariniCiz() {
@@ -2889,6 +2929,9 @@
                     });
                 });
                 
+                // Kiris ustu tekil yukler: tek ok + etiket
+                kirisNoktaYukleriniCiz(baseLoadArrowScale, maxLoadValue, loadDownMaterial, loadUpMaterial, deformScale);
+
                 // Line loads on elements - distributed arrows with gradient
                 Object.values(model.elements).forEach(elem => {
                     if (!elem.lineLoads || elem.lineLoads.length === 0) return;

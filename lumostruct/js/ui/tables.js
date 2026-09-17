@@ -107,9 +107,10 @@
                         mafsal: (e.hingeStart || e.hingeEnd)
                             ? [(e.hingeStart ? 'start' : null), (e.hingeEnd ? 'end' : null)].filter(Boolean).join(' + ')
                             : '-',
-                        yuk: (e.lineLoads && e.lineLoads.length)
-                            ? e.lineLoads.map(l => (l.value ?? l.q ?? 0) + ' kN/m').join(', ')
-                            : '-'
+                        yuk: [
+                            ...(e.lineLoads || []).map(l => (l.value ?? l.q ?? 0) + ' kN/m'),
+                            ...(e.pointLoads || []).map(p => 'P ' + p.P + ' kN @' + Math.round((p.pos || 0) * L * 1000))
+                        ].join(', ') || '-'
                     };
                 })
             },
@@ -219,6 +220,13 @@
                             });
                         });
                     });
+                    // Kiris ustu tekil yukler
+                    Object.entries(model.elements).forEach(([id, e]) => (e.pointLoads || []).forEach(p => {
+                        const a = model.nodes[e.n1], b = model.nodes[e.n2];
+                        const L = (a && b) ? Math.hypot(b.x - a.x, b.y - a.y, (b.z || 0) - (a.z || 0)) : 0;
+                        r.push({ id: parseInt(id, 10), q: null, aci: 90, bas: (p.pos || 0) * 100, son: (p.pos || 0) * 100, yon: 'vertical',
+                                 durum: p.case || 'L', kaynak: 'point load P=' + p.P + ' kN @ ' + Math.round((p.pos || 0) * L * 1000) + ' mm' });
+                    }));
                     // Basinc yamalarindan turetilen hat yukleri (cozucunun gordugu haliyle)
                     if (typeof basincYukleriniHazirla === 'function' && (model.pressure || []).length) {
                         const b = basincYukleriniHazirla();

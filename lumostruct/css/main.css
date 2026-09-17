@@ -5630,6 +5630,7 @@
         body.sonuc-kipi #beamHingeSection,
         body.sonuc-kipi #beamBucklingSection,
         body.sonuc-kipi #beamLineLoadSection,
+        body.sonuc-kipi #beamPointLoadSection,
         body.sonuc-kipi #beamActionsSection,
         body.sonuc-kipi #infoMultiNodeCards,
         body.sonuc-kipi #multiNodeBCSection,

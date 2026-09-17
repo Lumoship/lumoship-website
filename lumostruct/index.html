@@ -2867,6 +2867,29 @@
                         </button>
                         <div id="infoBeamLineLoads" style="margin-top:8px; font-size:var(--fs-sm); color:var(--text-3);"></div>
                     </div>
+
+                    <!-- Kiris ustu tekil yuk (dugum disi noktaya P) -->
+                    <div class="entity-section" id="beamPointLoadSection">
+                        <div class="entity-section-title" style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><line x1="4" y1="20" x2="20" y2="20"/></svg></span> Point Load on Beam</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+                            <div>
+                                <small style="color:var(--text-3); font-size:var(--fs-xs);">P (kN, + = down)</small>
+                                <input type="number" id="infoPointLoadP" value="10" step="1" style="width:100%; padding:4px; font-size:var(--fs-sm);">
+                            </div>
+                            <div>
+                                <small style="color:var(--text-3); font-size:var(--fs-xs);">at x from start (mm)</small>
+                                <input type="number" id="infoPointLoadX" value="0" step="100" style="width:100%; padding:4px; font-size:var(--fs-sm);">
+                            </div>
+                            <div>
+                                <small style="color:var(--text-3); font-size:var(--fs-xs);">Case</small>
+                                <select id="infoPointLoadCase" class="yuk-durumu-secici" style="width:100%; padding:4px; font-size:var(--fs-sm);"></select>
+                            </div>
+                        </div>
+                        <button class="btn-primary btn-small btn-block" onclick="addInfoPointLoad()" style="background:#b91c1c; border-color:#b91c1c;">
+                            <span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Add Point Load
+                        </button>
+                        <div id="infoBeamPointLoads" style="margin-top:8px; font-size:var(--fs-sm); color:var(--text-3);"></div>
+                    </div>
                     
                     <!-- Results for Beam -->
                     <div class="entity-section" id="infoBeamResults" style="display:none;">

@@ -120,12 +120,63 @@
             return basincHatYukleri;
         }
 
-        // Cozucunun gordugu hat yukleri: kirisin kendi yukleri + basinctan gelenler
+        // ---- KIRIS USTU TEKIL YUK ----
+        // elem.pointLoads = [{ P (kN, + = asagi), pos (0..1, n1'den kesir),
+        //                      direction: 'global'|'localZ'|'localY', case }]
+        // Cozucuye L/1000 genisliginde esdeger serit yuk olarak verilir:
+        // siddet P / (eps*L). Kismi yayili yuk zinciri (montaj, mafsal, geri
+        // kazanim, Mmax taramasi) hic degismeden calisir; moment ve tepki
+        // sapmasi %0.05 (PL/4 - P*eps*L/8), kesme sicramasi L/1000 boyunca
+        // rampa olur. Uca (pos 0 / 1) dusen yuk dogrudan dugume gider.
+        const NOKTA_SERIT = 1 / 1000;
+        function noktaYukleriniHatYukuYap(elem) {
+            const liste = elem.pointLoads || [];
+            if (!liste.length) return [];
+            const a = model.nodes[elem.n1], b = model.nodes[elem.n2];
+            if (!a || !b) return [];
+            const L = Math.hypot(b.x - a.x, b.y - a.y, (b.z || 0) - (a.z || 0));
+            if (L < 1e-9) return [];
+            return liste.filter(p => isFinite(p.P) && p.P !== 0).map(p => {
+                const pos = Math.max(0, Math.min(1, +p.pos || 0));
+                const s = Math.max(0, pos - NOKTA_SERIT / 2), e = Math.min(1, pos + NOKTA_SERIT / 2);
+                const q = p.P / ((e - s) * L);
+                return { value: q, q: q, startPct: s * 100, endPct: e * 100, start: s, end: e,
+                         direction: p.direction || 'global', angle: 90, case: p.case, kaynak: 'point', P: p.P, pos: pos };
+            });
+        }
+
+        // Cozucunun gordugu hat yukleri: kirisin kendi yukleri + basinctan
+        // gelenler + tekil yuklerin serit karsiligi
         function etkinHatYukleri(elem, elemId) {
-            const kendi = elem.lineLoads || [];
+            let liste = elem.lineLoads || [];
             const id = (elemId !== undefined) ? elemId : Object.keys(model.elements).find(k => model.elements[k] === elem);
             const b = basincHatYukleri[id];
-            return b && b.length ? kendi.concat(b) : kendi;
+            if (b && b.length) liste = liste.concat(b);
+            if (elem.pointLoads && elem.pointLoads.length) liste = liste.concat(noktaYukleriniHatYukuYap(elem));
+            return liste;
+        }
+
+        // ---- duzenleme: kiris paneli ----
+        function kirisNoktaYukuEkle(elemId, P, posMm, durum, direction) {
+            const e = model.elements[elemId];
+            if (!e) return false;
+            const a = model.nodes[e.n1], b = model.nodes[e.n2];
+            const L = Math.hypot(b.x - a.x, b.y - a.y, (b.z || 0) - (a.z || 0));
+            if (!(isFinite(P) && P !== 0)) { showToast('Enter a non-zero load (kN)', 'warning'); return false; }
+            if (!(isFinite(posMm) && posMm >= 0 && posMm / 1000 <= L + 1e-6)) { showToast('Position must be 0…' + Math.round(L * 1000) + ' mm from node ' + e.n1, 'warning'); return false; }
+            saveState();
+            e.pointLoads = e.pointLoads || [];
+            e.pointLoads.push({ P: P, pos: Math.min(1, posMm / 1000 / L), direction: direction || 'global', case: durum || etkinYukDurumu() });
+            results = null;
+            return true;
+        }
+        function kirisNoktaYukuSil(elemId, idx) {
+            const e = model.elements[elemId];
+            if (!e || !e.pointLoads || !e.pointLoads[idx]) return;
+            saveState();
+            e.pointLoads.splice(idx, 1);
+            if (!e.pointLoads.length) delete e.pointLoads;
+            results = null;
         }
 
         // ---- duzenleme (Loads sekmesi) ----

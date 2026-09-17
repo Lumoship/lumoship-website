@@ -86,7 +86,7 @@
                 if (sec && sec.A > 0) mass += sec.A * L * 7850;      // kg
                 // RIGID profil degil: sayilmaz.
                 if (el.section && !(typeof kesitRijitMi === 'function' && kesitRijitMi(el.section))) profiles.add(el.section);
-                if (el.lineLoads && el.lineLoads.length > 0) loadedBeams++;
+                if ((el.lineLoads && el.lineLoads.length > 0) || (el.pointLoads && el.pointLoads.length > 0)) loadedBeams++;
             });
 
             const xs = nodeIds.map(id => nodes[id].x);
@@ -461,7 +461,7 @@
             }
             
             // Update line loads display
-            updateInfoBeamLineLoads();
+            updateInfoBeamLineLoads(); if (typeof updateInfoBeamPointLoads === 'function') updateInfoBeamPointLoads();
         }
         
         // Mini diagram state
@@ -1381,7 +1381,7 @@
             
             updateModelSummary();
             updateBCLoadsTable();
-            updateInfoBeamLineLoads();
+            updateInfoBeamLineLoads(); if (typeof updateInfoBeamPointLoads === 'function') updateInfoBeamPointLoads();
             
             // Switch to Loads tab
             switchMainTab('loads');
@@ -1420,6 +1420,43 @@
             }).join('');
         }
         
+        // ---- Kiris ustu tekil yukler (panel) ----
+        function updateInfoBeamPointLoads() {
+            const container = document.getElementById('infoBeamPointLoads');
+            if (!container || currentInfoBeam == null) return;
+            const elem = model.elements[currentInfoBeam];
+            const n1 = elem && model.nodes[elem.n1], n2 = elem && model.nodes[elem.n2];
+            const L = (n1 && n2) ? Math.hypot(n2.x - n1.x, n2.y - n1.y, (n2.z || 0) - (n1.z || 0)) : 0;
+            const xEl = document.getElementById('infoPointLoadX');
+            if (xEl && L > 0 && (!xEl.value || +xEl.value > L * 1000)) xEl.value = Math.round(L * 500);
+            if (!elem || !elem.pointLoads || elem.pointLoads.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-3);">No point loads on this beam</div>';
+                return;
+            }
+            container.innerHTML = elem.pointLoads.map((p, idx) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elev); padding:4px 8px; border-radius:var(--r-ctl); margin-bottom:4px;">
+                        <span style="color:var(--danger-text);">P=${p.P} kN</span>
+                        <span style="color:var(--text-3);">x=${Math.round((p.pos || 0) * L * 1000)} mm · ${p.case || 'L'}</span>
+                        <button onclick="removeInfoPointLoad(${idx})" style="background:#b91c1c; border:none; color:white; width:18px; height:18px; border-radius:var(--r-ctl); cursor:pointer; font-size:var(--fs-xs);">✕</button>
+                    </div>`).join('');
+        }
+        function addInfoPointLoad() {
+            if (currentInfoBeam == null) return;
+            const P = parseFloat(document.getElementById('infoPointLoadP')?.value);
+            const x = parseFloat(document.getElementById('infoPointLoadX')?.value);
+            const durum = document.getElementById('infoPointLoadCase')?.value || etkinYukDurumu();
+            if (!kirisNoktaYukuEkle(currentInfoBeam, P, x, durum, 'global')) return;
+            updateModelSummary(); updateBCLoadsTable(); updateInfoBeamPointLoads();
+            if (currentViewMode === '3d') update3DScene(); else draw();
+            showToast(`Point load ${P} kN at ${Math.round(x)} mm on Beam #${currentInfoBeam}`);
+        }
+        function removeInfoPointLoad(idx) {
+            if (currentInfoBeam == null) return;
+            kirisNoktaYukuSil(currentInfoBeam, idx);
+            updateModelSummary(); updateBCLoadsTable(); updateInfoBeamPointLoads();
+            if (currentViewMode === '3d') update3DScene(); else draw();
+        }
+
         // Remove line load from Entity Info
         function removeInfoLineLoad(idx) {
             if (currentInfoBeam == null) return;
@@ -1432,7 +1469,7 @@
             
             updateModelSummary();
             updateBCLoadsTable();
-            updateInfoBeamLineLoads();
+            updateInfoBeamLineLoads(); if (typeof updateInfoBeamPointLoads === 'function') updateInfoBeamPointLoads();
             
             if (currentViewMode === '3d') {
                 update3DScene();
