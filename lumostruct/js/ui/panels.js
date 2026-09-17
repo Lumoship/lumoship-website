@@ -2251,6 +2251,7 @@
                 if (g && g.value !== model.grade) { g.value = model.grade; if (typeof updateMaterialDisplay === 'function') updateMaterialDisplay(); }
             }
             if (typeof gerilmeSinirlariniUygula === 'function') gerilmeSinirlariniUygula();
+            if (typeof projeFormunuDoldur === 'function') projeFormunuDoldur();
             const nNodes = Object.keys(model.nodes).length;
             const nElems = Object.keys(model.elements).length;
             const nConst = Object.keys(model.constraints).length;

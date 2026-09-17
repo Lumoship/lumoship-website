@@ -866,7 +866,7 @@
                     ctx.fillStyle = isSelected ? '#fbbf24' : '#475569';
                     ctx.font = '8px Inter, sans-serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`E${elemId}`, midX, midY);
+                    ctx.fillText((model.elements[elemId] && model.elements[elemId].ad) ? model.elements[elemId].ad : `E${elemId}`, midX, midY);
                 }
             });
         }

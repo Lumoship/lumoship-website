@@ -80,8 +80,9 @@
                 .map(([id, r]) => `<tr><td>${esc(id)}</td><td>${num(r.Fz, 2)}</td>
                     <td>${num(r.Mx, 3)}</td><td>${num(r.My, 3)}</td></tr>`).join('');
 
+            const zarf = (typeof sonucZarfMi === 'function') && sonucZarfMi(results);
             const beamRows = worst.map(b => `<tr class="${b.util > 100 ? 'fail' : (b.util > 80 ? 'warn' : '')}">
-                <td>${b.id}</td><td>${esc(b.section)}</td><td>${num(b.length, 3)}</td>
+                <td>${esc((typeof kirisEtiketi === 'function') ? kirisEtiketi(b.id) : b.id)}</td><td>${esc(b.section)}${zarf && results.elementResults[b.id] && results.elementResults[b.id].lc ? ' <span style="color:#666;">[' + esc(results.elementResults[b.id].lc) + ']</span>' : ''}</td><td>${num(b.length, 3)}</td>
                 <td>${num(b.sigmaMax, 1)}</td><td>${num(b.sigmaMin, 1)}</td><td>${num(b.tauMax, 1)}</td>
                 <td>${num(b.vmMax, 1)}</td><td>${num(b.mMax, 2)}</td><td>${num(b.vMax, 2)}</td>
                 <td><strong>${num(b.util, 1)}</strong></td></tr>`).join('');
@@ -110,8 +111,9 @@
   .big { font-size:15px; font-weight:700; }
   @media print { body { margin:12mm; } h2 { page-break-after:avoid; } tr { page-break-inside:avoid; } }
 </style></head><body>
-<h1>Calculation Report</h1>
-<div class="sub">LumoStruct &middot; ${esc(d.tarih)}</div>
+<h1>Calculation Report${(typeof projeBilgisi === 'function' && projeBilgisi().ad) ? ' — ' + esc(projeBilgisi().ad) : ''}</h1>
+<div class="sub">LumoStruct &middot; ${esc(d.tarih)}${(typeof projeBilgisi === 'function' && projeBilgisi().revizyon) ? ' &middot; Rev ' + esc(projeBilgisi().revizyon) : ''}</div>
+${(typeof raporProjeBolumu === 'function') ? raporProjeBolumu(esc) : ''}
 
 <h2>Model</h2>
 <table class="kv">
@@ -121,6 +123,7 @@
   <tr><td>Steel weight</td><td>${d.mass >= 1000 ? num(d.mass / 1000, 2) + ' t' : num(d.mass, 0) + ' kg'}</td></tr>
   <tr><td>Extents</td><td>${esc(d.extents)}</td></tr>
 </table>
+${(typeof raporGorunumBolumu === 'function') ? raporGorunumBolumu() : ''}
 
 <h2>Material and limits</h2>
 <table class="kv">
@@ -131,6 +134,7 @@
   <tr><td>Load combination</td><td>${esc(d.combination)}</td></tr>
   <tr><td>Self weight</td><td>${d.selfWeight ? 'included' : 'not included'}</td></tr>
 </table>
+${(typeof raporYuklerBolumu === 'function') ? raporYuklerBolumu(esc, num) : ''}
 
 <h2>Sections used</h2>
 <table><thead><tr><th>Profile</th><th>Beams</th><th>Length (m)</th><th>A (cm&sup2;)</th>
@@ -172,6 +176,8 @@
   <th>&sigma;<sub>min</sub></th><th>&tau;<sub>max</sub></th><th>&sigma;<sub>vm</sub></th>
   <th>M<sub>max</sub></th><th>V<sub>max</sub></th><th>Util %</th></tr></thead>
 <tbody>${beamRows || '<tr><td colspan="10">-</td></tr>'}</tbody></table>
+${zarf ? '<div style="color:#666; margin:-4px 0 8px;">Envelope: each beam shows the governing combination in brackets.</div>' : ''}
+${(typeof raporDiyagramBolumu === 'function') ? raporDiyagramBolumu(esc, num, worst, 8) : ''}
 
 <p style="color:#666; margin-top:24px; font-size:11px;">
   Units: geometry m, deflection mm, forces kN, moments kN&middot;m, stress MPa.

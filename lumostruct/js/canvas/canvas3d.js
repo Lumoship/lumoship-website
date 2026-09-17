@@ -3290,7 +3290,7 @@
                     const midY = (n1.y + n2.y) / 2;
                     const midZ = ((n1.z || 0) + (n2.z || 0)) / 2;
                     
-                    const labelSprite = createTextSprite(`E${id}`, '#f59e0b', beamLabelScale);
+                    const labelSprite = createTextSprite((model.elements[id] && model.elements[id].ad) ? model.elements[id].ad : `E${id}`, '#f59e0b', beamLabelScale);
                     labelSprite.position.set(midX, midY, midZ + 0.08);
                     labelSprite.userData.isModelObject = true;
                     threeScene.add(labelSprite);

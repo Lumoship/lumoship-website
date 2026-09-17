@@ -73,6 +73,7 @@
                 ad: 'beams', baslik: 'Beams', secim: 'kiris',
                 sut: [
                     { a: 'id', b: 'Beam', o: 0 },
+                    { a: 'ad', b: 'Name', m: true },
                     { a: 'n1', b: 'Start node', o: 0 },
                     { a: 'n2', b: 'End node', o: 0 },
                     { a: 'L', b: 'Length [mm]', o: 0 },
@@ -88,6 +89,7 @@
                     const L = tabloKirisBoyu(e);
                     return {
                         id: parseInt(id, 10),
+                        ad: e.ad || '',
                         n1: e.n1, n2: e.n2,
                         L: L * 1000,
                         profil: e.section || '-',

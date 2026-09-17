@@ -290,6 +290,7 @@
             const length = n1 && n2 ? Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2) + Math.pow((n2.z || 0) - (n1.z || 0), 2)) : 0;
 
             setText('infoBeamId', beamId);
+            const adEl = document.getElementById('infoBeamAd'); if (adEl) adEl.value = elem.ad || '';
             setText('infoBeamNodes', `${elem.n1} → ${elem.n2}`);
             // Burkulma carpanlari
             const kyEl = document.getElementById('infoBeamKy'), kzEl = document.getElementById('infoBeamKz'), egEl = document.getElementById('infoBeamCurve');

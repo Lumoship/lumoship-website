@@ -1760,6 +1760,17 @@
                     Reactions are reported upward positive; node coordinates are entered in mm.
                 </div>
 
+                <!-- Proje bilgisi: model.proje ile kaydedilir, rapor basligina gider -->
+                <h3 class="panel-title">Project</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 8px; margin-bottom:10px;">
+                    <div class="limit-input" style="grid-column:1 / -1;"><label>Project</label><input type="text" id="projeAd" placeholder="e.g. 9300 Deck PSM" onchange="projeDegisti()"></div>
+                    <div class="limit-input"><label>Project no.</label><input type="text" id="projeNo" onchange="projeDegisti()"></div>
+                    <div class="limit-input"><label>Revision</label><input type="text" id="projeRev" placeholder="A" onchange="projeDegisti()"></div>
+                    <div class="limit-input"><label>Prepared by</label><input type="text" id="projeMuhendis" onchange="projeDegisti()"></div>
+                    <div class="limit-input"><label>Checked by</label><input type="text" id="projeKontrol" onchange="projeDegisti()"></div>
+                    <div class="limit-input" style="grid-column:1 / -1;"><label>Notes (report)</label><input type="text" id="projeNotlar" onchange="projeDegisti()"></div>
+                </div>
+
                 <h3 class="panel-title">Stress Limits</h3>
                 <!-- Kural tabani: js/core/sinirlar.js (model.kontrol ile kaydedilir) -->
                 <div class="limit-input">
@@ -2714,6 +2725,10 @@
                             <span class="value highlight" id="infoBeamId">-</span>
                         </div>
                         <div class="entity-property">
+                            <span class="label">Name</span>
+                            <input type="text" id="infoBeamAd" placeholder="e.g. DL-3" title="Optional beam name (tables, report, labels)" style="width:120px; padding:2px 5px; font-size:var(--fs-sm); text-align:right;" onchange="kirisAdiAyarla(currentInfoBeam, this.value)">
+                        </div>
+                        <div class="entity-property">
                             <span class="label">Nodes</span>
                             <span class="value" id="infoBeamNodes">-</span>
                         </div>
@@ -3512,6 +3527,7 @@
     <script src="js/ui/measurement.js"></script>
     <script src="js/ui/solver-ui.js"></script>
     <script src="js/ui/report.js"></script>
+    <script src="js/ui/rapor-ek.js"></script>
     <script src="js/ui/panels.js"></script>
     <script src="js/ui/tabs.js"></script>
     <script src="js/ui/import.js"></script>
