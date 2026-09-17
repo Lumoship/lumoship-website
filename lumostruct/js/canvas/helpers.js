@@ -98,10 +98,12 @@
                     const n2 = model.nodes[id2];
                     if (!n2) continue;
                     
-                    // Check distance
+                    // Uzaklik UC BOYUTLU: eskiden z'ye bakilmiyordu, kolonun
+                    // iki ucu (ayni x,y) birlestirilip kolon siliniyordu.
                     const dx = n1.x - n2.x;
                     const dy = n1.y - n2.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const dz = (n1.z || 0) - (n2.z || 0);
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
                     
                     if (dist <= tolerance) {
                         // Merge n2 into n1
@@ -132,7 +134,8 @@
                 Object.entries(model.constraints).forEach(([nodeId, constraint]) => {
                     const id = parseInt(nodeId);
                     const newId = nodeMap[id] !== undefined ? nodeMap[id] : id;
-                    newConstraints[newId] = constraint;
+                    // Birlesen dugumlerin mesnetleri TOPLANIR (sonuncu kazanmaz)
+                    newConstraints[newId] = mesnetleriTopla(newConstraints[newId], constraint);
                 });
                 model.constraints = newConstraints;
             }

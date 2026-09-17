@@ -34,17 +34,25 @@
             
             // Parse input
             if (value.includes(',')) {
-                // Coordinate format: X,Y
-                const parts = value.split(',');
-                offsetX = parseFloat(parts[0]) / 1000 || 0; // mm to m
-                offsetY = parseFloat(parts[1]) / 1000 || 0;
+                // "a,b": etkin duzlemin iki ekseni (XZ duzleminde X,Z); "a,b,c": x,y,z
+                const parts = value.replace(/^@/, '').split(',').map(p => parseFloat(p) / 1000 || 0);
+                if (parts.length >= 3) { offsetX = parts[0]; offsetY = parts[1]; offsetZ = parts[2]; }
+                else {
+                    const eks = (typeof activeWorkPlane !== 'undefined' && activeWorkPlane) ? activeWorkPlane.axis : 'Z';
+                    if (eks === 'Y') { offsetX = parts[0]; offsetZ = parts[1]; }
+                    else if (eks === 'X') { offsetY = parts[0]; offsetZ = parts[1]; }
+                    else { offsetX = parts[0]; offsetY = parts[1]; }
+                }
             } else if (value.includes('<')) {
-                // Polar format: distance<angle
+                // Polar format: distance<angle (etkin duzlem icinde)
                 const parts = value.split('<');
                 const dist = parseFloat(parts[0]) / 1000 || 0;
                 const angle = parseFloat(parts[1]) || 0;
-                offsetX = dist * Math.cos(angle * Math.PI / 180);
-                offsetY = dist * Math.sin(angle * Math.PI / 180);
+                const a = dist * Math.cos(angle * Math.PI / 180), b = dist * Math.sin(angle * Math.PI / 180);
+                const eks = (typeof activeWorkPlane !== 'undefined' && activeWorkPlane) ? activeWorkPlane.axis : 'Z';
+                if (eks === 'Y') { offsetX = a; offsetZ = b; }
+                else if (eks === 'X') { offsetY = a; offsetZ = b; }
+                else { offsetX = a; offsetY = b; }
             } else {
                 // Distance only - use current mouse direction
                 const dist = parseFloat(value) / 1000 || 0; // mm to m
@@ -160,11 +168,12 @@
             }
         }
         
-        // Split beam at ratio (helper for X/Y split)
+        // Split beam at ratio (helper for X/Y/Z split). Ozellikler ve hat
+        // yukleri parcalara gecer (kirisiParcala).
         function splitBeamAtRatio(beamId, t) {
             const beam = model.elements[beamId];
-            if (!beam) return;
-            
+            if (!beam) return [];
+
             const n1 = model.nodes[beam.n1], n2 = model.nodes[beam.n2];
             const z1 = n1.z || 0, z2 = n2.z || 0;
             const sx = n1.x + (n2.x - n1.x) * t, sy = n1.y + (n2.y - n1.y) * t, sz = z1 + (z2 - z1) * t;
@@ -174,16 +183,7 @@
                 newNodeId = nextNodeId++;
                 model.nodes[newNodeId] = { x: sx, y: sy, z: sz };
             }
-            
-            const section = beam.section;
-            const origN1 = beam.n1, origN2 = beam.n2;
-            delete model.elements[beamId];
-            
-            const id1 = nextElementId++;
-            model.elements[id1] = { n1: origN1, n2: newNodeId, section };
-            
-            const id2 = nextElementId++;
-            model.elements[id2] = { n1: newNodeId, n2: origN2, section };
+            return kirisiParcala(beamId, [newNodeId], [t]);
         }
         
         // Process mirror confirm
@@ -197,60 +197,23 @@
         
         // ============== COMMAND EXECUTION FUNCTIONS ==============
         
-        // Execute Copy with offset (simplified like test file)
-        // offsetZ eklendi: XZ/YZ duzleminde kopyalama Z'de olur.
+        // COPY: kaynak dugumler kaydirilir (hedefte dugum varsa ona
+        // baglanir, yeni dugume mesnet ve dugum yuku gecer), kirisler BUTUN
+        // ozellikleriyle yeniden kurulur, kesisimlerde bolunur.
         function executeCopyWithOffset(offsetX, offsetY, offsetZ = 0) {
             if (cmdState.selectedBeamIds.length === 0) {
                 showToast('No beams selected', 'warning');
                 cancelCommand();
                 return;
             }
-            
+
             saveState();
-            
-            const nodeMap = {};
+
+            const kaynak = secilenKirisDugumleri(cmdState.selectedBeamIds);
             const newBeamIds = [];
-            
-            // Collect nodes from beams
-            const nodesToCopy = new Set();
-            cmdState.selectedBeamIds.forEach(elemId => {
-                const elem = model.elements[elemId];
-                if (elem) {
-                    nodesToCopy.add(elem.n1);
-                    nodesToCopy.add(elem.n2);
-                }
-            });
-            
-            // Create new nodes at offset positions
-            nodesToCopy.forEach(oldNodeId => {
-                const oldNode = model.nodes[oldNodeId];
-                if (oldNode) {
-                    const newId = nextNodeId++;
-                    model.nodes[newId] = { id: newId, x: oldNode.x + offsetX, y: oldNode.y + offsetY,
-                                               z: (oldNode.z || 0) + offsetZ };
-                    nodeMap[oldNodeId] = newId;
-                }
-            });
-            
-            // Create new beams (simple, without checking intersections first)
-            cmdState.selectedBeamIds.forEach(oldElemId => {
-                const oldElem = model.elements[oldElemId];
-                if (oldElem && nodeMap[oldElem.n1] && nodeMap[oldElem.n2]) {
-                    const newId = nextElementId++;
-                    model.elements[newId] = { 
-                        id: newId, 
-                        n1: nodeMap[oldElem.n1], 
-                        n2: nodeMap[oldElem.n2], 
-                        section: oldElem.section,
-                        orientation: oldElem.orientation || 0
-                    };
-                    newBeamIds.push(newId);
-                }
-            });
-            
-            // Auto-split at intersections (this handles both cross and endpoint splits)
-            autoSplitAtIntersections(newBeamIds);
-            
+            const nodeMap = dugumleriTuret(kaynak, d => ({ x: d.x + offsetX, y: d.y + offsetY, z: (d.z || 0) + offsetZ }));
+            kirisleriTuret(cmdState.selectedBeamIds, nodeMap, newBeamIds);
+
             const distMM = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ) * 1000;
             showToast(`Copied ${cmdState.selectedBeamIds.length} beam(s) (${distMM.toFixed(0)}mm)`);
             
@@ -293,7 +256,8 @@
                     node.z = (node.z || 0) + offsetZ;
                 }
             });
-            
+            tasinmaSonrasiTopla(nodesToMove, cmdState.selectedBeamIds);
+
             results = null;
             if (currentViewMode === '3d') update3DScene();
             else draw();
@@ -306,6 +270,15 @@
             cancelCommand();
         }
         
+        // MOVE / ROTATE sonrasi: ustune gelinen dugumlerle birles, tasinan
+        // kirisleri kesisimlerde bol. Eskiden ikisi de yoktu; tasinan kiris
+        // komsusunun ustunde ayri bir dugumle duruyordu.
+        function tasinmaSonrasiTopla(dugumler, kirisIdleri) {
+            tasinanDugumleriBirlestir(dugumler);
+            const kalan = kirisIdleri.filter(id => model.elements[id]);
+            if (kalan.length && typeof autoSplitAtIntersections === 'function') autoSplitAtIntersections(kalan);
+        }
+
         // Execute Rotate
         function executeRotate(angleDeg) {
             if (cmdState.selectedBeamIds.length === 0 || !cmdState.basePoint) {
@@ -330,17 +303,17 @@
                 }
             });
             
-            // Rotate nodes around center point
+            // Etkin duzlemin normali etrafinda dondur (XY'de Z ekseni,
+            // XZ'de Y ekseni). Ust uste gelen dugumler birlesir.
             nodesToRotate.forEach(nodeId => {
                 const node = model.nodes[nodeId];
                 if (node) {
-                    const dx = node.x - cx;
-                    const dy = node.y - cy;
-                    node.x = cx + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
-                    node.y = cy + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+                    const y = noktayiDuzlemdeDondur(node, cmdState.basePoint, angleDeg);
+                    node.x = y.x; node.y = y.y; node.z = y.z;
                 }
             });
-            
+            tasinmaSonrasiTopla(nodesToRotate, cmdState.selectedBeamIds);
+
             results = null;
             if (currentViewMode === '3d') update3DScene();
             else draw();
@@ -378,41 +351,9 @@
                 }
             });
             
-            // Create rotated nodes
-            nodesToRotate.forEach(oldNodeId => {
-                const oldNode = model.nodes[oldNodeId];
-                if (oldNode) {
-                    const dx = oldNode.x - cx;
-                    const dy = oldNode.y - cy;
-                    const newX = cx + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
-                    const newY = cy + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
-                    // Dondurme XY duzleminde; kot degismez ama KORUNMALI.
-                    const newZ = (typeof oldNode.z === 'number' && isFinite(oldNode.z)) ? oldNode.z : 0;
-
-                    const existingNodeId = findNodeAtLocation(newX, newY, newZ);
-                    if (existingNodeId !== null) {
-                        nodeMap[oldNodeId] = existingNodeId;
-                    } else {
-                        const newId = nextNodeId++;
-                        model.nodes[newId] = { id: newId, x: newX, y: newY, z: newZ };
-                        nodeMap[oldNodeId] = newId;
-                    }
-                }
-            });
-            
-            // Create rotated beams
-            cmdState.selectedBeamIds.forEach(oldElemId => {
-                const oldElem = model.elements[oldElemId];
-                if (oldElem) {
-                    const newIds = createBeamWithIntersections(
-                        nodeMap[oldElem.n1],
-                        nodeMap[oldElem.n2],
-                        oldElem.section,
-                        oldElem.orientation || 0
-                    );
-                    newBeamIds.push(...newIds);
-                }
-            });
+            // Dondurulmus dugumler (etkin duzleme gore) ve kirisler - ozellikleriyle
+            Object.assign(nodeMap, dugumleriTuret(nodesToRotate, d => noktayiDuzlemdeDondur(d, cmdState.basePoint, angleDeg)));
+            kirisleriTuret(cmdState.selectedBeamIds, nodeMap, newBeamIds);
             
             // Select new elements
             clearSelection();
@@ -438,80 +379,21 @@
             
             saveState();
             
-            // Mirror line defined by two points
+            // Ayna dogrusu iki noktayla; ayna duzlemi bu dogruyu icerir ve
+            // etkin calisma duzlemine diktir (XY'de eski davranis).
             const p1 = cmdState.basePoint;
             const p2 = cmdState.secondPoint;
-            
-            // Line direction
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const len = Math.sqrt(dx * dx + dy * dy);
+            const len = Math.hypot(p2.x - p1.x, p2.y - p1.y, (p2.z || 0) - (p1.z || 0));
             if (len < 0.001) {
                 showToast('Mirror line too short', 'warning');
                 cancelCommand();
                 return;
             }
-            
-            // Unit vector along line
-            const ux = dx / len;
-            const uy = dy / len;
-            
-            const nodeMap = {};
-            const newBeamIds = [];
-            
-            // Collect nodes from beams
-            const nodesToMirror = new Set();
-            cmdState.selectedBeamIds.forEach(elemId => {
-                const elem = model.elements[elemId];
-                if (elem) {
-                    nodesToMirror.add(elem.n1);
-                    nodesToMirror.add(elem.n2);
-                }
-            });
-            
-            // Mirror each node
-            nodesToMirror.forEach(oldNodeId => {
-                const oldNode = model.nodes[oldNodeId];
-                if (oldNode) {
-                    // Vector from p1 to node
-                    const vx = oldNode.x - p1.x;
-                    const vy = oldNode.y - p1.y;
-                    
-                    // Project onto line
-                    const dot = vx * ux + vy * uy;
-                    const projX = p1.x + dot * ux;
-                    const projY = p1.y + dot * uy;
-                    
-                    // Mirror point
-                    const newX = 2 * projX - oldNode.x;
-                    const newY = 2 * projY - oldNode.y;
-                    // Ayna dogrusu XY duzleminde; kot degismez ama KORUNMALI.
-                    const newZ = (typeof oldNode.z === 'number' && isFinite(oldNode.z)) ? oldNode.z : 0;
 
-                    const existingNodeId = findNodeAtLocation(newX, newY, newZ);
-                    if (existingNodeId !== null) {
-                        nodeMap[oldNodeId] = existingNodeId;
-                    } else {
-                        const newId = nextNodeId++;
-                        model.nodes[newId] = { id: newId, x: newX, y: newY, z: newZ };
-                        nodeMap[oldNodeId] = newId;
-                    }
-                }
-            });
-            
-            // Create mirrored beams
-            cmdState.selectedBeamIds.forEach(oldElemId => {
-                const oldElem = model.elements[oldElemId];
-                if (oldElem) {
-                    const newIds = createBeamWithIntersections(
-                        nodeMap[oldElem.n1],
-                        nodeMap[oldElem.n2],
-                        oldElem.section,
-                        oldElem.orientation || 0
-                    );
-                    newBeamIds.push(...newIds);
-                }
-            });
+            const newBeamIds = [];
+            const nodesToMirror = secilenKirisDugumleri(cmdState.selectedBeamIds);
+            const nodeMap = dugumleriTuret(nodesToMirror, d => noktayiDuzlemdeAynala(d, p1, p2));
+            kirisleriTuret(cmdState.selectedBeamIds, nodeMap, newBeamIds);
             
             // Delete originals if requested
             if (!cmdState.keepOriginal) {
@@ -575,34 +457,12 @@
                 model.nodes[splitNodeId] = { id: splitNodeId, x: splitX, y: splitY, z: splitZ };
             }
             
-            // Create two new beams
-            const newElem1Id = nextElementId++;
-            model.elements[newElem1Id] = {
-                id: newElem1Id,
-                n1: elem.n1,
-                n2: splitNodeId,
-                section: elem.section,
-                orientation: elem.orientation || 0,
-                lineLoads: []
-            };
-            
-            const newElem2Id = nextElementId++;
-            model.elements[newElem2Id] = {
-                id: newElem2Id,
-                n1: splitNodeId,
-                n2: elem.n2,
-                section: elem.section,
-                orientation: elem.orientation || 0,
-                lineLoads: []
-            };
-            
-            // Delete original beam
-            delete model.elements[elemId];
-            
+            // Iki parca: ozellikler ve hat yukleri dogru araliklarla gecer.
+            const parcalar = kirisiParcala(elemId, [splitNodeId], [ratio]);
+
             // Select new elements
             clearSelection();
-            selectedElements.add(newElem1Id);
-            selectedElements.add(newElem2Id);
+            parcalar.forEach(id => selectedElements.add(id));
             
             results = null;
             if (currentViewMode === '3d') update3DScene();
@@ -680,38 +540,8 @@
                 }
             }
             
-            // Create new beams
-            const newBeamIds = [];
-            let prevNodeId = elem.n1;
-            
-            splitNodes.forEach(nodeId => {
-                const newElemId = nextElementId++;
-                model.elements[newElemId] = {
-                    id: newElemId,
-                    n1: prevNodeId,
-                    n2: nodeId,
-                    section: elem.section,
-                    orientation: elem.orientation || 0,
-                    lineLoads: []
-                };
-                newBeamIds.push(newElemId);
-                prevNodeId = nodeId;
-            });
-            
-            // Last segment
-            const lastElemId = nextElementId++;
-            model.elements[lastElemId] = {
-                id: lastElemId,
-                n1: prevNodeId,
-                n2: elem.n2,
-                section: elem.section,
-                orientation: elem.orientation || 0,
-                lineLoads: []
-            };
-            newBeamIds.push(lastElemId);
-            
-            // Delete original
-            delete model.elements[elemId];
+            // Parcalar (ozellikler ve hat yukleri dogru araliklarla)
+            const newBeamIds = kirisiParcala(elemId, splitNodes, splitNodes.map((_, i) => (i + 1) / parts));
             
             // Select new elements
             clearSelection();
@@ -786,19 +616,15 @@
             const e = model.elements[info.elemId]; 
             if (!e) return;
             
-            // Create node at intersection
+            // Create node at intersection (uzatilan ucun kotunda)
+            const ucKot = (model.nodes[info.nodeId] && model.nodes[info.nodeId].z) || 0;
             const newNodeId = nextNodeId++;
-            model.nodes[newNodeId] = { id: newNodeId, x: result.x, y: result.y };
-            
-            // Create new beam from end to intersection
+            model.nodes[newNodeId] = { id: newNodeId, x: result.x, y: result.y, z: ucKot };
+
+            // Uzanti: kaynagin kesiti/yonu/sinifi ile, yuksuz ve uc ozelliksiz
             const newBeamId = nextElementId++;
-            model.elements[newBeamId] = { 
-                id: newBeamId, 
-                n1: info.nodeId, 
-                n2: newNodeId, 
-                section: e.section 
-            };
-            
+            model.elements[newBeamId] = Object.assign(kirisTuret(e, info.nodeId, newNodeId, { uclar: 'hic', yukler: null }), { id: newBeamId });
+
             // Split the target beam at intersection
             const otherElem = model.elements[result.otherElemId];
             if (otherElem) {
@@ -806,13 +632,8 @@
                 const d1 = Math.sqrt((result.x - on1.x)**2 + (result.y - on1.y)**2);
                 const d2 = Math.sqrt((result.x - on2.x)**2 + (result.y - on2.y)**2);
                 if (d1 > 0.001 && d2 > 0.001) {
-                    // Split target beam
-                    const oSection = otherElem.section;
-                    delete model.elements[result.otherElemId];
-                    const id1 = nextElementId++; 
-                    model.elements[id1] = { id: id1, n1: otherElem.n1, n2: newNodeId, section: oSection };
-                    const id2 = nextElementId++; 
-                    model.elements[id2] = { id: id2, n1: newNodeId, n2: otherElem.n2, section: oSection };
+                    // Split target beam (ozellikleri ve yukleriyle)
+                    kirisiDugumdeBol(result.otherElemId, newNodeId);
                     showToast(`Extended ${(result.dist*1000).toFixed(0)} mm + split`);
                 } else {
                     // Intersection is at existing node
@@ -923,10 +744,13 @@
                 }
                 
                 if (clickT < intT) {
-                    // Remove start portion
+                    // Remove start portion: kalan [intT,1] araligi tam boy olur,
+                    // atilan ucun rijit/mafsal ozelligi gider.
                     const oldN1 = elem.n1;
                     elem.n1 = intNodeId;
-                    
+                    elem.lineLoads = hatYukleriniYenidenOlcekle(elem.lineLoads, intT, 1, 0, 1);
+                    delete elem.rigidStart; delete elem.hingeStart;
+
                     // Clean up
                     const oldUsed = Object.values(model.elements).some(e => e.n1 === oldN1 || e.n2 === oldN1);
                     if (!oldUsed) delete model.nodes[oldN1];
@@ -934,57 +758,28 @@
                     // Remove end portion
                     const oldN2 = elem.n2;
                     elem.n2 = intNodeId;
-                    
+                    elem.lineLoads = hatYukleriniYenidenOlcekle(elem.lineLoads, 0, intT, 0, 1);
+                    delete elem.rigidEnd; delete elem.hingeEnd;
+
                     // Clean up
                     const oldUsed = Object.values(model.elements).some(e => e.n1 === oldN2 || e.n2 === oldN2);
                     if (!oldUsed) delete model.nodes[oldN2];
                 }
             } else {
-                // Multiple intersections - more complex
-                // For simplicity, remove the segment containing the click
-                delete model.elements[elemId];
-                
-                // Create beams for non-clicked segments
-                let prevNodeId = elem.n1;
-                intersections.forEach((int, i) => {
+                // Coklu kesisim: kirisi kesisim dugumlerinde parcala, tiklanan
+                // parcayi sil. Ozellikler ve yukler kalan parcalarda.
+                const dugumler = intersections.map(int => {
                     let intNodeId = findNodeAtLocation(int.x, int.y, int.z);
                     if (intNodeId === null) {
                         intNodeId = nextNodeId++;
                         model.nodes[intNodeId] = { id: intNodeId, x: int.x, y: int.y, z: int.z || 0 };
                     }
-                    
-                    // Check if this segment contains the click
-                    const segStart = i === 0 ? 0 : intersections[i - 1].t;
-                    const segEnd = int.t;
-                    
-                    if (!(clickT >= segStart && clickT <= segEnd)) {
-                        // Keep this segment
-                        const newId = nextElementId++;
-                        model.elements[newId] = {
-                            id: newId,
-                            n1: prevNodeId,
-                            n2: intNodeId,
-                            section: elem.section,
-                            orientation: elem.orientation || 0,
-                            lineLoads: []
-                        };
-                    }
-                    
-                    prevNodeId = intNodeId;
+                    return intNodeId;
                 });
-                
-                // Last segment
-                const lastSegStart = intersections[intersections.length - 1].t;
-                if (!(clickT >= lastSegStart && clickT <= 1)) {
-                    const newId = nextElementId++;
-                    model.elements[newId] = {
-                        id: newId,
-                        n1: prevNodeId,
-                        n2: elem.n2,
-                        section: elem.section,
-                        orientation: elem.orientation || 0,
-                        lineLoads: []
-                    };
+                const parcalar = kirisiParcala(elemId, dugumler, intersections.map(int => int.t));
+                const sinirlar = [0, ...intersections.map(int => int.t), 1];
+                for (let i = 0; i < parcalar.length; i++) {
+                    if (clickT >= sinirlar[i] && clickT <= sinirlar[i + 1]) { delete model.elements[parcalar[i]]; break; }
                 }
             }
             

@@ -126,81 +126,40 @@
             return newId;
         }
         
+        // Mevcut kirisi dugumde ikiye boler - ozellikler ve hat yukleri
+        // parcalara dogru araliklarla gecer (js/core/kiris.js).
         function splitBeamAtNode(elemId, nodeId) {
-            // Split an existing beam at a node point
-            const elem = model.elements[elemId];
-            if (!elem) return;
-            
-            const node = model.nodes[nodeId];
-            const n1 = model.nodes[elem.n1];
-            const n2 = model.nodes[elem.n2];
-            if (!node || !n1 || !n2) return;
-            
-            // Create two new beams
-            const newElem1Id = nextElementId++;
-            const newElem2Id = nextElementId++;
-            
-            model.elements[newElem1Id] = {
-                id: newElem1Id,
-                n1: elem.n1,
-                n2: nodeId,
-                section: elem.section,
-                orientation: elem.orientation || 0,
-                lineLoads: []
-            };
-            
-            model.elements[newElem2Id] = {
-                id: newElem2Id,
-                n1: nodeId,
-                n2: elem.n2,
-                section: elem.section,
-                orientation: elem.orientation || 0,
-                lineLoads: []
-            };
-            
-            // Delete original beam
-            delete model.elements[elemId];
-            
-            return [newElem1Id, newElem2Id];
+            return kirisiDugumdeBol(elemId, nodeId);
         }
-        
-        function createBeamWithIntersections(n1Id, n2Id, section, orientation = 0) {
-            // Create a beam and automatically split at intersections with existing beams
+
+        // Kiris kurar, mevcut kirislerle kesisimlerinde boler. kaynak (istege
+        // bagli): ozellikleri ve hat yukleri kopyalanacak kiris - kopya,
+        // ayna, dondurme, dizi buradan gecer.
+        function createBeamWithIntersections(n1Id, n2Id, section, orientation = 0, kaynak = null) {
             const n1 = model.nodes[n1Id];
             const n2 = model.nodes[n2Id];
             if (!n1 || !n2) return [];
-            
+
             const intersections = findIntersectionsWithExistingBeams(n1, n2);
-            
-            // Create intersection nodes and split existing beams
-            const splitNodes = [n1Id];
-            
+
+            // Once tam kiris (ozellikleriyle), sonra kesisimlerde parcala.
+            const yeniId = nextElementId++;
+            const yeni = kaynak ? kirisTuret(kaynak, n1Id, n2Id) : { n1: n1Id, n2: n2Id, section: section, orientation: orientation, lineLoads: [] };
+            yeni.id = yeniId;
+            yeni.section = section;
+            yeni.orientation = orientation;
+            model.elements[yeniId] = yeni;
+            if (intersections.length === 0) return [yeniId];
+
+            const dugumler = [], kesirler = [];
             intersections.forEach(inter => {
-                // Create or find node at intersection
                 const nodeId = createNodeAtIntersection(inter.x, inter.y, inter.z);
-                splitNodes.push(nodeId);
-                
-                // Split the existing beam at this intersection
                 splitBeamAtNode(inter.existingElemId, nodeId);
+                dugumler.push(nodeId);
+                kesirler.push(dugumunKirisKesri(yeni, nodeId));
             });
-            
-            splitNodes.push(n2Id);
-            
-            // Create new beam segments
-            const newBeamIds = [];
-            for (let i = 0; i < splitNodes.length - 1; i++) {
-                const newElemId = nextElementId++;
-                model.elements[newElemId] = {
-                    id: newElemId,
-                    n1: splitNodes[i],
-                    n2: splitNodes[i + 1],
-                    section: section,
-                    orientation: orientation,
-                    lineLoads: []
-                };
-                newBeamIds.push(newElemId);
-            }
-            
-            return newBeamIds;
+            // Kesisimler kiris boyunca sirali olmali
+            const sira = kesirler.map((k, i) => i).sort((i, j) => kesirler[i] - kesirler[j]);
+            return kirisiParcala(yeniId, sira.map(i => dugumler[i]), sira.map(i => kesirler[i]));
         }
         

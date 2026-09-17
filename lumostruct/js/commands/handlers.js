@@ -470,12 +470,11 @@
             const nx = -dy/len * cmdState.offsetDist * cmdState.offsetSide;
             const ny = dx/len * cmdState.offsetDist * cmdState.offsetSide;
             
-            const newN1 = nextNodeId++; model.nodes[newN1] = { x: n1.x + nx, y: n1.y + ny };
-            const newN2 = nextNodeId++; model.nodes[newN2] = { x: n2.x + nx, y: n2.y + ny };
-            const newId = nextElementId++;
-            model.elements[newId] = { n1: newN1, n2: newN2, section: beam.section };
-            
-            autoSplitAtIntersections([newId]);
+            // Ofset kopyasi: kot korunur, hedefte dugum varsa ona baglanir,
+            // kirisin ozellikleri ve yukleri gecer.
+            const harita = dugumleriTuret(new Set([beam.n1, beam.n2]), d => ({ x: d.x + nx, y: d.y + ny, z: d.z || 0 }));
+            const newIds = [];
+            kirisleriTuret([elemId], harita, newIds);
             
             showToast(`Offset ${(cmdState.offsetDist*1000).toFixed(0)} mm`);
             cancelCommand();
@@ -514,15 +513,22 @@
             }
             
             saveState();
+            // Birlesik kiris keepNodes[0] -> keepNodes[1] yonunde; parcalar o
+            // yone cevrilir ki yukler ve uc ozellikleri dogru yere dussun.
+            const L3 = (a, b) => Math.hypot(b.x - a.x, b.y - a.y, (b.z || 0) - (a.z || 0));
+            const e1y = (e1.n1 === sharedNode) ? kirisiTersCevir(e1) : e1;
+            const e2y = (e2.n2 === sharedNode) ? kirisiTersCevir(e2) : e2;
+            const birlesik = kirisleriBirlestirNesne(e1y, e2y, L3(n1a, n1b), L3(n2a, n2b), keepNodes[0], keepNodes[1]);
             delete model.elements[id1];
             delete model.elements[id2];
-            
+
             // Check if shared node is used by other beams
             const usedElsewhere = Object.values(model.elements).some(b => b.n1 === sharedNode || b.n2 === sharedNode);
             if (!usedElsewhere) delete model.nodes[sharedNode];
-            
+
             const newId = nextElementId++;
-            model.elements[newId] = { n1: keepNodes[0], n2: keepNodes[1], section: e1.section };
+            birlesik.id = newId;
+            model.elements[newId] = birlesik;
             
             showToast('Joined');
             cancelCommand();
@@ -617,33 +623,30 @@
                         return id;
                     });
 
-                    // Split new beam
-                    const section = newBeam.section;
-                    const origN1 = newBeam.n1, origN2 = newBeam.n2;
-                    delete model.elements[newId];
+                    // Yeni kirisi parcala (ozellikler ve yukler dogru araliklarla)
+                    kirisiParcala(newId, newNodes, intersections.map(i => i.tNew));
 
-                    let prevNode = origN1;
-                    newNodes.forEach(nodeId => {
-                        const id = nextElementId++;
-                        model.elements[id] = { n1: prevNode, n2: nodeId, section };
-                        prevNode = nodeId;
-                    });
-                    const lastId = nextElementId++;
-                    model.elements[lastId] = { n1: prevNode, n2: origN2, section };
-
-                    // Split other beams
+                    // Diger kirisleri kesisim dugumunde bol. Ayni kiris birden
+                    // fazla yerde kesiliyorsa ilk bolmeden sonra kimligi
+                    // degisir: dugumu iceren parca yeniden bulunur.
                     intersections.forEach((inter, idx) => {
-                        const otherBeam = model.elements[inter.otherElemId];
-                        if (!otherBeam) return;
                         const nodeId = newNodes[idx];
+                        let hedefId = inter.otherElemId;
+                        if (!model.elements[hedefId]) {
+                            const p = model.nodes[nodeId];
+                            hedefId = Object.keys(model.elements).map(Number).find(id => {
+                                const e = model.elements[id], a = model.nodes[e.n1], b = model.nodes[e.n2];
+                                if (!a || !b || e.n1 === nodeId || e.n2 === nodeId) return false;
+                                const k = dugumunKirisKesri(e, nodeId);
+                                if (k <= EPSILON || k >= 1 - EPSILON) return false;
+                                const cx = a.x + k * (b.x - a.x), cy = a.y + k * (b.y - a.y), cz = z(a) + k * (z(b) - z(a));
+                                return Math.hypot(p.x - cx, p.y - cy, z(p) - cz) < KOTA_TOL;
+                            });
+                            if (hedefId === undefined) return;
+                        }
+                        const otherBeam = model.elements[hedefId];
                         if (otherBeam.n1 === nodeId || otherBeam.n2 === nodeId) return;
-
-                        const oSection = otherBeam.section;
-                        const oN1 = otherBeam.n1, oN2 = otherBeam.n2;
-                        delete model.elements[inter.otherElemId];
-
-                        const id1 = nextElementId++; model.elements[id1] = { n1: oN1, n2: nodeId, section: oSection };
-                        const id2 = nextElementId++; model.elements[id2] = { n1: nodeId, n2: oN2, section: oSection };
+                        kirisiDugumdeBol(hedefId, nodeId);
                     });
                 }
 
@@ -652,12 +655,7 @@
                     const otherBeam = model.elements[split.otherElemId];
                     if (!otherBeam || otherBeam.n1 === split.nodeId || otherBeam.n2 === split.nodeId) return;
 
-                    const oSection = otherBeam.section;
-                    const oN1 = otherBeam.n1, oN2 = otherBeam.n2;
-                    delete model.elements[split.otherElemId];
-
-                    const id1 = nextElementId++; model.elements[id1] = { n1: oN1, n2: split.nodeId, section: oSection };
-                    const id2 = nextElementId++; model.elements[id2] = { n1: split.nodeId, n2: oN2, section: oSection };
+                    kirisiDugumdeBol(split.otherElemId, split.nodeId);
                     totalSplits++;
                 });
             });

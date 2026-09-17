@@ -305,21 +305,25 @@
             });
         }
 
-        function saveState() {
-            // Remove any redo states
+        // GECMIS KURALI: history[historyIndex] her zaman "su anki model"in
+        // son kaydidir. saveState degisiklikten ONCE cagrilir ve degisiklik
+        // oncesi hali yazar; degisiklik SONRASI hal ise ilk geri almada
+        // (gecmisePisir) yazilir. Eskiden bu ikinci yazim yoktu: ilk geri al
+        // bir adim atliyordu, ileri al son degisikligi hic getiremiyordu.
+        function gecmisePisir() {
+            const simdi = JSON.stringify(model);
+            if (history[historyIndex] === simdi) return;
             history = history.slice(0, historyIndex + 1);
-            
-            // Deep clone current model
-            const state = JSON.stringify(model);
-            history.push(state);
-            
-            // Limit history size
-            if (history.length > MAX_HISTORY) {
-                history.shift();
-            } else {
-                historyIndex++;
-            }
-            
+            history.push(simdi);
+            if (history.length > MAX_HISTORY) history.shift(); else historyIndex++;
+        }
+
+        function saveState() {
+            // Su anki hali (henuz yazilmadiysa) yaz; yeni degisiklik geliyor,
+            // geri alinmis ileri dali her durumda atilir.
+            gecmisePisir();
+            history = history.slice(0, historyIndex + 1);
+
             // Auto-save to localStorage
             autoSaveModel();
 
@@ -537,6 +541,7 @@
         }
         
         function undo() {
+            gecmisePisir();                 // son degisiklik ileri al icin dursun
             if (historyIndex > 0) {
                 historyIndex--;
                 const parsed = safeJsonParse(history[historyIndex]);

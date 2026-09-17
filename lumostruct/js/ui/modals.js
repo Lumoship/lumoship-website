@@ -47,35 +47,8 @@
             return k;
         }
 
-        // Bir dugum kumesini verilen donusumden gecirip yeni dugumler uretir.
-        // Ayni yerde dugum varsa YENISINI ACMAZ, mevcudu kullanir: kopyalanan
-        // parca komsusuna gercekten baglansin diye.
-        function dugumleriTuret(dugumler, donustur, yeniIdler) {
-            const harita = {};
-            dugumler.forEach(eski => {
-                const d = model.nodes[eski];
-                if (!d) return;
-                const y = donustur(d);
-                const varOlan = findNodeAtLocation(y.x, y.y, y.z);
-                if (varOlan !== null) { harita[eski] = varOlan; return; }
-                const yeni = nextNodeId++;
-                model.nodes[yeni] = { id: yeni, x: y.x, y: y.y, z: y.z };
-                harita[eski] = yeni;
-                if (yeniIdler) yeniIdler.push(yeni);
-            });
-            return harita;
-        }
-
-        // Kirisleri haritaya gore yeniden kurar (kesisimlerde otomatik boler).
-        function kirisleriTuret(ids, harita, yeniKirisler) {
-            ids.forEach(eski => {
-                const e = model.elements[eski];
-                if (!e) return;
-                const a = harita[e.n1], b = harita[e.n2];
-                if (a === undefined || b === undefined) return;
-                yeniKirisler.push(...createBeamWithIntersections(a, b, e.section, e.orientation || 0));
-            });
-        }
+        // dugumleriTuret / kirisleriTuret artik js/core/kiris.js'te: kopya,
+        // dizi, ayna ve dondurme ayni yardimcilari kullanir.
 
         // Pencereyi ac/kapat. DIKKAT: .modal-overlay varsayilan olarak
         // opacity:0 + visibility:hidden. Yalnizca display'i degistirmek
