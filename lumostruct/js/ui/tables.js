@@ -94,8 +94,6 @@
                         L: L * 1000,
                         profil: e.section || '-',
                         kutle: sec && sec.A ? sec.A * L * TABLO_CELIK_YOGUNLUK : null,
-                        // Rijit uclar yayili yuklu elemanda cozucu tarafindan
-                        // YOK SAYILIR; tablo bunu gizlemesin diye oyle yaziliyor.
                         // Korozyon paylari: govde / flans / plaka.
                         korozyon: e.corrosion
                             ? [e.corrosion.web || 0, e.corrosion.flange || 0, e.corrosion.plate || 0]
@@ -103,8 +101,7 @@
                             : '-',
                         rijit: (e.rigidStart || e.rigidEnd)
                             ? (Math.round((e.rigidStart || 0) * 1000) + ' / ' +
-                               Math.round((e.rigidEnd || 0) * 1000) +
-                               ((e.lineLoads && e.lineLoads.length) ? ' (ignored)' : ''))
+                               Math.round((e.rigidEnd || 0) * 1000))
                             : '-',
                         mafsal: (e.hingeStart || e.hingeEnd)
                             ? [(e.hingeStart ? 'start' : null), (e.hingeEnd ? 'end' : null)].filter(Boolean).join(' + ')

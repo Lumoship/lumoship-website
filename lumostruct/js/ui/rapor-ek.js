@@ -267,6 +267,37 @@
             return h;
         }
 
+        // ---- Kiris gerilmeleri uc istasyonda (par 0 / 0.5 / 1) ----
+        // DNV 3D Beam ciktisinin bicimi: sinif onayinda alisilmis tablo. Degerler
+        // cozucunun diyagram dizilerinden (M ic konvansiyon: sarkma = -M),
+        // gerilme isaretleri fem.js ile ayni (sT = N/A - Mx/WyT, sB = N/A + Mx/WyB).
+        function raporIstasyonBolumu(esc, num, r) {
+            if (!r || !r.elementResults) return '';
+            const ids = Object.keys(model.elements).filter(id => r.elementResults[id] && r.elementResults[id].diagram && !r.elementResults[id].rigid);
+            if (!ids.length) return '';
+            const zarf = (typeof sonucZarfMi === 'function') && sonucZarfMi(r);
+            let h = '<h2>Beam stresses at 0 · L/2 · L <span style="font-weight:400; color:#666;">(σ<sub>top</sub> plate/top fibre, σ<sub>bot</sub> flange/bottom fibre, tension +; τ = V / A<sub>shr</sub>)</span></h2>';
+            h += '<table style="font-size:10.5px;"><thead><tr><th>Beam</th><th>x/L</th><th>N (kN)</th><th>V (kN)</th><th>M (kN·m)</th><th>σ<sub>N</sub></th><th>σ<sub>top</sub></th><th>σ<sub>bot</sub></th><th>τ</th><th>σ<sub>vm</sub></th></tr></thead><tbody>';
+            ids.forEach(id => {
+                const e = r.elementResults[id], d = e.diagram, n = d.x.length;
+                const sec = (typeof kesitBul === 'function') ? kesitBul(model.elements[id].section) : SECTIONS[model.elements[id].section];
+                if (!sec || !(sec.A > 0)) return;
+                const WyT = (sec.WyTop > 0) ? sec.WyTop : sec.Wy, WyB = (sec.WyBot > 0) ? sec.WyBot : sec.Wy;
+                const Aweb = (sec.Aweb > 0) ? sec.Aweb : (sec.h > 0 && sec.tw > 0 ? sec.h * sec.tw : sec.A * 0.6);
+                const N = (e.N || 0) * 1e3;
+                [[0, '0'], [Math.round((n - 1) / 2), '0.5'], [n - 1, '1']].forEach(([i, par], k) => {
+                    const Mx = -d.M[i] * 1e3, V = d.V[i] * 1e3;
+                    const sN = N / sec.A / 1e6, sT = (N / sec.A - (WyT > 0 ? Mx / WyT : 0)) / 1e6, sB = (N / sec.A + (WyB > 0 ? Mx / WyB : 0)) / 1e6;
+                    const tau = Aweb > 0 ? Math.abs(V) / Aweb / 1e6 : 0;
+                    const vm = Math.sqrt(Math.max(Math.abs(sT), Math.abs(sB)) ** 2 + 3 * tau * tau);
+                    h += '<tr>' + (k === 0 ? '<td rowspan="3" style="vertical-align:top;">' + esc((typeof kirisEtiketi === 'function') ? kirisEtiketi(id) : id) + (zarf && e.lc ? ' <span style="color:#666;">[' + esc(e.lc) + ']</span>' : '') + '</td>' : '') +
+                         '<td>' + par + '</td><td>' + num(N / 1e3, 2) + '</td><td>' + num(V / 1e3, 2) + '</td><td>' + num(Mx / 1e3, 2) + '</td><td>' + num(sN, 1) + '</td><td>' + num(sT, 1) + '</td><td>' + num(sB, 1) + '</td><td>' + num(tau, 1) + '</td><td>' + num(vm, 1) + '</td></tr>';
+                });
+            });
+            h += '</tbody></table>';
+            return h;
+        }
+
         function raporGorunumBolumu() {
             const png = modelGorunumuPng();
             if (!png || png.length < 200) return '';

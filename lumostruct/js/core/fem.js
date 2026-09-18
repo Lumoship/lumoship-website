@@ -406,14 +406,106 @@
             return Array.from(f);
         }
 
-        // Yayili yuku elemana ekler; mafsalli elemanda once kondanse eder.
+        // ---- RIJIT UCLU ELEMANDA YAYILI YUK ----
+        // Yuk [a, b] araliginda (eleman ekseni, tam boy). Esnek bolge
+        // [xA, xB] = [rij.a, L - rij.b]. Esnek bolgeye dusen parca Lk = xB - xA
+        // boyundaki kirisin ankastre uc kuvvetlerine cevrilir (aralik xA kadar
+        // kaydirilir, trapez siddet kirpma noktalarinda ara degerlenir) ve
+        // rijitlikle AYNI kinematikle dugume tasinir: f_dugum = To^T f_esnek.
+        // Kola dusen parca kirisi egmez; bileske kuvveti ve dugume gore
+        // momenti dogrudan dugume yazilir. Kesit disbukeyligi (kesitOtelemesi)
+        // burada da uygulanmaz - yuk plaka hizasinda etkir (montajdaki not).
+        //
+        // esnekAralik: kirpilmis aralik (esnek kiris koordinatinda) ve
+        // siddetin ara degerleme oranlari; bos ise null.
+        function esnekAralik(rij, L, a, b) {
+            const xA = rij.a, xB = L - rij.b;
+            const p = Math.max(a, xA), q = Math.min(b, xB);
+            if (q - p < 1e-12) return null;
+            const span = b - a;
+            return { a: p - xA, b: q - xA, t1: span > 1e-12 ? (p - a) / span : 0, t2: span > 1e-12 ? (q - a) / span : 1 };
+        }
+        // Rijit kola dusen yuk -> dugum kuvvetleri (yerel, 12'ye eklenir).
+        // w1, w2: a ve b'deki yerel siddet vektorleri (N/m). Moment esleme
+        // rijitKolDonusumu ile ayni: T[1][5] = -rx (uy -> thetaZ),
+        // T[2][4] = rx (uz -> thetaY); f_dugum = T^T f_uc. Eksenel bilesen
+        // kol boyunca oldugu icin moment vermez.
+        function rijitKolYuku(f, rij, L, a, b, w1, w2) {
+            const span = b - a;
+            const parca = (p, q, blok, x0) => {
+                if (q - p < 1e-12) return;
+                const s = q - p;
+                for (let i = 0; i < 3; i++) {
+                    const egim = span > 1e-12 ? (w2[i] - w1[i]) / span : 0;
+                    const wp = w1[i] + egim * (p - a), wq = w1[i] + egim * (q - a);
+                    const beta = (wq - wp) / s;
+                    const P = wp * s + beta * s * s / 2;                       // bileske
+                    const r0 = p - x0;                                         // kol dugumune gore baslangic
+                    const S = wp * r0 * s + wp * s * s / 2 + beta * r0 * s * s / 2 + beta * s * s * s / 3;   // integral w (x - x0) dx
+                    f[blok + i] += P;
+                    if (i === 1) f[blok + 5] += -S;
+                    if (i === 2) f[blok + 4] += S;
+                }
+            };
+            if (rij.a > 0) parca(Math.max(a, 0), Math.min(b, rij.a), 0, 0);
+            if (rij.b > 0) parca(Math.max(a, L - rij.b), Math.min(b, L), 6, L);
+        }
+        // Donus: { esnek: Lk kirisinin FEF'i (esnek uc serbestlikleri),
+        //          kol: kol yukunun dugum kuvvetleri }  - ikisi de yerel.
+        function rijitUcluYerelYuk(frame, rij, wVec, a, b, wVec2) {
+            const R = [frame.x, frame.y, frame.z];
+            const yerel = v => [R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2],
+                                R[1][0] * v[0] + R[1][1] * v[1] + R[1][2] * v[2],
+                                R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2]];
+            const L = frame.L;
+            const w1 = yerel(wVec), w2 = wVec2 ? yerel(wVec2) : w1;
+            const esnek = new Float64Array(12);
+            const ar = esnekAralik(rij, L, a, b);
+            if (ar) {
+                const kar = tt => w1.map((v, i) => v + (w2[i] - v) * tt);
+                addDistributedLoad(esnek, [0, 1, 2, 3, 4, 5], [6, 7, 8, 9, 10, 11],
+                    { L: rij.Lf, x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] }, kar(ar.t1), ar.a, ar.b, wVec2 ? kar(ar.t2) : null);
+            }
+            const kol = new Float64Array(12);
+            rijitKolYuku(kol, rij, L, a, b, w1, w2);
+            return { esnek: Array.from(esnek), kol: Array.from(kol) };
+        }
+        // Geri kazanim icin: esnek kirisin sol uc ankastre kuvvetleri (skaler,
+        // tek duzlem). Rijit uc yokken eski ifadelerle birebir ayni.
+        function esnekFef(L, rij, a, b, w1, w2) {
+            const ar = esnekAralik(rij, L, a, b);
+            if (!ar) return { V1: 0, M1: 0 };
+            const p1 = w1 + (w2 - w1) * ar.t1, p2 = w1 + (w2 - w1) * ar.t2;
+            if (Math.abs(p2 - p1) < 1e-12) {
+                const su = partialUdlFactors(rij.Lf, ar.a, ar.b);
+                return { V1: p1 * su.V1, M1: p1 * su.M1 };
+            }
+            return partialLinearFactors(rij.Lf, ar.a, ar.b, p1, p2);
+        }
+        function elemanRijitUclari(elem, L) {
+            return mafsalRijitUc(elem, rijitUclar(elem, L, true, true), L);
+        }
+
+        // Yayili yuku elemana ekler; mafsalli elemanda once kondanse eder,
+        // rijit uclu elemanda esnek kirisin kuvvetlerini kolla dugume tasir.
         function elemanaYayiliYuk(F, elem, kb, dofs1, dofs2, frame, wVec, a, b, wVec2) {
             const mafsal = mafsalIndeksleri(elem);
-            if (!mafsal.length || !kb) {
+            const rij = elemanRijitUclari(elem, frame.L);
+            const rijitVar = rij.a > 0 || rij.b > 0;
+            if (!rijitVar && (!mafsal.length || !kb)) {
                 addDistributedLoad(F, dofs1, dofs2, frame, wVec, a, b, wVec2);
                 return;
             }
-            const fLoc = kondanse(kb.k, mafsal).yukKondanse(yerelEsdegerYuk(frame, wVec, a, b, wVec2));
+            let fLoc;
+            if (rijitVar) {
+                const p = rijitUcluYerelYuk(frame, rij, wVec, a, b, wVec2);
+                const fe = (mafsal.length && kb) ? kondanse(kb.k, mafsal).yukKondanse(p.esnek) : p.esnek;
+                const To = rijitKolDonusumu(rij.a, 0, -rij.b, 0);
+                fLoc = p.kol.slice();
+                for (let j = 0; j < 12; j++) { let s = 0; for (let i = 0; i < 12; i++) s += To[i][j] * fe[i]; fLoc[j] += s; }
+            } else {
+                fLoc = kondanse(kb.k, mafsal).yukKondanse(yerelEsdegerYuk(frame, wVec, a, b, wVec2));
+            }
             // yerel -> global: her blokta R^T
             const R = [frame.x, frame.y, frame.z];
             const dofs = [...dofs1, ...dofs2];
@@ -430,6 +522,9 @@
         // esdeger dugum kuvvetleri - mafsal donmesinin geri kazanimi icin.
         function elemanYerelYukToplami(elem, frame, L, loadFactors, selfWeightOn, sec) {
             const toplam = new Array(12).fill(0);
+            const rij = elemanRijitUclari(elem, L);
+            // rijit uclu elemanda esnek kirisin gordugu yuk (kol yuku dugume gider)
+            const esdeger = (wVec, a, b, wVec2) => (rij.a > 0 || rij.b > 0) ? rijitUcluYerelYuk(frame, rij, wVec, a, b, wVec2).esnek : yerelEsdegerYuk(frame, wVec, a, b, wVec2);
             const ekle = f => { for (let i = 0; i < 12; i++) toplam[i] += f[i]; };
             ((typeof etkinHatYukleri === 'function') ? etkinHatYukleri(elem) : (elem.lineLoads || [])).forEach(load => {
                 const qValue = (load.value ?? load.q ?? 0);
@@ -442,10 +537,10 @@
                 const q2 = load.value2;
                 const wVec2 = (typeof q2 === 'number' && isFinite(q2) && q2 !== qValue)
                     ? yayiliYukYonu(load, frame, q2 * 1000 * kat).vec : null;
-                ekle(yerelEsdegerYuk(frame, wVec, a, b, wVec2));
+                ekle(esdeger(wVec, a, b, wVec2));
             });
             if (selfWeightOn && sec && sec.A > 0 && !sec.rigid) {
-                ekle(yerelEsdegerYuk(frame, [0, 0, -sec.A * STEEL_DENSITY * GRAVITY * loadFactors.D], 0, L));
+                ekle(esdeger([0, 0, -sec.A * STEEL_DENSITY * GRAVITY * loadFactors.D], 0, L));
             }
             return toplam;
         }
@@ -580,21 +675,15 @@
         // kirisin o bolgede egilmedigini soyler; esnek boy kisalir ve uclar
         // rijit kolla dugume baglanir.
         //
-        // YAYILI YUKLU ELEMANDA YOK SAYILIR. Esnek boy kisalinca yayili
-        // yukun esdeger dugum kuvvetleri de o kisa elemana gore hesaplanmali;
-        // mevcut yuk yolu tam boy uzerinden calisiyor. Ikisini karistirmak
-        // sessizce yanlis moment verir - o yuzden yok sayilip uyariliyor.
-        // sessiz: ayni eleman icin ikinci kez cagrildiginda (ic kuvvet geri
-        // kazanimi) uyari tekrarlanmasin diye.
+        // Yayili yukle birlikte de gecerli: esnek bolgeye dusen yuk Lf
+        // boyundaki kirisin ankastre uc kuvvetlerini verir ve rijit kolla
+        // dugume tasinir; kola dusen yuk dogrudan dugume gider (bkz.
+        // rijitUcluYerelYuk). Eskiden yayili yuklu elemanda yok sayiliyordu.
+        // yayiliVar / sessiz: eski cagri imzasi, artik karari etkilemiyor.
         function rijitUclar(elem, L, yayiliVar, sessiz) {
             const say = v => (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0;
             const a = say(elem.rigidStart), b = say(elem.rigidEnd);
             if (a + b === 0) return { a: 0, b: 0, Lf: L };
-            if (yayiliVar) {
-                if (!sessiz) debugWarn('Element has both a rigid end and a distributed load; ' +
-                          'the rigid ends are ignored for that element.');
-                return { a: 0, b: 0, Lf: L };
-            }
             const enAz = 0.1 * L;
             if (L - a - b < enAz) {
                 if (!sessiz) debugWarn('Rigid ends leave less than 10% of the element flexible; clamped.');
@@ -838,10 +927,10 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 // Kesit disbukeyligi: eleman rijitligi once rijit kolla
                 // dugum serbestliklerine tasinir, sonra global donusum.
                 //
-                // Yayili yuk yolu DEGISMEZ ve bu bir eksiklik degil: plakali
-                // takviyede yuk plakadan gelir, yani DUGUM hizasinda etkir.
-                // Elemanin sekil fonksiyonlari rijit koldan etkilenmedigi icin
-                // esdeger dugum kuvvetleri oldugu gibi dogrudur.
+                // Disbukeylik icin yayili yuk yolu DEGISMEZ ve bu bir eksiklik
+                // degil: plakali takviyede yuk plakadan gelir, yani DUGUM
+                // hizasinda etkir. Rijit UC varsa yuk esnek kirise gore
+                // hesaplanip kolla dugume tasinir (elemanaYayiliYuk).
                 const eOtele = kesitOtelemesi(sec);
                 // Mafsal: serbest donmeler kondanse edilir (bkz. kondanse).
                 const mafsal = mafsalIndeksleri(elem);
@@ -1307,10 +1396,9 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                         if (ll > 1e-9 && (Math.abs(wv) > 1e-12 || Math.abs(wv2) > 1e-12)) {
                             spanLoads.push({ a, b, w: wv, w1: wv, w2: wv2 });
                             // Same factors the assembly uses, so the diagram and the
-                            // displacements always describe the same beam.
-                            const sh = (wv2 === wv)
-                                ? { V1: wv * partialUdlFactors(L, a, b).V1, M1: wv * partialUdlFactors(L, a, b).M1 }
-                                : partialLinearFactors(L, a, b, wv, wv2);
+                            // displacements always describe the same beam. Rijit
+                            // uclu elemanda ESNEK kirisin (Lk) ankastre kuvvetleri.
+                            const sh = esnekFef(L, rij, a, b, wv, wv2);
                             fefV_i += sh.V1;
                             fefM_i += sh.M1;
                         }
@@ -1318,12 +1406,15 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                 }
 
                 // --- Gerçek eleman uç kuvvetleri: p = k·u + FEF ---
-                const V1 = Vi_keu + fefV_i;       // sol uç düşey kuvvet
-                const Mi_full = Mi_keu + fefM_i;  // sol uç eleman düğüm momenti
-                // Mi_full ESNEK ucun (x = xA) momenti; M(x) = M1 + V1*x bagintisi
-                // dugumden olculdugu icin rijit kol boyunca geri tasinir. V bu
-                // bolgede sabittir, cunku rijit uclu elemanda yayili yuk yok.
-                const M1 = -Mi_full - V1 * xA;    // iç moment konvansiyonu (sol uç)
+                // Vesnek / Mi_full ESNEK ucun (x = xA) kesme ve dugum momenti.
+                // V(x) = V1 - yuk, M(x) = M1 + V1*x - yuk momenti bagintilari
+                // dugumden (x = 0) olculdugu icin kol boyunca geri tasinir; kola
+                // dusen yayili yuk da bu tasimada hesaba katilir (rijit uc yokken
+                // xA = 0 ve iki toplam da sifirdir).
+                const Vesnek = Vi_keu + fefV_i;
+                const Mi_full = Mi_keu + fefM_i;
+                const V1 = Vesnek + spanLoads.reduce((s, l) => s + yukKuvvet(l, xA), 0);          // sol uç (dugum) düşey kuvvet
+                const M1 = -Mi_full - V1 * xA + spanLoads.reduce((s, l) => s + yukMoment(l, xA), 0);   // iç moment konvansiyonu (sol uç)
 
                 // --- Eleman boyunca kesme & moment (serbest cisim) ---
                 const Vfun = (x) => {
@@ -1449,17 +1540,15 @@ const k = yerelRijitlik(E, G, A, Iy, Iz, J, kappa, Lk);
                             ? yayiliYukYonu(load, frameZ, q2z * 1000).wy : wl;
                         if (b - a > 1e-9 && (Math.abs(wl) > 1e-12 || Math.abs(wl2) > 1e-12) && frameZ) {
                             spanLoadsZ.push({ a: a, b: b, w: wl, w1: wl, w2: wl2 });
-                            const sh = (wl2 === wl)
-                                ? { V1: wl * partialUdlFactors(L, a, b).V1, M1: wl * partialUdlFactors(L, a, b).M1 }
-                                : partialLinearFactors(L, a, b, wl, wl2);
+                            const sh = esnekFef(L, rij, a, b, wl, wl2);
                             fefVz += sh.V1;
                             fefMz += sh.M1;
                         }
                     });
                 }
 
-                const Vz1 = Vz_keu + fefVz;
-                const Mz1 = -(Mz_keu + fefMz) - Vz1 * xA;   // iç moment konvansiyonu (sol uç)
+                const Vz1 = Vz_keu + fefVz + spanLoadsZ.reduce((s, l) => s + yukKuvvet(l, xA), 0);
+                const Mz1 = -(Mz_keu + fefMz) - Vz1 * xA + spanLoadsZ.reduce((s, l) => s + yukMoment(l, xA), 0);   // iç moment konvansiyonu (sol uç)
 
                 const VzFun = (x) => {
                     let V = Vz1;

@@ -1076,8 +1076,8 @@
                                 </div>
                             </div>
                             <small style="color:var(--text-3); display:block; margin-top:4px;">
-                                Ignored on members that carry a line load or self weight.
-                                At most 90% of the span can be rigid.
+                                Line loads on the rigid part go straight to the node;
+                                stresses are read on the flexible part only. At most 90% of the span can be rigid.
                             </small>
                         </div>
                         

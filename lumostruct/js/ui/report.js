@@ -177,6 +177,7 @@ ${(typeof raporKontrolBolumu === 'function') ? raporKontrolBolumu(esc, num, resu
   <th>M<sub>max</sub></th><th>V<sub>max</sub></th><th>Util %</th></tr></thead>
 <tbody>${beamRows || '<tr><td colspan="10">-</td></tr>'}</tbody></table>
 ${zarf ? '<div style="color:#666; margin:-4px 0 8px;">Envelope: each beam shows the governing combination in brackets.</div>' : ''}
+${(typeof raporIstasyonBolumu === 'function') ? raporIstasyonBolumu(esc, num, results) : ''}
 ${(typeof raporDiyagramBolumu === 'function') ? raporDiyagramBolumu(esc, num, worst, 8) : ''}
 
 <p style="color:#666; margin-top:24px; font-size:11px;">
