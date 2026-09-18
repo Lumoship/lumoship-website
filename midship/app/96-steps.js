@@ -146,14 +146,19 @@
     var open = items.filter(function (i) { return !i.ok; }).length;
     var h = '<div class="step-strip" data-step="' + step.n + '">';
     h += '<div class="step-strip-main">';
-    h += '<div class="step-strip-title"><span class="step-strip-num">' + step.n + '<span>/' + STEPS.length + '</span></span>' + step.title + '</div>';
+    h += '<div class="step-strip-title" title="' + step.hint.replace(/"/g, '&quot;') + '"><span class="step-strip-num">' + step.n + '<span>/' + STEPS.length + '</span></span>' + step.title + '</div>';
     h += '<div class="step-strip-hint">' + step.hint + '</div>';
     h += '</div>';
+    var okN = items.length - open;
+    var tip = items.map(function (i) { return (i.ok ? '✓ ' : '● ') + i.text; }).join(String.fromCharCode(10));
     h += '<ul class="step-strip-checks" title="What this step still needs">';
     items.forEach(function (i) {
       h += '<li class="' + (i.ok ? 'ok' : 'todo') + '">' + (i.ok ? '&#10003;' : '&#9679;') + ' ' + i.text + '</li>';
     });
     h += '</ul>';
+    // Geometry page shows this instead of the list: whole words, never clipped.
+    h += '<div class="step-strip-badge ' + (open ? 'todo' : 'ok') + '" title="' + tip.replace(/"/g, '&quot;') + '">' +
+         okN + '/' + items.length + (open ? ' &middot; ' + open + ' open' : ' &#10003;') + '</div>';
     h += '<div class="step-strip-nav">';
     h += '<button class="ea-btn ea-btn-secondary ea-btn-sm" onclick="stepPrev()" ' + (step.n === 1 ? 'disabled' : '') + '>&larr; ' + (step.n > 1 ? stepByN(step.n - 1).label : 'Back') + '</button>';
     if (step.n < STEPS.length) {

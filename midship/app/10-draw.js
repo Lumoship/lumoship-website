@@ -3674,7 +3674,7 @@ function renderEditor() {
       <button class="ed-add-btn" id="strakeResetAll" title="Regenerate all strakes from defaults">↺ reset</button>
     </span>
   </div>`;
-  html += `<div style="font-size:0.68rem;color:var(--text-muted);padding:4px 0 8px;line-height:1.4">Width = mm along plate. Thick = plate thickness (mm). Watertight flags are set per panel in the Layers tab. <span style="color:var(--warning)">Last strake auto-fits</span> to match the panel total — edit any strake freely, another one will adjust.</div>`;
+  html += `<div class="ed-hint ed-hint-soft" style="font-size:0.68rem;color:var(--text-muted);padding:4px 0 8px;line-height:1.4">Width = mm along plate. Thick = plate thickness (mm). Watertight flags are set per panel in the Layers tab. <span style="color:var(--warning)">Last strake auto-fits</span> to match the panel total — edit any strake freely, another one will adjust.</div>`;
 
   const strakeTableHead = `
     <div class="ed-row" style="font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:4px 6px;border-bottom:1px solid var(--border)">
@@ -3804,12 +3804,12 @@ function renderEditor() {
     const fits = diff != null && Math.abs(diff) <= 5;  // 5 mm tolerance
     const statusColor = fits ? 'var(--success)' : (diff > 0 ? 'var(--error)' : 'var(--warning)');
     const statusText = target == null ? '' 
-      : fits ? `✓ fits ${target}mm` 
-      : (diff > 0 ? `⚠ ${diff}mm OVER` : `⚠ ${-diff}mm UNDER`);
+      : fits ? `✓ fits` 
+      : (diff > 0 ? `⚠ ${Math.round(diff)} mm over` : `⚠ ${Math.round(-diff)} mm under`);
     
     let h = `<div style="margin-top:var(--spacing-md)">`;
     h += `<div class="ed-group-header" style="padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid var(--border)">
-      <span style="color:${color}">${label} <span class="ed-count">(${arr.length} strakes · Σ=${totalW}mm${target != null ? ' / target '+target+'mm' : ''})</span>
+      <span style="color:${color}">${label} <span class="ed-count">(${arr.length} · Σ ${Math.round(totalW)}${target != null ? ' / ' + Math.round(target) : ''} mm)</span>
       ${statusText ? `<span style="font-size:0.6rem;color:${statusColor};margin-left:6px;font-family:var(--font-mono)">${statusText}</span>` : ''}</span>
       <button class="ed-add-btn" data-strake-add="${plateKey}">+ add</button>
     </div>`;
@@ -3915,7 +3915,7 @@ function renderEditor() {
   // down (sg-input, [data-sg-del], .sg-add, [data-group][data-coord],
   // .ed-del[data-del-group], [data-add], .wt-select) drive both copies.
   html += `<div class="ed-tab-pane ${EDITOR_TAB === 'positions' ? 'active' : ''}" data-tab-pane="positions">`;
-  html += `<div style="font-size:0.68rem;color:var(--text-muted);padding:4px 0 8px;line-height:1.4">Where things are. Side girders and deck levels here; their strakes and stiffeners are sized in the Strakes and Prof tabs afterwards.</div>`;
+  html += `<div class="ed-hint ed-hint-soft" style="font-size:0.68rem;color:var(--text-muted);padding:4px 0 8px;line-height:1.4">Where things are. Side girders and deck levels here; their strakes and stiffeners are sized in the Strakes and Prof tabs afterwards.</div>`;
 
   // -- Side girders (Y from CL, vertical web Z=0 -> IB)
   {
@@ -3925,10 +3925,9 @@ function renderEditor() {
     if (!sorted.length) html += `<div class="ed-row" style="color:var(--text-muted);font-size:0.68rem">No side girders — double bottom spans duct keel to inner side.</div>`;
     sorted.forEach((sg, k) => {
       html += `<div class="ed-row" style="border-left:3px solid ${DEFAULT_PALETTE.sideGirder}">
-        <span class="ed-id" style="color:${DEFAULT_PALETTE.sideGirder}">SG${k + 1}</span>
-        <span class="ed-label" style="font-size:0.68rem;color:var(--text-muted)">Y =</span>
-        <input class="ed-input sg-input" type="number" value="${sg.y}" data-sg-idx="${sg._idx}" step="50" style="width:80px">
-        <span class="ed-label" style="color:var(--text-muted);font-size:0.65rem">mm from CL</span>
+        <span class="ed-id" style="color:${DEFAULT_PALETTE.sideGirder};min-width:36px">SG${k + 1}</span>
+        <input class="ed-input sg-input" type="number" value="${sg.y}" data-sg-idx="${sg._idx}" step="50" style="width:84px" title="Y from centreline, mm">
+        <span class="ed-label" style="color:var(--text-muted);font-size:0.65rem;white-space:nowrap">mm</span>
         <span style="flex:1"></span>
         <button class="ed-del" data-sg-del="${sg._idx}" title="Delete this side girder">${icon('close','10px')}</button>
       </div>`;
@@ -3948,11 +3947,10 @@ function renderEditor() {
     rows.forEach((p, k) => {
       const inRange = p.z > GEOMETRY.IB && p.z < GEOMETRY.UD;
       html += `<div class="ed-row" data-row-group="${lv.key}" data-row-idx="${p._idx}" style="border-left:3px solid ${lv.color}">
-        <span class="ed-id" style="color:${lv.color}">${lv.key === 'stringer' ? 'STR' : 'TD'}${k + 1}</span>
-        <span class="ed-label" style="font-size:0.68rem;color:var(--text-muted)">Z =</span>
-        <input class="ed-input" type="number" value="${p.z}" data-group="${lv.key}" data-idx="${p._idx}" data-coord="z" step="10" style="width:78px" title="Height above baseline, mm">
-        <span class="ed-label" style="color:var(--text-muted);font-size:0.65rem">mm AB</span>
-        ${inRange ? '' : `<span title="Outside inner bottom .. upper deck — not drawn as a level" style="color:var(--warning);font-size:0.65rem">off-range</span>`}
+        <span class="ed-id" style="color:${lv.color};min-width:36px">${lv.key === 'stringer' ? 'STR' : 'TD'}${k + 1}</span>
+        <input class="ed-input" type="number" value="${p.z}" data-group="${lv.key}" data-idx="${p._idx}" data-coord="z" step="10" style="width:84px" title="Height above baseline, mm">
+        <span class="ed-label" style="color:var(--text-muted);font-size:0.65rem;white-space:nowrap">mm AB</span>
+        ${inRange ? '' : `<span title="Outside inner bottom .. upper deck — not drawn as a level" style="color:var(--warning);font-size:0.65rem;white-space:nowrap">off-range</span>`}
         <span style="flex:1"></span>
         <button class="ed-del" data-del-group="${lv.key}" data-del-idx="${p._idx}" title="Delete">${icon('close','10px')}</button>
       </div>`;
