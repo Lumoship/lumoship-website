@@ -478,6 +478,8 @@
             background: var(--success);
         }
         
+        .tool-status.beta { color: var(--accent, #3b82f6); }
+        .tool-status.beta::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px; }
         .tool-status.soon { color: var(--warning); }
         .tool-status.soon::before {
             content: '';
