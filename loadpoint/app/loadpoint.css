@@ -100,4 +100,30 @@
 .nr-toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 @media (max-width:900px){.lp-ship-grid{grid-template-columns:1fr}}
-@media (max-width:640px){.lp-col{flex-basis:92vw;width:92vw}.lp-row{grid-template-columns:1fr 130px}.lp-hero{grid-template-columns:1fr 1fr}}
+/* ---- phones: the columns stack, the header and wizard compress (the shared app.css has no rules below 900px) ---- */
+@media (max-width:640px){
+  .ea-header{position:static}
+  .ea-header-inner{padding:10px 14px}
+  .ea-header-top{flex-wrap:wrap;gap:10px;margin-bottom:8px}
+  .ea-header-left{flex:1 1 100%}
+  .ea-title-group h1{font-size:1.15rem}
+  .ea-title-group p{font-size:10.5px;line-height:1.3}
+  .ea-header-actions{flex:1 1 100%;flex-wrap:wrap;gap:6px}
+  .ea-header-actions .ea-header-btn{flex:1 1 auto;padding:7px 10px}
+  .ea-header-badge{display:none}
+  .ea-wizard{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .ea-wizard-line{display:none}
+  .ea-wizard-step{padding:8px 6px;justify-content:flex-start;font-size:12px}
+  .ea-main{padding:12px 12px 24px}
+  .lp-board{flex-direction:column;overflow-x:visible;gap:14px;padding:0}
+  .lp-col{flex:none;width:100%;box-shadow:none}
+  .lp-add{width:100%;height:56px;flex-direction:row}
+  .lp-row{grid-template-columns:1fr 128px;padding:4px 12px;gap:8px}
+  .lp-hero{grid-template-columns:1fr 1fr;padding:10px 12px}
+  .lp-hero .lp-tile.small{grid-column:1 / -1}
+  .lp-det{overflow-x:auto}
+  .lp-cls{grid-template-columns:1fr;gap:8px}
+  .lp-ship-grid{gap:14px}
+  .lp-hero-wide{grid-template-columns:1fr 1fr}
+  .lp-col-title{font-size:13px}
+}
