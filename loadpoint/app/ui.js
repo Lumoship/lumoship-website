@@ -174,7 +174,8 @@
     if (k === 'sdeck' || k === 'ldeck') { if (k === 'ldeck') h += rChk('Accommodation deck (h_3 = 1.2 m)', q + 'accommodation', c.accommodation); h += rIn('Specified cargo loading p_a (blank = standard)', q + 'p_a', c.p_a, 'kN/m²'); if (k === 'ldeck' && !c.accommodation) h += rIn('Tween-deck cargo height H_td', q + 'H_td', c.H_td, 'm') + rIn('Stowage rate C for p_a (blank = 1.39)', q + 'C', c.C, 'm³/t'); }
     if (k === 'ssDeck') h += rIn('Tier (1 = on the deck D is measured to)', q + 'tier', c.tier) + rChk('Sheltered (not exposed to weather)', q + 'sheltered', c.sheltered);
     if (k === 'sdeck' || k === 'ldeck' || k === 'ib' || shell) h += rIn('Tank head h_4 if the position bounds a tank (0 = none)', q + 'h_4', c.h_4, 'm');
-    if (k === 'wtBhd' || k === 'deepTank') h += rIn('Load head h_4 (' + (k === 'deepTank' ? 'to tank top / half to overflow' : 'to 0.91 m above bulkhead deck or z_FD') + ')', q + 'h_4', c.h_4, 'm');
+    if (k === 'wtBhd' || k === 'deepTank') h += rIn('Load head h_4 (' + (k === 'deepTank' ? 'to tank top / half to overflow' : 'to 0.91 m above bulkhead deck or z_FD') + ')', q + 'h_4', c.h_4, 'm') + '<div class="lp-hint">Tab 1.9.1 measures h_4 from 1/3 of the plate height for plating and from mid-span for stiffeners - enter the value for the check you are reading.</div>';
+    if (col.member === 'sside') h += '<div class="lp-hint">Deckhouse side row (Pt 3 Ch 8). A superstructure side that continues the side shell is shell plating: use SID / SHR (Pt 3 Ch 8 2.1.2).</div>';
     if (k === 'none') h += '<div class="lp-hint">No LR table row for this position - choose a shell, deck, inner bottom, bulkhead or erection position.</div>';
     if (k === 'erection') { h += rIn('Tier', q + 'tier', c.tier) + rIn('X, bulkhead from A.P. (blank = x)', q + 'X', c.X, 'm') + rIn('Deckhouse breadth b (blank = B)', q + 'b', c.b, 'm') + rChk('Exposed machinery casing (δ = 1)', q + 'casing', c.casing); if (col.member === 'dhOther') h += rSel('Face', q + 'face', c.face, [['aft', 'Aft end'], ['frontProtected', 'Protected front']]); }
     if (!scant) return h;
@@ -506,7 +507,7 @@
     var okAll = okT && okZ && okI && okWeb;
     var hero = [{ label: 'Plate t', value: f2(tp, 1) + '/' + f2(pl.t, 1), sub: 'actual / required mm', cls: okT ? 'ok' : 'fail' },
                 { label: 'Stiffener Z', value: f2(net.Z, 1) + '/' + f2(st.Z, 1), sub: 'actual / required cm³', cls: okZ ? 'ok' : 'fail' },
-                { label: 'Inertia I', value: f2(net.I, 0) + '/' + f2(st.I || 0, 0), sub: 'actual / required cm⁴', cls: okI ? 'ok' : 'fail' }];
+                { label: 'Inertia I', value: f2(net.I, 0) + '/' + (st.I ? f2(st.I, 0) : '–'), sub: st.I ? 'actual / required cm⁴' : 'cm⁴ · no inertia rule for this row', cls: okI ? 'ok' : 'fail' }];
     return { html: res, hero: hero, status: { text: okAll ? 'OK' : 'NOT OK', cls: okAll ? 'ok' : 'fail' } };
   }
   function paintScant() {
@@ -554,7 +555,7 @@
     var tp_gr = +col.tp, R_p = +col.matP, R_s = +col.matS, k_p = Sc.kFactor(R_p);
     var ck = Pos.corrosionKeys(bv ? 'bv' : 'dnv', col.member, col.comp1.kind, col.comp2.kind, TCKEY, 1);
     var tc = Sc.corrosion(ck.plate[0], ck.plate[1], tp_gr);
-    var tcS = Sc.corrosion(ck.stiff[0], ck.stiff[1], +col.t || tp_gr);
+    var tcS = Sc.corrosion(ck.stiff[0], ck.stiff[1], prof.t || tp_gr);
     var tp = tp_gr - tc;
     var posDef = Pos.get(col.member);
     var longit = posDef.longit && col.stiffening === 'long';
@@ -795,7 +796,7 @@
     setPath(t.dataset.path, v);
     if (/\.member$/.test(t.dataset.path)) {                  /* position changed: external compartments follow it */
       var parts = t.dataset.path.split('.'), col = S[parts[0]][+parts[1]];
-      ['comp1', 'comp2'].forEach(function (c) { var k = Pos.coerceKind(v, col[c].kind); if (k) { col[c].kind = k; toast('Compartment ' + c.slice(-1) + ' load set to "' + k + '" for position ' + Pos.get(v).code); } });
+      if (!isSSC() && !isLR()) ['comp1', 'comp2'].forEach(function (c) { var k = Pos.coerceKind(v, col[c].kind); if (k) { col[c].kind = k; toast('Compartment ' + c.slice(-1) + ' load set to "' + k + '" for position ' + Pos.get(v).code); } });
     }
     persist(); paint();
   });

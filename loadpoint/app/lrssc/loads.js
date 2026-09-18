@@ -169,7 +169,8 @@
     var E = (opt.sheltered || opt.ssAft) ? 0 : Math.min((0.7 + 0.08 * p.L_WL) / Math.max(ship.D - ship.T, 0.01), 3);
     var Pdmin = f_Hs * (6 + 0.0195 * p.L_R) + E;
     var hd = hydroDisp(ship, { x: pt.x, y: (opt.B_x || ship.B) / 2, z: opt.z_deck !== undefined ? opt.z_deck : pt.z }, 'side', opt.B_x);
-    return { P_wh: Math.max(hd.P_W, Pdmin), P_Wd: hd.P_W, P_dmin: Pdmin, E: E, f_Hs: f_Hs, h_w: hd.h_w };
+    var PWd = hd.P_W * f_Hs / p.f_Hs;                                                               /* P_W is linear in f_Hs */
+    return { P_wh: Math.max(PWd, Pdmin), P_Wd: PWd, P_dmin: Pdmin, E: E, f_Hs: f_Hs, h_w: hd.h_w * f_Hs / p.f_Hs };
   }
   /* f_L location factor (see header note) */
   function f_L(ship, x, interior) {
