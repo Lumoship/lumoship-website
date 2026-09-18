@@ -94,7 +94,7 @@
         function tekPanelDuzeniKur() {
             const sag = document.getElementById('rightPanel');
             const sol = document.getElementById('leftPanel');
-            if (!sag || !sol || document.body.classList.contains('tek-panel')) return DUZEN_BILGI;
+            if (!sag || !sol || document.body.classList.contains('tek-panel')) { document.body.classList.remove('duzen-bekle'); return DUZEN_BILGI; }
             const G = document.getElementById('tabContentGeneral');
             const M = document.getElementById('tabContentModel');
             const B = document.getElementById('tabContentBoundary');
@@ -180,14 +180,21 @@
                 // karttaki renk olcegi tuval ustundeki "Von Mises Stress" lejantiyla cift
                 const olcek = kapsayan(document.getElementById('scaleMidLeft'), 'div[style*="margin-bottom"]');
                 if (olcek) duzenGizle(olcek, 'kart renk olcegi (lejant tuvalde)');
+                // "Deformed" arac cubugunda (Animate'in yani) zaten var
+                duzenGizle(document.getElementById('btnDeformedViz'), 'kart Deformed anahtari (arac cubugunda)');
                 duzenTasi(kResults, [...R.childNodes]);
             }
 
             // ---- Preferences penceresi: Settings'in geri kalani
-            ['Interface', 'Solver Validation', 'Units', 'Project', 'Material Library', 'Grid Settings', 'Color Theme', 'Display Sizes'].forEach(ad => {
+            ['Interface', 'Solver Validation', 'Units', 'Material Library', 'Grid Settings', 'Color Theme', 'Display Sizes'].forEach(ad => {
                 const bl = duzenH3Blogu(S, ad);
                 if (bl) duzenTasi(tercihGovde, bl);
             });
+            // Izgara sonsuz (kamerayi izler): boyut alanlari anlamsiz, gizlenir
+            ['gridSizeX', 'gridSizeY'].forEach(id => { const el = document.getElementById(id); const fg = el && el.closest('.form-group'); if (fg) duzenGizle(fg, 'izgara boyutu (sonsuz izgara)'); });
+            // Proje bilgisi modeli tanimlar (ad, no, revizyon; raporun basligi) -> Model karti sonu
+            const proje = duzenH3Blogu(S, 'Project');
+            if (proje) { proje[0].classList.add('duzen-altbaslik'); duzenTasi(kModel, proje); }
             // ---- Profil penceresi: General'in profil olusturucusu
             const profil = kapsayan(document.getElementById('profilesCount'), '.collapsible-panel');
             if (profil) {
@@ -196,6 +203,23 @@
                 const icerik = profil.querySelector('.collapsible-content');
                 duzenTasi(profilGovde, icerik ? [...icerik.childNodes] : [profil]);
                 if (icerik) profil.remove();
+            }
+
+            // ---- kiris karti: profil secici "Edit Section" kutusundan (varsayilan
+            // kapaliydi, kullanici bulamadi) Section kutusuna; ayri kutu kalkar
+            const sec = document.getElementById('infoEditSection');
+            const secKutu = document.getElementById('beamEditSectionSection');
+            const bolum = kapsayan(document.getElementById('infoBeamSection'), '.entity-section');
+            if (sec && secKutu && bolum) {
+                const uygula = secKutu.querySelector('button');
+                const satir = document.createElement('div');
+                satir.style.cssText = 'display:flex; gap:6px; margin-top:8px;';
+                sec.style.marginBottom = '0'; sec.style.flex = '1'; sec.style.fontSize = 'var(--fs-sm)';
+                satir.appendChild(sec);
+                if (uygula) { uygula.classList.remove('btn-block'); uygula.style.flexShrink = '0'; satir.appendChild(uygula); }
+                bolum.appendChild(satir);
+                secKutu.remove();
+                DUZEN_BILGI.gizlenen.push('Edit Section kutusu (secici Section kutusunda)');
             }
 
             // ---- sag panele yerlestir: bagLam kartlari ustte kalir, sonra kartlar
@@ -254,6 +278,7 @@
             }
 
             document.body.classList.add('tek-panel');
+            document.body.classList.remove('duzen-bekle');
             if (typeof syncPanelLayout === 'function') syncPanelLayout();
             return DUZEN_BILGI;
         }

@@ -191,6 +191,19 @@
             const k = kontrolAyarlari();
             const out = {};
             if (!r || !r.elementResults) return out;
+            // ZARF: dugum sehimleri ve kiris egrileri farkli kombinasyonlardan
+            // karisiyordu; her kombinasyon ayri olculur, aciklik basina en buyuk
+            // kullanim alinir (lc ile)
+            if (r.zarf && r.zarf.tekil) {
+                Object.entries(r.zarf.tekil).forEach(([lc, t]) => {
+                    const s = sehimKontrolu(t);
+                    Object.entries(s).forEach(([id, x]) => {
+                        const oncelik = v => (v.kullanim === null ? v.d : v.kullanim);
+                        if (!out[id] || oncelik(x) > oncelik(out[id])) { x.lc = lc; out[id] = x; }
+                    });
+                });
+                return out;
+            }
             const z = n => n.z || 0;
             sehimAcikliklari(r).forEach(ac => {
                 const A = model.nodes[ac.bas], B = model.nodes[ac.son];

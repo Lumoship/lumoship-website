@@ -55,8 +55,10 @@
                 if (typeof applyThemeToScene === 'function') applyThemeToScene();
             }
             
-            // Apply grid color - recreate grid with new color
-            recreateGridWithColor(theme.grid);
+            // Apply grid color: sonsuz izgara kurucusu (canvas3d recreateGrid) rengi buradan okur
+            window.izgaraRengi = theme.grid;
+            if (window.gridHelper) window.gridHelper.userData.sonsuz = false;   // bir sonraki karede yeniden kurulur
+            if (typeof izgaraSonsuzGuncelle === 'function') izgaraSonsuzGuncelle(); else recreateGridWithColor(theme.grid);
             
             // Rebuild 3D scene with new colors (this ensures beams get new materials)
             if (threeInitialized) {
@@ -277,6 +279,7 @@
                     return;
                 }
                 requestAnimationFrame(renderLoop);
+                if (typeof izgaraSonsuzGuncelle === 'function') izgaraSonsuzGuncelle();
                 if (typeof deformeAnimAdim === 'function') deformeAnimAdim(performance.now());
                 threeRenderer.render(threeScene, threeCamera);
                 if (typeof renderGizmo === 'function') renderGizmo();

@@ -211,6 +211,14 @@
                 return;
             }
             
+            // H: sag paneli gizle / ac (tam ekran model) - tek panel duzeni
+            if ((e.key === 'h' || e.key === 'H') && !isCmdInput && !e.ctrlKey && !e.altKey && cmdState.active === CMD.NONE && typeof togglePanelCollapse === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                togglePanelCollapse('right');
+                return;
+            }
+
             // F key for Fit View (only when not in input)
             if ((e.key === 'f' || e.key === 'F') && !isCmdInput && !e.ctrlKey && cmdState.active === CMD.NONE) {
                 e.preventDefault();

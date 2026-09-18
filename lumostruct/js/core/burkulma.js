@@ -223,6 +223,19 @@
         function modelBurkulma(results) {
             const out = {};
             if (!results || !results.elementResults) return out;
+            // ZARF: zarf kaydi her kiriste en buyuk von Mises'in kombinasyonunu tasir;
+            // burkulma icin en kotu kombinasyon baska olabilir (daha cok basinc, daha
+            // az egilme). Her kombinasyon ayri kontrol edilir, uye basina en buyuk
+            // UF alinir ve hangi kombinasyondan geldigi (lc) yazilir.
+            if (results.zarf && results.zarf.tekil) {
+                Object.entries(results.zarf.tekil).forEach(([lc, r]) => {
+                    const b = modelBurkulma(r);
+                    Object.entries(b).forEach(([id, x]) => {
+                        if (!out[id] || x.UF > out[id].UF) { x.lc = lc; out[id] = x; }
+                    });
+                });
+                return out;
+            }
             const grade = document.getElementById('steelGrade') ? document.getElementById('steelGrade').value : 'AH36';
             const genelMat = MATERIALS[grade] || MATERIALS['AH36'];
             const gEl = document.getElementById('gammaM1');

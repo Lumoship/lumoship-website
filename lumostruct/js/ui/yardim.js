@@ -43,7 +43,8 @@
             ['EXTEND / TRIM', 'click the beam end / the part to remove; the boundary is another beam.'],
             ['JOIN', 'two collinear beams sharing a node → one beam (loads re-spanned).'],
             ['PURGE', 'merge coincident nodes (3D), drop duplicate and zero-length beams.'],
-            ['PLANE', 'new work plane at an offset (XY / XZ / YZ); drawing snaps to the active plane.']
+            ['PLANE', 'new work plane at an offset (XY / XZ / YZ); drawing snaps to the active plane.'],
+            ['F / H', '<b>F</b> fits the model in the view; <b>H</b> hides / shows the side panel (full-width model). Double-clicking the panel edge does the same.']
         ];
 
         // Kontroller ve yukler: kural tabanlari, uye kontrolleri, sehim, yuk

@@ -454,6 +454,7 @@
                     { a: 'MbRd', b: 'Mb,Rd [kNm]', o: 1 },
                     { a: 'UFLT', b: 'UF LT', o: 3 },
                     { a: 'UF', b: 'UF', o: 3 },
+                    { a: 'lc', b: 'LC', m: true },
                     { a: 'durum', b: 'Status', m: true }
                 ],
                 satirlar: () => {
@@ -472,7 +473,8 @@
                         chiLT: (r.lt && r.lt.uygulanir) ? r.lt.chiLT : null,
                         MbRd: (r.lt && r.lt.uygulanir) ? r.lt.MbRd : null,
                         UFLT: (r.lt && r.lt.uygulanir) ? r.lt.UFLT : null,
-                        UF: r.UF, durum: r.durum + ((r.lt && !r.lt.uygulanir && r.lt.neden && r.lt.neden !== 'no moment') ? ' (LT: ' + r.lt.neden + ')' : ''),
+                        UF: r.UF, lc: r.lc || (typeof etkinKombinasyonId === 'function' ? etkinKombinasyonId() : ''),
+                        durum: r.durum + ((r.lt && !r.lt.uygulanir && r.lt.neden && r.lt.neden !== 'no moment') ? ' (LT: ' + r.lt.neden + ')' : ''),
                         _vurgu: r.durum === 'FAIL' ? 'stress-fail' : (r.durum === 'check' ? 'stress-warn' : (r.durum === 'ok' ? 'stress-ok' : ''))
                     }));
                 }
@@ -495,6 +497,7 @@
                     { a: 'Areq', b: 'Ashr req [cm²]', o: 2 },
                     { a: 'Aa', b: 'Ashr actual [cm²]', o: 2 },
                     { a: 'kA', b: 'Ashr util', o: 3 },
+                    { a: 'lc', b: 'LC', m: true },
                     { a: 'durum', b: 'Status', m: true }
                 ],
                 satirlar: () => {
@@ -507,6 +510,7 @@
                         model: r.model + (r.otomatik ? ' (auto)' : '') + ' — ' + r.modelAd,
                         fbdg: (r.fBdgAciklik !== null ? r.fBdgAciklik : '-') + ' / ' + (r.fBdgMesnet !== null ? r.fBdgMesnet : '-'),
                         fshr: r.fShr, Zreq: r.Zreq, Za: r.Za, kZ: r.kZ, Areq: r.Areq, Aa: r.Aa, kA: r.kA, durum: r.durum,
+                        lc: r.lc || (typeof etkinKombinasyonId === 'function' ? etkinKombinasyonId() : ''),
                         _vurgu: r.durum === 'FAIL' ? 'stress-fail' : (r.durum === 'check' ? 'stress-warn' : (r.durum === 'ok' ? 'stress-ok' : ''))
                     }));
                 }

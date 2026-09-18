@@ -81,7 +81,8 @@
         // Tek panel duzeni (js/ui/duzen.js): sol panel ve sekmeler kalkar,
         // bloklar sag panelin kartlarina / pencerelere tasinir. Katlama ondan
         // SONRA kurulur ki yeni kartlar da katlanabilsin.
-        if (typeof tekPanelDuzeniKur === 'function') tekPanelDuzeniKur();
+        try { if (typeof tekPanelDuzeniKur === 'function') tekPanelDuzeniKur(); }
+        finally { document.body.classList.remove('duzen-bekle'); }   // duzen kurulamasa da sayfa gorunsun
         if (typeof katlamalariKur === 'function') katlamalariKur();
 
         // Initialize collapsible panels

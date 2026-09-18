@@ -5684,3 +5684,7 @@
         /* Preferences penceresinde ayar bolumleri alt alta, kart boslugu olmadan */
         #preferencesModalBody h3.panel-title { margin-top: 18px; }
         #preferencesModalBody h3.panel-title:first-child { margin-top: 0; }
+
+        /* Acilis: tek panel duzeni kurulana kadar ana alan cizilmez - eski
+           yerlesim (sol panel + sekmeler) bir an gorunup kayboluyordu */
+        body.duzen-bekle .main, body.duzen-bekle .main-tab-bar, body.duzen-bekle .results-bottom-panel { visibility: hidden; }

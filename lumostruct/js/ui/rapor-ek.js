@@ -218,7 +218,7 @@
                 h += '<table><thead><tr><th>Member</th><th>L (m)</th><th>K<sub>y</sub>/K<sub>z</sub>/K<sub>LT</sub></th><th>N (kN)</th><th>&lambda;&#772;<sub>y</sub></th><th>&lambda;&#772;<sub>z</sub></th><th>N<sub>b,Rd</sub> (kN)</th><th>UF N</th>' +
                      '<th>M<sub>y</sub> (kNm)</th><th>M<sub>z</sub> (kNm)</th><th>&chi;<sub>LT</sub></th><th>M<sub>b,Rd</sub> (kNm)</th><th>UF LT</th><th>UF</th><th>Status</th></tr></thead><tbody>';
                 liste.forEach(x => {
-                    const uye = x.zincir && x.zincir.n > 1 ? ((x.zincir.ad ? x.zincir.ad + ': ' : '') + 'beams ' + x.zincir.kirisler.join(', ')) : (typeof kirisEtiketi === 'function' ? kirisEtiketi(x.id) : 'beam ' + x.id);
+                    const uye = (x.zincir && x.zincir.n > 1 ? ((x.zincir.ad ? x.zincir.ad + ': ' : '') + 'beams ' + x.zincir.kirisler.join(', ')) : (typeof kirisEtiketi === 'function' ? kirisEtiketi(x.id) : 'beam ' + x.id)) + (x.lc ? ' [' + x.lc + ']' : '');
                     const L = x.zincir ? x.zincir.L : (x.LcrY / (x.kY || 1));
                     const lt = x.lt && x.lt.uygulanir ? x.lt : null;
                     const e = x.etkilesim;
@@ -239,7 +239,7 @@
                 h += '<h3 style="font-size:12px; margin:12px 0 4px;">Rule section modulus and shear area — worst ' + liste.length + ' of ' + ko.uyeler.filter(x => x.q > 0).length + ' loaded members</h3>';
                 h += '<table><thead><tr><th>Member</th><th>L (m)</th><th>q = P·S (kN/m)</th><th>Load model</th><th>f<sub>bdg</sub> field / support</th><th>f<sub>shr</sub></th><th>Z<sub>req</sub> (cm³)</th><th>Z<sub>act</sub> (cm³)</th><th>Z util</th><th>A<sub>shr,req</sub> (cm²)</th><th>A<sub>shr,act</sub> (cm²)</th><th>A util</th><th>Status</th></tr></thead><tbody>';
                 liste.forEach(x => {
-                    h += '<tr' + sinifla(x.durum) + '><td>' + esc((x.ad ? x.ad + ': ' : '') + (x.uye.length > 1 ? 'beams ' + x.uye.join(', ') : 'beam ' + x.uye[0])) + '</td><td>' + num(x.L, 2) + '</td><td>' + num(x.q, 2) + '</td><td>' + esc(x.model + (x.otomatik ? ' (auto)' : '') + ' — ' + x.modelAd) + '</td>' +
+                    h += '<tr' + sinifla(x.durum) + '><td>' + esc((x.ad ? x.ad + ': ' : '') + (x.uye.length > 1 ? 'beams ' + x.uye.join(', ') : 'beam ' + x.uye[0]) + (x.lc ? ' [' + x.lc + ']' : '')) + '</td><td>' + num(x.L, 2) + '</td><td>' + num(x.q, 2) + '</td><td>' + esc(x.model + (x.otomatik ? ' (auto)' : '') + ' — ' + x.modelAd) + '</td>' +
                          '<td>' + (x.fBdgAciklik !== null ? num(x.fBdgAciklik, 1) : '-') + ' / ' + (x.fBdgMesnet !== null ? num(x.fBdgMesnet, 1) : '-') + '</td><td>' + num(x.fShr, 2) + '</td>' +
                          '<td>' + num(x.Zreq, 1) + '</td><td>' + num(x.Za, 1) + '</td><td>' + num((x.kZ || 0) * 100, 0) + ' %</td><td>' + num(x.Areq, 2) + '</td><td>' + num(x.Aa, 2) + '</td><td>' + num((x.kA || 0) * 100, 0) + ' %</td>' + durumHucre(x.durum) + '</tr>';
                 });
@@ -258,7 +258,7 @@
                     h += '<h3 style="font-size:12px; margin:12px 0 4px;">Deflection — worst ' + liste.length + ' of ' + kayitlar.length + ' spans' + (asanS ? ', ' + asanS + ' over' : '') + '</h3>';
                     h += '<table><thead><tr><th>Span</th><th>L (m)</th><th>&delta; (mm)</th><th>L/&delta;</th><th>Limit (mm)</th><th>Util %</th><th>Status</th></tr></thead><tbody>';
                     liste.forEach(k => {
-                        h += '<tr' + sinifla(k.durum) + '><td>' + esc((k.ad ? k.ad + ': ' : '') + (k.kirisler && k.kirisler.length > 1 ? 'beams ' + k.kirisler.join(', ') : (typeof kirisEtiketi === 'function' ? kirisEtiketi(k.id) : 'beam ' + k.id))) + '</td><td>' + num(k.L, 2) + '</td><td>' + num(k.d, 2) + '</td><td>' +
+                        h += '<tr' + sinifla(k.durum) + '><td>' + esc((k.ad ? k.ad + ': ' : '') + (k.kirisler && k.kirisler.length > 1 ? 'beams ' + k.kirisler.join(', ') : (typeof kirisEtiketi === 'function' ? kirisEtiketi(k.id) : 'beam ' + k.id)) + (k.lc ? ' [' + k.lc + ']' : '')) + '</td><td>' + num(k.L, 2) + '</td><td>' + num(k.d, 2) + '</td><td>' +
                              (isFinite(k.oran) ? 'L/' + num(k.oran, 0) : '-') + '</td><td>' + num(k.sinirMm, 2) + '</td><td>' + num(k.kullanim * 100, 0) + '</td>' + durumHucre(k.durum) + '</tr>';
                     });
                     h += '</tbody></table>';

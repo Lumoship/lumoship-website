@@ -83,8 +83,8 @@
 
         // Uyenin uzerindeki en buyuk dusey hat yuku q (kN/m), etkin kombinasyon
         // katsayilariyla (basinc yamalari dahil). Asagi + .
-        function kuralHatYuku(uye) {
-            const kats = (typeof currentLoadFactors === 'function') ? currentLoadFactors() : {};
+        function kuralHatYuku(uye, katsayilar) {
+            const kats = katsayilar || ((typeof currentLoadFactors === 'function') ? currentLoadFactors() : {});
             if (typeof basincYukleriniHazirla === 'function') basincYukleriniHazirla();
             let q = 0;
             uye.forEach(id => {
@@ -105,9 +105,17 @@
 
         // Butun uyeler. results: aciklik zinciri icin (burkulmaUyeleri). Donus:
         // { elemId: kayit } - zincirdeki her parca ayni kaydi alir.
-        function kuralKesitKontrolu(results) {
+        function kuralKesitKontrolu(results, katsayilar) {
             const out = {};
             if (!results || !results.elementResults || typeof burkulmaUyeleri !== 'function') return out;
+            // ZARF: her kombinasyon kendi katsayilariyla; uye basina en buyuk kullanim, lc ile
+            if (results.zarf && results.zarf.tekil && !katsayilar) {
+                Object.entries(results.zarf.tekil).forEach(([lc, r]) => {
+                    const k = kuralKesitKontrolu(r, (typeof kombinasyonKatsayilari === 'function') ? kombinasyonKatsayilari(lc) : undefined);
+                    Object.entries(k).forEach(([id, x]) => { if (!out[id] || x.kullanim > out[id].kullanim) { x.lc = lc; out[id] = x; } });
+                });
+                return out;
+            }
             const kat = kuralKatsayilari();
             const grade = document.getElementById('steelGrade') ? document.getElementById('steelGrade').value : 'AH36';
             const genelMat = MATERIALS[grade] || MATERIALS['AH36'];
@@ -139,7 +147,7 @@
                     modelAd = otomatik;
                 }
                 const m = KURAL_YUK_MODELLERI[modelAd];
-                const q = kuralHatYuku(uye);                                            // kN/m = P*S
+                const q = kuralHatYuku(uye, katsayilar);                                // kN/m = P*S
                 // Not 3: mesnet f_bdg <= 12, aciklik 24 ya da tablo; uc f_shr = max(0.5, f1, f3)
                 const fMesnet = Math.min(12, Math.max(m.bdg1 || 0, m.bdg3 || 0)) || null;
                 const fAciklik = m.bdg2 ? Math.min(24, m.bdg2) : null;

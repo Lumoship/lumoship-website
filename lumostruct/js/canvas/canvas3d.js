@@ -572,21 +572,21 @@
             directionalLight2.position.set(-10, -5, -10);
             threeScene.add(directionalLight2);
             
-            // Grid helper - will be replaced by recreateGrid() after init
-            window.gridHelper = new THREE.GridHelper(500, 500, 
-                isLight ? 0xcbd5e1 : 0x334155, 
-                isLight ? 0xe2e8f0 : 0x1e293b
-            );
-            window.gridHelper.rotation.x = Math.PI / 2;
-            window.gridHelper.isGridHelper = true;  // Mark for toggle
-            threeScene.add(window.gridHelper);
-            
-            // Initialize grid settings after scene is ready
-            setTimeout(() => {
-                if (typeof recreateGrid === 'function') {
-                    recreateGrid();
-                }
-            }, 100);
+            // Izgara ILK KAREDEN sonsuz kurucuyla: eskiden once 500x500 GridHelper,
+            // 100 ms sonra recreateGrid, ilk karede bir daha sonsuz kurulum -
+            // acilista uc farkli izgara goruntusu (kullanici: "2-3 view yapip
+            // aciliyor"). Tek kurulum, senkron.
+            window.gridHelper = null;
+            if (typeof izgaraSonsuzGuncelle === 'function' && window.gridSettings) {
+                izgaraSonsuzGuncelle();
+            } else if (typeof recreateGrid === 'function' && window.gridSettings) {
+                recreateGrid();
+            } else {
+                window.gridHelper = new THREE.GridHelper(500, 500, isLight ? 0xcbd5e1 : 0x334155, isLight ? 0xe2e8f0 : 0x1e293b);
+                window.gridHelper.rotation.x = Math.PI / 2;
+                window.gridHelper.isGridHelper = true;
+                threeScene.add(window.gridHelper);
+            }
             
             // Custom axes with arrows and labels - stored in a group for scaling
             window.axesGroup = new THREE.Group();
@@ -3472,6 +3472,10 @@
 
             const { originX, originY } = window.gridSettings;
             const AYIRMA = 0.01;   // z-fighting olmasin diye kilpayi geri cek
+            // Sonsuz izgara merkezi (izgaraSonsuzGuncelle yazar): kameranin
+            // hedefine hizali; yoksa kullanicinin kaynagi
+            const cx = (g.userData && g.userData.cx !== undefined) ? g.userData.cx : null;
+            const cy = (g.userData && g.userData.cy !== undefined) ? g.userData.cy : null;
 
             const duzlem = aktifCalismaDuzlemi();
             const eksen = duzlem.axis, kayma = duzlem.offset;
@@ -3479,17 +3483,17 @@
             if (eksen === 'Z') {
                 // XY duzlemi: grup zaten boyle kuruldu.
                 g.rotation.set(0, 0, 0);
-                g.position.set(originX, originY, kayma - AYIRMA);
+                g.position.set(cx !== null ? cx : originX, cy !== null ? cy : originY, kayma - AYIRMA);
             } else if (eksen === 'Y') {
                 // XZ duzlemi. X ekseni etrafinda 90 derece: yerel (x,y,0)
                 // dunyada (x,0,y) olur.
                 g.rotation.set(Math.PI / 2, 0, 0);
-                g.position.set(originX, kayma - AYIRMA, 0);
+                g.position.set(cx !== null ? cx : originX, kayma - AYIRMA, cy !== null ? cy : 0);
             } else {
                 // YZ duzlemi. Y ekseni etrafinda 90 derece: yerel (x,y,0)
                 // dunyada (0,y,-x) olur.
                 g.rotation.set(0, Math.PI / 2, 0);
-                g.position.set(kayma - AYIRMA, originY, 0);
+                g.position.set(kayma - AYIRMA, cx !== null ? cx : originY, cy !== null ? cy : 0);
             }
         }
 
@@ -3504,10 +3508,65 @@
             return Math.min(1, taban * Math.min(2, oran));
         }
 
+        // ---- SONSUZ IZGARA ----
+        // Kullanici: "izgara her gorunuste sonsuz olsun". Izgara kameranin
+        // hedefini izler ve gorunen alandan buyuk kurulur; kamera uzaklastikca
+        // cizgi araligi 1-2-5 basamaklariyla buyur (cizgi sayisi sinirli kalir,
+        // CAD'lerdeki gibi). Ana cizgiler dunya izgarasina hizali kalir: grup
+        // merkezi ana araligin katlarina oturtulur. Kullanicinin Grid ayarlari
+        // (aralik, kaynak) taban olarak kalir; boyut artik anlamsiz.
+        let izgaraSonsuz = { boyut: 0, aralik: 0, sonKur: 0 };
+        function izgaraSonsuzAralik(taban, gerekliBoyut) {
+            // cizgi sayisi 240'i gecmesin: 1-2-5 basamaklari
+            let a = taban > 0 ? taban : 1;
+            const adim = [2, 2.5, 2];   // 1 -> 2 -> 5 -> 10 -> 20 -> 50 ...
+            let i = 0;
+            while (gerekliBoyut / a > 240) { a *= adim[i % 3]; i++; }
+            return a;
+        }
+        function izgaraSonsuzGuncelle() {
+            if (!window.gridSettings || typeof threeControls === 'undefined' || !threeControls || !threeControls.spherical || !threeScene) return;
+            const r = threeControls.spherical.radius;
+            const ucBoyut = (typeof currentViewMode !== 'undefined' && currentViewMode === '3d');
+            const gerekli = Math.max(60, r * (ucBoyut ? 10 : 4));
+            const aralik = izgaraSonsuzAralik(window.gridSettings.spacing, gerekli);
+            const ana = aralik * 5;
+            // HISTEREZIS: kamera surekli yaklasip uzaklasirken (fit animasyonu,
+            // tekerlek) her karede yeniden kurmak takilma yapiyordu. Kurulan
+            // izgara gerekenin 1.5 kati; gereken bunu asana ya da ucte birinin
+            // altina inene kadar yeniden kurulmaz.
+            const yeterli = window.gridHelper && window.gridHelper.userData.sonsuz && aralik === izgaraSonsuz.aralik &&
+                            gerekli <= izgaraSonsuz.boyut && gerekli >= izgaraSonsuz.boyut / 3;
+            const boyut = yeterli ? izgaraSonsuz.boyut : Math.ceil(gerekli * 1.5 / ana) * ana;
+            // kameranin hedefi, duzlem koordinatlarinda, ana araliga hizali
+            const d = aktifCalismaDuzlemi();
+            const h = threeControls.target;
+            const ox = window.gridSettings.originX || 0, oy = window.gridSettings.originY || 0;
+            const hizala = (v, o) => o + Math.round((v - o) / ana) * ana;
+            let cx, cy;
+            if (d.axis === 'Z') { cx = hizala(h.x, ox); cy = hizala(h.y, oy); }
+            else if (d.axis === 'Y') { cx = hizala(h.x, ox); cy = hizala(h.z, 0); }
+            else { cx = hizala(h.y, oy); cy = hizala(h.z, 0); }
+            const yeniden = !yeterli;
+            if (yeniden) {
+                window.izgaraEtkin = { sizeX: boyut, sizeY: boyut, spacing: aralik, originX: ox, originY: oy };
+                izgaraSonsuz = { boyut: boyut, aralik: aralik, sonKur: performance.now() };
+                recreateGrid();
+                if (window.gridHelper) window.gridHelper.userData.sonsuz = true;
+            }
+            const g = window.gridHelper;
+            if (!g) return;
+            // merkezi kaydir (ana araliga hizali; yalnizca degisince)
+            if (g.userData.cx !== cx || g.userData.cy !== cy || g.userData.eksen !== d.axis) {
+                g.userData.cx = cx; g.userData.cy = cy; g.userData.eksen = d.axis;
+                izgarayiDuzlemeGore();
+            }
+        }
+
         function recreateGrid() {
             if (!threeInitialized || !threeScene) return;
-            
-            const { sizeX, sizeY, spacing, originX, originY } = window.gridSettings;
+
+            const { sizeX, sizeY, spacing, originX, originY } = window.izgaraEtkin || window.gridSettings;
             
             // Remove old grid
             if (window.gridHelper) {
@@ -3521,9 +3580,12 @@
             gridGroup.isGridHelper = true;
             
             const isLight = document.body.classList.contains('light-mode');
-            const majorColor = isLight ? 0xcbd5e1 : 0x334155;
-            const minorColor = isLight ? 0xe2e8f0 : 0x1e293b;
-            
+            // Renk temasi (themes.js) izgara rengini window.izgaraRengi ile bildirir
+            // Renk temalari koyu zemin icindir; acik modda acik izgara renkleri kalir
+            const temaRenk = (!isLight && typeof window.izgaraRengi === 'string') ? new THREE.Color(window.izgaraRengi) : null;
+            const majorColor = temaRenk ? temaRenk : (isLight ? 0xcbd5e1 : 0x334155);
+            const minorColor = temaRenk ? temaRenk.clone().multiplyScalar(0.6) : (isLight ? 0xe2e8f0 : 0x1e293b);
+
             // Calculate divisions
             const divisionsX = Math.round(sizeX / spacing);
             const divisionsY = Math.round(sizeY / spacing);
@@ -3572,6 +3634,7 @@
             window.gridHelper.visible = view.showGrid;
             threeScene.add(window.gridHelper);
             izgarayiDuzlemeGore();
+            gridGroup.userData.cx = undefined; gridGroup.userData.cy = undefined;   // sonsuz izgara merkezi yeniden yazar
             
             if (threeRenderer && threeCamera) {
                 threeRenderer.render(threeScene, threeCamera);
