@@ -171,6 +171,7 @@
     if (k === 'ssDeck') h += rIn('Tier (1 = on the deck D is measured to)', q + 'tier', c.tier) + rChk('Sheltered (not exposed to weather)', q + 'sheltered', c.sheltered);
     if (k === 'sdeck' || k === 'ldeck' || k === 'ib' || shell) h += rIn('Tank head h_4 if the position bounds a tank (0 = none)', q + 'h_4', c.h_4, 'm');
     if (k === 'wtBhd' || k === 'deepTank') h += rIn('Load head h_4 (' + (k === 'deepTank' ? 'to tank top / half to overflow' : 'to 0.91 m above bulkhead deck or z_FD') + ')', q + 'h_4', c.h_4, 'm');
+    if (k === 'none') h += '<div class="lp-hint">No LR table row for this position - choose a shell, deck, inner bottom, bulkhead or erection position.</div>';
     if (k === 'erection') { h += rIn('Tier', q + 'tier', c.tier) + rIn('X, bulkhead from A.P. (blank = x)', q + 'X', c.X, 'm') + rIn('Deckhouse breadth b (blank = B)', q + 'b', c.b, 'm') + rChk('Exposed machinery casing (δ = 1)', q + 'casing', c.casing); if (col.member === 'dhOther') h += rSel('Face', q + 'face', c.face, [['aft', 'Aft end'], ['frontProtected', 'Protected front']]); }
     if (!scant) return h;
     h += rHead('Panel definition') + rSel('Framing', prefix + '.stiffening', col.stiffening, [['long', 'Longitudinal'], ['trv', 'Transverse / vertical']]) + rIn('Primary member spacing S', q + 'S', c.S, 'm');
@@ -180,7 +181,7 @@
     if (k === 'ib') h += rChk('Under hatchway without ceiling (+ 2 mm)', q + 'underHatch', c.underHatch);
     if (shell) h += rIn('Upper turn of bilge z_bilge', q + 'z_bilge', c.z_bilge, 'm') + rIn('Midship thickness t_c for taper at the ends', q + 'lr_tc', c.t_c, 'mm');
     if (shell && col.stiffening === 'trv') h += rIn('Framing depth H (≥ 3.5 main, ≥ 2.5 tween)', q + 'H', c.H, 'm') + rChk('Tween-deck frame', q + 'tween', c.tween) + rSel('End brackets', q + 'brackets', c.brackets, [['two', 'Two Rule standard (C 3.4)'], ['one', 'One Rule standard (6.1)'], ['none', 'None (7.3)'], ['stdReduced', 'One standard + one reduced'], ['twoReduced', 'Two reduced'], ['oneReduced', 'One reduced']]) + rIn('l_a / l for reduced brackets', q + 'la_l', c.la_l) + rChk('Frame in way of tank / ballast hold (Tab 1.6.3 (2))', q + 'tankSide', c.tankSide) + rChk('Peak frame (Tab 5.4.2 / 6.4.2 (1))', q + 'peak', c.peak) + rIn('Peak stringer spacing S_1', q + 'S_1', c.S_1, 'm');
-    if (shell) h += rChk('Aft of the after peak bulkhead', q + 'aftPeak', c.aftPeak);
+    if (shell) h += rChk('Aft of the after peak bulkhead', q + 'aftPeak', c.aftPeak) + rChk('Forward of the collision bulkhead', q + 'forePeak', c.forePeak);
     if (k === 'wtBhd' || k === 'deepTank') h += rIn('End constraint ω_1 (Tab 1.9.3)', q + 'w1', c.w1) + rIn('End constraint ω_2', q + 'w2', c.w2);
     h += rChk('Flat bar continuous at bulkheads (18 √k_L)', q + 'continuous', c.continuous !== false);
     return h;
@@ -189,7 +190,7 @@
     var c = col.lr || defLR(), n = function (v) { return v === '' || v === undefined || v === null || isNaN(parseFloat(v)) ? undefined : parseFloat(v); };
     return { S: n(c.S), H_td: n(c.H_td), p_a: n(c.p_a), C: n(c.C), accommodation: !!c.accommodation, tier: n(c.tier) || 1, sheltered: !!c.sheltered, h_4: n(c.h_4), deepTank: Lr.posKind(col.member) === 'deepTank', X: n(c.X), face: c.face || 'aft', b: n(c.b), casing: !!c.casing,
              insideOpenings: !!c.insideOpenings, deckLevel: c.deckLevel || 'second', tankBottom: !!c.tankBottom, underHatch: !!c.underHatch, z_bilge: n(c.z_bilge), t_c: n(c.lr_tc !== undefined ? c.lr_tc : c.t_c), H: n(c.H), brackets: c.brackets || 'two', la_l: n(c.la_l) || 1, w1: n(c.w1) || 0, w2: n(c.w2) || 0,
-             tween: !!c.tween, aftPeak: !!c.aftPeak, peak: !!c.peak, S_1: n(c.S_1), tankSide: !!c.tankSide, deckhouse: !!c.deckhouse, shortErection: !!c.shortErection, sideSpan: !!c.sideSpan, continuous: c.continuous !== false };
+             tween: !!c.tween, aftPeak: !!c.aftPeak, forePeak: !!c.forePeak, peak: !!c.peak, S_1: n(c.S_1), tankSide: !!c.tankSide, deckhouse: !!c.deckhouse, shortErection: !!c.shortErection, sideSpan: !!c.sideSpan, continuous: c.continuous !== false };
   }
   /* which external load the position carries, per the design load table of the class */
   function posLoadNote(member) {
@@ -479,7 +480,7 @@
            : kind === 'ib' ? Lr.innerBottomPlating(ship, optP)
            : kind === 'wtBhd' || kind === 'deepTank' ? Lr.bulkheadPlating(ship, optP)
            : kind === 'erection' ? Lr.erectionPlating(ship, pt, col.member, optP) : { rows: [], t: 0, governing: '-' };
-    var optS = { k: ks, s: s_mm, l_e: le, framing: framing, profType: prof.type, h_4: m.h_4, H: m.H, tween: m.tween, brackets: m.brackets, la_l: m.la_l, tankSide: m.tankSide, peak: m.peak, S_1: m.S_1, aftPeak: m.aftPeak, insideOpenings: m.insideOpenings, p_a: m.p_a, H_td: m.H_td, C: m.C, accommodation: m.accommodation, tier: m.tier, sheltered: m.sheltered, deckhouse: m.deckhouse, shortErection: m.shortErection, sideSpan: m.sideSpan, w1: m.w1, w2: m.w2, deepTank: m.deepTank, X: m.X, b: m.b, casing: m.casing, face: m.face, l_s: +col.l };
+    var optS = { k: ks, s: s_mm, l_e: le, framing: framing, profType: prof.type, h_4: m.h_4, H: m.H, tween: m.tween, brackets: m.brackets, la_l: m.la_l, tankSide: m.tankSide, peak: m.peak, S_1: m.S_1, aftPeak: m.aftPeak, forePeak: m.forePeak, insideOpenings: m.insideOpenings, p_a: m.p_a, H_td: m.H_td, C: m.C, accommodation: m.accommodation, tier: m.tier, sheltered: m.sheltered, deckhouse: m.deckhouse, shortErection: m.shortErection, sideSpan: m.sideSpan, w1: m.w1, w2: m.w2, deepTank: m.deepTank, X: m.X, b: m.b, casing: m.casing, face: m.face, l_s: +col.l };
     var st = kind === 'bottom' || kind === 'side' || kind === 'sheer' ? Lr.shellStiffener(ship, pt, col.member === 'sheerstrake' ? 'side' : col.member, optS)
            : kind === 'sdeck' || kind === 'ldeck' || kind === 'ssDeck' ? Lr.deckStiffener(ship, pt, col.member, optS)
            : kind === 'ib' ? Lr.innerBottomStiffener(ship, pt, optS)

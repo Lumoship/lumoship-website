@@ -251,7 +251,7 @@
       } else {
         /* ends: Tab 5.4.1 / 6.4.1 */
         var D1e = r.fwd ? T + p.H_b : Math.min(ship.D, T + p.H_b), T1 = Math.max(T, 0.65 * D1e);
-        var fw = r.fwd ? lerp(0.15 * L, 1.71, 0.2 * L, 1.0, r.dF) : (opt.aftPeak ? 1.32 : lerp(0, 1.32, 0.2 * L, 1.0, r.dA));
+        var fw = r.fwd ? lerp(0.15 * L, 1.71, 0.2 * L, 1.0, r.dF) : (opt.aftPeak ? 1.32 : lerp(0, 1.32, 0.2 * L, 1.0, r.dA));   /* aft: 1.32 at the peak bulkhead - taken at the A.P. when its position is not given */
         var she = sideHead(ship, pt.z, { D_1: D1e, T_1: T1, f_w: fw });
         var ratio = opt.profType === 'FB' || opt.profType === 'HP' ? 0.5 : (opt.bf1_bf || 0.5);
         var Fs06 = (1.1 / k) * (1 - 2 * ratio * (1 - k)), Fsb = 0.5 * (1 + Fs06);
@@ -260,16 +260,26 @@
         add((r.fwd ? 'Tab 5.4.1 (2)' : 'Tab 6.4.1 (2)') + ' side longitudinal, dry space', 'Z = ' + coef + ' s k h_T1 l_e² F_s (h_T1 ' + she.h_T1.toFixed(2) + ', f_w ' + fw.toFixed(2) + ', F_s ' + Fs.toFixed(3) + ')', coef * s * k * she.h_T1 * le * le * Fs);
         var Dm = r.fwd ? D1e : Math.min(D1e, 20);
         add((r.fwd ? 'Tab 5.4.1 (1) forecastle' : 'Tab 6.4.1 (1) poop') + ' minimum', (r.fwd ? 'Z = 0.0075' : 'Z = 0.0065') + ' s k l_e² (0.6 + 0.167 D_1)', (r.fwd ? 0.0075 : 0.0065) * s * k * le * le * (0.6 + 0.167 * Dm));
+        if (!(r.fwd ? opt.forePeak : opt.aftPeak)) {          /* (2)(b): between the peak bulkhead and 0.2 L also the midship row */
+          var shm = sideHead(ship, pt.z, { floor: ship.fbType === 'B60' ? 'B60' : 'B' }), lfm = longitudinalFactors(ship, pt.z, opt);
+          var capm = lfm.F_1 <= 0.14 ? 0.86 * (lfm.h_5 + p.D_1mid / 8) : lfm.h_5 + p.D_1mid / 8, hT1m = Math.min(shm.h_T1, capm);
+          add((r.fwd ? 'Tab 5.4.1' : 'Tab 6.4.1') + ' (2)(b): midship requirement Tab 1.6.1 (1)(a)', 'Z = 0.056 s k h_T1 l_e² F_1 F_s (h_T1 ' + hT1m.toFixed(2) + ', F_1 ' + lfm.F_1.toFixed(3) + ', F_s ' + lfm.F_s.toFixed(3) + ')', 0.056 * s * k * hT1m * le * le * lfm.F_1 * lfm.F_s);
+        }
         if (opt.h_4) add('deep tank: Tab 1.9.1 (2)', 'Z = ρ s k h_4 l_e² / (22 γ (ω_1 + ω_2 + 2))', p.rho * s * k * opt.h_4 * le * le / (22 * (opt.profType === 'FB' ? 1.6 : 1.4) * ((opt.w1 || 1) + (opt.w2 || 1) + 2)));
       }
     } else {
+      if (bottom) {                                          /* Tab 1.6.3 (4) bottom frames of double bottom bracket floors */
+        var Zbf = 2.15 * s * k * T * le * 1e-2;
+        add('Tab 1.6.3 (4) bottom frame of double bottom bracket floor', 'Z = 2.15 s k T l_e 10⁻²', Zbf);
+        return finishZ(out, { region: r });
+      }
       /* transverse frames: Tab 1.6.3 midship, 5.4.2 / 6.4.2 at the ends */
       var H = Math.max(opt.H || 3.5, opt.tween ? 2.5 : 3.5), C = bracketC(opt), zmid = opt.z_mid !== undefined ? opt.z_mid : pt.z;
       var D1 = Math.min(ship.D, 1.6 * T), fwT = 1.0, D1t = D1, T1t = T, tab = 'Tab 1.6.3';
       if (r.fwd && r.dF < 0.2 * L) { D1t = T + p.H_b; T1t = Math.max(T, 0.65 * D1t); fwT = lerp(0.15 * L, 1.71, 0.2 * L, 1.0, r.dF); tab = 'Tab 5.4.2'; }
       if (r.aft && r.dA < 0.2 * L) { D1t = Math.min(ship.D, T + p.H_b); T1t = Math.max(T, 0.65 * D1t); fwT = opt.aftPeak ? 1.32 : lerp(0, 1.32, 0.2 * L, 1.0, r.dA); tab = 'Tab 6.4.2'; }
       var sh2 = sideHead(ship, zmid, { D_1: D1t, T_1: T1t, f_w: fwT });
-      var Za = C * s * k * sh2.h_T1 * H * H * 1e-3, Zb = 9.1 * s * k * (tab === 'Tab 1.6.3' ? p.D_1mid : D1t) * 1e-3;
+      var Za = C * s * k * sh2.h_T1 * H * H * 1e-3, Zb = 9.1 * s * k * (tab === 'Tab 1.6.3' ? D1 : D1t) * 1e-3;
       var Ifac = tab === 'Tab 5.4.2' && r.dF < 0.15 * L ? 3.5 : 3.2;
       add(tab + ' (1)(a) frame, dry space', 'Z = C s k h_T1 H² 10⁻³ (C ' + C.toFixed(2) + ', h_T1 ' + sh2.h_T1.toFixed(2) + ', H ' + H.toFixed(2) + ')', Za, Ifac / k * H * Za);
       add(tab + ' (1)(b) minimum', 'Z = 9.1 s k D_1 10⁻³', Zb, Ifac / k * H * Zb);
