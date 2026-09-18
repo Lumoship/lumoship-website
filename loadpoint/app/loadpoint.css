@@ -100,6 +100,19 @@
 .nr-toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 @media (max-width:900px){.lp-ship-grid{grid-template-columns:1fr}}
+/* frame table */
+.lp-fr{padding:6px 16px 10px}
+.lp-fr-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.lp-fr-table th{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;text-align:right;padding:4px 6px;border-bottom:1px solid var(--border)}
+.lp-fr-table th:first-child,.lp-fr-table td:first-child{text-align:left}
+.lp-fr-table td{padding:4px 6px;text-align:right;border-bottom:1px solid rgba(30,41,59,0.55)}
+.lp-fr-table td .lp-in{width:96px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:5px 8px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:var(--fs-sm);text-align:right}
+.lp-fr-to,.lp-fr-x{font-family:var(--font-mono);color:var(--text-secondary);white-space:nowrap}
+.lp-fr-del{background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);width:24px;height:24px;cursor:pointer;font-size:11px}
+.lp-fr-del:disabled{opacity:.3;cursor:default}
+.lp-fr-add{margin-top:8px;width:100%;padding:7px;border:1px dashed rgba(148,163,184,.45);border-radius:var(--radius-md);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font-display);font-size:var(--fs-xs)}
+.lp-fr-add:hover{color:var(--text-primary);border-color:var(--text-muted)}
+
 /* ---- phones: the columns stack, the header and wizard compress (the shared app.css has no rules below 900px) ---- */
 @media (max-width:640px){
   .ea-header{position:static}
@@ -126,4 +139,6 @@
   .lp-ship-grid{gap:14px}
   .lp-hero-wide{grid-template-columns:1fr 1fr}
   .lp-col-title{font-size:13px}
+  .lp-fr{padding:6px 8px 10px}
+  .lp-fr-table td .lp-in{width:70px;padding:5px 6px}
 }

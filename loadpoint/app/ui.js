@@ -22,7 +22,7 @@
   var KEY = 'loadpoint.state.v1';
   var defShip = function () {
     return { cls: 'dnv', name: '', L: 120.78, B: 17.2, D: 9.8, T_SC: 7.1, T_BAL: 4.106, C_B: 0.821, C_W: 0.88, C_B_BAL: '', C_W_BAL: '', GM: '', k_r: '', bilgeKeel: true, service: 'R0',
-             nav: 'unrestricted', roro: false, prescriptive: true, tanker: false, decksAbove07D: 1, L_LL: '', typeA: false, x0: 0, frames: '0:0.6',
+             nav: 'unrestricted', roro: false, prescriptive: true, tanker: false, decksAbove07D: 1, L_LL: '', typeA: false, x0: 0, frames: '', frameZones: [{ from: -8, s: 600 }, { from: 20, s: 700 }, { from: 160, s: 600 }],
              /* LR SSC */ L_WL: '', disp: '', V: '', mode: 'disp', H_s: '', group: 'G4', stype: 'passenger', hull: 'none', craft: 'Mono', x_LCG: '', z_k: 0, theta_D: '', theta_trim: '', B_c: '', B_W: '',
              /* LR Ships */ matHull: 235, F_D: '', F_B: '', fbType: 'B', H_b: '', rho: 1.025, decks: 1 };
   };
@@ -53,7 +53,11 @@
   /* ship as the calc modules want it */
   function shipModel() {
     var s = S.ship, num = function (v) { return v === '' || v === null || isNaN(parseFloat(v)) ? undefined : parseFloat(v); };
-    var zones = String(s.frames || '').split(',').map(function (z) { var p = z.split(':'); return { from: parseFloat(p[0]), s: parseFloat(p[1]) }; }).filter(function (z) { return !isNaN(z.from) && !isNaN(z.s); });
+    if (!Array.isArray(s.frameZones)) {
+      s.frameZones = String(s.frames || '').split(',').map(function (z) { var q = z.split(':'); return { from: parseFloat(q[0]), s: Math.round(parseFloat(q[1]) * 1000) }; }).filter(function (z) { return !isNaN(z.from) && !isNaN(z.s); });
+      if (!s.frameZones.length) s.frameZones = [{ from: 0, s: 600 }];
+    }
+    var zones = s.frameZones.map(function (z) { return { from: parseFloat(z.from), s: parseFloat(z.s) / 1000 }; }).filter(function (z) { return !isNaN(z.from) && !isNaN(z.s) && z.s > 0; });
     return { cls: s.cls || 'dnv', L: +s.L, B: +s.B, D: +s.D, T_SC: +s.T_SC, T_BAL: num(s.T_BAL), C_B: +s.C_B, C_W: num(s.C_W) || 0.85, C_B_BAL: num(s.C_B_BAL), C_W_BAL: num(s.C_W_BAL),
              nav: s.nav || 'unrestricted', roro: !!s.roro, prescriptive: s.prescriptive !== false, GM: num(s.GM), k_r: num(s.k_r), bilgeKeel: !!s.bilgeKeel,
              service: s.service || 'R0', tanker: !!s.tanker, decksAbove07D: +s.decksAbove07D || 0, L_LL: num(s.L_LL), typeA: !!s.typeA,
@@ -677,8 +681,7 @@
       (nd ? rIn('Deadrise at LCG θ_D (≤ 30)', p + '.theta_D', s.theta_D, '°') + rIn('Running trim θ_B (≥ 3)', p + '.theta_trim', s.theta_trim, '°') + rIn('Chine / bilge breadth at LCG B_c', p + '.B_c', s.B_c, 'm') + rIn('Waterline breadth at LCG B_W', p + '.B_W', s.B_W, 'm') : '');
     $('#board-ship').innerHTML = '<div class="lp-ship">' + clsPanel +
       '<div class="lp-ship-grid">' + panel('Main particulars', main) + panel('Notations and environment', notation, 'orange') + panel('Motions' + (nd ? ' and planing parameters' : ''), motions, 'purple') +
-      panel('Frame table', rIn('x of frame 0 from aft end of L_WL', p + '.x0', s.x0, 'm') + rIn('Spacing zones  fromFrame:spacing, …', p + '.frames', s.frames, 'm') +
-        '<div class="lp-hint">Points can then be entered as <b>#12</b> or <b>#-3</b> instead of millimetres. SSC loads use x from the aft end of L_WL.</div>', 'success') + '</div>' +
+      frameTablePanel(p, s, 'x of frame 0 from aft end of L_WL') + '</div>' +
       '<div class="lp-derived"><div class="lp-derived-title">Derived from the rules</div><div class="lp-hero lp-hero-wide">' + tiles + '</div></div></div>';
   }
   function paintShipLR(s, p, ship, clsPanel) {
@@ -699,9 +702,30 @@
       rSel('Number of decks (K_1 for beams)', p + '.decks', s.decks || 1, [[1, '1'], [2, '2'], [3, '3'], [4, '4 or more']]) + rIn('Tank liquid relative density ρ (≥ 1.025)', p + '.rho', s.rho);
     $('#board-ship').innerHTML = '<div class="lp-ship">' + clsPanel +
       '<div class="lp-ship-grid">' + panel('Main particulars', main) + panel('Hull girder and notation', hull, 'orange') +
-      panel('Frame table', rIn('x of frame 0 from A.P.', p + '.x0', s.x0, 'm') + rIn('Spacing zones  fromFrame:spacing, …', p + '.frames', s.frames, 'm') + '<div class="lp-hint">Points can then be entered as <b>#12</b> or <b>#-3</b>. LR tables use x from the A.P.; the fore / aft end rows switch at 0.3 L and 0.7 L.</div>', 'success') +
+      frameTablePanel(p, s, 'x of frame 0 from A.P.') +
       panel('Scope', '<div class="lp-hint">General cargo ship rows (Pt 4 Ch 1) in the midship region, fore / aft end shell (Pt 3 Ch 5-6), erections (Pt 3 Ch 8), decks and bulkheads (Pt 3 Ch 3 Sec 5 heads). Other ship types (Pt 4 Ch 2-13), hull girder, buckling and primary members are not covered.</div>', 'purple') + '</div>' +
       '<div class="lp-derived"><div class="lp-derived-title">Derived from the rules</div><div class="lp-hero lp-hero-wide">' + tiles + '</div></div></div>';
+  }
+  /* frame table: one row per spacing zone (a ship has at least three - aft body, cargo region, fore body).
+     Each row: first frame of the zone, spacing in mm; the zone runs to the next row's frame. Frames aft of
+     the first row use the first row's spacing. x of every zone start is shown from the frame-0 datum. */
+  function frameTablePanel(p, s, datumLabel) {
+    var ship = shipModel(), zones = s.frameZones.map(function (z, i) { return { i: i, from: parseFloat(z.from), s: z.s }; });
+    var order = zones.slice().sort(function (a, b) { return (isNaN(a.from) ? 1e9 : a.from) - (isNaN(b.from) ? 1e9 : b.from); });
+    var rows = order.map(function (z, k) {
+      var next = order[k + 1], to = next && !isNaN(next.from) ? next.from : '→ fwd';
+      var x = isNaN(z.from) ? NaN : Sea.frameX(ship.frames, z.from);
+      return '<tr><td><input class="lp-in" type="number" step="1" data-path="ship.frameZones.' + z.i + '.from" value="' + esc(s.frameZones[z.i].from) + '"></td>' +
+        '<td class="lp-fr-to">' + (typeof to === 'number' ? '#' + to : to) + '</td>' +
+        '<td><input class="lp-in" type="number" step="10" min="1" data-path="ship.frameZones.' + z.i + '.s" value="' + esc(s.frameZones[z.i].s) + '"></td>' +
+        '<td class="lp-fr-x">' + (isNaN(x) ? '–' : f2(x, 3)) + '</td>' +
+        '<td><button class="lp-fr-del" title="Remove zone" data-act="zoneDel" data-i="' + z.i + '"' + (zones.length <= 1 ? ' disabled' : '') + '>✕</button></td></tr>';
+    }).join('');
+    var body = rIn(datumLabel, p + '.x0', s.x0, 'm') +
+      '<div class="lp-fr"><table class="lp-fr-table"><thead><tr><th>From frame</th><th>To frame</th><th>Spacing mm</th><th>x at from, m</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<button class="lp-fr-add" data-act="zoneAdd">+ Add spacing zone</button></div>' +
+      '<div class="lp-hint">Points can then be entered as <b>#12</b> or <b>#-3</b> instead of millimetres. A zone runs from its first frame to the next zone; frames aft of the first zone keep its spacing.</div>';
+    return panel('Frame table', body, 'success');
   }
   function paintShip() {
     var s = S.ship, p = 'ship', ship = shipModel(), bv = isBV();
@@ -753,8 +777,7 @@
       panel('Main dimensions', main) +
       panel('Stability and motions', stab, 'purple') +
       panel('Decks and freeboard', decks, 'orange') +
-      panel('Frame table', rIn('x of frame 0 from aft end of L', p + '.x0', s.x0, 'm') + rIn('Spacing zones  fromFrame:spacing, …', p + '.frames', s.frames, 'm') +
-        '<div class="lp-hint">Points can then be entered as <b>#12</b> or <b>#-3</b> instead of millimetres. Zones apply from the named frame forward; the first zone also covers frames aft of it.</div>', 'success') +
+      frameTablePanel(p, s, 'x of frame 0 from aft end of L') +
       '</div>' +
       '<div class="lp-derived"><div class="lp-derived-title">Derived from the rules</div><div class="lp-hero lp-hero-wide">' + tiles + '</div></div>' +
       '</div>';
@@ -781,6 +804,8 @@
     var cb = e.target.closest('[data-cls]');
     if (cb && !cb.disabled) { S.ship.cls = cb.dataset.cls; persist(); paint(); return; }
     var b = e.target.closest('[data-act]'); if (!b) return;
+    if (b.dataset.act === 'zoneAdd') { var last = S.ship.frameZones[S.ship.frameZones.length - 1] || { from: 0, s: 600 }; S.ship.frameZones.push({ from: (parseFloat(last.from) || 0) + 20, s: last.s }); persist(); paint(); return; }
+    if (b.dataset.act === 'zoneDel') { if (S.ship.frameZones.length > 1) S.ship.frameZones.splice(+b.dataset.i, 1); persist(); paint(); return; }
     var tab = b.dataset.tab, list = S[tab], i = +b.dataset.i;
     if (b.dataset.act === 'add') list.push(tab === 'press' ? defPressCol() : tab === 'acc' ? defAccCol() : defScantCol());
     if (b.dataset.act === 'dup') list.splice(i + 1, 0, JSON.parse(JSON.stringify(list[i])));
