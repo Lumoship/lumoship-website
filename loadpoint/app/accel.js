@@ -26,8 +26,14 @@
     var f_r = F_R[ship.service || 'R0'] || 1.0;
     var f_ps = (opt.bwe ? 0.8 : 1.0) * f_r, f_p = f_ps;
     var f_T = Math.min(Math.max(T_LC / T_SC, 0.5), 1.0);
-    var GM = ship.GM || (ship.tanker ? 0.12 : 0.07) * B;
-    var k_r = ship.k_r || 0.39 * B;
+    /* GM and k_r of the considered loading condition. Ch 4 Sec 3 [2.1.1] gives only the general
+       defaults 0.07 B / 0.39 B (tankers 0.12 B, 0.35 B in ballast); for the ballast draught Nauticus
+       applies the normal-ballast values of Pt 5 Ch 1 Sec 2 Tab 4, GM 0.33 B and k_r 0.45 B, and the
+       tool follows that so both agree. Ship inputs GM / k_r (loaded) and GM_BAL / k_r_BAL override. */
+    var ballast = !!opt.ballast || (T_LC < T_SC - 1e-9);
+    var GM = ballast ? (ship.GM_BAL || 0.33 * B) : (ship.GM || (ship.tanker ? 0.12 : 0.07) * B);
+    var k_r = ballast ? (ship.k_r_BAL || (ship.tanker ? 0.35 : 0.45) * B) : (ship.k_r || 0.39 * B);
+    GM = Math.max(GM, 0.05 * B);
     var f_BK = ship.bilgeKeel === false ? 1.2 : 1.0;
     var v = L < 100 ? 0 : (L >= 150 ? 5 : 5 * (L - 100) / 50);
     var a0 = (1.58 - 0.47 * C_B) * (2.4 / Math.sqrt(L) + 34 / L - 600 / (L * L));
@@ -58,7 +64,7 @@
       a_heave = kh * f_p * a0 * g;
       a_pitch = f_p * kp * pitchTerm;
     }
-    return { L: L, B: B, D: ship.D, C_B: C_B, T_SC: T_SC, T_LC: T_LC, f_T: f_T, f_r: f_r, f_ps: f_ps, GM: GM, k_r: k_r, f_BK: f_BK, v: v,
+    return { L: L, B: B, D: ship.D, C_B: C_B, T_SC: T_SC, T_LC: T_LC, f_T: f_T, f_r: f_r, f_ps: f_ps, GM: GM, k_r: k_r, f_BK: f_BK, v: v, ballast: ballast,
              a0: a0, R: R, T_theta: T_th, theta: theta, T_phi: T_ph, lambda_phi: lam_phi, phi: phi,
              a_surge: a_surge, a_sway: a_sway, a_heave: a_heave, a_roll: a_roll, a_pitch: a_pitch, bwe: !!opt.bwe };
   }

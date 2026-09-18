@@ -24,7 +24,8 @@
     return { cls: 'dnv', name: '', L: 120.78, B: 17.2, D: 9.8, T_SC: 7.1, T_BAL: 4.106, C_B: 0.821, C_W: 0.88, C_B_BAL: '', C_W_BAL: '', GM: '', k_r: '', bilgeKeel: true, service: 'R0',
              nav: 'unrestricted', roro: false, prescriptive: true, tanker: false, decksAbove07D: 1, L_LL: '', typeA: false, x0: 0, frames: '', frameZones: [{ from: -8, s: 600 }, { from: 20, s: 700 }, { from: 160, s: 600 }],
              /* LR SSC */ L_WL: '', disp: '', V: '', mode: 'disp', H_s: '', group: 'G4', stype: 'passenger', hull: 'none', craft: 'Mono', x_LCG: '', z_k: 0, theta_D: '', theta_trim: '', B_c: '', B_W: '',
-             /* LR Ships */ matHull: 235, F_D: '', F_B: '', fbType: 'B', H_b: '', rho: 1.025, decks: 1 };
+             /* LR Ships */ matHull: 235, F_D: '', F_B: '', fbType: 'B', H_b: '', rho: 1.025, decks: 1,
+             GM_BAL: '', k_r_BAL: '' };
   };
   var COMP_KINDS = [['none', 'No compartment'], ['sea', 'External sea'], ['ballast', 'Ballast tank'], ['fresh', 'Fresh water tank'],
                     ['fuel', 'Fuel / lube oil tank'], ['cargo', 'Cargo tank (liquid)'], ['other', 'Other tank'], ['deck', 'Deck / platform (distributed load)'],
@@ -39,7 +40,7 @@
   var defSSC = function () { return { B_x: '', T_x: '', theta_B: '', theta_S: '', z_deck: '', h_b: '', W_cdp: '', sheltered: false, ssAft: false, stepped: false, G_o: '', continuous: true, crowd: false, a_z_g: '' }; };
   var defLR = function () { return { S: '', H_td: '', p_a: '', C: '', accommodation: false, tier: 1, sheltered: false, h_4: '', deepTank: false, X: '', face: 'aft', b: '', casing: false, insideOpenings: false, deckLevel: 'second', tankBottom: false, underHatch: false, z_bilge: '', t_c: '', H: '', brackets: 'two', la_l: 1, w1: 1, w2: 1, tween: false, aftPeak: false, peak: false, S_1: '', tankSide: false, deckhouse: false, shortErection: false, sideSpan: false, continuous: true, member: 'secondary' }; };
   var defPressCol = function () { return { name: '', X: '#0', Y: 0, Z: 0, B_x: '', member: 'side', comp1: defComp('none'), comp2: defComp('sea'), scenario: 'all', showCases: false, ssc: defSSC(), lr: defLR() }; };
-  var defAccCol = function () { return { name: '', X: '#60', Y: 0, Z: 9800, draught: 'T_SC', bwe: false, showCases: true }; };
+  var defAccCol = function () { return { name: '', X: '#60', Y: 0, Z: 9800, draught: 'all', bwe: 'all', showCases: true }; };
   var defScantCol = function () {
     return { name: '', X: '#15', Y: 0, Z: 9300, a: 2400, b: 740, comp1: defComp('none'), comp2: defComp('none'), scenario: 'all',
              member: 'strengthDeck', stiffening: 'long', vertical: false, tp: 8, matP: 235, profType: 'FB', hp: 'HP100x8', h: 100, t: 8, bf: 0, tf: 0,
@@ -59,7 +60,7 @@
     }
     var zones = s.frameZones.map(function (z) { return { from: parseFloat(z.from), s: parseFloat(z.s) / 1000 }; }).filter(function (z) { return !isNaN(z.from) && !isNaN(z.s) && z.s > 0; });
     return { cls: s.cls || 'dnv', L: +s.L, B: +s.B, D: +s.D, T_SC: +s.T_SC, T_BAL: num(s.T_BAL), C_B: +s.C_B, C_W: num(s.C_W) || 0.85, C_B_BAL: num(s.C_B_BAL), C_W_BAL: num(s.C_W_BAL),
-             nav: s.nav || 'unrestricted', roro: !!s.roro, prescriptive: s.prescriptive !== false, GM: num(s.GM), k_r: num(s.k_r), bilgeKeel: !!s.bilgeKeel,
+             nav: s.nav || 'unrestricted', roro: !!s.roro, prescriptive: s.prescriptive !== false, GM: num(s.GM), k_r: num(s.k_r), GM_BAL: num(s.GM_BAL), k_r_BAL: num(s.k_r_BAL), bilgeKeel: !!s.bilgeKeel,
              service: s.service || 'R0', tanker: !!s.tanker, decksAbove07D: +s.decksAbove07D || 0, L_LL: num(s.L_LL), typeA: !!s.typeA,
              frames: { x0: +s.x0 || 0, zones: zones },
              /* LR SSC (T = T_SC) */
@@ -344,17 +345,25 @@
       if (isLR()) { h += column('acc.' + i, col, rIn('Point name', 'acc.' + i + '.name', col.name) + pointRows('acc.' + i, col), rOut('Accelerations', 'not part of the LR Rules for Ships local scantling method', '', 'Pt 3 Ch 3 Sec 5 works with design heads; motions appear only in the sloshing check (5.4) and Pt 3 Ch 14 securing'), '', 'acc', i, [], { text: 'Head-based rules', cls: 'info' }); return; }
       var p = 'acc.' + i, pt = pointOf(ship, col);
       var body = rIn('Point name', p + '.name', col.name) + pointRows(p, col) +
-        rSel('Draught', p + '.draught', col.draught, [['T_SC', 'T_SC (scantling)'], ['T_BAL', 'T_BAL (ballast)']]) +
-        rSel('Load scenario', p + '.bwe', col.bwe ? '1' : '0', [['0', 'ExtremeSea'], ['1', 'BWExchange']]);
+        rSel('Draught', p + '.draught', col.draught, [['all', '-All- (T_SC and T_BAL)'], ['T_SC', 'T_SC (scantling)'], ['T_BAL', 'T_BAL (ballast)']]) +
+        rSel('Load scenario', p + '.bwe', col.bwe === 'all' ? 'all' : (col.bwe === true || col.bwe === '1' ? '1' : '0'), [['all', '-All- (ExtremeSea and BWExchange)'], ['0', 'ExtremeSea'], ['1', 'BWExchange']]);
       var res = '', err = '', hero = [];
       try {
-        var T = col.draught === 'T_BAL' ? (ship.T_BAL || 0.6 * ship.T_SC) : ship.T_SC;
-        var A = accOf();
-        var m = A.motions(ship, { T_LC: T, bwe: col.bwe === true || col.bwe === '1' });
-        var ca = A.caseAccelerations(m, pt.x, pt.y, pt.z), env = A.envelope(m, pt.x, pt.y, pt.z);
-        var rows = A.CASES.map(function (k) { return { name: k, aX: ca[k].aX, aY: ca[k].aY, aZ: ca[k].aZ }; });
+        var A = accOf(), T_BAL = ship.T_BAL || 0.6 * ship.T_SC;
+        var draughts = col.draught === 'all' ? [['T_SC', ship.T_SC], ['T_BAL', T_BAL]] : [[col.draught === 'T_BAL' ? 'T_BAL' : 'T_SC', col.draught === 'T_BAL' ? T_BAL : ship.T_SC]];
+        var scen = col.bwe === 'all' ? [false, true] : [col.bwe === true || col.bwe === '1'];
+        /* every draught x scenario combination, each with its own motions; the tables show the combination tag */
+        var combos = [], rows = [], env = null, m = null;
+        draughts.forEach(function (d) { scen.forEach(function (b) {
+          var mm = A.motions(ship, { T_LC: d[1], bwe: b, ballast: d[0] === 'T_BAL' }), cc = A.caseAccelerations(mm, pt.x, pt.y, pt.z), ee = A.envelope(mm, pt.x, pt.y, pt.z);
+          var tag = (b ? 'BWExchange' : 'ExtremeSea') + ' · ' + d[0];
+          combos.push({ tag: tag, m: mm, env: ee });
+          A.CASES.forEach(function (k) { rows.push({ name: k + (combos.length > 1 || draughts.length > 1 || scen.length > 1 ? ' · ' + tag : ''), aX: cc[k].aX, aY: cc[k].aY, aZ: cc[k].aZ, tag: tag }); });
+          if (!env) env = ee; else ['a_x_env', 'a_y_env', 'a_z_env', 'a_z_env_pitch', 'a_z_env_roll'].forEach(function (k) { if (Math.abs(ee[k]) > Math.abs(env[k])) env[k] = ee[k]; });
+        }); });
         var mx = function (key) { return rows.reduce(function (b, r) { return Math.abs(r[key]) > Math.abs(b[key]) ? r : b; }, rows[0]); };
         var bx = mx('aX'), by = mx('aY'), bz = mx('aZ');
+        m = combos.filter(function (c) { return c.tag === bz.tag; })[0].m;          /* intermediate results of the combination giving max a_Z */
         hero = [{ label: 'a_X', value: f2(bx.aX), sub: 'm/s² · ' + bx.name, cls: 'accent' }, { label: 'a_Y', value: f2(by.aY), sub: 'm/s² · ' + by.name, cls: 'accent' }, { label: 'a_Z', value: f2(bz.aZ), sub: 'm/s² · ' + bz.name, cls: 'accent' }];
         res += rSub('Results') + rOut('Critical load case (a_X / a_Y / a_Z)', bx.name + ' / ' + by.name + ' / ' + bz.name) +
           rOut('a_X max |·|', f2(bx.aX) + ' m/s²', 'hl') + rOut('a_Y max |·|', f2(by.aY) + ' m/s²', 'hl') + rOut('a_Z max |·|', f2(bz.aZ) + ' m/s²', 'hl') +
@@ -367,14 +376,15 @@
           (isBV() ? rOut('a_yaw', f2(m.a_yaw, 4) + ' rad/s²') + rOut('Wave parameter H (heave / pitch / surge)', f2(m.H_heave, 3) + ' / ' + f2(m.H_pitch, 3) + ' / ' + f2(m.H_surge, 3) + ' m') +
                     rOut('Dimensionless roll period T_R', f2(m.T_R, 3)) + rOut('Navigation coefficient n', f2(m.n, 3)) + rOut('C_B-LC · C_W-LC', f2(m.C_B_LC, 3) + ' · ' + f2(m.C_W_LC, 3))
                   : rOut('Acceleration parameter a_0', f2(m.a0, 4))) +
-          rOut('Draught ratio f_T', f2(m.f_T, 3)) + rOut('f_ps', f2(m.f_ps)) + rOut('Applied GM', f2(m.GM) + ' m') + rOut('Applied k_r', f2(m.k_r) + ' m') +
+          rOut('Draught ratio f_T', f2(m.f_T, 3)) + rOut('f_ps', f2(m.f_ps)) + rOut('Applied GM', f2(m.GM) + ' m', '', m.ballast ? 'ballast condition: 0.33 B unless GM_BAL given' : 'loaded: 0.07 B unless GM given') + rOut('Applied k_r', f2(m.k_r) + ' m', '', m.ballast ? 'ballast: 0.45 B unless k_r_BAL given' : 'loaded: 0.39 B unless k_r given') +
+          (combos.length > 1 ? rOut('Intermediate results shown for', combos.filter(function (c) { return c.tag === bz.tag; })[0].tag) : '') +
           (isBV() ? rOut('Centre of gravity x_G · z_G', f2(m.x_G, 2) + ' · ' + f2(m.z_G, 2) + ' m') : rOut('Ship rotation centre R', f2(m.R) + ' m')) +
           rOut('Point x, y, z', f2(pt.x, 3) + ', ' + f2(pt.y, 3) + ', ' + f2(pt.z, 3) + ' m');
         rows.forEach(function (r) { r._best = r.name === bz.name; });
         res += '<details class="lp-det"' + (col.showCases ? ' open' : '') + ' data-path="' + p + '.showCases"><summary>Load cases (' + (isBV() ? 'Ch 5 Sec 3 [3.2]' : 'Ch 4 Sec 3 [3.2]') + ')</summary>' +
           casesTable(rows, [['Case', 'name'], ['a_X', 'aX'], ['a_Y', 'aY'], ['a_Z', 'aZ']]) + '</details>';
       } catch (e) { err = e.message; console.error(e); }
-      h += column(p, col, body, res, err, 'acc', i, hero, { text: col.bwe === true || col.bwe === '1' ? 'BWE' : 'Extreme sea', cls: 'info' });
+      h += column(p, col, body, res, err, 'acc', i, hero, { text: col.bwe === 'all' ? 'All' : (col.bwe === true || col.bwe === '1' ? 'BWE' : 'Extreme sea'), cls: 'info' });
     });
     $('#board-acc').innerHTML = h + addBtn('acc');
   }
@@ -762,7 +772,8 @@
         rChk('Bilge keel fitted', p + '.bilgeKeel', s.bilgeKeel) + rChk('Oil tanker / bulk carrier (Tab 4 GM, k_r)', p + '.tanker', s.tanker) +
         rSel('Navigation notation', p + '.nav', s.nav, [['unrestricted', 'Unrestricted navigation'], ['summer', 'Summer zone'], ['tropical', 'Tropical zone'], ['coastal', 'Coastal area'], ['sheltered', 'Sheltered area']]) +
         rChk('Prescriptive assessment (P_ex >= 2.5 kN/m²)', p + '.prescriptive', s.prescriptive !== false)
-      : rIn('GM (blank = 0.07 B, tankers 0.12 B)', p + '.GM', s.GM, 'm') + rIn('Roll radius of gyration k_r (blank = 0.39 B)', p + '.k_r', s.k_r, 'm') +
+      : rIn('GM, loaded (blank = 0.07 B, tankers 0.12 B)', p + '.GM', s.GM, 'm') + rIn('k_r, loaded (blank = 0.39 B)', p + '.k_r', s.k_r, 'm') +
+        rIn('GM, ballast (blank = 0.33 B, Pt 5 Ch 1 Tab 4 as Nauticus)', p + '.GM_BAL', s.GM_BAL, 'm') + rIn('k_r, ballast (blank = 0.45 B, tankers 0.35 B)', p + '.k_r_BAL', s.k_r_BAL, 'm') +
         rChk('Bilge keel fitted', p + '.bilgeKeel', s.bilgeKeel) + rChk('Tanker', p + '.tanker', s.tanker) +
         rSel('Service area notation', p + '.service', s.service, [['R0', 'R0 (unrestricted)'], ['R1', 'R1'], ['R2', 'R2'], ['R3', 'R3'], ['R4', 'R4']]);
     var main = rIn('Ship / project', p + '.name', s.name) +
