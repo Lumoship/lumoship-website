@@ -30,10 +30,10 @@
       hint: 'Divide each panel into strakes and set thickness and grade. Keep Auto on to let the engine seed them, or edit freely — the last strake fits the panel. Run the plate optimizer from Analysis mode when the layout is right.' },
     { n: 5, key: 'stiffeners', label: 'Stiffeners', page: 3, tab: 'params', view: 'profile',
       title: 'Stiffener spacing & profiles',
-      hint: 'First the spacings and profile types per surface (Params tab), then the individual profiles (Prof tab). Auto-recalculate regenerates positions from the spacing; optimizers size the profiles against the rules.' },
+      hint: 'First the spacings and profile types per surface (Params tab), then the individual profiles (Prof tab). Regenerate (Params tab) rebuilds positions from the spacing; optimizers size the profiles against the rules.' },
     { n: 6, key: 'check',      label: 'Check',      page: 4,
       title: 'Rule check & report',
-      hint: 'Hull girder, local scantling and buckling results for every element. Export PDF / Excel / DXF from the header.' }
+      hint: 'Hull girder, local scantling and buckling results for every element. Export the report (PDF), Excel or DXF with the buttons at the bottom of this page.' }
   ];
 
   var KEY = 'midship_step_v1';
@@ -124,7 +124,7 @@
         (P[k] || []).forEach(function (p) { total++; if (p.profileName) custom++; });
       });
       items.push({ ok: PR.dbSpacing > 0 && PR.sideSpacing > 0, text: 'Spacing: DB ' + (PR.dbSpacing || '—') + ' · side ' + (PR.sideSpacing || '—') + ' mm (Params tab)' });
-      items.push({ ok: total > 0, text: total ? total + ' stiffeners — ' + custom + ' with a custom profile, ' + (total - custom) + ' on the group default' : 'No stiffeners yet — set spacings and Auto-recalculate' });
+      items.push({ ok: total > 0, text: total ? total + ' stiffeners — ' + custom + ' with a custom profile, ' + (total - custom) + ' on the group default' : 'No stiffeners yet — set spacings and Regenerate (Params tab)' });
       var le = numVal('le');
       items.push({ ok: le != null && le > 0, text: 'l_e (web frame span) ' + (le != null ? le + ' m' : '— blank, optimizers assume 1.5 m') });
       return items;
@@ -162,7 +162,7 @@
     h += '<div class="step-strip-nav">';
     h += '<button class="ea-btn ea-btn-secondary ea-btn-sm" onclick="stepPrev()" ' + (step.n === 1 ? 'disabled' : '') + '>&larr; ' + (step.n > 1 ? stepByN(step.n - 1).label : 'Back') + '</button>';
     if (step.n < STEPS.length) {
-      h += '<button class="ea-btn ea-btn-primary ea-btn-sm" onclick="stepNext()">' + stepByN(step.n + 1).label + ' &rarr;' + (open ? ' <span class="step-strip-open">' + open + ' open</span>' : '') + '</button>';
+      h += '<button class="ea-btn ea-btn-primary ea-btn-sm" onclick="stepNext()">' + stepByN(step.n + 1).label + ' &rarr;</button>';
     } else {
       h += '<button class="ea-btn ea-btn-primary ea-btn-sm" onclick="exportPDF && exportPDF()">Report &rarr;</button>';
     }
@@ -171,6 +171,7 @@
   }
 
   function mountStrip(step) {
+    try { document.body.classList.toggle('example-project', !!(D().isExampleGeometry && D().isExampleGeometry())); } catch (_) {}
     document.querySelectorAll('.step-strip-host').forEach(function (el) { el.innerHTML = ''; });
     var page = $('page-' + step.page); if (!page) return;
     var host = page.querySelector('.step-strip-host');
@@ -185,6 +186,9 @@
 
   function refreshStrip() {
     var step = stepByN(current);
+    paintNav(current);
+    // Laker-only controls (Variant) show only while the example geometry is loaded.
+    try { document.body.classList.toggle('example-project', !!(D().isExampleGeometry && D().isExampleGeometry())); } catch (_) {}
     var host = $('page-' + step.page) && $('page-' + step.page).querySelector('.step-strip-host');
     if (host) host.innerHTML = stripHtml(step);
   }
@@ -195,6 +199,15 @@
       var s = parseInt(b.dataset.step);
       b.classList.toggle('active', s === n);
       b.classList.toggle('completed', s < n);
+      // Amber ring on any step whose checklist still has open items, so a
+      // step skipped with "Next" is visible from every other step.
+      var open = 0;
+      try { open = (CHECKS[s] ? CHECKS[s]() : []).filter(function (i) { return !i.ok; }).length; } catch (_) { open = 0; }
+      // Only steps already passed get the ring; the current one has the
+      // badge, and steps not reached yet are naturally open.
+      b.classList.toggle('incomplete', open > 0 && s < n);
+      var num = b.querySelector('.ea-wizard-num');
+      if (num) num.title = open ? open + ' open item(s)' : 'Complete';
     });
     document.querySelectorAll('.ea-wizard-line').forEach(function (l, i) { l.classList.toggle('completed', i < n - 1); });
     var back = document.querySelector('#bottomStatusBar .sb-nav-btn.back');
@@ -218,10 +231,6 @@
           var grid = document.querySelector('.main-grid');
           if (grid && !grid.classList.contains('left-collapsed') && window.toggleSidePanel) window.toggleSidePanel('left');
         }
-        if (!localStorage.getItem('midship_info_overlay')) {
-          var ov = $('infoOverlay'), sb = $('infoOverlayShowBtn');
-          if (ov && sb && ov.style.display !== 'none') { ov.style.display = 'none'; sb.style.display = 'inline-flex'; }
-        }
       } catch (_) {}
       // goToPage(3) initialises the drawing on a 50 ms tick and the editor a
       // little after; switch tab/view once both exist, then refresh the checks.
@@ -229,6 +238,8 @@
       (function arm() {
         var ready = document.querySelector('.ed-tab') && document.querySelector('.view-pill');
         if (!ready && tries++ < 40) return setTimeout(arm, 100);
+        wireTabsMore();
+        wireFolding();
         if (step.tab) clickEditorTab(step.tab);
         if (step.view) setView(step.view);
         refreshStrip();
@@ -265,7 +276,7 @@
     document.addEventListener('change', bump, true);
     document.addEventListener('input', bump, true);
     document.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('.ed-add-btn, .ed-del-btn, #recalcBtn, #runAnalysisBtn, [data-sg-del], #sgAdd')) bump();
+      if (e.target.closest && e.target.closest('.ed-add-btn, .ed-del-btn, #recalcBtn, [data-regen-go], #runAnalysisBtn, [data-sg-del], #sgAdd')) bump();
     }, true);
   }
 
@@ -277,14 +288,61 @@
       var before = document.getElementById('newProjectModal');
       var r = orig.apply(this, arguments);
       // createProject closes the modal only when validation passed.
-      if (before && !before.classList.contains('open')) setTimeout(function () { goToStep(2); }, 700);
+      if (before && !before.classList.contains('open')) setTimeout(function () {
+        goToStep(2);
+        // The new section has a different envelope than whatever was on
+        // screen; fit it once the editor has re-rendered.
+        setTimeout(function () { try { D().fitView && D().fitView(); } catch (_) {} }, 400);
+      }, 700);
       return r;
     };
     wrapped.__stepHooked = true;
     window.Project.createProject = wrapped;
   }
 
+  // The editor re-renders its tab bar often; keep a "⋯" (all tabs) toggle on it.
+  function wireTabsMore() {
+    var host = $('edContent'); if (!host || host.__moreWired) return;
+    host.__moreWired = true;
+    var add = function () {
+      var bar = host.querySelector('.ed-tabs'); if (!bar || bar.querySelector('.ed-tabs-more')) return;
+      var b = document.createElement('button');
+      b.className = 'ed-tab ed-tabs-more'; b.type = 'button'; b.textContent = '⋯';
+      b.title = 'Show all editor tabs (this step shows only the ones it needs)';
+      b.addEventListener('click', function () { document.body.classList.toggle('all-tabs'); });
+      bar.appendChild(b);
+    };
+    add();
+    new MutationObserver(add).observe(host, { childList: true });
+  }
+
+  // Fold / unfold editor groups by clicking their header; remembered by title.
+  var folded = {};
+  try { folded = JSON.parse(localStorage.getItem('midship_folded') || '{}'); } catch (_) {}
+  function groupKey(g) { var t = g.querySelector('.ed-group-header'); return t ? t.textContent.replace(/\(.*?\)/g, '').replace(/[\d\s·Σ✓⚠]+/g, ' ').trim().slice(0, 40) : ''; }
+  function applyFolds() {
+    document.querySelectorAll('#edContent .ed-group').forEach(function (g) { var k = groupKey(g); if (k && folded[k]) g.classList.add('collapsed'); });
+  }
+  function wireFolding() {
+    var host = $('edContent'); if (!host || host.__foldWired) return;
+    host.__foldWired = true;
+    host.addEventListener('click', function (e) {
+      var hdr = e.target.closest('.ed-group-header'); if (!hdr || !host.contains(hdr)) return;
+      if (e.target.closest('button, input, select, a, label')) return;
+      var g = hdr.parentElement; if (!g || !g.classList.contains('ed-group')) return;
+      g.classList.toggle('collapsed');
+      var k = groupKey(g); if (k) { if (g.classList.contains('collapsed')) folded[k] = 1; else delete folded[k]; }
+      try { localStorage.setItem('midship_folded', JSON.stringify(folded)); } catch (_) {}
+    });
+    new MutationObserver(applyFolds).observe(host, { childList: true });
+    applyFolds();
+  }
+
   function boot() {
+    // Ctrl+Shift+D reveals the developer buttons (Debug / Refresh) on the Geometry page.
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { document.body.classList.toggle('dev-mode'); e.preventDefault(); }
+    });
     hookGoToPage();
     hookProject();
     wireRefresh();

@@ -706,8 +706,7 @@ function recalcAll() {
   _setWeight('sum_plate', w.W_plate);
   _setWeight('sum_long',  w.W_long);
   _setWeight('sum_grand', w.total);
-  document.getElementById('sum_status').textContent = 'PASS';
-  document.getElementById('statusCard').className = 'ea-summary-card pass';
+  refreshSummaryStatus();
   document.getElementById('sum_FBD').textContent = `${p.FB.toFixed(2)} / ${p.FD.toFixed(2)}`;
   document.getElementById('sum_mat').textContent = `${p.matKey} (k=${p.k})`;
   document.getElementById('sum_Cw').textContent = Cw.toFixed(2) + ' m';
@@ -1028,3 +1027,30 @@ function loadJSON(e) {
   e.target.value = '';
 }
 
+
+
+// Status card on the Summary page. Single source: the rule-check counters
+// the Bridge fills in (#cntOk / #cntFail). Until an analysis has run the
+// card stays neutral instead of claiming PASS.
+function refreshSummaryStatus() {
+  const st = document.getElementById('sum_status');
+  const card = document.getElementById('statusCard');
+  if (!st || !card) return;
+  const okN = parseInt((document.getElementById('cntOk') || {}).textContent);
+  const fail = parseInt((document.getElementById('cntFail') || {}).textContent);
+  const ran = isFinite(okN) || isFinite(fail);
+  if (!ran) {
+    st.textContent = '—';
+    card.className = 'ea-summary-card';
+    card.title = 'Run Analysis on the Geometry page to check the rules.';
+  } else if (fail > 0) {
+    st.textContent = 'CHECK';
+    card.className = 'ea-summary-card fail';
+    card.title = fail + ' element(s) below rule minimum — see the rule check table.';
+  } else {
+    st.textContent = 'PASS';
+    card.className = 'ea-summary-card pass';
+    card.title = okN + ' checks OK';
+  }
+}
+window.refreshSummaryStatus = refreshSummaryStatus;

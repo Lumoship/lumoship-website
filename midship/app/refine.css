@@ -817,5 +817,82 @@ body.geometry-active .ed-hint-soft{display:none}
 body.geometry-active .main-grid{grid-template-columns:240px 1fr 300px}
 body.geometry-active .main-grid.left-collapsed{grid-template-columns:30px 1fr 300px}
 body.geometry-active .main-grid.right-collapsed{grid-template-columns:240px 1fr 30px}
-body.geometry-active .ed-group-header{flex-wrap:wrap;row-gap:2px}
-body.geometry-active .ed-count{white-space:normal}
+body.geometry-active .ed-group-header{flex-wrap:nowrap}
+body.geometry-active .ed-count{white-space:nowrap}
+body.geometry-active .ed-group-header{letter-spacing:0.2px}
+body.geometry-active .ed-group-header .ed-add-btn{white-space:nowrap;flex:0 0 auto;padding:2px 8px}
+body.geometry-active .ed-group-header > :first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Setup page as a ship page ─────────────────────────────────────────────
+   Rule settings live under one collapsed <details>; the geometry mirror the
+   Bridge reads is hidden (the drawing owns those numbers at step 2); the
+   Laker's Variant control shows only while the example is loaded. */
+.ea-advanced{margin-top:var(--spacing-lg);border:1px solid var(--border);border-radius:var(--radius-md);background:rgba(255,255,255,0.015)}
+.ea-advanced > summary{cursor:pointer;list-style:none;padding:10px 14px;font-family:var(--font-mono);font-size:var(--fs-xs);letter-spacing:0.4px;text-transform:uppercase;color:var(--text-secondary);display:flex;align-items:center;gap:10px}
+.ea-advanced > summary::-webkit-details-marker{display:none}
+.ea-advanced > summary::before{content:'▸';color:var(--text-muted);transition:transform .15s}
+.ea-advanced[open] > summary::before{transform:rotate(90deg)}
+.ea-advanced-hint{text-transform:none;letter-spacing:0;color:var(--text-muted);font-family:var(--font-body)}
+.ea-advanced-body{padding:0 14px 14px}
+.ea-advanced-body > .ea-section-title:first-child{margin-top:var(--spacing-sm)}
+.setup-geom-mirror[hidden]{display:none}
+body:not(.example-project) .laker-only{display:none}
+/* header: sticky only on the Geometry page (where the viewport is locked anyway);
+   on Setup / Summary two stacked sticky bands swallowed 140 px and hid the title row */
+body:not(.geometry-active) .ea-header{position:static}
+/* step strip: badge everywhere, list never — nothing to clip */
+.step-strip-checks{display:none}
+.step-strip-badge{display:inline-block;margin-left:auto}
+.step-strip{align-items:center}
+.step-strip-nav{flex-direction:row;gap:6px}
+
+/* ── Geometry page: fewer bars, nothing floating over the model ──────────── */
+#infoOverlay,#infoOverlayShowBtn{display:none !important}          /* content now in the left panel (#ruleMinInfoPanel) */
+.ea-page#page-3 > .ea-main > #ruleCheckPanel,
+.ea-page#page-3 > .ea-main > #ruleCheckPanel[style*="display"]{display:none !important}   /* the table lives on the Check page */
+#debugBtn,#refreshAnalysisBtn{display:none !important}               /* developer controls: Ctrl+Shift+D */
+body.dev-mode #debugBtn,body.dev-mode #refreshAnalysisBtn{display:inline-flex !important}
+.rulemin-panel{margin-bottom:var(--spacing-sm)}
+@media(max-width:1500px){
+  body.geometry-active .opt-tool-label{display:none}               /* icon-only optimizer buttons, label in the tooltip */
+  body.geometry-active .opt-tool-btn{padding:5px 8px}
+}
+body.geometry-active .draw-bridge-bar{overflow:visible;flex-wrap:wrap;row-gap:4px}
+
+/* ── Editor tabs follow the step ──────────────────────────────────────────
+   Only the tabs a step needs are shown; "⋯" reveals all of them. */
+body[data-step="2"]:not(.all-tabs) .ed-tab:not([data-ed-tab="geometry"]),
+body[data-step="3"]:not(.all-tabs) .ed-tab:not([data-ed-tab="positions"]):not([data-ed-tab="compartments"]),
+body[data-step="4"]:not(.all-tabs) .ed-tab:not([data-ed-tab="strakes"]):not([data-ed-tab="layers"]),
+body[data-step="5"]:not(.all-tabs) .ed-tab:not([data-ed-tab="params"]):not([data-ed-tab="profiles"]):not([data-ed-tab="transverse"]){display:none}
+.ed-tabs-more{flex:0 0 auto !important;min-width:28px;color:var(--text-muted);font-weight:700}
+body.all-tabs .ed-tabs-more{color:var(--accent)}
+body.all-tabs .ed-tab{flex:1 1 22%}
+body:not(.all-tabs) .ed-tab{flex:1 1 auto}
+
+/* ── Collapsible editor groups: click a group header to fold it ─────────── */
+.ed-group-header{cursor:pointer;user-select:none}
+.ed-group.collapsed > :not(.ed-group-header){display:none !important}
+.ed-group-header{justify-content:flex-start;gap:6px}
+.ed-group-header > :first-child{margin-right:auto}
+.ed-group-header::before{content:'▾';display:inline-block;width:10px;flex:0 0 auto;color:var(--text-muted);font-size:0.65rem;transition:transform .15s}
+.ed-group.collapsed > .ed-group-header::before{transform:rotate(-90deg)}
+/* row density */
+body.geometry-active .ed-row{padding:2px 6px}
+body.geometry-active .ed-input{padding:2px 6px;font-size:0.66rem}
+
+/* ── Review item 6: counters, banner, Regenerate, exports, nav ring ─────── */
+/* C3: exports live on step 6; the header keeps New · Example · Open · Save. */
+.ea-header-actions .ea-export-btn{display:none}
+.ea-page-actions{display:flex;gap:8px;align-items:center}
+/* C2: Regenerate sits in the Params tab with a two-click confirm. */
+.ed-regen{margin-bottom:8px}
+.ed-regen-btn{width:100%}
+.ed-regen-confirm{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid rgba(245,158,11,0.45);border-radius:var(--radius-sm);background:rgba(245,158,11,0.08);font-size:0.68rem;color:var(--warning);font-family:var(--font-mono)}
+.ed-regen-confirm{flex-wrap:wrap}
+.ed-regen-confirm > span{flex:1 0 100%;white-space:nowrap}
+.ed-regen [hidden]{display:none !important}
+/* C5: amber ring on steps with open checklist items (current or passed). */
+.ea-wizard-step.incomplete:not(.active) .ea-wizard-num{border-color:var(--warning);color:var(--warning);background:transparent;box-shadow:0 0 0 2px rgba(245,158,11,0.18)}
+.ea-wizard-step.incomplete.active .ea-wizard-num{box-shadow:0 0 0 2px rgba(245,158,11,0.55)}
+.ea-wizard-step.incomplete:not(.active){color:var(--warning)}

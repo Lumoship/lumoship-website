@@ -61,11 +61,11 @@ const GEOMETRY_META = [
   { key:'IS',        label:'Inner Side Y (from CL)', min:3000, max:15000, step:50 },
 ];
 const PARAMS_META = [
-  { key:'dbSpacing',    label:'DB stiff spacing (target)',    min:400, max:1500, step:25 },
-  { key:'sideSpacing',  label:'Side stiff spacing (target)',  min:400, max:1500, step:5  },
-  { key:'coamingTop',   label:'Coaming top width',      min:0,    max:2000, step:50 },
-  { key:'coamingEdgeH', label:'Coaming edge FB height', min:0,    max:500,  step:10 },
-  { key:'coamingEdgeT', label:'Coaming edge FB thick',  min:0,    max:60,   step:2  },
+  { key:'dbSpacing',    label:'DB spacing',      tip:'Target spacing of double-bottom longitudinals (bottom shell and inner bottom), mm', min:400, max:1500, step:25 },
+  { key:'sideSpacing',  label:'Side spacing',    tip:'Target spacing of side shell / inner side longitudinals, mm',                       min:400, max:1500, step:5  },
+  { key:'coamingTop',   label:'Coaming top',     tip:'Hatch coaming top plate width, mm (0 = no coaming)',                              min:0,    max:2000, step:50 },
+  { key:'coamingEdgeH', label:'Coaming edge FB', tip:'Height of the flat bar on the coaming top free edge, mm',                        min:0,    max:500,  step:10 },
+  { key:'coamingEdgeT', label:'Coaming edge t',  tip:'Thickness of the coaming edge flat bar, mm',                                     min:0,    max:60,   step:2  },
 ];
 
 const SCALE = 0.033;
@@ -3383,11 +3383,19 @@ function renderEditor() {
 
   // === TAB: DESIGN PARAMS (spacing, profile types per surface) ===
   html += `<div class="ed-tab-pane ${EDITOR_TAB === 'params' ? 'active' : ''}" data-tab-pane="params">`;
+  html += `<div class="ed-regen" data-regen-box>
+    <button class="ed-recalc ed-regen-btn" data-regen-ask title="Rebuild all stiffener positions and strakes from the spacings and geometry below. Manual profile edits are discarded.">⟲ Regenerate from parameters</button>
+    <div class="ed-regen-confirm" hidden>
+      <span>Discards manual profile edits.</span>
+      <button class="ed-link-btn on" data-regen-go>Regenerate</button>
+      <button class="ed-link-btn" data-regen-cancel>Cancel</button>
+    </div>
+  </div>`;
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header"><span style="color:#f59e0b">Design Parameters</span></div>`;
   PARAMS_META.forEach(meta => {
-    html += `<div class="ed-row">
-      <span class="ed-id" style="min-width:150px;font-size:0.68rem">${meta.label}</span>
+    html += `<div class="ed-row" title="${meta.tip || ''}">
+      <span class="ed-id" style="min-width:110px;font-size:0.68rem;white-space:nowrap">${meta.label}</span>
       <input class="ed-input param-input" type="number" value="${PARAMS[meta.key]}" data-param-key="${meta.key}" min="${meta.min}" max="${meta.max}" step="${meta.step}">
       <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span>
     </div>`;
@@ -3398,14 +3406,14 @@ function renderEditor() {
     { key:'profTypeIB',       label:'Inner Bottom'       },
     { key:'profTypeStringer', label:'Stringer Deck'      },
     { key:'profTypeTween',    label:'Tween Deck'         },
-    { key:'profTypeCoaming',  label:'Coaming Top Plate'  },
+    { key:'profTypeCoaming',  label:'Coaming Top'        },
     { key:'profTypeSide',     label:'Side Shell'         },
     { key:'profTypeIS',       label:'Inner Side'         },
     { key:'profTypeDeck',     label:'Upper Deck'         },
   ];
   profSurfaces.forEach(ps => {
     html += `<div class="ed-row">
-      <span class="ed-id" style="min-width:150px;font-size:0.68rem">${ps.label} profile</span>
+      <span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap" title="Stiffener profile family for ${ps.label}">${ps.label} profile</span>
       <select class="ed-input proftype-select" data-proftype-key="${ps.key}" style="width:98px">
         <option value="L"  ${PARAMS[ps.key]==='L'  ? 'selected' : ''}>L</option>
         <option value="HP" ${PARAMS[ps.key]==='HP' ? 'selected' : ''}>HP Bulb</option>
@@ -3518,9 +3526,8 @@ function renderEditor() {
         defaultOpts += `<option value="${escapeXml(o.value)}"${sel}>${escapeXml(o.textContent || o.value)}</option>`;
       }
       html += `<div class="ed-row" style="padding:3px 6px;background:rgba(168,85,247,0.06);border-radius:4px;margin-bottom:4px">
-        <span class="ed-id" style="min-width:40px;color:#a855f7;font-size:0.62rem;font-weight:600;letter-spacing:0.5px">DFLT</span>
-        <span style="font-size:0.62rem;color:var(--text-muted);min-width:78px">group profile</span>
-        <select class="ed-group-default-select" data-default-sel-id="${selId}" style="flex:1;min-width:0;font-family:var(--font-mono);font-size:0.7rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);padding:3px 5px;border-radius:3px">
+        <span class="ed-id" style="min-width:52px;color:#a855f7;font-size:0.62rem;font-weight:600;letter-spacing:0.5px;white-space:nowrap" title="Default profile for every stiffener in this group that has no custom profile">Default</span>
+        <select class="ed-group-default-select" data-default-sel-id="${selId}" title="Group default profile" style="flex:1;min-width:0;font-family:var(--font-mono);font-size:0.7rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);padding:3px 5px;border-radius:3px">
           ${defaultOpts}
         </select>
       </div>`;
@@ -3668,7 +3675,7 @@ function renderEditor() {
   // Auto/manual toggle + reset button
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header">
-    <span style="color:#06b6d4">Strakes <span class="ed-count">(${(STRAKES.shell.length + STRAKES.innerBottom.length + STRAKES.innerSide.length)} total)</span></span>
+    <span style="color:#06b6d4;white-space:nowrap">Strakes <span class="ed-count">(${(STRAKES.shell.length + STRAKES.innerBottom.length + STRAKES.innerSide.length)})</span></span>
     <span style="display:flex;gap:4px">
       <button class="ed-link-btn ${STRAKES_AUTO ? 'on' : ''}" id="strakeAutoToggle" title="When ON, strakes regenerate on auto-recalculate">${STRAKES_AUTO ? icon('lock','11px')+' Auto' : icon('pencil','11px')+' Manual'}</button>
       <button class="ed-add-btn" id="strakeResetAll" title="Regenerate all strakes from defaults">↺ reset</button>
@@ -3809,8 +3816,8 @@ function renderEditor() {
     
     let h = `<div style="margin-top:var(--spacing-md)">`;
     h += `<div class="ed-group-header" style="padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid var(--border)">
-      <span style="color:${color}">${label} <span class="ed-count">(${arr.length} · Σ ${Math.round(totalW)}${target != null ? ' / ' + Math.round(target) : ''} mm)</span>
-      ${statusText ? `<span style="font-size:0.6rem;color:${statusColor};margin-left:6px;font-family:var(--font-mono)">${statusText}</span>` : ''}</span>
+      <span style="color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0" title="${label} — ${arr.length} strakes, Σ ${Math.round(totalW)} mm${target != null ? ' of ' + Math.round(target) + ' mm panel' : ''}${statusText ? ' · ' + statusText.replace(/[✓⚠] ?/, '') : ''}">${label} <span class="ed-count">(${arr.length})</span></span>
+      ${statusText ? `<span style="font-size:0.7rem;color:${statusColor};font-family:var(--font-mono);flex:0 0 auto" title="${statusText}">${fits ? '✓' : '⚠'}</span>` : ''}
       <button class="ed-add-btn" data-strake-add="${plateKey}">+ add</button>
     </div>`;
     h += strakeTableHead;
@@ -8079,6 +8086,7 @@ function render() {
   } else {
     svg.innerHTML = html;
   }
+  scaleLabels();
 
   // Event delegation on SVG root using elementsFromPoint (more reliable than e.target)
   if (!svg._strakeClickBound) {
@@ -10794,26 +10802,58 @@ function escapeXml(s) {
 // left a 17 m ship as a thumbnail in the corner. Margins: 120 units on the
 // left for the CL / info gutter, 130 on the right for the AB labels, 40 above
 // the highest member, 60 below the baseline for the Y dimension strip.
+let svgEl = null;        // bound in __drawingInit; currentViewInitial() reads it, so declare first
+let zoomInfoEl = null;
 function currentViewInitial() {
   const g = GEOMETRY || {};
   const top = Math.max(g.HC || 0, g.UD || 0, 1000);
   const xMax = X(g.B_half || 12000) + 130;
   const yMin = Y(top) - 40, yMax = BASELINE_Y + 60;
   const h = yMax - yMin;
-  let w = h * (700 / 720);
-  const needW = MIRROR_BODY ? 2 * xMax : xMax + 120;
+  // Match the drawing box's real aspect so the fit uses the width we have.
+  const aspect = (svgEl && svgEl.clientHeight) ? svgEl.clientWidth / svgEl.clientHeight : 700 / 720;
+  let w = h * aspect;
+  const needW = MIRROR_BODY ? 2 * xMax : xMax + 60;
   if (needW > w) w = needW;
-  const hh = w * (720 / 700);
-  return { x: MIRROR_BODY ? -w / 2 : -120, y: yMax - hh, w: w, h: hh };
+  const hh = w / aspect;
+  // Centre the section horizontally (60-unit gutter minimum on the left for CL).
+  const x = MIRROR_BODY ? -w / 2 : Math.min(-60, (xMax - 60) / 2 - w / 2);
+  return { x: x, y: yMax - hh, w: w, h: hh };
 }
 function fitView() { view = { ...currentViewInitial() }; applyView(); }
 let view = { ...currentViewInitial() };
-let svgEl = null;
-let zoomInfoEl = null;
+
+// =========================================================================
+// LABEL SCALE — drawing text is authored in SVG units (8–9 px at the Laker's
+// 1:1 fit). The fit is height-limited, so on a laptop 9 units ≈ 8 px and
+// the AB labels are unreadable. After every render / zoom, scale every
+// <text> so its authored size lands at >= 11 screen px; zooming in shrinks
+// it back toward the authored size (never below), so labels stop growing
+// when the section is already large.
+// =========================================================================
+const LABEL_MIN_PX = 11;
+function scaleLabels() {
+  if (!svgEl) return;
+  const pxPerUnit = svgEl.clientHeight / (view.h || 1);
+  if (!pxPerUnit || !isFinite(pxPerUnit)) return;
+  svgEl.querySelectorAll('text').forEach(t => {
+    let base = t.dataset.fs;
+    if (base == null) {
+      const inline = (t.style && t.style.fontSize) || t.getAttribute('font-size') || '';
+      base = parseFloat(inline) || 9;
+      t.dataset.fs = base;
+    }
+    base = parseFloat(base);
+    const need = LABEL_MIN_PX / pxPerUnit;               // units needed for 11 px
+    const size = Math.max(base, need * (base / 9));       // keep the authored hierarchy (7.5 / 9 / 12 …)
+    t.style.fontSize = size.toFixed(2) + 'px';
+  });
+}
 
 function applyView() {
   if (!svgEl) return;
   svgEl.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+  scaleLabels();
   const pct = Math.round((currentViewInitial().w / view.w) * 100);
   zoomInfoEl.textContent = pct + '%';
 }
@@ -10925,6 +10965,16 @@ function recomputeAndRender() {
 }
 
 document.getElementById('recalcBtn').addEventListener('click', recomputeAndRender);
+// Params-tab Regenerate: two clicks (ask -> confirm) instead of a blocking dialog.
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-regen-ask],[data-regen-go],[data-regen-cancel]');
+  if (!t) return;
+  const box = t.closest('[data-regen-box]'); if (!box) return;
+  const ask = box.querySelector('[data-regen-ask]'), conf = box.querySelector('.ed-regen-confirm');
+  if (t.hasAttribute('data-regen-ask')) { ask.hidden = true; conf.hidden = false; }
+  else if (t.hasAttribute('data-regen-cancel')) { ask.hidden = false; conf.hidden = true; }
+  else { recomputeAndRender(); }
+});
 
 // View-mode pills — trigger re-render when changed
 document.querySelectorAll('.view-pill').forEach(btn => {
@@ -11950,8 +12000,9 @@ document.getElementById('warnBarToggle')?.addEventListener('click', (e) => {
 });
 
 
-  // Re-apply view & render after refs are bound
-  applyView();
+  // Re-apply view & render after refs are bound — and fit to the real box
+  // (the module-level view was computed before the SVG had a size).
+  fitView();
 }
 window.Draw = window.Draw || {};
 window.Draw.init = __drawingInit;
@@ -11971,6 +12022,7 @@ window.Draw.COMPARTMENTS = COMPARTMENTS;
 window.Draw.computeSectionProperties = computeSectionProperties;
 window.Draw.computeProfiles = computeProfiles;
 window.Draw.levelZs = levelZs;
+window.Draw.isExampleGeometry = isExampleGeometry;
 window.Draw.fitView = fitView;
 window.Draw.syncLevelParams = syncLevelParams;
 window.Draw.hasElement = hasElement;

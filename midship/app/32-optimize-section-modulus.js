@@ -1333,6 +1333,7 @@ const Bridge = {
     const cntFail = document.getElementById('cntFail');
     if (cntOk) cntOk.textContent = ok;
     if (cntFail) cntFail.textContent = fail;
+    if (typeof window.refreshSummaryStatus === 'function') window.refreshSummaryStatus();
     
     // Also refresh the sidebar panels
     if (typeof window.renderAnalysisStatusPanel === 'function') window.renderAnalysisStatusPanel();

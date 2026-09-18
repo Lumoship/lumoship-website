@@ -492,6 +492,10 @@
     if (!D || D <= 0) errs.push('D (depth)');
     if (!T || T <= 0) errs.push('T (draught)');
     if (!Cb || Cb <= 0 || Cb > 1) errs.push('C_b (block coefficient, 0–1)');
+    // The geometry / spacing boxes are hidden in the wizard (steps 2 and 5 own
+    // them). They are normally prefilled by the L/B/D/T input listeners, but a
+    // pasted or programmatic fill skips those, so fill any blank one here.
+    if (B && D) syncPrefill();
     if (!str('np_vesselName')) errs.push('Vessel name');
 
     var spec = {
@@ -635,11 +639,9 @@
       if (el && String(el.value).trim() === '') pending.push(CLEAR_LABELS[id]);
     });
     if (!pending.length) return;
-    notify('<strong>Project created \u2014 ' + pending.length + ' input(s) still need your numbers.</strong><br>' +
-           'These describe the specific ship and cannot be derived from the principal ' +
-           'particulars, so they were left blank rather than carried over:<br>\u2022 ' +
-           pending.join('<br>\u2022 ') +
-           '<br><span style="opacity:.75">M<sub>s</sub> and the side-tank head belong to step 1 (Ship), l<sub>e</sub> to step 5 (Stiffeners). Fill them in before trusting any result.</span>');
+    // Not a banner: the step badges (1 Ship, 5 Stiffeners) name the blanks
+    // and stay amber until they are filled. A toast just points there.
+    toast('Project created — ' + pending.length + ' input(s) still blank (' + pending.join(', ') + '). See the amber step badges.');
   }
 
   // =====================================================================

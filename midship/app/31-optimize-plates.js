@@ -1068,17 +1068,23 @@ window.updateStatusBar = function() {
       modeEl.textContent = window.ANALYSIS_MODE ? 'Analysis' : 'Draw';
       modeEl.className = 'sb-value ' + (window.ANALYSIS_MODE ? 'warn' : '');
     }
-    // Rule Min status — read from existing Loading panel UI
+    // Rule check status — same source as the Summary status card and the
+    // step-6 badge: the #cntOk / #cntFail counters. Hidden until an analysis
+    // has actually run, instead of a "✓ OK" nobody earned.
     const ruleMinEl = document.getElementById('sbRule');
+    const ruleWrap = document.getElementById('sbRuleWrap');
+    const ruleSep = document.getElementById('sbRuleSep');
     if (ruleMinEl) {
-      // Look for any FAIL marker in the Loading panel
-      const sidebar = document.getElementById('drawingSidebar');
-      const failMark = sidebar?.querySelector('[style*="color:var(--error)"], .rule-fail');
-      if (sidebar && sidebar.textContent.includes('FAIL')) {
-        ruleMinEl.textContent = '✗ FAIL';
+      const okN = parseInt(document.getElementById('cntOk')?.textContent);
+      const fail = parseInt(document.getElementById('cntFail')?.textContent);
+      const ran = isFinite(okN) || isFinite(fail);
+      if (ruleWrap) ruleWrap.style.display = ran ? '' : 'none';
+      if (ruleSep) ruleSep.style.display = ran ? '' : 'none';
+      if (ran && fail > 0) {
+        ruleMinEl.textContent = '✗ ' + fail + ' FAIL';
         ruleMinEl.className = 'sb-value fail';
-      } else if (sidebar && sidebar.textContent.includes('OK')) {
-        ruleMinEl.textContent = '✓ OK';
+      } else if (ran) {
+        ruleMinEl.textContent = '✓ ' + okN + ' OK';
         ruleMinEl.className = 'sb-value ok';
       } else {
         ruleMinEl.textContent = '—';
