@@ -5650,3 +5650,37 @@
         /* Katlanabilir bolum oku (js/ui/katlama.js) */
         .katlama-ok { margin-left: 6px; color: var(--text-3); font-weight: 400; }
         [data-katlama]:hover .katlama-ok { color: var(--text); }
+
+        /* Ayni satirdaki ogeler hizali olsun: etiket + giris sutunlarinda girisler
+           alt cizgide bulussun (farkli satir sayili etiketler girisleri kaydiriyordu);
+           yatay flex satirlarda ogeler dikeyde ortalansin. Kendi align-items'i
+           olan satirlar (inline style) oncelikli kalir. */
+        .entity-section div[style*="display:grid"],
+        .panel-card div[style*="display:grid"],
+        .input-section div[style*="display:grid"],
+        .katlama-icerik div[style*="display:grid"] { align-items: end; }
+        .entity-section div[style*="display:flex"]:not([style*="align-items"]):not([style*="flex-direction:column"]),
+        .panel-card div[style*="display:flex"]:not([style*="align-items"]):not([style*="flex-direction:column"]),
+        .input-section div[style*="display:flex"]:not([style*="align-items"]):not([style*="flex-direction:column"]) { align-items: center; }
+
+        /* Boundary > Current Constraints: 7 sutun + sil dugmesi dar panele sigmiyordu,
+           son sutun kirpiliyordu - hucre dolgusu daraltildi, tasarsa yatay kaydirilir */
+        .bc-tablo th, .bc-tablo td { padding: 4px 3px; text-align: center; }
+        .bc-tablo td:first-child, .bc-tablo th:first-child { text-align: left; padding-left: 6px; }
+        .bc-tablo .icon { width: 10px; height: 10px; }
+
+        /* ============== TEK PANEL DUZENI (js/ui/duzen.js) ============== */
+        body.tek-panel #entityInfoEmpty { display: none !important; }
+        body.tek-panel .main-tab-bar .main-tab-group { gap: 0; }
+        body.tek-panel .duzen-kart > .katlama-icerik > * { margin-left: 0; margin-right: 0; }
+        body.tek-panel .duzen-kart h3.panel-title,
+        body.tek-panel .duzen-kart h3.duzen-altbaslik { font-size: var(--font-size-xs); font-weight: 600; margin: 12px 0 4px; padding: 0; border: 0; color: var(--text-muted); }
+        body.tek-panel .duzen-kart .collapsible-panel { border: 0; background: transparent; margin: 0; }
+        body.tek-panel .duzen-kart .collapsible-header { padding: 6px 0; background: transparent; }
+        body.tek-panel .duzen-kart .collapsible-content { padding: 0; }
+        body.tek-panel .duzen-kart .info-box { display: none; }
+        body.tek-panel #resultsBottomPanel { display: flex; }
+        body.tek-panel .entity-info-panel { width: 340px; }
+        /* Preferences penceresinde ayar bolumleri alt alta, kart boslugu olmadan */
+        #preferencesModalBody h3.panel-title { margin-top: 18px; }
+        #preferencesModalBody h3.panel-title:first-child { margin-top: 0; }

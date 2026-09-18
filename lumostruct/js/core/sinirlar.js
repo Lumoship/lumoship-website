@@ -232,7 +232,7 @@
         }
         function sehimOzeti(r) {
             const k = kontrolAyarlari();
-            if (!(k.sehimOran > 0) && !(k.sehimMm > 0)) return { var_: false, metin: 'No deflection limit set (Settings → L/x).' };
+            if (!(k.sehimOran > 0) && !(k.sehimMm > 0)) return { var_: false, metin: 'No deflection limit set (Checks card → Deflection Limit).' };
             const s = sehimKontrolu(r);
             const liste = Object.entries(s).filter(([, v]) => v.kullanim !== null);
             if (!liste.length) return { var_: true, ok: true, metin: 'No beams to check.' };

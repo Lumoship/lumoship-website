@@ -985,7 +985,7 @@
         // Kiris kuran yollarin ortak uyarisi - tek cumle, tek yerde.
         function kesitYokUyar() {
             if (typeof showToast === 'function')
-                showToast('Create a beam profile first (General tab)', true);
+                showToast('Create a beam profile first (Model › New profile…)', true);
         }
 
         function updateSectionDropdowns() {
@@ -1028,7 +1028,7 @@
             const profiles = Object.keys(SECTIONS);
             
             if (profiles.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-3); text-align:center; font-size:var(--fs-xs);">No sections - create in General tab or import DXF</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-3); text-align:center; font-size:var(--fs-xs);">No profiles yet — New profile… or import a model</td></tr>';
                 setText('sectionsCount', '0');
                 return;
             }

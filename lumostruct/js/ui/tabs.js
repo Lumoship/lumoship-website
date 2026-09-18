@@ -28,6 +28,18 @@
         }
 
         function switchMainTab(tabName) {
+            // Tek panel duzeni: sekme yok, ilgili kart acilir. Sonuc gorunumu
+            // sekmeye degil sonucun gecerliligine baglidir.
+            if (document.body.classList.contains('tek-panel')) {
+                if (typeof duzenKartaGit === 'function') duzenKartaGit(tabName);
+                showResultsVisualization = !!(results && !modelChangedAfterSolve);
+                const legend = document.getElementById('stressLegend');
+                if (legend) legend.style.display = (results && results.elementResults) ? 'block' : 'none';
+                if (results && results.elementResults && typeof updateStressLegend === 'function') updateStressLegend();
+                if (typeof updateResultsBottomPanel === 'function') updateResultsBottomPanel();
+                if (typeof syncResultsPanelSpace === 'function') syncResultsPanelSpace();
+                return;
+            }
             const oncekiSekme = (document.querySelector('.main-tab.active') || {}).id || '';
             const resultsTanCikis = /Results$/.test(oncekiSekme) && tabName !== 'results';
             const resultsAGiris = !/Results$/.test(oncekiSekme) && tabName === 'results';
@@ -334,6 +346,7 @@
             const kltEl = document.getElementById('infoBeamKlt'), yanalEl = document.getElementById('infoBeamYanal');
             if (kltEl) kltEl.value = elem.kLT || 1;
             if (yanalEl) yanalEl.value = (typeof elem.yanalTutulu === 'boolean') ? (elem.yanalTutulu ? '1' : '0') : '';
+            const kmEl = document.getElementById('infoBeamKuralModel'); if (kmEl) kmEl.value = elem.kuralModel || '';
             const hsEl = document.getElementById('infoHingeStart'), heEl = document.getElementById('infoHingeEnd');
             if (hsEl) hsEl.checked = !!elem.hingeStart;
             if (heEl) heEl.checked = !!elem.hingeEnd;
@@ -471,7 +484,8 @@
             
             // In Results tab, hide editing sections (show only results, section properties and diagrams)
             const isResultsTab = showResultsVisualization;
-            const isModelTab = document.getElementById('mainTabModel')?.classList.contains('active');
+            // Tek panel: sekme yok, duzenleme bolumleri her zaman gorunur
+            const isModelTab = document.body.classList.contains('tek-panel') || document.getElementById('mainTabModel')?.classList.contains('active');
             
             const nodeCoordsSection = document.getElementById('beamNodeCoordsSection');
             const editSectionSection = document.getElementById('beamEditSectionSection');
@@ -1533,6 +1547,8 @@
             if (klt > 0 && klt !== 1) elem.kLT = klt; else delete elem.kLT;
             const yanal = document.getElementById('infoBeamYanal')?.value;
             if (yanal === '1') elem.yanalTutulu = true; else if (yanal === '0') elem.yanalTutulu = false; else delete elem.yanalTutulu;
+            const km = document.getElementById('infoBeamKuralModel')?.value || '';
+            if (km) elem.kuralModel = km; else delete elem.kuralModel;
             if (results && typeof updateResultsBottomPanel === 'function') updateResultsBottomPanel();
             if (results && typeof displayResults === 'function') displayResults();
         }

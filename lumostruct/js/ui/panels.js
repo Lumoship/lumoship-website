@@ -2001,7 +2001,7 @@
             // giriyor, tabloda "-" gorunuyor ve sorun ancak cozum aninda
             // dogrulayiciya takiliyordu. Ureten yerde soyle.
             if (!section || !SECTIONS[section]) {
-                showToast('Create a beam profile first (General tab)', true);
+                showToast('Create a beam profile first (Model › New profile…)', true);
                 return;
             }
             
@@ -2253,6 +2253,8 @@
         function updateModelSummary() {
             // Yuk durumu / kombinasyon secicileri modeli izler (ac, geri al, temizle)
             if (typeof yukSecicileriniTazele === 'function') yukSecicileriniTazele();
+            // Model karti ozeti (tek panel: secimden bagimsiz her zaman gorunur)
+            if (typeof updateEntityInfoSummary === 'function') updateEntityInfoSummary();
             // Celik sinifi ve kontrol ayarlari modelden (ac / geri al)
             if (model && model.grade && typeof MATERIALS !== 'undefined' && MATERIALS[model.grade]) {
                 const g = document.getElementById('steelGrade');

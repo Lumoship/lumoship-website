@@ -51,11 +51,11 @@
         // burkulma.js); metin kodu tekrar etmez, nereye bakilacagini soyler.
         const KONTROL_YARDIMI = [
             { baslik: 'Load cases and combinations', satir: [
-                ['Cases', 'D = dead (self weight always in D), L = live by default; imported DNV/Steel files bring C1, C2, … Every load carries a case (Case column in the Loads tab).'],
-                ['Combinations', 'LC1 = 1D + 1L, LC2 = 1.2D + 1.5L, LC3 = 1D by default; edit factors in Loads › Edit…. A load whose case is not defined gets factor 0 — the solver warns before solving.'],
+                ['Cases', 'D = dead (self weight always in D), L = live by default; imported DNV/Steel files bring C1, C2, … Every load carries a case (Case column in the Beam loads / Node loads tables and in the beam or node card).'],
+                ['Combinations', 'LC1 = 1D + 1L, LC2 = 1.2D + 1.5L, LC3 = 1D by default; edit factors in the Loads card › Edit…. A load whose case is not defined gets factor 0 — the solver warns before solving.'],
                 ['ENV', 'Envelope = worst of all combinations per beam/node; needs 2+ combinations. Tables show the governing combination (LC column).']
             ] },
-            { baslik: 'Stress limits (Settings › Stress Limits)', satir: [
+            { baslik: 'Stress limits (Checks card)', satir: [
                 ['Yield', 'σ ≤ σy, τ ≤ σy/√3 — utilisation is von Mises / σ limit.'],
                 ['DNV RU-SHIP Pt.3 Ch.6 Sec.6', 'AC-I (static) β 0.85 / Cs-max 0.70 / Ct 0.70; AC-II/III (static + dynamic) 0.95 / 0.85 / 0.85. Member carrying hull-girder stress: Cs = β − |σhg|/ReH.'],
                 ['BV NR467 Pt.B Ch.7 Sec.6 [5.1.4]', 'Grillage analysis: σeq ≤ χ·Kcorr·Ccomb·ReH, τ ≤ χ·Kcorr·Ct·τeH. Tab 2: AC-1 harbour 0.70, AC-2 seagoing 0.85, AC-3 tank test / flooded 0.90. χ: intact 1.00, accidental watertight boundary 1.15 (Ch.7 Sec.4); Kcorr: 1.0, tank testing at construction 1.2.'],
@@ -66,11 +66,11 @@
                 ['6.3.1 flexural', 'Ncr = π²EI/(KL)², λ̄ = √(A fy/Ncr), curve a (pipe) / c (welded open sections) or your choice, Nb,Rd = χ A fy/γM1; UF N = N/Nb,Rd (compression only; < 0.5 % A·fy ignored).'],
                 ['6.3.3 N+M', 'UF = n + kyy·My/My,Rd + kyz·Mz/Mz,Rd and the z-form; Annex B method 2, elastic (class 3), Cm from the member moment distribution (span peak → 1.0).'],
                 ['6.3.2 LTB', 'only for open sections whose compression flange is free: Mcr = C1·π²EIz/Lcr²·√(Iw/Iz + Lcr²GIt/(π²EIz)), curve d (welded I with h/b ≤ 2: c), Mb,Rd = χLT·Wy·fy/γM1. Plated sections are treated as restrained; override per beam with <b>Compression flange: free / restrained</b>. Closed sections (pipe, box) are not checked.'],
-                ['γM1', 'Settings › material factor (EN 1.0, DNV 1.15).']
+                ['γM1', 'Checks card › material factor (EN 1.0, DNV 1.15).']
             ] },
             { baslik: 'Deflection', satir: [
                 ['Spans', 'same-named collinear beams between vertically supported nodes; deflection is measured relative to the span chord (cantilever: relative to the supported end).'],
-                ['Limit', 'Settings › Deflection Limit: L/x and/or an absolute value in mm (the stricter governs). Ships commonly use L/250–L/300.']
+                ['Limit', 'Checks card › Deflection Limit: L/x and/or an absolute value in mm (the stricter governs). Ships commonly use L/250–L/300.']
             ] },
             { baslik: 'Tables and report', satir: [
                 ['Show all', 'result and model tables list the first 500 rows (sorted; selected rows always shown) — click <b>Show all</b> for the rest.'],

@@ -206,6 +206,9 @@
             // sehim
             const so = (typeof sehimOzeti === 'function') ? sehimOzeti(r) : null;
             h += '<tr' + (so && so.var_ && !so.ok ? ' class="fail"' : '') + '><td>Deflection</td><td>' + (!so || !so.var_ ? 'no limit' : (so.ok ? 'OK' : 'EXCEEDED')) + '</td><td>' + esc(so ? so.metin : '-') + '</td></tr>';
+            // kural kesit modulu / kayma alani
+            const ko = (typeof kuralOzeti === 'function') ? kuralOzeti(r) : null;
+            if (ko) h += '<tr' + (ko.var_ && !ko.ok ? ' class="fail"' : '') + '><td>Rule minimum Z and A<sub>shr</sub> (prescriptive)</td><td>' + (!ko.var_ ? 'n/a' : (ko.ok ? 'OK' : 'BELOW MINIMUM')) + '</td><td>' + esc(ko.metin) + '</td></tr>';
             h += '</tbody></table>';
 
             // 2. uye burkulma tablosu (en kotu 12)
@@ -228,6 +231,20 @@
                 });
                 h += '</tbody></table>';
                 h += '<div style="color:#666; margin:-4px 0 8px;">Curve per EN 1993-1-1 Tab 6.2 (pipe a, other welded open sections c; LTB Tab 6.4 d). Interaction factors Annex B method 2, elastic (class 3). C<sub>m</sub>/C<sub>1</sub> from the member moment distribution; span peak → 1.0.</div>';
+            }
+
+            // 2b. kural Z / Ashr tablosu (en kotu 12)
+            if (ko && ko.var_) {
+                const liste = ko.uyeler.filter(x => x.q > 0).sort((a, c) => c.kullanim - a.kullanim).slice(0, 12);
+                h += '<h3 style="font-size:12px; margin:12px 0 4px;">Rule section modulus and shear area — worst ' + liste.length + ' of ' + ko.uyeler.filter(x => x.q > 0).length + ' loaded members</h3>';
+                h += '<table><thead><tr><th>Member</th><th>L (m)</th><th>q = P·S (kN/m)</th><th>Load model</th><th>f<sub>bdg</sub> field / support</th><th>f<sub>shr</sub></th><th>Z<sub>req</sub> (cm³)</th><th>Z<sub>act</sub> (cm³)</th><th>Z util</th><th>A<sub>shr,req</sub> (cm²)</th><th>A<sub>shr,act</sub> (cm²)</th><th>A util</th><th>Status</th></tr></thead><tbody>';
+                liste.forEach(x => {
+                    h += '<tr' + sinifla(x.durum) + '><td>' + esc((x.ad ? x.ad + ': ' : '') + (x.uye.length > 1 ? 'beams ' + x.uye.join(', ') : 'beam ' + x.uye[0])) + '</td><td>' + num(x.L, 2) + '</td><td>' + num(x.q, 2) + '</td><td>' + esc(x.model + (x.otomatik ? ' (auto)' : '') + ' — ' + x.modelAd) + '</td>' +
+                         '<td>' + (x.fBdgAciklik !== null ? num(x.fBdgAciklik, 1) : '-') + ' / ' + (x.fBdgMesnet !== null ? num(x.fBdgMesnet, 1) : '-') + '</td><td>' + num(x.fShr, 2) + '</td>' +
+                         '<td>' + num(x.Zreq, 1) + '</td><td>' + num(x.Za, 1) + '</td><td>' + num((x.kZ || 0) * 100, 0) + ' %</td><td>' + num(x.Areq, 2) + '</td><td>' + num(x.Aa, 2) + '</td><td>' + num((x.kA || 0) * 100, 0) + ' %</td>' + durumHucre(x.durum) + '</tr>';
+                });
+                h += '</tbody></table>';
+                h += '<div style="color:#666; margin:-4px 0 8px;">' + esc(ko.kaynak) + ': Z = 1000·q·ℓ²/(f<sub>bdg</sub>·C<sub>s</sub>·R<sub>eH</sub>)'.replace('&lt;', '<').replace('&gt;', '>') + ', A<sub>shr</sub> = 10·f<sub>shr</sub>·q·ℓ/(C<sub>t</sub>·τ<sub>eH</sub>); C<sub>s</sub> = ' + num(liste[0].Cs, 2) + ', C<sub>t</sub> = ' + num(liste[0].Ct, 2) + (liste[0].chi !== 1 ? ', χ = ' + num(liste[0].chi, 2) : '') + '. ℓ = member span between supports; end fixity from rotational restraint or continuity; Z<sub>act</sub> = smaller fibre modulus, A<sub>shr,act</sub> = rule shear area (h<sub>stf</sub>+t<sub>p</sub>)·t<sub>w</sub>.</div>';
             }
 
             // 3. sehim aciklik tablosu

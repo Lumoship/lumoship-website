@@ -1188,7 +1188,7 @@
         function yukDurumuSecici(tur, a, b, durum) {
             const d = durum || 'L';
             const ops = yukDurumlari().map(x => '<option value="' + x.id + '"' + (x.id === d ? ' selected' : '') + '>' + x.id + '</option>').join('');
-            return '<select class="yuk-durum-mini" title="Load case" onchange="yukDurumuAta(\'' + tur + '\', ' + a + ', ' + (b === null ? 'null' : b) + ', this.value)" style="padding:1px 2px; font-size:var(--fs-xs); background:var(--bg-main); color:var(--text); border:1px solid var(--border); border-radius:var(--r-ctl);">' + ops + '</select>' +
+            return '<select class="yuk-durum-mini" title="Load case" onchange="yukDurumuAta(\'' + tur + '\', ' + a + ', ' + (b === null ? 'null' : b) + ', this.value)" style="padding:1px 2px; min-width:46px; font-size:var(--fs-xs); background:var(--bg-main); color:var(--text); border:1px solid var(--border); border-radius:var(--r-ctl);">' + ops + '</select>' +
                    ((typeof yukDurumuKombOzeti === 'function') ? '<div style="font-size:10px; color:var(--text-3); white-space:nowrap; margin-top:2px;">' + yukDurumuKombOzeti(d) + '</div>' : '');
         }
 
@@ -1275,7 +1275,7 @@
                             '<td style="color:var(--accent-info); font-weight:600;">E' + elemKey + '</td>' +
                             '<td style="color:var(--text-3); font-size:var(--fs-xs);">' + elem.n1 + '→' + elem.n2 + '</td>' +
                             '<td style="color:var(--danger-text); font-weight:600;">' + (+p.P).toFixed(1) + '</td>' +
-                            '<td style="color:var(--text-2);">' + Math.round(p.pos * L * 1000) + ' mm (' + Math.round(p.pos * 100) + ' %)' + (p.direction && p.direction !== 'global' ? ' ' + p.direction : '') + '</td>' +
+                            '<td style="color:var(--text-2); white-space:nowrap;" title="' + Math.round(p.pos * 100) + ' % of the beam length from n1' + (p.direction && p.direction !== 'global' ? ', ' + p.direction : '') + '">' + Math.round(p.pos * L * 1000) + ' mm' + (p.direction && p.direction !== 'global' ? ' ' + p.direction : '') + '</td>' +
                             '<td>' + yukDurumuSecici('point', parseInt(elemKey, 10), idx, p.case) + '</td>' +
                             '<td><button class="btn-small" onclick="kirisNoktaYukuSil(' + elemKey + ', ' + idx + ')" style="padding:2px 4px; font-size:var(--fs-xs);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button></td></tr>');
                     });

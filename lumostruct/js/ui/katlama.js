@@ -17,7 +17,9 @@
             // Loads
             'Add pressure patch',
             // Sag panel
-            'Buckling length factors', 'Hinges (moment release)', 'Edit Section', 'Orientation', 'Diagrams'
+            'Buckling length factors', 'Hinges (moment release)', 'Edit Section', 'Orientation', 'Diagrams',
+            // Tek panel kartlari
+            'Checks'
         ]);
 
         function katlamaDurumu() {
@@ -101,6 +103,7 @@
             const say = {
                 settings: basliklariKatla(document.getElementById('tabContentSettings'), 'h3.panel-title'),
                 loads: basliklariKatla(document.getElementById('tabContentLoads'), '.subpanel-title'),
+                loadsKart: basliklariKatla(document.getElementById('kartLoads'), '.subpanel-title'),
                 sag: kutulariKatla(document.getElementById('rightPanel'))
             };
             return say;

@@ -37,6 +37,9 @@
                     // diyebiliyor - ayni kutuphane, iki ayri cevap.
                     // updateSectionDropdowns mevcut secimi koruyor.
                     if (typeof updateSectionDropdowns === 'function') updateSectionDropdowns();
+                    // Alt tablo paneli tek panel duzeninde hep acik: model
+                    // degisince listeler de tazelenir (eskiden yalniz Results'ta)
+                    if (document.body && document.body.classList.contains('tek-panel') && typeof altTabloCiz === 'function') altTabloCiz();
                 } catch (e) {
                     // Arayuz henuz kurulmamis olabilir (acilis, testler).
                     // Tazeleme bir kolaylik; basarisizligi modeli etkilemez.
@@ -70,8 +73,16 @@
             
             // Mark that model changed after last solve
             if (results) {
+                const ilkKez = !modelChangedAfterSolve;
                 modelChangedAfterSolve = true;
                 updateResultsWarning();
+                // Bayat sonucun boyamasi/animasyonu ekranda kalmasin (tek panel:
+                // sekme degisimi yok, bu an "results'tan cikis"in karsiligi)
+                if (ilkKez && typeof sonucGorunumunuKapat === 'function') {
+                    sonucGorunumunuKapat();
+                    showResultsVisualization = false;
+                    if (typeof update3DScene === 'function' && typeof threeScene !== 'undefined' && threeScene) update3DScene();
+                }
             }
             
             updateUndoRedoButtons();
@@ -165,6 +176,7 @@ const nodeIds = Object.keys(model.nodes).map(id => parseInt(id));
                 nextElementId = elemIds.length > 0 ? Math.max(...elemIds) + 1 : 1;
                 
                 updateModelSummary();
+                modelTablolariniTazele();
                 update3DScene();
                 fitView();
                 

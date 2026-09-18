@@ -63,8 +63,9 @@
                 updateEntityInfoPanel();
                 
                 // If in Results tab, show element results
+                // Tek panel: sonuc gecerliyse (sekme kavrami yok) ayrinti goster
                 const activeTab = document.querySelector('.main-tab.active');
-                if (activeTab && activeTab.textContent.includes('Results') && results) {
+                if ((document.body.classList.contains('tek-panel') ? showResultsVisualization : (activeTab && activeTab.textContent.includes('Results'))) && results) {
                     showElementResultsDetail(ctxTarget.elemId);
                 }
                 
@@ -85,7 +86,7 @@
                 selectedElements.add(ctxTarget.elemId);
                 
                 const activeTab = document.querySelector('.main-tab.active');
-                const isResultsTab = activeTab && activeTab.textContent.includes('Results');
+                const isResultsTab = document.body.classList.contains('tek-panel') ? !!showResultsVisualization : (activeTab && activeTab.textContent.includes('Results'));
                 
                 if (isResultsTab && results && results.elementResults) {
                     // Show results detail
@@ -245,7 +246,7 @@
                 selectedNodes.add(ctxTarget.nodeId);
                 
                 const activeTab = document.querySelector('.main-tab.active');
-                const isResultsTab = activeTab && activeTab.textContent.includes('Results');
+                const isResultsTab = document.body.classList.contains('tek-panel') ? !!showResultsVisualization : (activeTab && activeTab.textContent.includes('Results'));
                 
                 if (isResultsTab && results && results.displacements) {
                     showNodeResultsDetail(ctxTarget.nodeId);

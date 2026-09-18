@@ -216,7 +216,9 @@
             const durumlar = yukDurumlari();
             document.querySelectorAll('select.yuk-durumu-secici').forEach(sel => {
                 const eski = sel.value;
-                sel.innerHTML = durumlar.map(d => '<option value="' + d.id + '">' + d.id + ' - ' + d.ad + '</option>').join('');
+                // data-kisa: dar panellerde yalniz kimlik ("D - Dead (incl...)" kesiliyordu)
+                const kisa = sel.dataset && sel.dataset.kisa === '1';
+                sel.innerHTML = durumlar.map(d => '<option value="' + d.id + '" title="' + d.ad + '">' + (kisa ? d.id : d.id + ' - ' + d.ad) + '</option>').join('');
                 const hedef = (sel.id === 'etkinYukDurumu') ? etkinYukDurumu() : (durumlar.some(d => d.id === eski) ? eski : etkinYukDurumu());
                 sel.value = hedef;
             });

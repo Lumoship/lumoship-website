@@ -478,6 +478,40 @@
                 }
             },
             {
+                // Kural kesit modulu / kayma alani (js/core/kural.js): DNV Pt.3
+                // Ch.6 Sec.6 [2.1] / BV Ch.7 Sec.6 [2.1] prescriptive karsilastirma
+                ad: 'rulecheck', baslik: 'Rule Z / Ashr', secim: 'kiris', sonuc: true,
+                sut: [
+                    { a: 'id', b: 'Beam', o: 0 },
+                    { a: 'uye', b: 'Member', m: true },
+                    { a: 'L', b: 'L [mm]', o: 0 },
+                    { a: 'q', b: 'q = P·S [kN/m]', o: 2 },
+                    { a: 'model', b: 'Model', m: true },
+                    { a: 'fbdg', b: 'f_bdg (field / support)', m: true },
+                    { a: 'fshr', b: 'f_shr', o: 2 },
+                    { a: 'Zreq', b: 'Z req [cm³]', o: 1 },
+                    { a: 'Za', b: 'Z actual [cm³]', o: 1 },
+                    { a: 'kZ', b: 'Z util', o: 3 },
+                    { a: 'Areq', b: 'Ashr req [cm²]', o: 2 },
+                    { a: 'Aa', b: 'Ashr actual [cm²]', o: 2 },
+                    { a: 'kA', b: 'Ashr util', o: 3 },
+                    { a: 'durum', b: 'Status', m: true }
+                ],
+                satirlar: () => {
+                    if (typeof kuralKesitKontrolu !== 'function') return [];
+                    const k = kuralKesitKontrolu(results);
+                    return Object.entries(k).map(([id, r]) => ({
+                        id: parseInt(id, 10),
+                        uye: r.uye.length > 1 ? ((r.ad ? r.ad + ' ' : '') + r.uye.length + ' beams: ' + r.uye.join(',')) : (r.ad || '-'),
+                        L: r.L * 1000, q: r.q,
+                        model: r.model + (r.otomatik ? ' (auto)' : '') + ' — ' + r.modelAd,
+                        fbdg: (r.fBdgAciklik !== null ? r.fBdgAciklik : '-') + ' / ' + (r.fBdgMesnet !== null ? r.fBdgMesnet : '-'),
+                        fshr: r.fShr, Zreq: r.Zreq, Za: r.Za, kZ: r.kZ, Areq: r.Areq, Aa: r.Aa, kA: r.kA, durum: r.durum,
+                        _vurgu: r.durum === 'FAIL' ? 'stress-fail' : (r.durum === 'check' ? 'stress-warn' : (r.durum === 'ok' ? 'stress-ok' : ''))
+                    }));
+                }
+            },
+            {
                 ad: 'notes', baslik: 'Notes', tur: 'not'
             }
         ];

@@ -16,7 +16,7 @@
         // Kirise ait, uca bagli OLMAYAN ozellikler. Yeni ozellik eklerken
         // buraya da yazilmali - yoksa kopyada/bolmede kaybolur.
         const KIRIS_OZELLIKLERI = ['section', 'orientation', 'grade', 'corrosion',
-                                   'kY', 'kZ', 'burkulmaEgrisi', 'kLT', 'yanalTutulu', 'dxfLayer'];
+                                   'kY', 'kZ', 'burkulmaEgrisi', 'kLT', 'yanalTutulu', 'kuralModel', 'dxfLayer'];
         const KIRIS_UC_OZELLIKLERI = { bas: ['rigidStart', 'hingeStart'], son: ['rigidEnd', 'hingeEnd'] };
 
         function kirisDerinKopya(v) {

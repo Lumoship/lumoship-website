@@ -123,6 +123,12 @@
                 return 'Member buckling (EN 1993-1-1 6.3.1 + 6.3.3 N+M' + (ltSayi ? ' + 6.3.2 LTB on ' + ltSayi + ' unrestrained member(s)' : '') + '): max UF ' + enKotu.UF.toFixed(2) +
                     (fail ? ' - ' + fail + ' member(s) FAIL' : ' - OK') + '. Buckling length = span between supports (same-name collinear beams) × K. See Buckling tab.';
             }
+            // Kural kesit modulu / kayma alani ozeti (kural.js)
+            function kuralOzetMetni() {
+                if (typeof kuralOzeti !== 'function' || !results) return '';
+                const o = kuralOzeti(results);
+                return ' ' + o.metin + (o.var_ ? ' See Rule Z / Ashr tab.' : '');
+            }
 
             // KESIT levha narinligi kontrolu (hw/tw, bf/tf). Eleman/kolon burkulmasi
             // asagida burkulmaOzeti ile; buradaki yalnizca levha.
@@ -249,6 +255,21 @@
                     deflStatus.innerHTML = '<span style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> FAIL</span>';
                 }
                 if (deflDetail) deflDetail.textContent = so.metin;
+            }
+
+            // Kural Z / Ashr karti (kural.js): ayri satir - burkulma metnine
+            // eklenince paragraf okunmaz oluyordu
+            const kuralStatus = document.getElementById('kuralStatus'), kuralDetail = document.getElementById('kuralDetail');
+            if (kuralStatus && typeof kuralOzeti === 'function') {
+                const ko = kuralOzeti(results);
+                if (!ko.var_) {
+                    kuralStatus.innerHTML = '<span style="color:var(--text-3);">n/a</span>';
+                } else if (ko.ok) {
+                    kuralStatus.innerHTML = '<span style="color:var(--success);"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> Pass</span>';
+                } else {
+                    kuralStatus.innerHTML = '<span style="color:var(--danger-text);"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> BELOW MIN.</span>';
+                }
+                if (kuralDetail) kuralDetail.textContent = ko.metin + (ko.var_ ? ' See Rule Z / Ashr tab.' : '');
             }
 
             // Displacement table (left) - Top 10

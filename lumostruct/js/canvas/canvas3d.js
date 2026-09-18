@@ -1942,7 +1942,8 @@
                     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true }));
                     const m = window.labelSizes?.load || 1.0;
                     sp.scale.set(taban * 1.8 * m, taban * 0.9 * m, 1);
-                    sp.position.z = olcek + olcek * 0.55;
+                    // Etiket ok ucunun ustunde VE hafif yana: plan gorunumunde tam kirisin ustune dusup okunmaz oluyordu
+                    sp.position.set(olcek * 0.45, olcek * 0.45, olcek + olcek * 0.55);
                     g.add(sp);
                     g.position.set(x, y, z + 0.02);
                     threeScene.add(g);

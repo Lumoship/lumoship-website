@@ -78,6 +78,10 @@
         
         // Katlanabilir bolumler (Settings basliklari, Loads alt basliklari, sag
         // panel kutulari) - js/ui/katlama.js; isaret kutusu yazildiktan sonra
+        // Tek panel duzeni (js/ui/duzen.js): sol panel ve sekmeler kalkar,
+        // bloklar sag panelin kartlarina / pencerelere tasinir. Katlama ondan
+        // SONRA kurulur ki yeni kartlar da katlanabilsin.
+        if (typeof tekPanelDuzeniKur === 'function') tekPanelDuzeniKur();
         if (typeof katlamalariKur === 'function') katlamalariKur();
 
         // Initialize collapsible panels
