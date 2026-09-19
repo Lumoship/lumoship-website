@@ -1011,8 +1011,16 @@
   // Example project: rebuild each legacy compartment's boundary as the set of
   // panels whose midpoint lies on its polygon / box edge.
   function seedCompsFromLegacy() {
-    const m = JSON.parse(JSON.stringify(S())); m.compartments = m.compartments || [];
-    const legacy = window.Draw.COMPARTMENTS || []; const nodesL = (window.Draw.computeNodes && window.Draw.computeNodes()) || [];
+    const m = JSON.parse(JSON.stringify(S()));
+    const added = seedCompsInto(m, window.Draw.COMPARTMENTS || []);
+    if (!added) { toast('No legacy compartment could be mapped onto the panels.'); return; }
+    commitNames(m); toast(added + ' compartments seeded.');
+  }
+  // Legacy compartments (box or old node indices) → node circuits on the model `m`.
+  // Returns how many were added. Also used when an older project file is opened.
+  function seedCompsInto(m, legacy) {
+    m.compartments = m.compartments || [];
+    const nodesL = (window.Draw.computeNodes && window.Draw.computeNodes()) || [];
     let k = m.compartments.length; let added = 0;
     legacy.forEach(lc => {
       let poly = null;
@@ -1023,11 +1031,19 @@
       const panels = m.panels.filter(p => { const ln = M().panelLine(p, m.nodes); if (ln.curve) { return onEdge(ln.a) && onEdge(ln.b) && poly.length > 4; } return onEdge(M().pointAt(ln, 0.5)); }).map(p => p.id);
       if (panels.length < 3) return;
       k++; const type = COMP_TYPES.some(t => t.code === lc.type) ? lc.type : (lc.type === 'void' ? 'void' : 'ballast');
-      const nodes = poly.map(q => { const n = m.nodes.find(x => Math.abs(x.y - q.y) <= 1 && Math.abs(x.z - q.z) <= 1); return n ? n.id : null; }).filter(Boolean);
+      // the circuit: every model node on the polygon edges, in order round the loop —
+      // only when each corner is a node; a box corner in open space (hold corner on
+      // the centreline at deck level) is left to the panel loop's virtual edge
+      const nodes = [];
+      const cornersOk = poly.every(q => m.nodes.some(x => Math.abs(x.y - q.y) <= 1 && Math.abs(x.z - q.z) <= 1));
+      if (cornersOk) poly.forEach((a, i) => {
+        const b = poly[(i + 1) % poly.length];
+        const on = m.nodes.map(n => ({ n, t: M().paramOn({ a, b }, { y: n.y, z: n.z }) })).filter(q => q.t != null && q.t < 1 - 1e-6).sort((p, q) => p.t - q.t);
+        on.forEach(q => { if (!nodes.includes(q.n.id)) nodes.push(q.n.id); });
+      });
       m.compartments.push({ id: 'C' + k, name: lc.name || 'C' + k, type, rho: lc.rho || compType(type).rho, airpipe_mm: lc.airpipeZ_mm || null, testHead_m: lc.testHead_m || null, cargoLoad: lc.cargoLoad || null, panels, nodes: nodes.length >= 3 ? nodes : [] }); added++;
     });
-    if (!added) { toast('No legacy compartment could be mapped onto the panels.'); return; }
-    commitNames(m); toast(added + ' compartments seeded.');
+    return added;
   }
 
   // ------------------------------------------------------------ positions panel (step 3)
@@ -1207,5 +1223,5 @@
   }
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
-  window.SectionCAD = { render, renderPanel, leave, setTool, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
+  window.SectionCAD = { render, renderPanel, leave, setTool, seedCompsInto, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
 })();

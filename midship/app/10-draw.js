@@ -12216,6 +12216,11 @@ window.importFullState = function(data) {
     // Drawing state
     if (data.GEOMETRY) Object.assign(GEOMETRY, data.GEOMETRY);
     if (data.PARAMS)   Object.assign(PARAMS, data.PARAMS);
+    // Section model (05-model.js): a hand-edited model is the source of truth and is
+    // pushed into the legacy state after STRAKES / profiles below; a file without one
+    // (older projects) gets its model built and filled from STRAKES / profiles.
+    if (data.SECTION && data.SECTION.manual && Array.isArray(data.SECTION.panels)) { SECTION = data.SECTION; window.__legacyFill = false; }
+    else { SECTION = null; window.__legacyFill = !!(data.STRAKES && !data.SECTION); }
     if (data.PLATE_THICKNESS) Object.assign(PLATE_THICKNESS, data.PLATE_THICKNESS);
     // Material grade / yield-family pins. v1 payloads don't include these,
     // so guard each one. Use Object.assign so existing keys not present in
@@ -12326,6 +12331,7 @@ window.importFullState = function(data) {
     }
     // Ensure STRAKES_AUTO stays false if JSON says so (guard against late overrides)
     if (typeof data.STRAKES_AUTO === 'boolean') STRAKES_AUTO = data.STRAKES_AUTO;
+    if (SECTION && SECTION.manual && window.SectionAdapter) { try { SectionAdapter.apply(SECTION); } catch (err) { console.warn('[SectionAdapter]', err); } }
 
     if (typeof renderEditor === 'function') renderEditor();
     if (typeof render === 'function') render();
@@ -12334,6 +12340,19 @@ window.importFullState = function(data) {
     // regenerate strakes. The form-change events above have already kept
     // analysis panels in sync.
     console.log('[importFullState] Restored successfully.');
+    if (window.__legacyFill) {
+      window.__legacyFill = false;
+      try {
+        const m = syncSectionModel(true);
+        if (m && window.SectionAdapter && SectionAdapter.legacyToPanelData) {
+          SectionAdapter.legacyToPanelData(m, STRAKES, profiles, GEOMETRY, PLATE_THICKNESS);
+          if (window.SectionCAD && SectionCAD.seedCompsInto && !(m.compartments || []).length) SectionCAD.seedCompsInto(m, COMPARTMENTS.slice());
+          m.manual = true;   // the file's layout is now the model's; keep it
+          SECTION = m;
+          SectionAdapter.apply(SECTION);
+        }
+      } catch (err) { console.warn('[legacy import → panel data]', err); }
+    }
     return true;
   } catch (e) {
     console.error('[importFullState] Failed:', e);

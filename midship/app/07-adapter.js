@@ -217,5 +217,57 @@
              twZ: [...new Set(by('tweenDeck').map(p => Math.round(line(s, p).a.z)))].sort((a, b) => a - b) };
   }
   function legacyKeyOfGroup(s, gid) { return keyForGroup(s, gid, ctxOf(s)); }
-  window.SectionAdapter = { apply, unmapped, profileName, effSAt, deckLoadFor, legacyKeyOfGroup };
+  // ---------------------------------------------------------------- legacy file → panel data
+  // Older project files carry STRAKES.<key> and profiles.<group> but no section
+  // model. Fill panelData from them so the Strakes / Stiffeners steps show what the
+  // file describes; stiffeners are regrouped into equal-spacing runs.
+  function legacyToPanelData(s, STRAKES, profiles, G, PT) {
+    const ctx = ctxOf(s); PT = PT || {};
+    // panels the old files plated with one thickness (no strake list)
+    const PT_KEY = { ductKeel: 'duct', centreGirder: 'duct', sideGirder: 'sideGirder', coaming: 'coamingWall', coamingTop: 'coamingTop', upperDeck: 'upperDeck', stringer: 'stringer', tweenDeck: 'tween' };
+    Object.keys(s.groups || {}).forEach(gid => {
+      const key = keyForGroup(s, gid, ctx); const d = M().panelData(s, gid); const ci = M().chainInfo(s, gid); if (!ci.L) return;
+      // strakes
+      const src = key && STRAKES && STRAKES[key];
+      if (src && src.length && !d.strakes.length) {
+        d.strakes = src.map(st => ({ len: Math.round(st.width || 0), t: st.thickness != null ? st.thickness : null, grade: st.materialFamily || null, type: 'ordinary', hole: null }));
+        const sum = d.strakes.reduce((a, x) => a + x.len, 0); d.strakes[d.strakes.length - 1].len += Math.round(ci.L - sum);
+      } else if (!d.strakes.length) {
+        const segs0 = M().chainOf(s, gid); const pk = segs0.length ? PT_KEY[segs0[0].position] : null;
+        if (pk && PT[pk] != null) d.strakes = [{ len: Math.round(ci.L), t: PT[pk], grade: null, type: 'ordinary', hole: null }];
+      }
+      // stiffeners: legacy items that lie on this panel, as chain distances
+      if (d.stiffGroups.length) return;
+      const pts = [];
+      const push = (arr, mk) => (arr || []).forEach(it => { const q = mk(it); if (!q) return; const x = M().chainDistanceOf(s, gid, q); if (x != null && x > 0.5 && x < ci.L - 0.5) pts.push({ x, name: it.profileName || null, grade: it.grade || it.materialFamily || null }); });
+      const segs = M().chainOf(s, gid); const pos = new Set(segs.map(q => q.position));
+      if (pos.has('bottom') || pos.has('bilge') || pos.has('side')) { push(profiles.bottomShell, it => ({ y: it.y, z: 0 })); push(profiles.sideShell, it => ({ y: G.B_half, z: it.z })); }
+      if (pos.has('innerBottom')) push(profiles.innerBottom, it => ({ y: it.y, z: G.IB }));
+      if (pos.has('innerSide') || pos.has('coaming')) push(profiles.innerSide, it => ({ y: G.IS, z: it.z }));
+      if (pos.has('upperDeck') || pos.has('deck')) push(profiles.upperDeck, it => ({ y: it.y, z: G.UD }));
+      if (pos.has('coamingTop')) push(profiles.coamingStiff, it => ({ y: it.y, z: G.HC }));
+      if (pos.has('stringer')) push(profiles.stringerStiff, it => ({ y: it.y, z: it.z != null ? it.z : (ctx.strZ[0] || 0) }));
+      if (pos.has('tweenDeck')) push(profiles.tweenStiff, it => ({ y: it.y, z: it.z != null ? it.z : (ctx.twZ[0] || 0) }));
+      if (pos.has('sideGirder')) { const y = Math.round(line(s, segs[0]).a.y); const i = ctx.sgYs.indexOf(y); push(profiles['sideGirder' + i], it => ({ y, z: it.z })); }
+      if (!pts.length) return;
+      pts.sort((a, b) => a.x - b.x);
+      // duplicates at one position (older files doubled the ice-belt intermediates) collapse to one
+      for (let i = pts.length - 1; i > 0; i--) if (Math.abs(pts[i].x - pts[i - 1].x) <= 1) pts.splice(i, 1);
+      // runs of equal spacing (±5 mm) and same profile → one group each
+      const typeOf = n => { const m = /^(HP|L|T|FB)\b/i.exec(n || ''); return m ? m[1].toUpperCase() : 'HP'; };
+      const sizeOf = n => (n || '').replace(/^(HP|L|T|FB)\s*/i, '');
+      let run = [pts[0]]; const runs = [];
+      for (let i = 1; i < pts.length; i++) {
+        const sp = pts[i].x - pts[i - 1].x; const sp0 = run.length > 1 ? run[1].x - run[0].x : null;
+        if ((sp0 == null || Math.abs(sp - sp0) <= 8) && pts[i].name === run[0].name) run.push(pts[i]); else { runs.push(run); run = [pts[i]]; }
+      }
+      runs.push(run);
+      runs.forEach((r, k) => {
+        const sp = r.length > 1 ? Math.round(r[1].x - r[0].x) : 0;
+        d.stiffGroups.push({ id: 'G' + (k + 1), start: Math.round(r[0].x), spacing: sp, count: r.length, fromEnd: 'start', ref: 'node', dir: 'long', type: typeOf(r[0].name), profile: sizeOf(r[0].name), grade: r[0].grade || null, side: ['innerBottom', 'innerSide'].includes(segs[0].position) ? 'out' : 'in', span: null, spanOverrides: {} });
+      });
+    });
+    return s;
+  }
+  window.SectionAdapter = { apply, unmapped, profileName, effSAt, deckLoadFor, legacyKeyOfGroup, legacyToPanelData };
 })();

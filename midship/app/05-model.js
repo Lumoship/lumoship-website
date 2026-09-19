@@ -435,6 +435,12 @@
     let ty = q2.y - pt.y, tz = q2.z - pt.z; const n = Math.hypot(ty, tz) || 1;
     return { y: pt.y, z: pt.z, seg: it.seg, t, ty: ty / n, tz: tz / n };
   }
+  // Distance along the panel chain of a point lying on it (null if not on the panel).
+  function chainDistanceOf(model, gid, pt) {
+    const ci = chainInfo(model, gid);
+    for (const it of ci.items) { const t = paramOn(panelLine(it.seg, model.nodes), pt); if (t != null) return it.start + (it.fwd ? t : 1 - t) * it.len; }
+    return null;
+  }
   // Points along the chain between x0 and x1 (for drawing a strake run).
   function chainPolyline(model, gid, x0, x1) {
     const ci = chainInfo(model, gid); const pts = [];
@@ -603,6 +609,6 @@
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
     addLine, addArc, removePanel, splitPanel, moveNode, removeNode, setCurve, validate,
-    chainOf, chainInfo, chainPointAt, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, chainObstacles, autoStrakes, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
+    chainOf, chainInfo, chainPointAt, chainDistanceOf, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, chainObstacles, autoStrakes, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();
