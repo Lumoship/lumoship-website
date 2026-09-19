@@ -1374,5 +1374,5 @@
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
   function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; pending = []; hover = null; hoverSg = null; hoverComp = null; }
-  window.SectionCAD = { render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
+  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
 })();

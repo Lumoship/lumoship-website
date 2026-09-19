@@ -521,6 +521,19 @@
     <!-- Frame Ice Strengthening zone (Reg. 4.4.1) is used for inserting         -->
     <!-- intermediate longitudinals on the side shell only.                      -->
     <!-- ====================================================================== -->
+    <input type="hidden" id="frameTableJson" value="">
+    <input type="hidden" id="customProfilesJson" value="">
+    <div class="ea-panel" data-views="frames" id="frameTablePanel">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Frame Table</span></div>
+      <div class="ea-panel-body">
+        <div class="ft-head"><label>Frame 0 at x =</label><input class="ea-input ft-x0" id="frameX0" type="number" step="0.01" value="0"><em>m from AP</em><span class="ft-spacer"></span><button class="ea-btn ea-btn-secondary ft-add" id="frameAddRow">+ frame zone</button></div>
+        <div id="frameTableBody"></div>
+      </div>
+    </div>
+    <div class="ea-panel" data-views="draughts" id="draughtsPanel">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Draughts</span></div>
+      <div class="ea-panel-body"><div class="ea-form-row-4"></div></div>
+    </div>
     <div class="ea-panel" style="margin-top:var(--spacing-xl)" id="iceClassPanel">
       <div class="ea-panel-header" style="cursor:pointer" onclick="toggleIcePanelBody()">
         <div class="ea-panel-icon" id="iceClassIcon" style="background:var(--cyan)"></div>
@@ -1479,6 +1492,32 @@
   </main>
 </div>
 
+<!-- PAGE 6: PROFILES -->
+<div class="ea-page" id="page-6">
+  <main class="ea-main">
+    <div class="step-strip-host"></div>
+    <div class="ea-panel" id="profilesPrefPanel">
+      <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Preference</span></div>
+      <div class="ea-panel-body" id="profilesPrefHost"></div>
+    </div>
+    <div class="ea-panel" style="margin-top:var(--spacing-md)">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Catalogue</span></div>
+      <div class="ea-panel-body" id="profilesCatalog"></div>
+    </div>
+  </main>
+</div>
+
+<!-- PAGE 7: COMPARTMENTS (all sections) -->
+<div class="ea-page" id="page-7">
+  <main class="ea-main">
+    <div class="step-strip-host"></div>
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Compartments</span></div>
+      <div class="ea-panel-body" id="compsOverview"></div>
+    </div>
+  </main>
+</div>
+
 <footer class="ea-footer">
   <div class="ea-footer-inner">
     <div>Created by <strong>Ebubekir Akarsu</strong> — Structural Engineer</div>
@@ -1977,6 +2016,7 @@
 <script src="app/91-profile-picker.js"></script>
 <script src="app/95-project.js"></script>
 <script src="app/96-steps.js"></script>
+<script src="app/98-tree.js"></script>
 <script src="app/99-info-overlay.js"></script>
     <script type="module">
 

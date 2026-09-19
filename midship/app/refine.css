@@ -1409,9 +1409,7 @@ body.with-rail #formStatusBar{left:var(--rail-w)}
 .ea-sub-step.incomplete:not(.active){color:var(--warning)}
 .ea-sub-step + .ea-sub-step{position:relative;margin-left:16px}
 .ea-sub-step + .ea-sub-step::before{content:'';position:absolute;left:-11px;top:50%;width:8px;height:1px;background:var(--border-soft)}
-body.chrome-form .ea-subwizard{display:none}
 .bar-page-title{font-family:var(--font-mono);font-size:0.7rem;font-weight:600;letter-spacing:0.04em;color:var(--text-secondary)}
-body.chrome-geometry .bar-page-title{display:none}
 
 /* sections under the "Sections" item */
 #sideRail .rail-sections{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px 0;padding-left:14px;max-height:40vh;overflow:auto}
@@ -1438,3 +1436,62 @@ body.chrome-form .ea-page#page-5 > .ea-main{padding-top:10px}
 .cad-menu-item.off{opacity:0.4;cursor:default}
 
 #sideRail .rail-rename{width:100%;height:16px;padding:0 4px;border:1px solid var(--accent,#3b82f6);border-radius:3px;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-mono);font-size:0.62rem;outline:none}
+
+/* ── Project tree in the rail ───────────────────────────────────────────── */
+.ea-wizard{display:none !important}
+#sideRail{padding:12px 8px;overflow:auto}
+#sideRail .tree{display:flex;flex-direction:column;gap:1px;font-family:var(--font-mono)}
+.tree-node{display:flex;align-items:center;gap:7px;width:100%;text-align:left;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-radius:var(--radius-md);padding:5px 8px;font-size:0.64rem;font-weight:500;position:relative}
+.tree-node:hover{background:rgba(255,255,255,0.03);color:var(--text-secondary)}
+.tree-node .tw{width:10px;flex:none;font-size:0.6rem;opacity:0.7}
+.tree-node .tl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-node .ts{font-size:0.56rem;opacity:0.7}
+.tree-node.group,.tree-node.top{font-weight:600;color:var(--text-secondary);letter-spacing:0.02em}
+.tree-node.group.active,.tree-node.top.active{color:var(--text-primary)}
+.tree-node.top.active{background:rgba(37,99,235,0.10)}
+.tree-node .tdot{width:6px;height:6px;border-radius:50%;flex:none}
+.tree-node .tdot.warn{background:var(--warning)}
+.tree-children{display:none;flex-direction:column;gap:1px;margin:1px 0 3px 13px;padding-left:8px;border-left:1px solid var(--border-soft)}
+.tree-group.open .tree-children{display:flex}
+.tree-node.leaf{padding:4px 8px;font-size:0.62rem;font-weight:500}
+.tree-node.leaf i{width:5px;height:5px;border-radius:50%;background:var(--border-strong,#475569);flex:none}
+.tree-node.leaf.active{color:var(--text-primary);background:rgba(37,99,235,0.10)}
+.tree-node.leaf.active i{background:#60a5fa;box-shadow:0 0 0 2px rgba(37,99,235,0.25)}
+.tree-node.leaf.current{color:var(--text-secondary)}
+.tree-node.leaf.current i{background:#93c5fd}
+/* Main particulars views */
+body[data-ship-view] #page-1 [data-views]{display:none}
+body[data-ship-view="identification"] #page-1 [data-views~="identification"],body[data-ship-view="main"] #page-1 [data-views~="main"],body[data-ship-view="frames"] #page-1 [data-views~="frames"],body[data-ship-view="draughts"] #page-1 [data-views~="draughts"],body[data-ship-view="stillwater"] #page-1 [data-views~="stillwater"],body[data-ship-view="materials"] #page-1 [data-views~="materials"]{display:block}
+body[data-ship-view="identification"] #page-1 .ea-setup-grid[data-views]{display:grid}
+body[data-ship-view] #page-1 .sp-view{display:none}
+body[data-ship-view="main"] #page-1 .sp-view[data-view="main"],body[data-ship-view="stillwater"] #page-1 .sp-view[data-view="stillwater"],body[data-ship-view="materials"] #page-1 .sp-view[data-view="materials"]{display:block}
+body[data-ship-view] #page-1 .ea-panel[data-views] > .ea-panel-header .ea-panel-title{font-size:0.7rem}
+body[data-ship-view] #page-1 .sp-view > .ea-section-title:first-child{margin-top:0 !important}
+#page-1 .ea-panel[data-views]{margin-top:0 !important}
+#page-1 .ea-panel[data-views] + .ea-panel[data-views]{margin-top:var(--spacing-md) !important}
+/* frame table */
+.ft-head{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:0.64rem;color:var(--text-muted);margin-bottom:8px}
+.ft-head .ft-x0{width:90px;height:26px;padding:2px 8px;font-size:0.68rem}
+.ft-head .ft-spacer{flex:1}
+.ft-head .ft-add{padding:4px 10px;font-size:0.66rem}
+.mb-th.ft-th,.mb-tr.ft-th{grid-template-columns:90px 90px 120px 1fr 30px}
+.ft-table .ft-in{width:70px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
+.ft-table em{font-style:normal;color:var(--text-muted);margin-left:4px;font-size:0.58rem}
+.ft-table .ft-x{color:var(--text-secondary)}
+/* profiles page */
+.pf-tools{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);margin-bottom:8px}
+.pf-tools .pf-q{width:160px;height:22px;padding:1px 8px;font-size:0.62rem}
+.mb-th.pf-th,.mb-tr.pf-th{grid-template-columns:minmax(150px,1.4fr) 1fr 1fr 1fr 1fr 30px}
+.pf-table{max-height:52vh;overflow:auto}
+.pf-table .is-custom{color:var(--accent,#60a5fa)}
+.pf-table em{font-style:normal;font-size:0.56rem;opacity:0.7;margin-left:6px}
+.pf-add{display:flex;align-items:center;gap:10px;margin-top:10px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
+.pf-add label{display:inline-flex;align-items:center;gap:4px}
+.pf-add .pf-dim{width:58px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
+.pf-note{margin-top:10px;font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted)}
+/* compartments overview */
+.mb-th.co-th,.mb-tr.co-th{grid-template-columns:1.2fr 1.4fr 0.8fr 0.9fr 0.9fr 0.7fr}
+.co-table .ed-input{height:20px;padding:1px 5px;font-size:0.62rem;width:100% !important}
+#compsOverview .mb{margin-bottom:10px}
+.ea-sub-step{white-space:nowrap}
+.ea-subwizard{flex-wrap:nowrap}

@@ -37,9 +37,13 @@
     { n: 7, key: 'bulkheads',  label: 'Bulkheads',  page: 5,
       title: 'Bulkheads',
       hint: 'Transverse and longitudinal bulkheads. Nothing to define here yet.' },
-    { n: 8, key: 'check',      label: 'Check',      page: 4,
+    { n: 8, key: 'check',      label: 'Results',    page: 4,
       title: 'Rule check & report',
-      hint: 'Hull girder, local scantling and buckling results for every element. Export the report (PDF), Excel or DXF with the buttons at the bottom of this page.' }
+      hint: 'Hull girder, local scantling and buckling results for every element. Export the report (PDF), Excel or DXF with the buttons at the bottom of this page.' },
+    { n: 9, key: 'profiles',   label: 'Profiles',   page: 6,
+      title: 'Profiles', hint: 'Stiffener catalogue (HP, L, T, FB) and custom sizes; the filter preference for the optimizer.' },
+    { n: 10, key: 'compartments', label: 'Compartments', page: 7,
+      title: 'Compartments', hint: 'Every compartment of every section — type, density, air pipe and test head. Boundaries are drawn in the section.' }
   ];
 
   var KEY = 'midship_step_v1';
@@ -148,7 +152,7 @@
       items.push({ ok: !tanksNoPipe, level: 'error', text: tanksNoPipe ? tanksNoPipe + ' tank' + (tanksNoPipe > 1 ? 's' : '') + ' without an air pipe height' : 'Tank heads defined', fix: 'Enter the air pipe top (mm AB) for every tank' });
       return items;
     },
-    7: function () { return []; },
+    7: function () { return []; }, 9: function () { return []; }, 10: function () { return []; },
     8: function () {
       var items = [];
       var S = D().getSection ? D().getSection() : null;
@@ -212,6 +216,7 @@
     }
   }
   window.showChecklist = showChecklist; window.blockingErrors = blockingErrors; window.allStepChecks = allChecks;
+  window.MidshipSteps = { current: function () { return current; }, openCount: function (s) { return openCount(s); }, stepByN: stepByN };
 
   // ------------------------------------------------------------------ strip
   function stripHtml(step) {
@@ -304,16 +309,7 @@
     var mainLines = document.querySelectorAll('.ea-wizard .ea-wizard-line');
     if (mainLines[0]) mainLines[0].classList.toggle('completed', n > 1);
     if (mainLines[1]) mainLines[1].classList.toggle('completed', n > 6);
-    // sub row: the five section steps
-    document.querySelectorAll('.ea-sub-step').forEach(function (b) {
-      var s = parseInt(b.dataset.step); var open = openCount(s);
-      b.classList.toggle('active', s === n);
-      b.classList.toggle('completed', s < n);
-      b.classList.toggle('incomplete', open > 0 && s < n);
-      b.title = b.title.replace(/ — .*$/, '') + (open ? ' — ' + open + ' open item(s)' : '');
-    });
-    var sub = document.querySelector('.ea-subwizard'); if (sub) sub.classList.toggle('is-off', !inSections);
-    paintRailSections(inSections);
+    if (window.ProjectTree) { try { ProjectTree.paint(); } catch (_) {} }
     var back = document.querySelector('#bottomStatusBar .sb-nav-btn.back');
     var fwd = document.querySelector('#bottomStatusBar .sb-nav-btn.fwd');
     if (back) { back.textContent = '← ' + (n > 1 ? stepByN(n - 1).label : 'Back'); back.onclick = stepPrev; }
@@ -345,8 +341,6 @@
       rail.innerHTML = '<div class="rail-title">Workflow</div>';
       document.body.appendChild(rail); document.body.classList.add('with-rail');
     }
-    var wiz = document.querySelector('.ea-wizard'); if (wiz && wiz.parentElement !== rail) rail.appendChild(wiz);
-    wireRail();
     return rail;
   }
   function arrangeChrome(onGeometry) {
@@ -358,9 +352,6 @@
     if (!onGeometry) {
       // form pages (Main particulars, Check): the one-row bar carries the page title, files right
       var fmid = fb.querySelector('.bridge-mid'), ffiles = fb.querySelector('.bridge-files');
-      var st = stepByN(current); var ttl = fmid.querySelector('.bar-page-title');
-      if (!ttl) { ttl = document.createElement('span'); ttl.className = 'bar-page-title'; fmid.appendChild(ttl); }
-      ttl.textContent = st.page === 4 ? 'Check' : st.page === 5 ? 'Bulkheads' : 'Main particulars';
       if (sub && sub.parentElement !== fmid) fmid.appendChild(sub);
       var pool = [].concat(Array.prototype.slice.call(acts ? acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)') : []), Array.prototype.slice.call((bar.querySelector('.bridge-files') || { children: [] }).children));
       pool.forEach(function (b) { ffiles.appendChild(b); });
@@ -379,75 +370,6 @@
       pool2.forEach(function (b) { fileHost.appendChild(b); });
     }
     document.body.classList.add('chrome-geometry');
-  }
-  // Sections listed under the main item. Today the model holds one; the list is
-  // built for many (frame numbers as the label, the active one highlighted).
-  function paintRailSections(inSections) {
-    var host = document.getElementById('railSections'); if (!host || !window.Sections) return;
-    var items = []; try { items = Sections.list(); } catch (_) { items = []; }
-    var models = {}; try { var st = Sections.exportState(); st.items.forEach(function (m) { models[m.id] = m; }); } catch (_) {}
-    host.innerHTML = items.map(function (it) {
-      var lb = Sections.label(models[it.id] || it);
-      return '<button class="rail-sec ' + (it.active && inSections ? 'active' : it.active ? 'current' : '') + '" data-sec="' + it.id + '" title="' + lb.name + (lb.sub ? ' · ' + lb.sub : '') + ' — right-click for more"><i></i><span class="rail-sec-name">' + lb.name + '</span><span class="rail-sec-sub">' + lb.sub + '</span></button>';
-    }).join('');
-  }
-  // right-click menus on the rail: new section on "Sections", duplicate / delete on a section
-  function railMenu(anchor, x, y, items) {
-    document.querySelectorAll('.cad-menu').forEach(function (m) { m.remove(); });
-    var menu = document.createElement('div'); menu.className = 'cad-menu rail-menu';
-    menu.innerHTML = items.map(function (it, i) { return '<div class="cad-menu-item ' + (it.danger ? 'danger' : '') + (it.off ? ' off' : '') + '" data-i="' + i + '"><span class="cad-menu-code">' + (it.short || '') + '</span><span>' + it.label + '</span></div>'; }).join('');
-    document.body.appendChild(menu);
-    var mh = menu.offsetHeight, mw = menu.offsetWidth; var top = Math.min(y, window.innerHeight - mh - 8), left = Math.min(x, window.innerWidth - mw - 8);
-    menu.style.top = top + 'px'; menu.style.left = left + 'px';
-    var close = function () { menu.remove(); document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', esc, true); };
-    var outside = function (ev) { if (!menu.contains(ev.target)) close(); };
-    var esc = function (ev) { if (ev.key === 'Escape') { close(); ev.stopPropagation(); } };
-    setTimeout(function () { document.addEventListener('mousedown', outside, true); document.addEventListener('keydown', esc, true); }, 0);
-    menu.addEventListener('click', function (ev) {
-      var row = ev.target.closest('.cad-menu-item'); if (!row || row.classList.contains('off')) return;
-      var it = items[+row.dataset.i];
-      if (it.confirm && !row.dataset.armed) { row.dataset.armed = '1'; row.querySelector('span:last-child').textContent = it.confirm; return; }
-      close(); it.run();
-    });
-  }
-  // the row's label becomes a field; Enter / blur saves, Escape keeps the old name
-  function renameInline(row, id) {
-    var nameEl = row.querySelector('.rail-sec-name'); if (!nameEl || row.querySelector('input')) return;
-    var models = {}; try { Sections.exportState().items.forEach(function (m) { models[m.id] = m; }); } catch (_) {}
-    var cur = models[id] && models[id].name ? models[id].name : '';
-    var inp = document.createElement('input'); inp.className = 'rail-rename'; inp.type = 'text'; inp.value = cur; inp.placeholder = nameEl.textContent; inp.maxLength = 40;
-    nameEl.textContent = ''; nameEl.appendChild(inp); inp.focus(); inp.select();
-    var done = false; var fin = function (ok) { if (done) return; done = true; if (ok) Sections.rename(id, inp.value); paintNav(current); };
-    inp.addEventListener('keydown', function (ev) { ev.stopPropagation(); if (ev.key === 'Enter') fin(true); else if (ev.key === 'Escape') fin(false); });
-    inp.addEventListener('blur', function () { fin(true); });
-    inp.addEventListener('click', function (ev) { ev.stopPropagation(); });
-  }
-  function wireRail() {
-    var rail = document.getElementById('sideRail'); if (!rail || rail.__wired) return; rail.__wired = true;
-    rail.addEventListener('click', function (e) {
-      var row = e.target.closest('.rail-sec'); if (!row || row.querySelector('input')) return;
-      if (window.Sections) Sections.activate(row.dataset.sec);
-      goToSections();
-    });
-    rail.addEventListener('contextmenu', function (e) {
-      var row = e.target.closest('.rail-sec'); var grp = e.target.closest('.ea-wizard-step[data-group="sections"], #railSections');
-      if (!row && !grp) return; e.preventDefault();
-      var after = function () { paintNav(current); };
-      if (row) {
-        var id = row.dataset.sec; var n = 0; try { n = Sections.list().length; } catch (_) {}
-        railMenu(row, e.clientX, e.clientY, [
-          { short: 'ab', label: 'Rename section', run: function () { renameInline(row, id); } },
-          { short: '⧉', label: 'Duplicate section', run: function () { Sections.duplicate(id); goToStep(2); after(); } },
-          { short: '✕', label: 'Delete section', confirm: 'Delete — click again to confirm', danger: true, off: n < 2, run: function () { Sections.remove(id); if (SECTION_STEPS.indexOf(current) >= 0) goToStep(current); after(); } }
-        ]);
-      } else {
-        railMenu(grp, e.clientX, e.clientY, [
-          { short: '＋', label: 'New section', run: function () { Sections.create(); goToStep(2); after(); } }
-        ]);
-      }
-    });
-    window.addEventListener('midship:section-switched', function () { paintNav(current); });
-    window.addEventListener('midship:model-changed', function () { paintRailSections(SECTION_STEPS.indexOf(current) >= 0); });
   }
   var lastSectionStep = 2;
   function goToSections() { goToStep(SECTION_STEPS.indexOf(current) >= 0 ? current : lastSectionStep); }
@@ -493,8 +415,8 @@
     }
     document.body.setAttribute('data-step', String(current));
   }
-  function stepNext() { goToStep(current + 1); }
-  function stepPrev() { goToStep(current - 1); }
+  function stepNext() { if (window.ProjectTree) ProjectTree.goNext(1); else goToStep(current + 1); }
+  function stepPrev() { if (window.ProjectTree) ProjectTree.goNext(-1); else goToStep(current - 1); }
 
   // Old callers (Back / View Summary buttons, Project.createProject) still
   // call goToPage(); keep the step model in sync when they do.
@@ -504,7 +426,7 @@
     var wrapped = function (n) {
       var r = orig.apply(this, arguments);
       if (n === 2) n = 3;
-      var s = n === 1 ? 1 : n === 4 ? 8 : n === 5 ? 7 : (current >= 2 && current <= 6 ? current : 2);
+      var s = n === 1 ? 1 : n === 4 ? 8 : n === 5 ? 7 : n === 6 ? 9 : n === 7 ? 10 : (current >= 2 && current <= 6 ? current : 2);
       if (s !== current) { current = s; try { localStorage.setItem(KEY, String(current)); } catch (_) {} }
       arrangeChrome(stepByN(current).page === 3);
       paintNav(current);
