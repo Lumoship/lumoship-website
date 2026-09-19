@@ -1229,7 +1229,10 @@
     }
     return out;
   }
-  let msgsCollapsed = false;
+  const MSG_KEY = 'midship_msgpane_v1'; const MSG_ROW = 17.5;
+  let msgsClosed = false, msgsH = Math.round(MSG_ROW * 3);   // body height: three rows by default
+  try { const q = JSON.parse(localStorage.getItem(MSG_KEY) || '{}'); if (q.h > 20) msgsH = q.h; msgsClosed = !!q.closed; } catch (_) {}
+  const saveMsgState = () => { try { localStorage.setItem(MSG_KEY, JSON.stringify({ h: msgsH, closed: msgsClosed })); } catch (_) {} };
   function renderMsgPane() {
     const host = document.getElementById('svgContainer'); if (!host) return;
     let pane = document.getElementById('cadMsgPane');
@@ -1237,8 +1240,18 @@
     if (!msgs.length) { if (pane) pane.style.display = 'none'; return; }
     if (!pane) {
       pane = document.createElement('div'); pane.id = 'cadMsgPane'; pane.className = 'cad-msgs'; host.appendChild(pane);
+      // header drags the pane taller / shorter
+      let drag = null;
+      pane.addEventListener('mousedown', e => {
+        const head = e.target.closest('.cad-msgs-head'); if (!head || e.target.closest('.cad-msgs-x') || pane.classList.contains('closed')) return;
+        drag = { y0: e.clientY, h0: msgsH }; e.preventDefault();
+        const mv = ev => { msgsH = Math.max(MSG_ROW, Math.min(host.clientHeight * 0.6, drag.h0 + (drag.y0 - ev.clientY))); pane.querySelector('.cad-msgs-body').style.height = msgsH + 'px'; };
+        const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); drag = null; saveMsgState(); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      });
       pane.addEventListener('click', e => {
-        const head = e.target.closest('.cad-msgs-head'); if (head) { msgsCollapsed = !msgsCollapsed; pane.classList.toggle('collapsed', msgsCollapsed); return; }
+        if (e.target.closest('.cad-msgs-x')) { msgsClosed = true; saveMsgState(); renderMsgPane(); return; }
+        if (e.target.closest('.cad-msgs-pill')) { msgsClosed = false; saveMsgState(); renderMsgPane(); return; }
         const row = e.target.closest('.cad-msg'); if (!row) return;
         const m = pane.__msgs[+row.dataset.i]; if (!m) return;
         const st = SP() ? SP().state : null;
@@ -1249,10 +1262,12 @@
         if (target) { const r = document.querySelector(target); if (r) r.scrollIntoView({ block: 'nearest' }); }
       });
     }
-    pane.__msgs = msgs; pane.style.display = ''; pane.classList.toggle('collapsed', msgsCollapsed);
+    pane.__msgs = msgs; pane.style.display = ''; pane.classList.toggle('closed', msgsClosed);
     const nb = msgs.filter(m => m.level === 'bad').length, nw = msgs.length - nb;
-    pane.innerHTML = `<div class="cad-msgs-head"><span>Messages</span>${nb ? `<b class="n-bad">${nb} error${nb > 1 ? 's' : ''}</b>` : ''}${nw ? `<b class="n-warn">${nw} warning${nw > 1 ? 's' : ''}</b>` : ''}<span class="chev">${msgsCollapsed ? '▴' : '▾'}</span></div>
-      <div class="cad-msgs-body">${msgs.map((m, i) => `<div class="cad-msg ${m.level}" data-i="${i}"><span class="dot"></span><span class="where">${m.where}</span><span class="txt">${m.text}</span></div>`).join('')}</div>`;
+    const counts = `${nb ? `<b class="n-bad">${nb} error${nb > 1 ? 's' : ''}</b>` : ''}${nw ? `<b class="n-warn">${nw} warning${nw > 1 ? 's' : ''}</b>` : ''}`;
+    if (msgsClosed) { pane.innerHTML = `<div class="cad-msgs-pill" title="Show the messages"><span>Messages</span>${counts}</div>`; return; }
+    pane.innerHTML = `<div class="cad-msgs-head" title="Drag to resize"><span>Messages</span>${counts}<span class="cad-msgs-x" title="Close">×</span></div>
+      <div class="cad-msgs-body" style="height:${msgsH}px">${msgs.map((m, i) => `<div class="cad-msg ${m.level}" data-i="${i}"><span class="dot"></span><span class="where">${m.where}</span><span class="txt">${m.text}</span></div>`).join('')}</div>`;
   }
   function renderInfoCard() {
     const host = document.getElementById('svgContainer'); if (!host) return;

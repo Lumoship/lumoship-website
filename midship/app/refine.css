@@ -1351,12 +1351,14 @@ body.check-blocked #page-4 .ea-main > :not(#checkBlocked):not(.step-strip-host){
 .cad-msgs{position:absolute;left:12px;right:12px;bottom:10px;z-index:5;background:rgba(15,23,42,0.94);border:1px solid var(--border);border-radius:var(--radius-md);backdrop-filter:blur(4px);font-family:var(--font-mono);font-size:0.62rem;color:var(--text-secondary);display:flex;flex-direction:column;max-height:150px}
 .cad-msgs-head{display:flex;align-items:center;gap:10px;padding:4px 10px;cursor:pointer;user-select:none;letter-spacing:0.04em;text-transform:uppercase;font-size:0.58rem;color:var(--text-muted)}
 .cad-msgs-head b{font-weight:600}
-.cad-msgs-head .n-bad{color:var(--danger,#ef4444)}
-.cad-msgs-head .n-warn{color:var(--warning,#f59e0b)}
-.cad-msgs-head .chev{margin-left:auto;opacity:0.7}
-.cad-msgs-body{overflow:auto;border-top:1px solid var(--border-soft);padding:2px 0}
-.cad-msgs.collapsed .cad-msgs-body{display:none}
-.cad-msg{display:flex;align-items:baseline;gap:8px;padding:2px 10px;cursor:pointer;line-height:1.35}
+.cad-msgs-head .n-bad,.cad-msgs-pill .n-bad{color:var(--danger,#ef4444)}
+.cad-msgs-head .n-warn,.cad-msgs-pill .n-warn{color:var(--warning,#f59e0b)}
+.cad-msgs-head{cursor:ns-resize}
+.cad-msgs-head .cad-msgs-x{margin-left:auto;cursor:pointer;font-size:0.8rem;line-height:1;padding:0 2px;opacity:0.7}
+.cad-msgs-head .cad-msgs-x:hover{opacity:1;color:var(--text)}
+.cad-msgs-body{overflow:auto;border-top:1px solid var(--border-soft);padding:2px 0;box-sizing:content-box}
+.cad-msg{display:flex;align-items:baseline;gap:8px;padding:0 10px;height:17.5px;cursor:pointer;line-height:17.5px;white-space:nowrap;overflow:hidden}
+.cad-msg .txt{overflow:hidden;text-overflow:ellipsis}
 .cad-msg:hover{background:rgba(255,255,255,0.04)}
 .cad-msg .dot{width:6px;height:6px;border-radius:50%;flex:none;transform:translateY(-1px)}
 .cad-msg.bad .dot{background:var(--danger,#ef4444)}
@@ -1367,4 +1369,8 @@ body.check-blocked #page-4 .ea-main > :not(#checkBlocked):not(.step-strip-host){
 /* the pane takes its own room under the drawing instead of covering it */
 body.cad-mode #svgContainer{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start}
 body.cad-mode #midshipSVG{flex:1 1 0;min-height:0;height:auto !important;width:100%}
-body.cad-mode .cad-msgs{position:relative;left:auto;right:auto;bottom:auto;flex:none;margin:0 12px 10px;max-height:132px}
+body.cad-mode .cad-msgs{position:relative;left:auto;right:auto;bottom:auto;flex:none;margin:0 12px 10px;max-height:none}
+body.cad-mode .cad-msgs.closed{background:none;border:none;backdrop-filter:none;align-items:flex-end;margin:0 12px 8px}
+.cad-msgs-pill{display:inline-flex;align-items:center;gap:8px;padding:3px 9px;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,0.94);cursor:pointer;font-size:0.58rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted)}
+.cad-msgs-pill:hover{border-color:var(--border-strong,var(--border));color:var(--text-secondary)}
+.cad-msgs-pill b{font-weight:600}
