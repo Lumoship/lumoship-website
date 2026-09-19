@@ -159,6 +159,7 @@
   let sel = { panel: null, node: null, group: null };   // group: highlighted panel (Section step)
   let hover = null;          // { y, z, kind:'node'|'panel'|'free', nodeId, panelId }
   let hoverSg = null;        // stiffener group under the pointer (Stiffeners view): { gid, sg }
+  let hoverComp = null;      // compartment under the pointer (Compartments view)
   let pending = [];          // clicked points for line / arc
   let arcAsk = null;         // { a, b } waiting for a radius
   let addForm = null;        // which "Add panel" form is open
@@ -309,9 +310,9 @@
     // Compartments view: filled loops (or dashed boundary when the loop is open) + name / type label
     if (inComps()) {
       (s.compartments || []).forEach(c => {
-        const col = compColor(s, c.id); const isSel = selComp === c.id; const loop = compLoop(s, c);
+        const col = compColor(s, c.id); const isSel = selComp === c.id, isHovC = hoverComp === c.id; const loop = compLoop(s, c);
         if (loop) {
-          h += `<polygon points="${loop.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="${col}" fill-opacity="${isSel ? 0.22 : 0.10}" stroke="${col}" stroke-width="${isSel ? 2 : 1}" vector-effect="non-scaling-stroke" data-comp="${c.id}" style="cursor:pointer"/>`;
+          h += `<polygon points="${loop.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="${col}" fill-opacity="${isSel ? 0.22 : isHovC ? 0.17 : 0.10}" stroke="${col}" stroke-width="${isSel ? 2 : isHovC ? 1.6 : 1}" vector-effect="non-scaling-stroke" data-comp="${c.id}" style="cursor:pointer"/>`;
           if (loop.virtual) { const va = nodeById(s, loop.virtual.from), vb = nodeById(s, loop.virtual.to); const seq = [va].concat(loop.virtual.via || [], [vb]); h += `<polyline points="${seq.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
           (loop.virtualEdges || []).forEach(([va, vb]) => { h += `<line x1="${X(va.y)}" y1="${Y(va.z)}" x2="${X(vb.y)}" y2="${Y(vb.z)}" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
           // label inside the space: horizontal when the room allows, else along the
@@ -567,6 +568,7 @@
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) moved = true;
     const p = realFromEvent(e); if (!p) return;
     hover = snap(p, ((e.shiftKey || ortho) && pending.length) ? pending[0] : null);
+    if (inComps()) { const t = e.target; hoverComp = t && t.getAttribute ? t.getAttribute('data-comp') : null; }
     if (inStiffs()) { const t = e.target; const sg = t && t.getAttribute ? t.getAttribute('data-sg') : null; const nh = sg ? { gid: t.getAttribute('data-gid'), sg } : null; if ((nh && nh.sg) !== (hoverSg && hoverSg.sg) || (nh && nh.gid) !== (hoverSg && hoverSg.gid)) hoverSg = nh; }
     renderSvg();
   }
@@ -584,7 +586,8 @@
       renderSvg(); renderPanel(); scrollToRow(); return;
     }
     if (inComps()) {
-      const cid = e.target && e.target.getAttribute && e.target.getAttribute('data-comp');
+      let cid = e.target && e.target.getAttribute && e.target.getAttribute('data-comp');
+      if (!cid) { const under = document.elementFromPoint(e.clientX, e.clientY); cid = under && under.getAttribute ? under.getAttribute('data-comp') : null; }
       const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
       if (compPick && selComp) {
         // node circuit: click nodes in order round the space; clicking a picked node removes it
@@ -595,7 +598,9 @@
       }
       if (cid) selComp = cid; else if (pid) { const owner = (s.compartments || []).find(c => (c.panels || []).includes(pid)); selComp = owner ? owner.id : selComp; }
       else selComp = null;
-      renderSvg(); renderPanel(); return;
+      renderSvg(); renderPanel();
+      if (selComp) { const row = document.querySelector(`.pos-row[data-row="${selComp}"]`); if (row) row.scrollIntoView({ block: 'nearest' }); }
+      return;
     }
     if (inStiffs() || inStrakes() || inSupports()) {
       const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
