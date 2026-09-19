@@ -111,7 +111,8 @@
       items.push({ ok: !bad.length, level: 'error', text: bad.length ? 'Σ strake length ≠ panel length: ' + bad.join(', ') : 'Strake lengths add up on every panel', fix: 'Use ⇥ (fit last) on the panel' });
       items.push({ ok: !noT, level: 'error', text: noT ? noT + ' strake' + (noT > 1 ? 's' : '') + ' without a thickness' : 'Every strake has a thickness', fix: 'Enter t (mm) for every strake' });
       var noG = 0; gids.forEach(function (g) { M.panelData(S, g).strakes.forEach(function (x) { if (!x.grade) noG++; }); });
-      items.push({ ok: !noG, level: 'warn', text: noG ? noG + ' strake' + (noG > 1 ? 's' : '') + ' without a material grade' : 'Every strake has a grade', fix: 'Pick the material (A, AH32, AH36 …)' });
+      // a blank grade is the zone material (Ship step) — legitimate, so only informative
+      items.push({ ok: true, level: 'warn', text: noG ? noG + ' strake' + (noG > 1 ? 's' : '') + ' on the automatic grade (zone material)' : 'Every strake has an explicit grade' });
       var tight = 0, bad2 = 0;
       if (M.chainObstacles) gids.forEach(function (g) { var d = M.panelData(S, g); var obs = M.chainObstacles(S, g); var x = 0; d.strakes.forEach(function (st, i) { x += st.len || 0; if (i === d.strakes.length - 1) return; var dm = Infinity; obs.forEach(function (o) { dm = Math.min(dm, Math.abs(o.x - x)); }); if (dm < 50) bad2++; else if (dm < 100) tight++; }); });
       items.push({ ok: !bad2, level: 'error', text: bad2 ? bad2 + ' seam' + (bad2 > 1 ? 's' : '') + ' within 50 mm of a member — cannot be built' : 'No seam within 50 mm of a member', fix: 'Move the seam (strake length) at least 50 mm off the girder / stiffener' });

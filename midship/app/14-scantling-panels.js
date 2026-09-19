@@ -101,7 +101,8 @@
         <button class="ed-link-btn on" data-sp="st-auto" title="Lay the panel out in plates of this width; seams keep clear of girders, decks and stiffeners">Apply</button></div>
       <div class="mb-table"><div class="mb-th sp-st-th"><span>ID</span><span>t (mm)</span><span>From</span><span>To</span><span>Grade</span></div>`;
     let acc = 0;
-    arr.forEach((st, i) => { const from = acc; acc += st.len || 0; h += `<div class="mb-tr sp-st-th ${state.strake === i ? 'is-sel' : ''}" data-st="${i}" title="length ${fmt(st.len || 0)} mm"><span>${i + 1}</span><span style="color:${ctx.tColor(st.t)}">${st.t != null ? st.t : '—'}</span><span>${fmt(from)}</span><span>${fmt(acc)}</span><span>${st.grade || '—'}</span></div>`; });
+    const autoG = ctx.defaultGrade(s, gid);
+    arr.forEach((st, i) => { const from = acc; acc += st.len || 0; h += `<div class="mb-tr sp-st-th ${state.strake === i ? 'is-sel' : ''}" data-st="${i}" title="length ${fmt(st.len || 0)} mm"><span>${i + 1}</span><span style="color:${ctx.tColor(st.t)}">${st.t != null ? st.t : '—'}</span><span>${fmt(from)}</span><span>${fmt(acc)}</span><span class="sp-grade ${st.grade ? '' : 'is-auto'}" data-g="${i}" title="${st.grade ? 'Material grade — click to change' : 'Automatic (' + autoG + ' from the zone material) — click to set'}">${st.grade || autoG}</span></div>`; });
     if (!arr.length) h += `<div class="mb-empty-row">no strakes yet — ＋ adds one, ⤓ fills from the automatic layout</div>`;
     h += `</div><div class="mb-sum ${Math.abs(diff) <= 5 ? 'ok' : diff > 0 ? 'warn' : 'bad'}">Σ ${fmt(sum)} / ${fmt(ci.L)} mm ${Math.abs(diff) <= 5 ? '✓' : diff > 0 ? '· ' + diff + ' mm short' : '· ' + (-diff) + ' mm over'}</div>`;
     // seam clearance: a seam on top of a girder / deck / stiffener cannot be built
@@ -116,7 +117,7 @@
         <div class="mb-row"><span>From → To</span><span>${fmt(x0)} → ${fmt(x1)} mm${seg ? ' · ' + ctx.posLabel(seg.position) : ''}</span></div>
         <div class="mb-row"><span>Thickness</span><span class="pc-inline"><input class="ed-input sp-s" data-k="t" type="number" step="0.5" min="3" value="${st.t != null ? st.t : ''}"><em>mm</em></span></div>
         <div class="mb-row"><span>Length</span><span class="pc-inline"><input class="ed-input sp-s" data-k="len" type="number" step="10" min="10" max="${fmt(ci.L)}" value="${fmt(st.len || 0)}"><em>mm · neighbour adjusts</em></span></div>
-        <div class="mb-row"><span>Material</span><select class="ed-input sp-s" data-k="grade">${GRADES.map(g => `<option value="${g}" ${st.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
+        <div class="mb-row"><span>Material</span><select class="ed-input sp-s" data-k="grade"><option value="" ${!st.grade ? 'selected' : ''}>auto · ${autoG}</option>${GRADES.map(g => `<option value="${g}" ${st.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
         <div class="mb-row"><span>User ID</span><input class="ed-input sp-s" data-k="uid" type="text" value="${st.uid || ''}" placeholder="optional"></div>
         <div class="mb-split">
           <div class="mb-box"><div class="mb-box-title">Hole</div>
@@ -130,9 +131,16 @@
     ec.innerHTML = h; bindHeader(ec, s, ctx);
     const mut = fn => { const m = JSON.parse(JSON.stringify(s)); fn(M().panelData(m, gid), m); ctx.commit(m); };
     ec.querySelectorAll('[data-st]').forEach(r => r.addEventListener('click', () => { state.strake = state.strake === +r.dataset.st ? null : +r.dataset.st; ctx.refresh(); }));
+    ec.querySelectorAll('.sp-grade').forEach(el => el.addEventListener('click', e => {
+      e.stopPropagation(); const i = +el.dataset.g; state.strake = i;
+      const yieldOf = g => /40$/.test(g) ? '390 N/mm²' : /36$/.test(g) ? '355 N/mm²' : /32$/.test(g) ? '315 N/mm²' : '235 N/mm²';
+      const items = [{ value: '', short: 'auto', label: autoG + ' · zone material' }].concat(GRADES.map(g => ({ value: g, short: g, label: yieldOf(g) })));
+      ctx.popupMenu(el, items, arr[i].grade || '', v => mut(dd => { if (dd.strakes[i]) dd.strakes[i].grade = v || null; }));
+    }));
     ec.querySelectorAll('.sp-s').forEach(i => i.addEventListener('change', e => mut(dd => {
       const st = dd.strakes[state.strake]; if (!st) return; const k = e.target.dataset.k;
-      if (k === 'grade' || k === 'uid') { st[k] = e.target.value; return; }
+      if (k === 'grade') { st.grade = e.target.value || null; return; }
+      if (k === 'uid') { st[k] = e.target.value; return; }
       const v = parseFloat(e.target.value);
       if (k !== 'len') { st[k] = isNaN(v) ? null : v; return; }
       // the panel length is fixed: what one strake gains its neighbour gives (next, else previous)

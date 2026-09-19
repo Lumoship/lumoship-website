@@ -511,7 +511,7 @@
   }
   function panelsCtx() {
     return { sel, setSel: o => { sel = o; renderSvg(); renderPanel(); }, commit: commitNames, refresh: () => { renderSvg(); renderPanel(); },
-      tColor, posLabel, defaultGrade: defaultGradeGroup, hasLegacy, seedStrakes: seedStrakesFor, profileNames,
+      tColor, posLabel, defaultGrade: defaultGradeGroup, hasLegacy, seedStrakes: seedStrakesFor, profileNames, popupMenu,
       spacingFor: gid => spacingForGroup(S(), gid), profTypeFor: gid => profTypeForGroup(S(), gid), defaultSide: gid => defaultSideForGroup(S(), gid), toast,
       // keel plate half-width for the shell panel (first strake starts at CL), 0 elsewhere
       keelHalfFor: gid => { const q = firstSeg(S(), gid); return q && q.position === 'bottom' ? (G().keel_half || 0) : 0; } };
