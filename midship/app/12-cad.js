@@ -772,7 +772,7 @@
         const isSel = q ? q.id === sel.panel : (sel.node === nid && !sel.panel);
         h += `<div class="mb-tr ${isSel ? 'is-sel' : ''}" data-mb-node="${nid}" ${q ? `data-mb-seg="${q.id}"` : ''}>
           <span>${nid}</span><span>${n ? n.y : ''}</span><span>${n ? n.z : ''}</span>
-          <span style="color:${q ? (q.position ? (POS_COLOR[q.position] || '#94a3b8') : '#f59e0b') : 'transparent'}">${q ? (q.position ? `<span title="${posLabel(q.position)}">${shortPos(q.position)}</span>` : '—') : ''}</span>
+          <span>${q ? `<select class="mb-pos-inline" data-seg="${q.id}" style="color:${q.position ? (POS_COLOR[q.position] || '#94a3b8') : '#f59e0b'}" title="${q.position ? posLabel(q.position) : 'Undefined'}"><option value="" ${q.position ? '' : 'selected'}>—</option>${M().POSITIONS.map(o => `<option value="${o.code}" ${q.position === o.code ? 'selected' : ''}>${q.position === o.code ? shortPos(o.code) : o.label}</option>`).join('')}</select>` : ''}</span>
           <span>${q ? `<input type="checkbox" class="mb-wt" data-seg="${q.id}" ${q.wt ? 'checked' : ''} title="Watertight">` : ''}</span></div>`;
       });
       h += `</div>`;
@@ -788,7 +788,6 @@
         if (q) {
           const L = M().panelLength(q, s.nodes);
           h += `<div class="mb-row"><span>From node</span><span class="pc-inline"><span class="mb-chip">${q.from}</span><em>to node</em><span class="mb-chip">${q.to}</span><em>· ${fmt(L)} mm</em></span></div>
-            <div class="mb-row"><span>Position code</span><select class="ed-input mb-pos">${posOpts}</select></div>
             <div class="mb-row"><span>Curve type</span><span class="cad-seg"><button class="${q.curve ? '' : 'on'}" data-mb="curve-line" title="Straight">╱ line</button><button class="${q.curve ? 'on' : ''}" data-mb="curve-arc" title="Arc through both nodes">◝ arc</button></span></div>
             ${q.curve ? `<div class="mb-row"><span>Radius</span><span class="pc-inline"><input class="ed-input mb-radius" type="number" step="50" min="${Math.ceil(Math.hypot(nodeById(s, q.to).y - nodeById(s, q.from).y, nodeById(s, q.to).z - nodeById(s, q.from).z) / 2)}" value="${fmt(q.curve.r)}"><em>mm</em></span></div>` : ''}
             <div class="mb-row"><span>Panel</span><select class="ed-input cad-group">${gids.map(id => `<option value="${id}" ${q.group === id ? 'selected' : ''}>${gName(s, id)}</option>`).join('')}<option value="__new">+ new panel…</option></select></div>
@@ -837,7 +836,14 @@
       renderSvg(); renderPanel();
     }));
     ec.querySelectorAll('.mb-wt').forEach(cb => cb.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === e.target.dataset.seg); if (q) { q.wt = e.target.checked; commit(m); } }));
-    const posSel = ec.querySelector('.mb-pos'); if (posSel) posSel.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === sel.panel); if (q) { q.position = e.target.value || null; commit(m); } });
+    ec.querySelectorAll('.mb-pos-inline').forEach(el => {
+      const longNames = () => { [...el.options].forEach(o => { if (o.value) o.textContent = posLabel(o.value); }); };
+      const shortNames = () => { [...el.options].forEach(o => { if (o.value) o.textContent = o.selected ? shortPos(o.value) : posLabel(o.value); }); };
+      el.addEventListener('mousedown', longNames); el.addEventListener('focus', longNames);
+      el.addEventListener('blur', shortNames);
+      el.addEventListener('click', e => e.stopPropagation());
+      el.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === e.target.dataset.seg); if (q) { q.position = e.target.value || null; const def = M().POS[q.position]; if (def) q.wt = def.wt; commit(m); } });
+    });
     const radI = ec.querySelector('.mb-radius'); if (radI) radI.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const r = parseFloat(e.target.value); const q = m.panels.find(x => x.id === sel.panel); if (!q) return; const ok = M().setCurve(m, q.id, r); if (!ok) { toast('Radius must be at least half the chord.'); return; } const nq = m.panels.find(x => x.from === q.from && x.to === q.to) || m.panels.find(x => x.curve && Math.abs(x.curve.r - r) < 1); sel.panel = nq ? nq.id : null; commit(m); });
     ec.querySelectorAll('[data-mb]').forEach(b => b.addEventListener('click', () => {
       const act = b.dataset.mb; const m = JSON.parse(JSON.stringify(S())); const gids2 = Object.keys(m.groups || {}); const gi = gids2.indexOf(sel.group);

@@ -1299,3 +1299,6 @@ body .bridge-mid .ea-wizard-step{padding:4px 8px !important;font-size:0.7rem !im
 body .bridge-mid .ea-wizard-line{width:16px !important;display:block}
 @media (max-width:1280px){ body .bridge-mid .ea-wizard-line{display:none} body .bridge-mid .ea-wizard-step{padding:4px 6px !important} }
 body.chrome-form .ea-page > .ea-main{max-width:none !important;width:100% !important}
+.mb-tr .mb-pos-inline{appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:var(--font-mono);font-size:0.6rem;font-weight:700;padding:0;width:100%;cursor:pointer;text-overflow:ellipsis}
+.mb-tr .mb-pos-inline:focus{outline:none;text-decoration:underline dotted}
+.mb-row[hidden]{display:none !important}
