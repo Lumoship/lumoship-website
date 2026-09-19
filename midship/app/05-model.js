@@ -431,8 +431,10 @@
     const t = it.len > 0 ? (x - it.start) / it.len : 0;
     const ln = panelLine(it.seg, model.nodes); const pt = pointAt(ln, it.fwd ? t : 1 - t);
     // tangent along the chain direction
-    const q2 = pointAt(ln, it.fwd ? Math.min(1, t + 0.001) : Math.max(0, 1 - t - 0.001));
-    let ty = q2.y - pt.y, tz = q2.z - pt.z; const n = Math.hypot(ty, tz) || 1;
+    // (at the very end of an item step backwards instead, so the tangent never degenerates)
+    const tf = it.fwd ? t : 1 - t; const dt = it.fwd ? 0.001 : -0.001; const tOK = tf + dt >= 0 && tf + dt <= 1;
+    const q2 = pointAt(ln, tOK ? tf + dt : tf - dt);
+    let ty = tOK ? q2.y - pt.y : pt.y - q2.y, tz = tOK ? q2.z - pt.z : pt.z - q2.z; const n = Math.hypot(ty, tz) || 1;
     return { y: pt.y, z: pt.z, seg: it.seg, t, ty: ty / n, tz: tz / n };
   }
   // Distance along the panel chain of a point lying on it (null if not on the panel).
