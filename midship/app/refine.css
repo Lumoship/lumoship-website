@@ -1074,3 +1074,14 @@ body.cad-mode .draw-bridge-bar > div:first-child{gap:6px}
 body.cad-mode .main-grid,body.cad-mode .main-grid.left-collapsed,body.cad-mode .main-grid.right-collapsed,body.cad-mode .main-grid.left-collapsed.right-collapsed{grid-template-columns:0 1fr 300px}
 body.cad-mode .main-grid.right-collapsed,body.cad-mode .main-grid.left-collapsed.right-collapsed{grid-template-columns:0 1fr 30px}
 body.cad-mode .main-grid > :first-child{display:none}
+
+/* Geometry page: no step strip (the status bar carries the step, badge and nav) */
+body.geometry-active .ea-page#page-3 .step-strip-host{display:none}
+.sb-badge{display:inline-block;margin-right:6px}
+.sb-badge:empty{display:none}
+body:not(.geometry-active) .sb-badge{display:none}
+.ea-header-link{color:var(--text-muted);text-decoration:none;border-color:transparent;background:transparent}
+.ea-header-link:hover{color:var(--text-primary);border-color:var(--border)}
+body.cad-mode .ed-group{margin-bottom:6px}
+body.cad-mode .ed-group.collapsed{margin-bottom:0}
+body.cad-mode .ed-group.collapsed > .ed-group-header{padding:4px 0;margin:0}

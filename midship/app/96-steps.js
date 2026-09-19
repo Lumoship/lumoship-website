@@ -192,7 +192,17 @@
     return h;
   }
 
+  // Status-bar badge (Geometry page): the step's own strip is hidden there.
+  function paintBadge(step) {
+    var el = $('sbStepBadge'); if (!el) return;
+    var items = []; try { items = CHECKS[step.n] ? CHECKS[step.n]() : []; } catch (_) { items = []; }
+    var open = items.filter(function (i) { return !i.ok; }).length, okN = items.length - open;
+    el.className = 'step-strip-badge sb-badge ' + (open ? 'todo' : 'ok');
+    el.innerHTML = okN + '/' + items.length + (open ? ' &middot; ' + open + ' open' : ' &#10003;');
+    el.title = items.map(function (i) { return (i.ok ? '✓ ' : '● ') + i.text; }).join(String.fromCharCode(10));
+  }
   function mountStrip(step) {
+    paintBadge(step);
     try { document.body.classList.toggle('example-project', !!(D().isExampleGeometry && D().isExampleGeometry())); } catch (_) {}
     document.querySelectorAll('.step-strip-host').forEach(function (el) { el.innerHTML = ''; });
     var page = $('page-' + step.page); if (!page) return;
@@ -213,6 +223,7 @@
     try { document.body.classList.toggle('example-project', !!(D().isExampleGeometry && D().isExampleGeometry())); } catch (_) {}
     var host = $('page-' + step.page) && $('page-' + step.page).querySelector('.step-strip-host');
     if (host) host.innerHTML = stripHtml(step);
+    paintBadge(step);
   }
 
   // ------------------------------------------------------------------- nav

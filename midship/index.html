@@ -250,6 +250,7 @@
         </div>
       </div>
       <div class="ea-header-actions">
+        <a class="ea-header-btn ea-header-link" href="https://lumoship.org/workspace.html" title="Back to the workspace">← Workspace</a>
         <span class="ea-header-badge">v1.1</span>
         <button class="ea-header-btn" onclick="Project.newProject()" title="Start a new project from principal particulars">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
@@ -1265,7 +1266,7 @@
         <span class="sb-label">Stiffs</span>
         <span class="sb-value" id="sbStiffs">—</span>
       </div>
-      <button class="sb-expand" onclick="window.toggleSidePanel('left', true)" title="Open Info panel for full breakdown">↗ Details</button>
+      <span id="sbStepBadge" class="step-strip-badge sb-badge" title="Step checklist"></span>
       <button class="sb-nav-btn fwd" onclick="stepNext()" title="Next step">Next →</button>
     </div>
 
