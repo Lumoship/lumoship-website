@@ -23,6 +23,25 @@ let GEOMETRY = {
   IS: 10030,          // inner side from CL
 };
 
+// Section topology (05-model.js): nodes + panels. Regenerated from the
+// parametric inputs above on every render until the user edits it by hand
+// (SECTION.manual), after which it is the source of truth and is saved with
+// the project. Step 0 of the MARS-style rework: the model exists alongside
+// the parametric drawing; later steps move the editors onto it.
+let SECTION = null;
+function syncSectionModel(force) {
+  if (!window.SectionModel) return null;
+  if (SECTION && SECTION.manual && !force) return SECTION;
+  try {
+    SECTION = SectionModel.generate({
+      GEOMETRY, PARAMS, SIDE_GIRDERS,
+      stringerZs: typeof levelZs === 'function' ? levelZs('stringer') : [],
+      tweenZs:    typeof levelZs === 'function' ? levelZs('tween') : []
+    });
+  } catch (e) { console.warn('[SectionModel] generate failed:', e); }
+  return SECTION;
+}
+
 // Design parameters (spacing, starting positions, profile types)
 let PARAMS = {
   dbSpacing: 700,
@@ -773,6 +792,7 @@ function getCompartmentAt(y_mm, z_mm) {
 
 // Resolve polygon vertices (ordered) from a node-based compartment
 function _compartmentPolygonPoints(c) {
+  if (Array.isArray(c.poly) && c.poly.length >= 3) return c.poly;   // section-model compartments (07-adapter.js)
   if (!Array.isArray(c.nodes) || c.nodes.length < 3) return null;
   const source = (typeof NODES_CACHE !== 'undefined' && NODES_CACHE.length)
     ? NODES_CACHE
@@ -806,6 +826,10 @@ function _pointInPolygon(y, z, poly) {
 
 function _compartmentBoundingBox(c) {
   if (c.yMin != null) return { yMin:c.yMin, yMax:c.yMax, zMin:c.zMin, zMax:c.zMax };
+  if (Array.isArray(c.poly) && c.poly.length >= 3) {
+    const ys = c.poly.map(q => q.y), zs = c.poly.map(q => q.z);
+    return { yMin: Math.min(...ys), yMax: Math.max(...ys), zMin: Math.min(...zs), zMax: Math.max(...zs) };
+  }
   if (!Array.isArray(c.nodes) || !c.nodes.length) return null;
   // NODES_CACHE is an array of {id, realY, realZ, ...} populated during drawing render
   const source = (typeof NODES_CACHE !== 'undefined' && NODES_CACHE.length)
@@ -1618,6 +1642,8 @@ function setElement(name, on) {
 }
 
 function computeProfiles() {
+  // Hand-edited section: the model drives the legacy state (07-adapter.js).
+  if (SECTION && SECTION.manual && window.SectionAdapter && SectionAdapter.apply(SECTION)) return;
   // Clear and regenerate from state (GEOMETRY, PARAMS, SIDE_GIRDERS)
   const g = GEOMETRY;
   const dbSpacing   = PARAMS.dbSpacing;
@@ -2386,6 +2412,8 @@ function strakeObstacleSpacing(plate, strakeIndex) {
 }
 
 function computeStrakes() {
+  // Hand-edited section: strakes come from the model (07-adapter.js), nothing to regenerate.
+  if (SECTION && SECTION.manual && window.SectionAdapter) { SectionAdapter.apply(SECTION); return; }
   const g = GEOMETRY;
   strakeWarnings = [];
 
@@ -3305,6 +3333,7 @@ function renderWTBlock() {
 
 function renderEditor() {
   const ec = document.getElementById('edContent');
+  if (['section', 'positions', 'strakes', 'stiffeners', 'compartments'].includes(VIEW_MODE) && window.SectionCAD) { SectionCAD.renderPanel(); return; }
   let html = '';
 
   // Helper: any drawing-side mutation that affects geometry / scantling
@@ -6144,7 +6173,7 @@ function computeSectionProperties() {
           const zbar = R * (1 - (Math.sin(th1) - Math.sin(th0)) / dth);
           const I0 = t * R * R * R * (dth - 2 * (Math.sin(th1) - Math.sin(th0))
                       + dth / 2 + (Math.sin(2 * th1) - Math.sin(2 * th0)) / 4);
-          contributions.push({ A: A_arc, z: zbar, Iself: Math.max(I0 - A_arc * zbar * zbar, 0),
+          contributions.push({ eff: s.effB, A: A_arc, z: zbar, Iself: Math.max(I0 - A_arc * zbar * zbar, 0),
                                label: `Shell strake ${s.kind || ''}` });
           cursor = segEnd;
           return;
@@ -6158,7 +6187,7 @@ function computeSectionProperties() {
         orient = 'vertical';
       }
       const c = plateContribution(s.width, s.thickness, z, orient);
-      contributions.push({ ...c, label: `Shell strake ${s.kind || ''}` });
+      contributions.push({ ...c, eff: s.effB, label: `Shell strake ${s.kind || ''}` });
       cursor = segEnd;
     });
   }
@@ -6166,6 +6195,7 @@ function computeSectionProperties() {
   // --- INNER BOTTOM (horizontal at Z=IB, half-beam span) ---
   STRAKES.innerBottom.forEach((s) => {
     contributions.push({
+      eff: s.effB,
       A: s.width * s.thickness,
       z: g.IB,
       Iself: 0,
@@ -6183,6 +6213,7 @@ function computeSectionProperties() {
       const midZ = zc + s.width / 2;
       zc += s.width;
       contributions.push({
+        eff: s.effB,
         A: s.width * s.thickness,
         z: midZ,
         Iself: s.thickness * Math.pow(s.width, 3) / 12,
@@ -6216,6 +6247,7 @@ function computeSectionProperties() {
       }
       if (z == null || z <= g.IB || z >= g.UD) return;
       contributions.push({
+        eff: s.effB,
         A: s.width * s.thickness,
         z: z,
         Iself: 0,
@@ -6238,6 +6270,7 @@ function computeSectionProperties() {
       }
       if (z == null || z <= g.IB || z >= g.UD) return;
       contributions.push({
+        eff: s.effB,
         A: s.width * s.thickness,
         z: z,
         Iself: 0,
@@ -6257,6 +6290,7 @@ function computeSectionProperties() {
     let yc = g.IS;
     STRAKES.upperDeck.forEach((s, i) => {
       contributions.push({
+        eff: s.effB,
         A: s.width * s.thickness,
         z: g.UD,
         Iself: 0,
@@ -6271,6 +6305,7 @@ function computeSectionProperties() {
   if (STRAKES.coamingTop && STRAKES.coamingTop.length > 0) {
     STRAKES.coamingTop.forEach((s, i) => {
       contributions.push({
+        eff: s.effB,
         A: s.width * s.thickness,
         z: g.HC,
         Iself: 0,
@@ -6302,6 +6337,7 @@ function computeSectionProperties() {
       strakes.forEach((s) => {
         const midZ = zc + s.width / 2;
         contributions.push({
+          eff: s.effB,
           A: s.width * s.thickness,
           z: midZ,
           Iself: s.thickness * Math.pow(s.width, 3) / 12,
@@ -6325,29 +6361,29 @@ function computeSectionProperties() {
   // Bottom shell (Z=0, stiff extends +cz upward)
   profiles.bottomShell.forEach(p => {
     const pp = _stiffProfilePropsFor(p, PARAMS.profTypeBottom);
-    contributions.push({ A: pp.A, z: 0 + pp.cz, Iself: pp.Iy, label: 'Bottom stiff' });
+    contributions.push({ eff: p.effB, A: pp.A, z: 0 + pp.cz, Iself: pp.Iy, label: 'Bottom stiff' });
   });
   // Inner bottom (Z=IB, stiff extends -cz downward)
   profiles.innerBottom.forEach(p => {
     const pp = _stiffProfilePropsFor(p, PARAMS.profTypeIB);
-    contributions.push({ A: pp.A, z: g.IB - pp.cz, Iself: pp.Iy, label: 'IB stiff' });
+    contributions.push({ eff: p.effB, A: pp.A, z: g.IB - pp.cz, Iself: pp.Iy, label: 'IB stiff' });
   });
   // Side shell (at each p.z)
   profiles.sideShell.forEach(p => {
     const pp = _stiffProfilePropsFor(p, PARAMS.profTypeSide);
-    contributions.push({ A: pp.A, z: p.z, Iself: pp.Iy, label: 'Side stiff' });
+    contributions.push({ eff: p.effB, A: pp.A, z: p.z, Iself: pp.Iy, label: 'Side stiff' });
   });
   // Inner side
   profiles.innerSide.forEach(p => {
     const pp = _stiffProfilePropsFor(p, PARAMS.profTypeIS);
-    contributions.push({ A: pp.A, z: p.z, Iself: pp.Iy, label: 'IS stiff' });
+    contributions.push({ eff: p.effB, A: pp.A, z: p.z, Iself: pp.Iy, label: 'IS stiff' });
   });
   // Stringer deck stiff (one per stringer plate)
   profiles.stringer.forEach(plate => {
     if (plate.z <= g.IB || plate.z >= g.UD) return;
     profiles.stringerStiff.forEach(p => {
       const pp = _stiffProfilePropsFor(p, PARAMS.profTypeStringer);
-      contributions.push({ A: pp.A, z: plate.z - pp.cz, Iself: pp.Iy, label: 'Stringer stiff' });
+      contributions.push({ eff: p.effB, A: pp.A, z: plate.z - pp.cz, Iself: pp.Iy, label: 'Stringer stiff' });
     });
   });
   // Tween deck stiff
@@ -6355,29 +6391,34 @@ function computeSectionProperties() {
     if (plate.z <= g.IB || plate.z >= g.UD) return;
     profiles.tweenStiff.forEach(p => {
       const pp = _stiffProfilePropsFor(p, PARAMS.profTypeTween);
-      contributions.push({ A: pp.A, z: plate.z - pp.cz, Iself: pp.Iy, label: 'Tween stiff' });
+      contributions.push({ eff: p.effB, A: pp.A, z: plate.z - pp.cz, Iself: pp.Iy, label: 'Tween stiff' });
     });
   });
   // Coaming top stiff (at Z=HC, extends down)
   if (PARAMS.coamingTop > 0) {
     profiles.coamingStiff.forEach(p => {
       const pp = _stiffProfilePropsFor(p, PARAMS.profTypeCoaming);
-      contributions.push({ A: pp.A, z: g.HC - pp.cz, Iself: pp.Iy, label: 'Coaming stiff' });
+      contributions.push({ eff: p.effB, A: pp.A, z: g.HC - pp.cz, Iself: pp.Iy, label: 'Coaming stiff' });
     });
   }
   // Upper deck stiff (at Z=UD, extends down)
   profiles.upperDeck.forEach(p => {
     const pp = _stiffProfilePropsFor(p, PARAMS.profTypeDeck);
-    contributions.push({ A: pp.A, z: g.UD - pp.cz, Iself: pp.Iy, label: 'UD stiff' });
+    contributions.push({ eff: p.effB, A: pp.A, z: g.UD - pp.cz, Iself: pp.Iy, label: 'UD stiff' });
   });
 
   // --- Summation (half-ship, then ×2 for full) ---
-  const sumA  = contributions.reduce((s, c) => s + c.A, 0) * 2;
-  const sumAz = contributions.reduce((s, c) => s + c.A * c.z, 0) * 2;
+  // Bending efficiency (0..1, per panel from the section model — 1 when unset)
+  // scales what each element contributes to the hull girder. Section area
+  // (totalArea) stays gross; only the girder properties are reduced.
+  const effOf = c => (c.eff == null || !isFinite(c.eff)) ? 1 : Math.max(0, Math.min(1, c.eff));
+  const sumA  = contributions.reduce((s, c) => s + c.A * effOf(c), 0) * 2;
+  const sumAz = contributions.reduce((s, c) => s + c.A * effOf(c) * c.z, 0) * 2;
   const NA = sumA > 0 ? sumAz / sumA : 0;
   // Moment of inertia about NA
   const I_NA = contributions.reduce((s, c) =>
-    s + c.Iself + c.A * Math.pow(c.z - NA, 2), 0) * 2;
+    s + effOf(c) * (c.Iself + c.A * Math.pow(c.z - NA, 2)), 0) * 2;
+  const grossArea = contributions.reduce((s, c) => s + c.A, 0) * 2;
 
   // --- Section moduli at 3 locations ---
   const Z_bottom = NA > 0 ? I_NA / NA : Infinity;           // to BL (z=0)
@@ -6385,7 +6426,8 @@ function computeSectionProperties() {
   const Z_hc     = g.HC > NA ? I_NA / (g.HC - NA) : Infinity;
 
   return {
-    totalArea:   sumA,          // mm²
+    totalArea:   grossArea,     // mm² (gross, all plates)
+    effectiveArea: sumA,        // mm² counted for the hull girder (bending efficiency applied)
     NA:          NA,            // mm above BL
     I_NA:        I_NA,          // mm⁴
     Z_bottom:    Z_bottom,      // mm³
@@ -6419,7 +6461,8 @@ function computeShearFirstMoment(z_q_m) {
   for (const c of sp.contributions) {
     if (!c || c.A == null || c.z == null) continue;
     const z = c.z;
-    const A = c.A;
+    // Bending efficiency scales the first moment too (Q = ∫ A_eff · arm).
+    const A = c.A * ((c.eff == null || !isFinite(c.eff)) ? 1 : Math.max(0, Math.min(1, c.eff)));
     // Include this contribution if it lies between the cut and the nearer end
     let include;
     if (cutAboveNA) {
@@ -6701,6 +6744,12 @@ function drawMeasureOverlay() {
 }
 
 function render() {
+  syncSectionModel();
+  // Step-2 Section CAD owns the drawing in 'section' view (12-cad.js).
+  if (window.SectionCAD) {
+    if (['section', 'positions', 'strakes', 'stiffeners', 'compartments'].includes(VIEW_MODE)) { SectionCAD.render(); return; }
+    SectionCAD.leave();
+  }
   // Keep window.SELECTED_STIFF in sync with the local render scope's state,
   // and refresh the top-bar "Optimize Stiff" button enable/disable state.
   window.SELECTED_STIFF = SELECTED_STIFF;
@@ -8120,7 +8169,16 @@ function render() {
         const help = document.getElementById('modeHelp');
         if (help && !window.ANALYSIS_MODE) help.textContent = 'Review geometry only. Click "Run Analysis" to check LR rule compliance.';
       }
+      const cadModes = ['section', 'positions', 'strakes', 'stiffeners', 'compartments'];
+      // Leaving the CAD: push the hand-edited model into the legacy state so the
+      // analysis views and the Check page see the drawn section.
+      if (cadModes.includes(prevMode) && !cadModes.includes(mode) && SECTION && SECTION.manual && window.SectionAdapter) {
+        try { SectionAdapter.apply(SECTION); } catch (err) { console.warn('[SectionAdapter]', err); }
+        if (typeof recalcAll === 'function') { try { recalcAll(); } catch (_) {} }
+      }
       render();
+      // The Section CAD replaces the editor body; rebuild it on the way in and out.
+      if (cadModes.includes(mode) || cadModes.includes(prevMode)) renderEditor();
     };
     // Expose so toggleAnalysisMode can call it
     window.Draw = window.Draw || {};
@@ -10831,7 +10889,7 @@ let view = { ...currentViewInitial() };
 // it back toward the authored size (never below), so labels stop growing
 // when the section is already large.
 // =========================================================================
-const LABEL_MIN_PX = 11;
+const LABEL_MIN_PX = 10;
 function scaleLabels() {
   if (!svgEl) return;
   const pxPerUnit = svgEl.clientHeight / (view.h || 1);
@@ -11090,6 +11148,12 @@ function loadDrawingJSON(event) {
         document.getElementById('mirrorToggle')?.classList.toggle('active', MIRROR_BODY);
         view = { ...currentViewInitial() };
         applyView();
+      }
+      if (data.SECTION && data.SECTION.manual && Array.isArray(data.SECTION.panels)) {
+        SECTION = data.SECTION;
+        if (window.SectionAdapter) { try { SectionAdapter.apply(SECTION); } catch (err) { console.warn('[SectionAdapter]', err); } }
+      } else {
+        SECTION = null;  // regenerate from the parameters just imported
       }
       if (data.STRAKES && typeof data.STRAKES === 'object') {
         if (Array.isArray(data.STRAKES.shell))       STRAKES.shell       = data.STRAKES.shell;
@@ -12016,12 +12080,26 @@ window.Draw.STRAKES = STRAKES;
 window.Draw.PARAMS = PARAMS;
 window.Draw.profiles = profiles;
 window.Draw.WT_FLAGS = WT_FLAGS;
+window.Draw.sectionProps = computeSectionProperties;
 window.Draw.TRANSVERSE_STIFFS = TRANSVERSE_STIFFS;
 window.Draw.BRACKETS = BRACKETS;
 window.Draw.COMPARTMENTS = COMPARTMENTS;
+window.Draw.WT_FLAGS = WT_FLAGS;
 window.Draw.computeSectionProperties = computeSectionProperties;
 window.Draw.computeProfiles = computeProfiles;
 window.Draw.levelZs = levelZs;
+window.Draw.getSection = () => SECTION || syncSectionModel();
+// Internals the Section CAD (12-cad.js) needs; getters because svgEl / view /
+// GEOMETRY are reassigned during the app's life.
+window.Draw.__cad = {
+  X, Y, SCALE, BASELINE_Y,
+  svg: () => svgEl, view: () => view, viewMode: () => VIEW_MODE,
+  GEOMETRY: () => GEOMETRY, PARAMS: () => PARAMS, GEOMETRY_META: () => GEOMETRY_META,
+  getSection: () => SECTION || syncSectionModel(), setSection: m => { SECTION = m; }, syncSectionModel,
+  render, renderEditor, fitView, scaleLabels
+};
+window.Draw.syncSectionModel = syncSectionModel;
+window.Draw.setSection = m => { SECTION = m; };
 window.Draw.isExampleGeometry = isExampleGeometry;
 window.Draw.fitView = fitView;
 window.Draw.syncLevelParams = syncLevelParams;
@@ -12096,6 +12174,9 @@ window.exportFullState = function(returnObj) {
     STRAKES,
     STRAKES_AUTO,
     MIRROR_BODY,
+    // Section topology — only meaningful once hand-edited; otherwise it is
+    // regenerated from GEOMETRY/PARAMS on load.
+    SECTION: (SECTION && SECTION.manual) ? SECTION : null,
     // --- Scantling page form values ---
     formValues
   };

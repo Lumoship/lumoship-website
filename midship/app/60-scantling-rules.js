@@ -1042,6 +1042,51 @@ function _c1_deck(FD) {
 }
 function _F1_deck(FD) { return 0.25 * _c1_deck(FD); }
 
+// ---------- LR Pt 3 Ch 3 Table 3.5.1 — design heads from deck loads ----------
+// Deck loads live on the section-model panels (deckLoad {type, p kN/m²}); the
+// adapter exposes the governing one per position. Heads follow Table 3.5.1
+// with the standard stowage rate C = 1,39 m³/t (9,82/C = 7,07 kN/m² per metre):
+//   weather deck aft of 0,12L, beams/longs:  h1 = 1,2 + 2,04E (min) or 0,14·p_a + 2,04E
+//   cargo deck, standard loads:              h2 = H_td (tween height);  specified: h2 = C·p_a/9,82
+//   machinery / workshop / stores: 2,6 m;  ship stores: 2,0 m;  accommodation: h3 = 1,2 m
+//   E = (0,0914 + 0,003L)/(D − T) − 0,15, 0 ≤ E ≤ 0,147
+function _E_platform(p) {
+  if (!(p.D > p.T)) return 0;
+  const E = (0.0914 + 0.003 * p.L) / (p.D - p.T) - 0.15;
+  return Math.max(0, Math.min(0.147, E));
+}
+function _deckLoadFor(position) {
+  return (window.SectionAdapter && SectionAdapter.deckLoadFor) ? SectionAdapter.deckLoadFor(position) : null;
+}
+// Weather-deck head h1 (m) for the strength deck longitudinals, Table 3.5.1 (a)/(b)
+function _weatherHead_h1(p, position) {
+  const E = _E_platform(p);
+  const hMin = 1.2 + 2.04 * E;
+  const dl = _deckLoadFor(position || 'upperDeck');
+  if (dl && dl.p > 0 && (dl.type === 'cargo' || dl.type === 'custom' || dl.type === 'vehicles')) {
+    return { h1: Math.max(hMin, 0.14 * dl.p + 2.04 * E), E, src: `specified p_a=${dl.p} kN/m² → 0,14·p_a+2,04E`, pa: dl.p };
+  }
+  return { h1: hMin, E, src: 'general cargo minimum 1,2+2,04E', pa: null };
+}
+// Cargo / accommodation deck head (m) for Table 1.4.4, from the panel's deck load
+function _lowerDeckHead(p, position, deckZ_mm) {
+  const dl = _deckLoadFor(position);
+  const udZ = (window.Draw && window.Draw.GEOMETRY) ? window.Draw.GEOMETRY.UD : null;
+  const Htd = (udZ != null && deckZ_mm != null && udZ > deckZ_mm) ? Math.max(0.5, (udZ - deckZ_mm) / 1000) : null;
+  const std = { h: Htd != null ? Htd : 2.0, src: Htd != null ? `standard loads, h₂ = H_td = ${Htd.toFixed(2)} m` : 'default 2,0 m (H_td unknown)', p: Htd != null ? 7.07 * Htd : null };
+  if (!dl || !dl.type || dl.type === 'none' || dl.type === 'weather') return std;
+  switch (dl.type) {
+    case 'cargo': case 'custom': case 'vehicles':
+      if (dl.p > 0) return { h: 1.39 * dl.p / 9.82, src: `specified p_a=${dl.p} kN/m² → C·p_a/9,82 (C=1,39)`, p: dl.p };
+      return std;
+    case 'machinery': return { h: 2.6, src: 'machinery space / workshop 18,37 kN/m²', p: 18.37 };
+    case 'stores': return { h: 2.0, src: 'ship stores 14,14 kN/m²', p: 14.14 };
+    case 'accommodation': return { h: 1.2, src: 'accommodation 8,5 kN/m²', p: 8.5 };
+  }
+  return std;
+}
+window._weatherHead_h1 = _weatherHead_h1; window._lowerDeckHead = _lowerDeckHead;
+
 // ---------- Tablo 1.4.1 — Upper deck plating (strength/weather) ----------
 function calcUpperDeckPlate() {
   // Resolve this plate's effective material family (pin → Setup zone → global)
@@ -1147,10 +1192,12 @@ function calcUpperDeckLong() {
     formula = `max[0.0113·ρ·s·k·h₄·l_e²/b=${Z_tank.toFixed(1)} (1.4.3(2), h₄=${h4.toFixed(2)}m, b=${b_ud}), Z_1a=${Z_1a.toFixed(1)}]`;
   } else {
     // Table 1.4.3 (1)(b): Z = s·k·(400·h₁ + 0.005·(l_e·L₂)²)·10⁻⁴
-    // h₁ = weather head; assume 2.5 m default (user would set via Pt 3 Ch 3)
-    const h1 = 2.5;
+    // h₁ = weather head from Pt 3 Ch 3 Table 3.5.1 (aft of 0,12L): 1,2+2,04E,
+    // or 0,14·p_a+2,04E when the deck panel carries a specified load.
+    const wh = _weatherHead_h1(p, 'upperDeck');
+    const h1 = wh.h1;
     Z_req = s * p.k * (400 * h1 + 0.005 * Math.pow(le_eff * L2v, 2)) * 1e-4;
-    formula = `s·k·(400·h₁+0.005·(l_e·L₂)²)·10⁻⁴ (h₁=${h1}, L₂=${L2v})`;
+    formula = `s·k·(400·h₁+0.005·(l_e·L₂)²)·10⁻⁴ (h₁=${h1.toFixed(2)} m [Pt 3 Ch 3 Table 3.5.1: ${wh.src}, E=${wh.E.toFixed(3)}], L₂=${L2v})`;
   }
   
   return {
@@ -1250,6 +1297,9 @@ function _calcLowerDeckPlate_core(prefix) {
     t_req = Math.max(t_calc, 6.5);
     gov = t_calc >= 6.5 ? 'formula' : 'min 6.5';
     formula = `${coeff}·s₁·√k [Table 1.4.2 ${deckType}]`;
+    // Table 1.4.2 Note: a deck loading above 43,2 kN/m² is specially considered.
+    const _dlp = _deckLoadFor(prefix === 'str' ? 'stringer' : 'tweenDeck');
+    if (_dlp && _dlp.p > 43.2) formula += ` — deck load ${_dlp.p} kN/m² > 43,2: plating to be specially considered (Table 1.4.2 Note)`;
   }
   
   return { t_as, t_req, formula, gov, s1: s1v, deckType, fn, passFail: t_as >= t_req };
@@ -1320,9 +1370,13 @@ function calcLowerDeckLong(prefix) {
   const L1v = _L1(p.L);
   const le_eff = Math.max(le, 1.5);
   
-  // Heads — approximate defaults
-  const h2 = 2.0;  // cargo head
-  const h3 = 2.0;  // accommodation head
+  // Heads — Pt 3 Ch 3 Table 3.5.1 via the deck load on the section-model panel;
+  // standard cargo loads → h₂ = H_td (tween height up to the deck above).
+  const _deckZ = parseFloat((document.getElementById(prefix + 'DeckLevel') || {}).value);
+  const _pos = (prefix === 'str') ? 'stringer' : 'tweenDeck';
+  const _hd = _lowerDeckHead(p, _pos, isFinite(_deckZ) ? _deckZ : null);
+  const h2 = _hd.h;   // cargo head
+  const h3 = 1.2;     // accommodation head, Table 3.5.1 (8,5 kN/m²)
   
   let Z_req, formula;
   
@@ -1374,16 +1428,16 @@ function calcLowerDeckLong(prefix) {
   } else if (fn === 'cargo') {
     if (p.L >= 90) {
       Z_req = s * p.k * (5.9 * L1v + 25 * h2 * le_eff * le_eff) * 1e-4;
-      formula = `s·k·(5.9·L₁+25·h₂·l_e²)·10⁻⁴ [Table 1.4.4 1(a), h₂=${h2}]`;
+      formula = `s·k·(5.9·L₁+25·h₂·l_e²)·10⁻⁴ [Table 1.4.4 1(a), h₂=${h2.toFixed(2)} m — ${_hd.src}]`;
     } else {
       Z_req = 0.005 * s * p.k * h2 * le_eff * le_eff;
-      formula = `0.005·s·k·h₂·l_e² [Table 1.4.4 1(b), L<90]`;
+      formula = `0.005·s·k·h₂·l_e² [Table 1.4.4 1(b), L<90, h₂=${h2.toFixed(2)} m — ${_hd.src}]`;
     }
   } else if (fn === 'accommodation') {
     let Z_calc;
     if (p.L >= 90) {
       Z_calc = s * p.k * (5.1 * L1v + 25 * h3 * le_eff * le_eff) * 1e-4;
-      formula = `s·k·(5.1·L₁+25·h₃·l_e²)·10⁻⁴ [Table 1.4.4 2(a)]`;
+      formula = `s·k·(5.1·L₁+25·h₃·l_e²)·10⁻⁴ [Table 1.4.4 2(a), h₃=${h3} m (Table 3.5.1 accommodation)]`;
     } else {
       Z_calc = 0.00425 * s * p.k * h3 * le_eff * le_eff;
       formula = `0.00425·s·k·h₃·l_e² [Table 1.4.4 2(b), L<90]`;
@@ -1396,7 +1450,7 @@ function calcLowerDeckLong(prefix) {
   } else {
     // platform — use cargo as default
     Z_req = s * p.k * (5.9 * L1v + 25 * h2 * le_eff * le_eff) * 1e-4;
-    formula = `s·k·(5.9·L₁+25·h₂·l_e²)·10⁻⁴ [platform → as cargo]`;
+    formula = `s·k·(5.9·L₁+25·h₂·l_e²)·10⁻⁴ [platform → as cargo, h₂=${h2.toFixed(2)} m — ${_hd.src}]`;
   }
   
   return {

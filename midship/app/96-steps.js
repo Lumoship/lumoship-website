@@ -19,19 +19,22 @@
     { n: 1, key: 'ship',       label: 'Ship',       page: 1,
       title: 'Ship particulars',
       hint: 'Identification, class, main dimensions, still-water bending moments, material family, ice class. Everything the rules need before a section exists.' },
-    { n: 2, key: 'section',    label: 'Section',    page: 3, tab: 'geometry', view: 'general',
+    { n: 2, key: 'section',    label: 'Section',    page: 3, tab: 'geometry', view: 'section',
       title: 'Section geometry',
-      hint: 'Set the nine geometry parameters — half beam, inner bottom, tween and upper deck, coaming, bilge radius, keel, duct keel, inner side. The drawing follows every change.' },
-    { n: 3, key: 'positions',  label: 'Positions',  page: 3, tab: 'positions', view: 'position',
-      title: 'Positions & arrangement',
-      hint: 'Side girders, stringer / tween deck levels, watertight flags and compartments — all in the Layout tab. Position codes are shown on the drawing; compartment contents are edited in the Comp tab.' },
-    { n: 4, key: 'strakes',    label: 'Strakes',    page: 3, tab: 'strakes', view: 'thickness',
+      hint: 'Lines and nodes only. Start from the Ship Geometry parameters, add girders / decks with Add panel, or draw with the Line, Arc and Node tools. Set bending / shear efficiency and watertightness per panel.' },
+    { n: 3, key: 'positions',  label: 'Positions',  page: 3, tab: null, view: 'positions',
+      title: 'Panel positions',
+      hint: 'Name every panel: bottom, bilge, side shell, inner bottom, inner side, girders, stringers, decks, bulkheads. The rule mapping and the later steps key off these names. Guess fills them from geometry; check the amber ones.' },
+    { n: 4, key: 'strakes',    label: 'Strakes',    page: 3, tab: null, view: 'strakes',
       title: 'Strakes & plate thickness',
-      hint: 'Divide each panel into strakes and set thickness and grade. Keep Auto on to let the engine seed them, or edit freely — the last strake fits the panel. Run the plate optimizer from Analysis mode when the layout is right.' },
-    { n: 5, key: 'stiffeners', label: 'Stiffeners', page: 3, tab: 'params', view: 'profile',
-      title: 'Stiffener spacing & profiles',
-      hint: 'First the spacings and profile types per surface (Params tab), then the individual profiles (Prof tab). Regenerate (Params tab) rebuilds positions from the spacing; optimizers size the profiles against the rules.' },
-    { n: 6, key: 'check',      label: 'Check',      page: 4,
+      hint: 'Pick a panel and split it into strakes along its length: length, thickness, grade. Lengths must add up to the panel length. Seed from Auto fills empty panels from the engine layout.' },
+    { n: 5, key: 'stiffeners', label: 'Stiffeners', page: 3, tab: null, view: 'stiffeners',
+      title: 'Stiffeners',
+      hint: 'Set the default span, then per panel add groups: start node, first offset, spacing, count, direction, profile type and size, grade. Stiffeners that do not fit on the panel are flagged.' },
+    { n: 6, key: 'compartments', label: 'Compartments', page: 3, tab: null, view: 'compartments',
+      title: 'Compartments',
+      hint: 'Tanks and spaces bounded by panels: type, density, air pipe height, test head, cargo load. These feed the tank heads and cargo loads in the rule checks.' },
+    { n: 7, key: 'check',      label: 'Check',      page: 4,
       title: 'Rule check & report',
       hint: 'Hull girder, local scantling and buckling results for every element. Export the report (PDF), Excel or DXF with the buttons at the bottom of this page.' }
   ];
@@ -72,65 +75,84 @@
       return items;
     },
     2: function () {
-      var g = D().GEOMETRY || {}; var items = [];
+      // Section model (05-model.js): counts, closed hull chain, model-check issues.
+      var items = []; var S = D().getSection ? D().getSection() : null;
       var ok = function (c, t) { items.push({ ok: !!c, text: t }); };
-      ok(g.B_half > 0, 'Half beam ' + (g.B_half || '—') + ' mm');
-      ok(g.IB > 0 && g.IB < g.UD, 'Inner bottom below upper deck');
-      var lv = D().levelZs ? D().levelZs('tween') : (g.TT != null ? [g.TT] : []);
-      ok(!lv.length || (lv[0] > g.IB && lv[0] <= g.UD), lv.length ? 'Tween deck at ' + lv[0] + ' mm, between inner bottom and upper deck' : 'No tween deck (single-deck hold)');
-      var st = D().levelZs ? D().levelZs('stringer') : [];
-      ok(true, st.length ? st.length + ' side stringer level' + (st.length > 1 ? 's' : '') : 'No side stringer');
-      ok(g.HC >= g.UD, (g.HC > g.UD) ? 'Hatch coaming ' + (g.HC - g.UD) + ' mm above deck' : 'No hatch coaming');
-      ok(g.IS > g.duct_half && g.IS < g.B_half, 'Inner side between duct keel and half beam');
-      ok(g.R_B > 0 && g.R_B <= g.UD, 'Bilge radius');
+      if (!S) { ok(false, 'Section model not built yet'); return items; }
+      var byPos = {}; S.panels.forEach(function (p) { byPos[p.position || 'none'] = (byPos[p.position || 'none'] || 0) + 1; });
+      ok(S.panels.length > 0, S.nodes.length + ' nodes · ' + S.panels.length + ' panels' + (S.manual ? ' (hand-edited)' : ' (from parameters)'));
+      ok(byPos.bottom && byPos.side, 'Shell: bottom' + (byPos.bilge ? ' · bilge' : '') + ' · side' + (byPos.bottom && byPos.side ? '' : ' — missing'));
+      ok(byPos.upperDeck || byPos.deck, (byPos.upperDeck || byPos.deck) ? 'Deck present' : 'No deck panel');
+      ok(byPos.innerBottom, byPos.innerBottom ? 'Inner bottom present' : 'No inner bottom (single bottom)');
+      var issues = (window.SectionModel ? SectionModel.validate(S) : []).filter(function (i) { return i.level !== 'info'; });
+      ok(!issues.length, issues.length ? issues.length + ' model-check issue' + (issues.length > 1 ? 's' : '') + ' — see the right panel' : 'Model check clean');
+      var noPos = S.panels.filter(function (p) { return !p.position; }).length;
+      ok(true, noPos ? noPos + ' panel' + (noPos > 1 ? 's' : '') + ' without a position (named in step 3)' : 'All panels have a position');
       return items;
     },
     3: function () {
-      var d = D(); var items = [];
-      var sg = (d.SIDE_GIRDERS || []).length, comp = (d.COMPARTMENTS || []).length;
-      items.push({ ok: sg > 0, text: sg + ' side girder' + (sg === 1 ? '' : 's') });
-      var lv = ((d.profiles || {}).stringer || []).length + ((d.profiles || {}).tweenDeck || []).length;
-      items.push({ ok: lv > 0, text: lv + ' stringer / tween level' + (lv === 1 ? '' : 's') });
-      items.push({ ok: comp > 0, text: comp + ' compartment' + (comp === 1 ? '' : 's') + ' defined (Comp tab)' });
-      var wt = d.WT_FLAGS || {}; var wtN = Object.keys(wt).length;
-      items.push({ ok: wtN > 0, text: 'Watertight flags set' });
+      var items = []; var S = D().getSection ? D().getSection() : null;
+      if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
+      var unnamed = S.panels.filter(function (p) { return !p.position; });
+      items.push({ ok: !unnamed.length, text: unnamed.length ? unnamed.length + ' panel' + (unnamed.length > 1 ? 's' : '') + ' unnamed (' + unnamed.slice(0, 6).map(function (p) { return p.id; }).join(', ') + (unnamed.length > 6 ? '…' : '') + ')' : 'All ' + S.panels.length + ' panels named' });
+      var has = function (c) { return S.panels.some(function (p) { return p.position === c; }); };
+      items.push({ ok: has('bottom') && has('side'), text: 'Shell named (bottom · side' + (has('bilge') ? ' · bilge' : '') + ')' });
+      items.push({ ok: has('upperDeck') || has('deck'), text: (has('upperDeck') ? 'Upper deck' : has('deck') ? 'Deck' : 'No deck') + ' named' });
+      var nwt = S.panels.filter(function (p) { return p.wt === false; }).length;
+      items.push({ ok: true, text: nwt + ' non‑watertight panel' + (nwt === 1 ? '' : 's') + ' (set in step 2)' });
       return items;
     },
     4: function () {
-      var d = D(); var S = d.STRAKES || {}; var items = [];
-      var panels = 0, empty = [], thin = [];
-      var d0 = D();
-      Object.keys(S).forEach(function (k) {
-        var arr = S[k]; if (!Array.isArray(arr)) return;
-        // legacy flat unions and switched-off elements are not panels
-        if (k === 'stringer' || k === 'tween') return;
-        if (k === 'coamingTop' && !(d0.PARAMS && d0.PARAMS.coamingTop > 0)) return;
-        panels++;
-        if (!arr.length) empty.push(k);
-        arr.forEach(function (s) { if (!(s.thick > 0 || s.t > 0 || s.thickness > 0)) thin.push(k); });
-      });
-      items.push({ ok: panels > 0 && empty.length === 0, text: panels + ' panels, ' + (empty.length ? empty.length + ' without strakes: ' + empty.slice(0, 4).join(', ') : 'all have strakes') });
-      items.push({ ok: thin.length === 0, text: thin.length ? thin.length + ' strake(s) without thickness' : 'Every strake has a thickness' });
-      items.push({ ok: true, text: (d.getStrakesAuto && d.getStrakesAuto()) ? 'Auto strakes ON — engine keeps panels fitted' : 'Auto strakes OFF — check each panel reads "fits"' });
+      var items = []; var S = D().getSection ? D().getSection() : null;
+      if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
+      var M = window.SectionModel;
+      var empty = S.panels.filter(function (p) { return !(p.strakes || []).length; });
+      var bad = S.panels.filter(function (p) { var L = M.panelLength(p, S.nodes); var sum = (p.strakes || []).reduce(function (a, x) { return a + (x.len || 0); }, 0); return (p.strakes || []).length && Math.abs(sum - L) > 5; });
+      var noT = 0; S.panels.forEach(function (p) { (p.strakes || []).forEach(function (x) { if (!(x.t > 0)) noT++; }); });
+      var total = S.panels.reduce(function (a, p) { return a + (p.strakes || []).length; }, 0);
+      items.push({ ok: !empty.length, text: empty.length ? empty.length + ' panel' + (empty.length > 1 ? 's' : '') + ' without strakes (' + empty.slice(0, 5).map(function (p) { return p.id; }).join(', ') + (empty.length > 5 ? '…' : '') + ')' : total + ' strakes on ' + S.panels.length + ' panels' });
+      items.push({ ok: !bad.length, text: bad.length ? bad.length + ' panel' + (bad.length > 1 ? 's' : '') + ' where Σ strake length ≠ panel length' : 'Strake lengths add up on every panel' });
+      items.push({ ok: !noT, text: noT ? noT + ' strake' + (noT > 1 ? 's' : '') + ' without a thickness' : 'Every strake has a thickness' });
       return items;
     },
     5: function () {
-      var d = D(); var P = d.profiles || {}; var PR = d.PARAMS || {}; var items = [];
-      // Rows either carry their own profileName or fall back to the group
-      // default chosen on the Setup form (bottomLongProfile etc.). Both count
-      // as sized; only report the split so the user knows what is custom.
-      var total = 0, custom = 0;
-      Object.keys(P).forEach(function (k) {
-        (P[k] || []).forEach(function (p) { total++; if (p.profileName) custom++; });
+      var items = []; var S = D().getSection ? D().getSection() : null;
+      if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
+      var M = window.SectionModel; var total = 0, dropped = 0, noProf = 0, withG = 0;
+      S.panels.forEach(function (p) {
+        var L = M.panelLength(p, S.nodes); var gs = p.stiffGroups || []; if (gs.length) withG++;
+        gs.forEach(function (g) {
+          var start = g.fromEnd === 'to' ? L - (g.offset || 0) : (g.offset || 0), dir = g.fromEnd === 'to' ? -1 : 1;
+          for (var i = 0; i < (g.count || 0); i++) { var x = start + dir * i * (g.spacing || 0); if (x > 0.5 && x < L - 0.5) { total++; if (!g.profile) noProf++; } else dropped++; }
+        });
       });
-      items.push({ ok: PR.dbSpacing > 0 && PR.sideSpacing > 0, text: 'Spacing: DB ' + (PR.dbSpacing || '—') + ' · side ' + (PR.sideSpacing || '—') + ' mm (Params tab)' });
-      items.push({ ok: total > 0, text: total ? total + ' stiffeners — ' + custom + ' with a custom profile, ' + (total - custom) + ' on the group default' : 'No stiffeners yet — set spacings and Regenerate (Params tab)' });
-      var le = numVal('le');
-      items.push({ ok: le != null && le > 0, text: 'l_e (web frame span) ' + (le != null ? le + ' m' : '— blank, optimizers assume 1.5 m') });
+      items.push({ ok: total > 0, text: total ? total + ' stiffeners on ' + withG + ' panels' : 'No stiffeners yet — Fill empty panels or add groups' });
+      items.push({ ok: !dropped, text: dropped ? dropped + ' stiffener' + (dropped > 1 ? 's' : '') + ' did not fit on their panel' : 'Every stiffener fits its panel' });
+      items.push({ ok: !noProf, text: noProf ? noProf + ' stiffener' + (noProf > 1 ? 's' : '') + ' without a profile size' : 'Every stiffener has a profile' });
+      var sp = S.stiffDefaultSpan || numVal('le') * 1000;
+      items.push({ ok: sp > 0, text: sp > 0 ? 'Default span ' + Math.round(sp) + ' mm' : 'Default span not set' });
       return items;
     },
     6: function () {
+      var items = []; var S = D().getSection ? D().getSection() : null;
+      if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
+      var cs = S.compartments || [];
+      items.push({ ok: cs.length > 0, text: cs.length ? cs.length + ' compartment' + (cs.length > 1 ? 's' : '') : 'No compartments yet' });
+      var openB = cs.filter(function (c) { return !(c.panels || []).length || !window.SectionCAD || !window.SectionCAD.isClosed(S, c); }).length;
+      items.push({ ok: !openB, text: openB ? openB + ' with an open boundary' : 'All boundaries closed' });
+      var tanksNoPipe = cs.filter(function (c) { return ['ballast', 'fuel', 'freshwater', 'liquidCargo'].indexOf(c.type) >= 0 && !(c.airpipe_mm > 0); }).length;
+      items.push({ ok: !tanksNoPipe, text: tanksNoPipe ? tanksNoPipe + ' tank' + (tanksNoPipe > 1 ? 's' : '') + ' without an air pipe height' : 'Tank heads defined' });
+      return items;
+    },
+    7: function () {
       var items = [];
+      var S = D().getSection ? D().getSection() : null;
+      if (S && S.manual && window.SectionAdapter) {
+        var un = SectionAdapter.unmapped(S);
+        items.push({ ok: !un.length, text: un.length ? un.length + ' panel' + (un.length > 1 ? 's' : '') + ' with no LR rule mapping (' + un.slice(0, 5).map(function (u) { return u.id + ' ' + (u.position || '?'); }).join(', ') + (un.length > 5 ? '…' : '') + ') — not checked' : 'Every panel is covered by an LR rule set' });
+        var dl = S.panels.filter(function (p) { return p.deckLoad && p.deckLoad.type && p.deckLoad.type !== 'none'; }).length;
+        if (dl) items.push({ ok: true, text: dl + ' deck panel' + (dl > 1 ? 's' : '') + ' with a deck load → Pt 3 Ch 3 Table 3.5.1 heads in the deck longitudinal checks' });
+      }
       var fail = parseInt(($('cntFail') || {}).textContent) || 0;
       var okN = parseInt(($('cntOk') || {}).textContent) || 0;
       items.push({ ok: okN > 0, text: okN ? okN + ' checks OK' : 'Analysis not run yet — press Run Analysis on the Geometry page' });
@@ -236,12 +258,14 @@
       // little after; switch tab/view once both exist, then refresh the checks.
       var tries = 0;
       (function arm() {
-        var ready = document.querySelector('.ed-tab') && document.querySelector('.view-pill');
+        // In the Section CAD (step 2) the editor has no tabs; the view switch
+        // rebuilds them, so set the view first and pick the tab after.
+        var ready = document.querySelector('.view-pill') && (document.querySelector('.ed-tab') || document.body.classList.contains('cad-mode'));
         if (!ready && tries++ < 40) return setTimeout(arm, 100);
+        if (step.view) setView(step.view);
         wireTabsMore();
         wireFolding();
         if (step.tab) clickEditorTab(step.tab);
-        if (step.view) setView(step.view);
         refreshStrip();
       })();
     }
@@ -258,7 +282,7 @@
     var wrapped = function (n) {
       var r = orig.apply(this, arguments);
       if (n === 2) n = 3;
-      var s = n === 1 ? 1 : n === 4 ? 6 : (current >= 2 && current <= 5 ? current : 2);
+      var s = n === 1 ? 1 : n === 4 ? STEPS.length : (current >= 2 && current < STEPS.length ? current : 2);
       if (s !== current) { current = s; try { localStorage.setItem(KEY, String(current)); } catch (_) {} }
       paintNav(current);
       mountStrip(stepByN(current));

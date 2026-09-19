@@ -1444,7 +1444,10 @@ function _computeElemInspect(elemType, opts) {
       if (Qwo_kN != null && Q_m3 != null && Q_m3 > 0) {
         // τ = F·Q / (I·t·1000)   [F in N, Q in m³, I in m⁴, t in mm → N/mm²]
         const F_N = Qwo_kN * 1000;
-        const tau_real = (F_N * Q_m3) / (I_NA * t_mm * 1000);
+        // Shear efficiency of the panel this plate sits on (section model, 1 when unset):
+        // only effS·t of the plate carries the shear flow.
+        const effS = (window.SectionAdapter && SectionAdapter.effSAt) ? SectionAdapter.effSAt(Y_mm, z_m * 1000) : 1;
+        const tau_real = effS > 0 ? (F_N * Q_m3) / (I_NA * t_mm * effS * 1000) : 0;
         const tau_floor = 30 / kL;   // LR Sec 7.4.2 lower bound
         tau_A = Math.max(Math.abs(tau_real), tau_floor);
       } else {

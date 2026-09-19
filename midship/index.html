@@ -293,7 +293,9 @@
       <div class="ea-wizard-line"></div>
       <button class="ea-wizard-step" data-step="5" onclick="goToStep(5)" title="Stiffener spacing and profile sizes"><span class="ea-wizard-num">5</span> Stiffeners</button>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="6" onclick="goToStep(6)" title="Rule check summary and report"><span class="ea-wizard-num">6</span> Check</button>
+      <button class="ea-wizard-step" data-step="6" onclick="goToStep(6)" title="Tanks and spaces: type, density, air pipe, boundary panels"><span class="ea-wizard-num">6</span> Compartments</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" data-step="7" onclick="goToStep(7)" title="Rule check summary and report"><span class="ea-wizard-num">7</span> Check</button>
     </nav>
   </div>
 </header>
@@ -1117,6 +1119,11 @@
         </div>
         <div class="view-pills" id="viewPills">
           <!-- DRAW MODE pills (visible in draw mode) -->
+          <button class="view-pill draw-pill" data-viewmode="section" title="Section geometry — lines and nodes only (step 2)">Section</button>
+          <button class="view-pill draw-pill" data-viewmode="positions" title="Panel positions (step 3)">Positions</button>
+          <button class="view-pill draw-pill" data-viewmode="strakes" title="Strakes per panel (step 4)">Strakes</button>
+          <button class="view-pill draw-pill" data-viewmode="stiffeners" title="Stiffener groups per panel (step 5)">Stiffeners</button>
+          <button class="view-pill draw-pill" data-viewmode="compartments" title="Tanks and spaces (step 6)">Compartments</button>
           <button class="view-pill draw-pill active" data-viewmode="general"     title="General view">General</button>
           <button class="view-pill draw-pill"        data-viewmode="thickness"   title="Plate thicknesses">Thk</button>
           <button class="view-pill draw-pill"        data-viewmode="profile"     title="Profile sizes">Prof</button>
@@ -1447,7 +1454,7 @@
       </div>
     </div>
     <div class="ea-page-actions">
-      <button class="ea-btn ea-btn-secondary" onclick="goToStep(5)">← Stiffeners</button>
+      <button class="ea-btn ea-btn-secondary" onclick="goToStep(6)">← Compartments</button>
       <span style="flex:1"></span>
       <button class="ea-btn ea-btn-secondary" onclick="exportDXF()" title="Drawing to AutoCAD DXF (all layers, real profile shapes)">DXF</button>
       <button class="ea-btn ea-btn-secondary" onclick="exportExcel()" title="Plates, stiffeners, section properties and ship parameters (.xlsx)">Excel</button>
@@ -1930,7 +1937,10 @@
 
 <div id="np_pendingBanner" class="np-banner"></div>
 
-<script src="app/10-draw.js"></script>
+<script src="app/05-model.js"></script>
+<script src="app/07-adapter.js"></script>
+  <script src="app/10-draw.js"></script>
+  <script src="app/12-cad.js"></script>
 <script src="app/20-profile.js"></script>
 <script src="app/21-buckling.js"></script>
 <script src="app/22-variants-materials.js"></script>

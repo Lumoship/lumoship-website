@@ -896,3 +896,133 @@ body.geometry-active .ed-input{padding:2px 6px;font-size:0.66rem}
 .ea-wizard-step.incomplete:not(.active) .ea-wizard-num{border-color:var(--warning);color:var(--warning);background:transparent;box-shadow:0 0 0 2px rgba(245,158,11,0.18)}
 .ea-wizard-step.incomplete.active .ea-wizard-num{box-shadow:0 0 0 2px rgba(245,158,11,0.55)}
 .ea-wizard-step.incomplete:not(.active){color:var(--warning)}
+
+/* ── Section CAD (step 2, 12-cad.js) ─────────────────────────────────────── */
+.cad-toolbar{position:absolute;top:10px;left:12px;display:flex;gap:4px;align-items:center;background:rgba(15,23,42,0.88);border:1px solid var(--border);border-radius:var(--radius-md);padding:4px 6px;z-index:5;backdrop-filter:blur(4px)}
+.cad-toolbar button{background:transparent;border:1px solid transparent;color:var(--text-secondary);font-family:var(--font-mono);font-size:0.68rem;padding:4px 9px;border-radius:var(--radius-sm);cursor:pointer}
+.cad-toolbar button:hover{border-color:var(--border);color:var(--text-primary)}
+.cad-toolbar button.on{background:#2563eb;border-color:#2563eb;color:#fff}
+.cad-toolbar .cad-hint{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);padding-left:8px;white-space:nowrap}
+.cad-readout{position:absolute;right:14px;bottom:10px;font-family:var(--font-mono);font-size:0.66rem;color:var(--text-muted);background:rgba(15,23,42,0.7);padding:2px 8px;border-radius:var(--radius-sm);pointer-events:none}
+#midshipSVG text.cad-axis{font-family:var(--font-mono);font-size:9px;fill:#64748b}
+#midshipSVG text.cad-dim{font-family:var(--font-mono);font-size:9px;fill:#93c5fd}
+#midshipSVG text.cad-sel{font-family:var(--font-mono);font-size:9px;fill:#3b82f6;font-weight:700}
+.cad-status{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--font-mono);font-size:0.66rem;color:var(--text-muted);padding:6px 8px;margin-bottom:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02)}
+.cad-status.manual{border-color:rgba(245,158,11,0.45);color:var(--warning)}
+.cad-inline{display:flex;gap:6px;align-items:center}
+.cad-add-btns{display:flex;flex-wrap:wrap;gap:4px;padding:2px 0 6px}
+.cad-add-btns .ed-add-btn.on{border-color:var(--success);background:rgba(34,197,94,0.12)}
+.cad-form{border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;margin:4px 0 6px;background:rgba(255,255,255,0.02)}
+.cad-sel-box{border-left:3px solid #3b82f6;padding-left:6px}
+.cad-seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.cad-seg button{background:transparent;border:none;color:var(--text-muted);font-family:var(--font-mono);font-size:0.66rem;padding:3px 10px;cursor:pointer}
+.cad-seg button.on{background:#2563eb;color:#fff}
+body.cad-mode .ed-tabs,body.cad-mode .ed-tabs-more{display:none !important}
+body.cad-mode #cadToolbar{display:flex}
+body.cad-mode .view-pill:not([data-viewmode="section"]):not([data-viewmode="positions"]):not([data-viewmode="strakes"]):not([data-viewmode="stiffeners"]):not([data-viewmode="compartments"]){display:none}
+body:not(.cad-mode) .view-pill[data-viewmode="section"],body:not(.cad-mode) .view-pill[data-viewmode="positions"],body:not(.cad-mode) .view-pill[data-viewmode="strakes"],body:not(.cad-mode) .view-pill[data-viewmode="stiffeners"],body:not(.cad-mode) .view-pill[data-viewmode="compartments"]{display:none}
+.sg-card{border:1px solid var(--border);border-radius:var(--radius-sm);margin:3px 0;background:rgba(255,255,255,0.015)}
+.sg-card.open{border-color:rgba(59,130,246,0.5)}
+.sg-head{display:flex;align-items:center;gap:6px;padding:4px 6px;cursor:pointer;font-family:var(--font-mono);font-size:0.6rem}
+.sg-id{color:#3b82f6;font-weight:700;min-width:22px}
+.sg-sum{flex:1;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-warn{color:var(--warning);font-weight:700}
+.sg-body{padding:2px 6px 6px;border-top:1px solid var(--border)}
+.sg-items summary{font-size:0.6rem;color:var(--text-muted);cursor:pointer;padding:3px 0;font-family:var(--font-mono)}
+.st-head{font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;gap:6px}
+.st-row{gap:6px}
+.st-row.is-sel{background:rgba(59,130,246,0.14)}
+.st-row .ed-input{padding:2px 5px;font-size:0.66rem}
+#midshipSVG text.cad-pos{font-family:var(--font-mono);font-size:8px;font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:3px;stroke-linejoin:round}
+.pos-row.is-sel{background:rgba(59,130,246,0.14)}
+.pos-row .ed-input{padding:1px 4px}
+body.cad-mode .ed-group.collapsed{margin-bottom:2px}
+body.cad-mode .ed-group.collapsed > .ed-group-header{margin-bottom:2px;padding:3px 0}
+
+/* ── Typography: quieter, denser editor in the CAD modes (user: "premium standard") ── */
+body.cad-mode .editor-body{font-size:0.62rem}
+body.cad-mode .ed-row{font-size:0.62rem;padding:2px 4px;margin-bottom:2px}
+body.cad-mode .ed-row .ed-id,body.cad-mode .ed-row .ed-label,body.cad-mode .ed-row > span{font-size:0.62rem !important}
+body.cad-mode .ed-input{font-size:0.62rem !important;padding:2px 5px}
+body.cad-mode .ed-group-header{font-size:0.6rem;letter-spacing:0.3px;font-weight:600}
+body.cad-mode .ed-group-header .ed-count{font-size:0.58rem}
+body.cad-mode .ed-hint,body.cad-mode .ed-hint-soft{font-size:0.6rem !important;line-height:1.35;color:var(--text-muted)}
+body.cad-mode .cad-status{font-size:0.6rem;padding:5px 7px}
+body.cad-mode .ed-link-btn,body.cad-mode .ed-add-btn{font-size:0.6rem;padding:2px 7px}
+body.cad-mode .cad-seg button{font-size:0.6rem;padding:2px 8px}
+body.cad-mode .cad-toolbar button{font-size:0.62rem;padding:3px 8px}
+body.cad-mode .cad-toolbar .cad-hint,body.cad-mode .cad-readout{font-size:0.58rem}
+body.cad-mode .editor-header-title,body.cad-mode .ea-panel-title{font-size:0.62rem;letter-spacing:0.8px}
+body.cad-mode .step-strip-title{font-size:0.8rem}
+body.cad-mode .step-strip-badge{font-size:0.62rem}
+#midshipSVG text.cad-dim,#midshipSVG text.cad-axis{font-size:8px}
+#midshipSVG text.cad-pos{font-size:7.5px}
+#midshipSVG text.cad-sel{font-size:8px}
+body.cad-mode .cad-status > span:first-child{white-space:nowrap}
+body.cad-mode .cad-status .ed-link-btn{white-space:nowrap}
+
+#midshipSVG text.cad-comp{font-family:var(--font-mono);font-size:9px;font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:3px}
+#midshipSVG text.cad-comp-sub{font-family:var(--font-mono);font-size:7px;paint-order:stroke;stroke:#0f172a;stroke-width:3px;opacity:0.9}
+.cp-chip{display:inline-block;border:1px solid var(--border);border-radius:3px;padding:0 5px;margin:1px 2px 1px 0;font-family:var(--font-mono);font-size:0.58rem;cursor:pointer;color:var(--text-secondary)}
+.cp-chip:hover{border-color:var(--error);color:var(--error)}
+
+/* ── Quiet chrome — one type scale, nothing shouting (19.09.2026) ─────────────
+   Scale: 11px mono for data, 12px for controls, 13px for the one title.
+   Primary actions are the same size as the rest; colour carries the emphasis. */
+.ea-title-group h1{font-size:0.82rem;font-weight:600;letter-spacing:0.2px}
+.ea-title-group p{font-size:0.66rem}
+.ea-logo{width:26px;height:26px;font-size:0.8rem}
+.ea-header-badge{font-size:0.6rem;padding:2px 7px}
+.ea-header-btn{font-size:0.68rem;padding:4px 9px;font-weight:500}
+.ea-header-btn svg{width:12px;height:12px}
+.ea-wizard-step{font-size:0.72rem;font-weight:500;padding:6px 10px}
+.ea-wizard-num{width:18px;height:18px;font-size:0.58rem;border-width:1.5px}
+.ea-wizard-line{width:22px}
+.step-strip{padding:5px 12px}
+.step-strip-title{font-size:0.78rem;font-weight:600}
+.step-strip-num{font-size:0.62rem;padding:1px 6px}
+.step-strip-badge{font-size:0.6rem;padding:2px 8px}
+.step-strip-nav .ea-btn{padding:3px 9px;font-size:0.64rem;font-weight:500}
+.ea-btn-primary,.ea-btn.ea-btn-primary{box-shadow:none}
+/* bridge bar: the mode words are redundant next to the pills; keep counts + actions */
+body.geometry-active .draw-bridge-bar > div:first-child > span:first-child{display:none}
+body.geometry-active #modeHelp{display:none}
+body.geometry-active #modeIndicator{font-size:0.58rem;padding:2px 7px;letter-spacing:0.4px}
+body.geometry-active .draw-bridge-bar{padding:3px 10px}
+body.geometry-active .draw-bridge-bar .ea-btn{padding:3px 9px !important;font-size:0.64rem !important;font-weight:500}
+body.geometry-active #runAnalysisBtn{background:#1d4ed8 !important;border-color:#1d4ed8}
+body.geometry-active .count-item{font-size:0.66rem}
+body.geometry-active .count-num{font-size:0.7rem}
+/* drawing header */
+.ea-panel-title{font-size:0.62rem;letter-spacing:0.8px}
+.view-pill{font-size:0.64rem;padding:3px 9px}
+.zoom-btn{font-size:0.64rem;padding:2px 7px}
+.zoom-info{font-size:0.6rem}
+/* status bar */
+.status-bar{font-size:0.62rem}
+.status-bar .sb-label{font-size:0.56rem}
+.status-bar .sb-value{font-size:0.64rem}
+.status-bar .sb-nav-btn{font-size:0.64rem;padding:3px 10px;font-weight:500}
+.status-bar .sb-nav-btn.fwd{background:transparent;border-color:rgba(59,130,246,0.55);color:#93c5fd}
+.status-bar .sb-nav-btn.fwd:hover{background:rgba(59,130,246,0.15)}
+/* editor header */
+.editor-header-title{font-size:0.62rem;letter-spacing:0.8px}
+/* geometry inputs: even column widths */
+body.cad-mode .ed-row .ed-id{color:var(--text-secondary)}
+body.cad-mode .ed-input[type=number]{width:72px;text-align:right;font-variant-numeric:tabular-nums}
+body.cad-mode .cad-add-btns .ed-add-btn{padding:2px 8px}
+/* forms (Ship / Check pages): denser fields, same 12px scale */
+.ea-label{font-size:0.58rem;letter-spacing:0.6px;margin-bottom:3px}
+.ea-input,.ea-select{padding:6px 10px;font-size:0.74rem;border-radius:var(--radius-sm)}
+.ea-select{background-size:10px;padding-right:26px}
+.ea-field{margin-bottom:9px}
+.ea-panel-header{padding:8px 14px}
+.ea-panel-body{padding:12px 14px}
+.ea-panel-icon{width:6px;height:6px}
+.ea-calc-row{font-size:0.7rem;padding:4px 0}
+.ea-summary-value{font-size:1.35rem}
+.ea-summary-label{font-size:0.56rem;letter-spacing:0.6px}
+.ea-summary-sub{font-size:0.6rem}
+.ea-page-actions .ea-btn{padding:5px 12px;font-size:0.68rem}
+.ea-btn{font-weight:500}
+.np-modal .ea-input,.np-modal .ea-select{font-size:0.74rem}
