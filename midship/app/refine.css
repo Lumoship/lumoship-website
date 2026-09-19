@@ -1302,3 +1302,15 @@ body.chrome-form .ea-page > .ea-main{max-width:none !important;width:100% !impor
 .mb-tr .mb-pos-inline{appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:var(--font-mono);font-size:0.6rem;font-weight:700;padding:0;width:100%;cursor:pointer;text-overflow:ellipsis}
 .mb-tr .mb-pos-inline:focus{outline:none;text-decoration:underline dotted}
 .mb-row[hidden]{display:none !important}
+
+/* themed popup menu + inline position button */
+.mb-tr .mb-pos-inline{appearance:none;background:transparent;border:1px solid transparent;border-radius:3px;font-family:var(--font-mono);font-size:0.6rem;font-weight:700;padding:0 4px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;line-height:1.4}
+.mb-tr .mb-pos-inline i{font-style:normal;color:var(--text-muted);font-size:0.5rem}
+.mb-tr .mb-pos-inline:hover{border-color:var(--border);background:var(--bg-input)}
+.cad-menu{position:fixed;z-index:1000;min-width:190px;max-height:60vh;overflow:auto;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 10px 30px rgba(0,0,0,0.45);padding:4px;font-family:var(--font-mono);font-size:0.62rem}
+.cad-menu-item{display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:center;padding:4px 8px;border-radius:3px;color:var(--text-secondary);cursor:pointer}
+.cad-menu-item:hover{background:rgba(59,130,246,0.14);color:var(--text-primary)}
+.cad-menu-item.on{background:rgba(59,130,246,0.22);color:var(--text-primary)}
+.cad-menu-code{font-weight:700}
+/* native selects: dark option list where the browser allows it */
+select.ed-input option,select.ea-select option{background:var(--bg-secondary);color:var(--text-primary)}

@@ -772,7 +772,7 @@
         const isSel = q ? q.id === sel.panel : (sel.node === nid && !sel.panel);
         h += `<div class="mb-tr ${isSel ? 'is-sel' : ''}" data-mb-node="${nid}" ${q ? `data-mb-seg="${q.id}"` : ''}>
           <span>${nid}</span><span>${n ? n.y : ''}</span><span>${n ? n.z : ''}</span>
-          <span>${q ? `<select class="mb-pos-inline" data-seg="${q.id}" style="color:${q.position ? (POS_COLOR[q.position] || '#94a3b8') : '#f59e0b'}" title="${q.position ? posLabel(q.position) : 'Undefined'}"><option value="" ${q.position ? '' : 'selected'}>—</option>${M().POSITIONS.map(o => `<option value="${o.code}" ${q.position === o.code ? 'selected' : ''}>${q.position === o.code ? shortPos(o.code) : o.label}</option>`).join('')}</select>` : ''}</span>
+          <span>${q ? `<button class="mb-pos-inline" data-seg="${q.id}" style="color:${q.position ? (POS_COLOR[q.position] || '#94a3b8') : '#f59e0b'}" title="${q.position ? posLabel(q.position) : 'Undefined — click to set'}">${q.position ? shortPos(q.position) : '—'} <i>▾</i></button>` : ''}</span>
           <span>${q ? `<input type="checkbox" class="mb-wt" data-seg="${q.id}" ${q.wt ? 'checked' : ''} title="Watertight">` : ''}</span></div>`;
       });
       h += `</div>`;
@@ -836,14 +836,12 @@
       renderSvg(); renderPanel();
     }));
     ec.querySelectorAll('.mb-wt').forEach(cb => cb.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === e.target.dataset.seg); if (q) { q.wt = e.target.checked; commit(m); } }));
-    ec.querySelectorAll('.mb-pos-inline').forEach(el => {
-      const longNames = () => { [...el.options].forEach(o => { if (o.value) o.textContent = posLabel(o.value); }); };
-      const shortNames = () => { [...el.options].forEach(o => { if (o.value) o.textContent = o.selected ? shortPos(o.value) : posLabel(o.value); }); };
-      el.addEventListener('mousedown', longNames); el.addEventListener('focus', longNames);
-      el.addEventListener('blur', shortNames);
-      el.addEventListener('click', e => e.stopPropagation());
-      el.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === e.target.dataset.seg); if (q) { q.position = e.target.value || null; const def = M().POS[q.position]; if (def) q.wt = def.wt; commit(m); } });
-    });
+    ec.querySelectorAll('.mb-pos-inline').forEach(el => el.addEventListener('click', e => {
+      e.stopPropagation();
+      const segId = el.dataset.seg; const q0 = S().panels.find(x => x.id === segId);
+      const items = [{ value: '', label: 'Undefined', color: '#f59e0b' }].concat(M().POSITIONS.map(o => ({ value: o.code, label: o.label, short: shortPos(o.code), color: POS_COLOR[o.code] || '#94a3b8' })));
+      popupMenu(el, items, q0 ? q0.position : null, v => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === segId); if (q) { q.position = v || null; const def = M().POS[q.position]; if (def) q.wt = def.wt; commit(m); } });
+    }));
     const radI = ec.querySelector('.mb-radius'); if (radI) radI.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const r = parseFloat(e.target.value); const q = m.panels.find(x => x.id === sel.panel); if (!q) return; const ok = M().setCurve(m, q.id, r); if (!ok) { toast('Radius must be at least half the chord.'); return; } const nq = m.panels.find(x => x.from === q.from && x.to === q.to) || m.panels.find(x => x.curve && Math.abs(x.curve.r - r) < 1); sel.panel = nq ? nq.id : null; commit(m); });
     ec.querySelectorAll('[data-mb]').forEach(b => b.addEventListener('click', () => {
       const act = b.dataset.mb; const m = JSON.parse(JSON.stringify(S())); const gids2 = Object.keys(m.groups || {}); const gi = gids2.indexOf(sel.group);
@@ -1165,6 +1163,26 @@
     } else h += `<div class="ci-row muted">not available</div>`;
     h += `</details></details>`;
     card.innerHTML = h;
+  }
+
+  // ------------------------------------------------------------ themed popup menu
+  // A small list anchored to an element — replaces native <select> popups where the
+  // browser styling breaks the look. Escape / outside click closes it.
+  function popupMenu(anchor, items, current, onPick) {
+    document.querySelectorAll('.cad-menu').forEach(m => m.remove());
+    const menu = document.createElement('div'); menu.className = 'cad-menu';
+    menu.innerHTML = items.map(it => `<div class="cad-menu-item ${it.value === (current || '') ? 'on' : ''}" data-v="${it.value}"><span class="cad-menu-code" style="color:${it.color || 'inherit'}">${it.short || ''}</span><span>${it.label}</span></div>`).join('');
+    document.body.appendChild(menu);
+    const r = anchor.getBoundingClientRect(); const mh = Math.min(menu.offsetHeight, window.innerHeight - 16);
+    let top = r.bottom + 4; if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+    let left = r.right - menu.offsetWidth; if (left < 8) left = 8;
+    menu.style.top = top + 'px'; menu.style.left = left + 'px';
+    const close = () => { menu.remove(); document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', esc, true); };
+    const outside = ev => { if (!menu.contains(ev.target)) close(); };
+    const esc = ev => { if (ev.key === 'Escape') { close(); ev.stopPropagation(); } };
+    setTimeout(() => { document.addEventListener('mousedown', outside, true); document.addEventListener('keydown', esc, true); }, 0);
+    menu.addEventListener('click', ev => { const it = ev.target.closest('.cad-menu-item'); if (!it) return; close(); onPick(it.dataset.v); });
+    const on = menu.querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
   }
 
   // ------------------------------------------------------------ wiring
