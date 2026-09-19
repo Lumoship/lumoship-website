@@ -1285,9 +1285,10 @@ body.chrome-form{padding-bottom:44px}
 body.chrome-form .ea-page.active{padding-bottom:16px}
 
 /* One bar geometry on every page: left cell (zoom or empty) · steps centred on the page · right cell (files, actions, badge) */
-body.chrome-geometry .draw-bridge-bar{grid-template-columns:minmax(200px,1fr) auto minmax(200px,1fr) !important}
+/* the side cells never shrink under their content (else the actions would run over the last step) */
+body.chrome-geometry .draw-bridge-bar{grid-template-columns:minmax(max-content,1fr) auto minmax(max-content,1fr) !important}
 body.chrome-geometry .draw-bridge-bar .counts{justify-content:flex-end}
-#formBar{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);grid-template-columns:minmax(200px,1fr) auto minmax(200px,1fr);margin:8px 12px 0;font-size:var(--fs-sm)}
+#formBar{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);grid-template-columns:minmax(max-content,1fr) auto minmax(max-content,1fr);margin:8px 12px 0;font-size:var(--fs-sm)}
 #formBar .form-bar-left{min-height:22px}
 body.chrome-form .ea-page.active > .ea-main,body.chrome-form .ea-page.active{max-width:none;width:100%}
 body.chrome-form .ea-main{max-width:none}
@@ -1374,3 +1375,8 @@ body.cad-mode .cad-msgs.closed{background:none;border:none;backdrop-filter:none;
 .cad-msgs-pill{display:inline-flex;align-items:center;gap:8px;padding:3px 9px;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,0.94);cursor:pointer;font-size:0.58rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted)}
 .cad-msgs-pill:hover{border-color:var(--border-strong,var(--border));color:var(--text-secondary)}
 .cad-msgs-pill b{font-weight:600}
+
+.cad-msgs-head .n-ok,.cad-msgs-pill .n-ok{color:var(--success,#22c55e)}
+.cad-msg.ok{cursor:default}
+.cad-msg.ok .dot{background:var(--success,#22c55e)}
+.cad-msg.ok .txt{color:var(--text-muted)}

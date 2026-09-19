@@ -284,7 +284,7 @@
       </div>
     </div>
     <nav class="ea-wizard" aria-label="Design steps">
-      <button class="ea-wizard-step active" data-step="1" onclick="goToStep(1)" title="Identification, main dimensions, loads, materials, ice"><span class="ea-wizard-num">1</span> Ship</button>
+      <button class="ea-wizard-step active" data-step="1" onclick="goToStep(1)" title="Identification, main dimensions, loads, materials, ice"><span class="ea-wizard-num">1</span> Main particulars</button>
       <div class="ea-wizard-line"></div>
       <button class="ea-wizard-step" data-step="2" onclick="goToStep(2)" title="Section geometry parameters"><span class="ea-wizard-num">2</span> Section</button>
       <div class="ea-wizard-line"></div>
@@ -1921,7 +1921,7 @@
 
       <div class="np-group">
         <h3>Still-Water Bending Moment (kN&middot;m)</h3>
-        <div class="np-note warn">M<sub>s</sub> comes from the loading manual &mdash; it cannot be derived from the principal particulars, so nothing is assumed here. The wave moment M<sub>w</sub> <em>is</em> computed from the rules. Leave these blank and fill them in at step 1 (Ship) if you do not have them yet.</div>
+        <div class="np-note warn">M<sub>s</sub> comes from the loading manual &mdash; it cannot be derived from the principal particulars, so nothing is assumed here. The wave moment M<sub>w</sub> <em>is</em> computed from the rules. Leave these blank and fill them in at step 1 (Main particulars) if you do not have them yet.</div>
         <div class="np-row c4" style="margin-top:var(--spacing-sm)">
           <div class="ea-field"><label class="ea-label" for="np_MsHog">Hogging (+)</label><input type="number" step="1000" class="ea-input" id="np_MsHog" placeholder="blank"></div>
           <div class="ea-field"><label class="ea-label" for="np_MsSag">Sagging (&minus;)</label><input type="number" step="1000" class="ea-input" id="np_MsSag" placeholder="blank"></div>

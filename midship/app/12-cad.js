@@ -357,11 +357,11 @@
               h += `<polyline points="${pts}" fill="none" stroke="transparent" stroke-width="16" vector-effect="non-scaling-stroke" data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"/>`;
               h += `<polyline points="${pts}" fill="none" stroke="${selS ? '#3b82f6' : tColor(sk.t)}" stroke-width="${selS ? 6 : isCur ? 4 : 2.5}" opacity="${selS ? 1 : isCur ? (i % 2 ? 0.75 : 1) : 0.5}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
               // boundary tick at the start of every strake but the first
-              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); const cl = seamClearance(s, gid, x0); const cc = cl < 50 ? '#ef4444' : cl < 100 ? '#f59e0b' : (isCur ? '#e2e8f0' : '#64748b');
+              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); const cl = seamClearance(s, gid, x0); const cc = cl < 100 ? '#f59e0b' : (isCur ? '#e2e8f0' : '#64748b');
                 if (b) h += `<line x1="${X(b.y - b.tz * (cl < 100 ? 240 : 160))}" y1="${Y(b.z + b.ty * (cl < 100 ? 240 : 160))}" x2="${X(b.y + b.tz * (cl < 100 ? 240 : 160))}" y2="${Y(b.z - b.ty * (cl < 100 ? 240 : 160))}" stroke="${cc}" stroke-width="${cl < 100 ? 2.2 : 1.4}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
                 // seam too close to a member: a red (cannot be built) / amber (below recommended) badge on the outer side, picking the strake
                 if (b && cl < 100 && isCur) { const sg = interiorSide(b.seg, s) * (chainFwd(s, gid, b.seg) ? 1 : -1); const bx = X(b.y - b.tz * sg * 560 + b.ty * 330), by = Y(b.z + b.ty * sg * 560 + b.tz * 330);
-                  h += `<g data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"><title>seam ${i}|${i + 1} at ${fmt(x0)} mm is ${Math.round(cl)} mm from a member — ${cl < 50 ? 'cannot be built (min 50)' : 'below the recommended 100'}</title><circle cx="${bx}" cy="${by}" r="6.5" fill="${cc}" stroke="#0f172a" stroke-width="1.5"/><text x="${bx}" y="${by + 3.2}" font-size="9" font-weight="700" fill="#0f172a" text-anchor="middle" font-family="var(--font-mono)" pointer-events="none">!</text></g>`; } }
+                  h += `<g data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"><title>seam ${i}|${i + 1} at ${fmt(x0)} mm is ${Math.round(cl)} mm from a member — ${cl < 50 ? 'under the 50 mm minimum' : 'below the recommended 100'}</title><circle cx="${bx}" cy="${by}" r="6.5" fill="${cc}" stroke="#0f172a" stroke-width="1.5"/><text x="${bx}" y="${by + 3.2}" font-size="9" font-weight="700" fill="#0f172a" text-anchor="middle" font-family="var(--font-mono)" pointer-events="none">!</text></g>`; } }
               const at = M().chainPointAt(s, gid, (x0 + x1) / 2); if (at && (isCur || (x1 - x0) > 900)) {
                 // thickness label on the interior side of the plate, clear of the AB / CL dimension labels
                 const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg;
@@ -370,6 +370,18 @@
             });
             if (x < ci.L - 5) h += `<polyline points="${chainPts(gid, x, ci.L)}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
           }
+        }
+        if (inStrakes() && d.stiffGroups.length) {
+          let prevEnd = null;
+          d.stiffGroups.forEach(g => {
+            const r = M().groupPositions(s, gid, g, prevEnd); if (r.placed.length) prevEnd = Math.max(...r.placed);
+            r.placed.forEach(x => {
+              const at = M().chainPointAt(s, gid, x); if (!at) return;
+              const sideSign = (g.side === 'out' ? -1 : 1) * interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1);
+              const nx = -at.tz * sideSign, nz = at.ty * sideSign;
+              h += `<line x1="${X(at.y)}" y1="${Y(at.z)}" x2="${X(at.y + nx * 180)}" y2="${Y(at.z + nz * 180)}" stroke="${isCur ? '#3f6b4a' : '#2f4a38'}" stroke-width="1.2" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+            });
+          });
         }
         if (inStiffs()) {
           let prevEnd = null;
@@ -1209,7 +1221,7 @@
         d.strakes.forEach((st, i) => {
           x += st.len || 0; if (i === d.strakes.length - 1) return;
           let best = null; obs.forEach(o => { const dd = Math.abs(o.x - x); if (!best || dd < best.d) best = { d: dd, o }; });
-          if (best && best.d < 100) out.push({ level: best.d < 50 ? 'bad' : 'warn', where: name(gid), text: 'seam ' + (i + 1) + '|' + (i + 2) + ' at ' + fmt(x) + ' mm is ' + fmt(best.d) + ' mm from ' + (best.o.kind === 'node' ? 'node ' + best.o.id : 'stiffener ' + best.o.id) + ' — ' + (best.d < 50 ? 'cannot be built (min 50)' : 'below the recommended 100'), gid, strake: i });
+          if (best && best.d < 100) out.push({ level: 'warn', where: name(gid), text: 'seam ' + (i + 1) + '|' + (i + 2) + ' at ' + fmt(x) + ' mm is ' + fmt(best.d) + ' mm from ' + (best.o.kind === 'node' ? 'node ' + best.o.id : 'stiffener ' + best.o.id) + ' — ' + (best.d < 50 ? 'under the 50 mm minimum' : 'below the recommended 100'), gid, strake: i });
         });
       });
     } else if (inStiffs()) {
@@ -1219,6 +1231,8 @@
           const r = M().groupPositions(s, gid, g, prev); if (r.placed.length) prev = Math.max(...r.placed);
           if (r.dropped.length) out.push({ level: 'warn', where: name(gid), text: g.id + ': ' + r.dropped.length + ' of ' + g.count + ' do not fit on the panel', gid, group: g.id });
           if (!g.profile) out.push({ level: 'bad', where: name(gid), text: g.id + ' has no profile size', gid, group: g.id });
+          // a stiffener sitting on (or within 50 mm of) a plate seam — the same clash the Strakes step lists
+          let acc = 0; d.strakes.forEach((st, i) => { acc += st.len || 0; if (i === d.strakes.length - 1) return; r.placed.forEach(px => { const dd = Math.abs(px - acc); if (dd < 50) out.push({ level: 'warn', where: name(gid), text: g.id + ': stiffener at ' + fmt(px) + ' mm is ' + fmt(dd) + ' mm from seam ' + (i + 1) + '|' + (i + 2) + ' — under the 50 mm minimum', gid, group: g.id }); }); });
         });
       });
     } else if (inComps()) {
@@ -1236,8 +1250,7 @@
   function renderMsgPane() {
     const host = document.getElementById('svgContainer'); if (!host) return;
     let pane = document.getElementById('cadMsgPane');
-    const s = S(); const msgs = (s && (inStrakes() || inStiffs() || inComps())) ? collectMessages(s) : [];
-    if (!msgs.length) { if (pane) pane.style.display = 'none'; return; }
+    const s = S(); const msgs = s ? collectMessages(s) : [];
     if (!pane) {
       pane = document.createElement('div'); pane.id = 'cadMsgPane'; pane.className = 'cad-msgs'; host.appendChild(pane);
       // header drags the pane taller / shorter
@@ -1264,10 +1277,10 @@
     }
     pane.__msgs = msgs; pane.style.display = ''; pane.classList.toggle('closed', msgsClosed);
     const nb = msgs.filter(m => m.level === 'bad').length, nw = msgs.length - nb;
-    const counts = `${nb ? `<b class="n-bad">${nb} error${nb > 1 ? 's' : ''}</b>` : ''}${nw ? `<b class="n-warn">${nw} warning${nw > 1 ? 's' : ''}</b>` : ''}`;
+    const counts = msgs.length ? `${nb ? `<b class="n-bad">${nb} error${nb > 1 ? 's' : ''}</b>` : ''}${nw ? `<b class="n-warn">${nw} warning${nw > 1 ? 's' : ''}</b>` : ''}` : `<b class="n-ok">No warnings or errors</b>`;
     if (msgsClosed) { pane.innerHTML = `<div class="cad-msgs-pill" title="Show the messages"><span>Messages</span>${counts}</div>`; return; }
     pane.innerHTML = `<div class="cad-msgs-head" title="Drag to resize"><span>Messages</span>${counts}<span class="cad-msgs-x" title="Close">×</span></div>
-      <div class="cad-msgs-body" style="height:${msgsH}px">${msgs.map((m, i) => `<div class="cad-msg ${m.level}" data-i="${i}"><span class="dot"></span><span class="where">${m.where}</span><span class="txt">${m.text}</span></div>`).join('')}</div>`;
+      <div class="cad-msgs-body" style="height:${msgsH}px">${msgs.length ? '' : '<div class="cad-msg ok"><span class="dot"></span><span class="txt">Nothing to fix in this step.</span></div>'}${msgs.map((m, i) => `<div class="cad-msg ${m.level}" data-i="${i}"><span class="dot"></span><span class="where">${m.where}</span><span class="txt">${m.text}</span></div>`).join('')}</div>`;
   }
   function renderInfoCard() {
     const host = document.getElementById('svgContainer'); if (!host) return;

@@ -16,7 +16,7 @@
   'use strict';
 
   var STEPS = [
-    { n: 1, key: 'ship',       label: 'Ship',       page: 1,
+    { n: 1, key: 'ship',       label: 'Main particulars',       page: 1,
       title: 'Ship particulars',
       hint: 'Identification, class, main dimensions, still-water bending moments, material family, ice class. Everything the rules need before a section exists.' },
     { n: 2, key: 'section',    label: 'Section',    page: 3, tab: 'geometry', view: 'section',
@@ -115,7 +115,7 @@
       items.push({ ok: true, level: 'warn', text: noG ? noG + ' strake' + (noG > 1 ? 's' : '') + ' on the automatic grade (zone material)' : 'Every strake has an explicit grade' });
       var tight = 0, bad2 = 0;
       if (M.chainObstacles) gids.forEach(function (g) { var d = M.panelData(S, g); var obs = M.chainObstacles(S, g); var x = 0; d.strakes.forEach(function (st, i) { x += st.len || 0; if (i === d.strakes.length - 1) return; var dm = Infinity; obs.forEach(function (o) { dm = Math.min(dm, Math.abs(o.x - x)); }); if (dm < 50) bad2++; else if (dm < 100) tight++; }); });
-      items.push({ ok: !bad2, level: 'error', text: bad2 ? bad2 + ' seam' + (bad2 > 1 ? 's' : '') + ' within 50 mm of a member — cannot be built' : 'No seam within 50 mm of a member', fix: 'Move the seam (strake length) at least 50 mm off the girder / stiffener' });
+      items.push({ ok: !bad2, level: 'warn', text: bad2 ? bad2 + ' seam' + (bad2 > 1 ? 's' : '') + ' within 50 mm of a member — hard to build' : 'No seam within 50 mm of a member', fix: 'Move the seam (strake length) at least 50 mm off the girder / stiffener' });
       items.push({ ok: !tight, level: 'warn', text: tight ? tight + ' seam' + (tight > 1 ? 's' : '') + ' closer than the recommended 100 mm' : 'Seams keep the recommended 100 mm', fix: '100 mm clearance recommended' });
       return items;
     },
