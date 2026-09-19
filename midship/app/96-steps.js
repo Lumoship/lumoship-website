@@ -332,23 +332,30 @@
     }
     return fb;
   }
-  function subBar() {
-    var sb = document.getElementById('subBar');
-    if (!sb) { sb = document.createElement('div'); sb.id = 'subBar'; sb.className = 'chrome-bar sub-bar'; }
-    var sw = document.querySelector('.ea-subwizard'); if (sw && sw.parentElement !== sb) sb.appendChild(sw);
-    return sb;
+  // Left rail: the main flow. The step nav (.ea-wizard) lives here, vertical.
+  function sideRail() {
+    var rail = document.getElementById('sideRail');
+    if (!rail) {
+      rail = document.createElement('aside'); rail.id = 'sideRail';
+      rail.innerHTML = '<div class="rail-title">Workflow</div>';
+      document.body.appendChild(rail); document.body.classList.add('with-rail');
+    }
+    var wiz = document.querySelector('.ea-wizard'); if (wiz && wiz.parentElement !== rail) rail.appendChild(wiz);
+    return rail;
   }
   function arrangeChrome(onGeometry) {
     var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar');
     var acts = document.querySelector('.ea-header-actions'); var header = document.querySelector('.ea-header');
     if (!wiz || !bar || !header) return;
-    var fb = formBar();
-    var sub = subBar(); var after = onGeometry ? bar : fb;
-    if (after.nextElementSibling !== sub) after.insertAdjacentElement('afterend', sub);
+    var fb = formBar(); sideRail();
+    var sub = document.querySelector('.ea-subwizard');
     if (!onGeometry) {
-      // form pages (Ship, Check): the same one-row bar, steps centred, files right
+      // form pages (Main particulars, Check): the one-row bar carries the page title, files right
       var fmid = fb.querySelector('.bridge-mid'), ffiles = fb.querySelector('.bridge-files');
-      if (wiz.parentElement !== fmid) fmid.appendChild(wiz);
+      var st = stepByN(current); var ttl = fmid.querySelector('.bar-page-title');
+      if (!ttl) { ttl = document.createElement('span'); ttl.className = 'bar-page-title'; fmid.appendChild(ttl); }
+      ttl.textContent = st.page === 4 ? 'Check' : 'Main particulars';
+      if (sub && sub.parentElement !== fmid) fmid.appendChild(sub);
       var pool = [].concat(Array.prototype.slice.call(acts ? acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)') : []), Array.prototype.slice.call((bar.querySelector('.bridge-files') || { children: [] }).children));
       pool.forEach(function (b) { ffiles.appendChild(b); });
       fb.style.display = ''; document.body.classList.add('chrome-form'); document.body.classList.remove('chrome-geometry');
@@ -360,7 +367,7 @@
     var mid = bar.querySelector('.bridge-mid'); if (!mid) { mid = document.createElement('div'); mid.className = 'bridge-mid'; bar.insertBefore(mid, bar.children[1] || null); }
     var right = bar.querySelector('.counts');
     var fileHost = bar.querySelector('.bridge-files'); if (!fileHost && right) { fileHost = document.createElement('div'); fileHost.className = 'bridge-files'; right.insertBefore(fileHost, right.firstChild); }
-    if (wiz.parentElement !== mid) mid.appendChild(wiz);
+    if (sub && sub.parentElement !== mid) mid.appendChild(sub);
     if (fileHost) {
       var pool2 = [].concat(Array.prototype.slice.call(acts ? acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)') : []), Array.prototype.slice.call((fb.querySelector('.bridge-files') || { children: [] }).children));
       pool2.forEach(function (b) { fileHost.appendChild(b); });

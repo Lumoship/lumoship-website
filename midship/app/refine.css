@@ -1381,19 +1381,34 @@ body.cad-mode .cad-msgs.closed{background:none;border:none;backdrop-filter:none;
 .cad-msg.ok .dot{background:var(--success,#22c55e)}
 .cad-msg.ok .txt{color:var(--text-muted)}
 
-/* ── Second nav row: the section steps, smaller, same language as the bar ─────── */
-#subBar{display:flex;justify-content:center;align-items:center;margin:0 12px -2px;padding:0 12px;min-height:22px;background:transparent;border:none;box-shadow:none}
+
+/* ── Left rail: the main flow (Main particulars · Sections · Check) ─────────── */
+:root{--rail-w:172px}
+body.with-rail{padding-left:var(--rail-w)}
+body.with-rail .lumoship-nav{margin-left:calc(-1 * var(--rail-w))}
+body.with-rail #formStatusBar{left:var(--rail-w)}
+#sideRail{position:fixed;left:0;top:44px;bottom:0;width:var(--rail-w);z-index:15;display:flex;flex-direction:column;padding:14px 10px;background:var(--bg-secondary);border-right:1px solid var(--border)}
+#sideRail .rail-title{font-family:var(--font-mono);font-size:0.56rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);padding:0 8px 10px}
+#sideRail .ea-wizard{display:flex;flex-direction:column;gap:2px;padding:0;margin:0;border:none;background:transparent}
+#sideRail .ea-wizard-line{display:none}
+#sideRail .ea-wizard-step{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 8px !important;font-size:0.68rem !important;font-weight:500;border-radius:var(--radius-md);color:var(--text-muted)}
+#sideRail .ea-wizard-step:hover{background:rgba(255,255,255,0.03);color:var(--text-secondary)}
+#sideRail .ea-wizard-step.active{background:rgba(37,99,235,0.10);color:var(--text-primary)}
+#sideRail .ea-wizard-step.completed{color:var(--text-secondary)}
+#sideRail .ea-wizard-num{width:18px;height:18px;font-size:0.58rem;flex:none}
+/* the bar's middle cell: section steps on the drawing pages, the page title elsewhere */
 .ea-subwizard{display:flex;align-items:center;gap:2px}
-.ea-sub-step{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:none;background:transparent;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.6rem;font-weight:500;letter-spacing:0.03em;color:var(--text-muted);cursor:pointer;transition:color .16s ease,background-color .16s ease}
+.ea-sub-step{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:none;background:transparent;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.66rem;font-weight:500;letter-spacing:0.02em;color:var(--text-muted);cursor:pointer;transition:color .16s ease,background-color .16s ease}
 .ea-sub-step:hover{color:var(--text-secondary);background:rgba(255,255,255,0.03)}
-.ea-sub-step i{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--border-strong,#475569);background:transparent;transition:all .18s ease}
+.ea-sub-step i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--border-strong,#475569);background:transparent;transition:all .18s ease}
 .ea-sub-step.completed i{border-color:var(--success,#22c55e);background:var(--success,#22c55e)}
 .ea-sub-step.completed{color:var(--text-secondary)}
 .ea-sub-step.active{color:var(--accent,#60a5fa)}
 .ea-sub-step.active i{border-color:#2563eb;background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.25)}
 .ea-sub-step.incomplete:not(.active) i{border-color:var(--warning);background:transparent;box-shadow:0 0 0 2px rgba(245,158,11,0.25)}
 .ea-sub-step.incomplete:not(.active){color:var(--warning)}
-.ea-sub-step + .ea-sub-step{position:relative;margin-left:14px}
-.ea-sub-step + .ea-sub-step::before{content:'';position:absolute;left:-10px;top:50%;width:8px;height:1px;background:var(--border-soft)}
-.ea-subwizard.is-off .ea-sub-step:not(.completed):not(.incomplete){opacity:0.55}
-body.chrome-form #subBar{margin-top:4px}
+.ea-sub-step + .ea-sub-step{position:relative;margin-left:16px}
+.ea-sub-step + .ea-sub-step::before{content:'';position:absolute;left:-11px;top:50%;width:8px;height:1px;background:var(--border-soft)}
+body.chrome-form .ea-subwizard{display:none}
+.bar-page-title{font-family:var(--font-mono);font-size:0.7rem;font-weight:600;letter-spacing:0.04em;color:var(--text-secondary)}
+body.chrome-geometry .bar-page-title{display:none}
