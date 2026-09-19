@@ -355,6 +355,18 @@
     return rebuild(model, lines);
   }
 
+  // Curve type of one segment: straight, or an arc of radius r through its two nodes.
+  function setCurve(model, segId, r) {
+    const lines = toLines(model); const l = lines.find(x => x._keep.id === segId); if (!l) return false;
+    if (!r || !(r > 0)) { l.curve = null; rebuild(model, lines); return true; }
+    const d = dist(l.a, l.b); if (r < d / 2) return false;
+    const m = { y: (l.a.y + l.b.y) / 2, z: (l.a.z + l.b.z) / 2 }, h = Math.sqrt(r * r - (d / 2) * (d / 2));
+    const ny = -(l.b.z - l.a.z) / d, nz = (l.b.y - l.a.y) / d;
+    const c1 = { y: m.y + ny * h, z: m.z + nz * h }, c2 = { y: m.y - ny * h, z: m.z - nz * h };
+    // centre towards the section interior (smaller y / higher z), as for a bilge
+    const centre = (c1.y <= c2.y && c1.z >= c2.z) ? c1 : c2;
+    l.curve = { type: 'arc', r, centre }; rebuild(model, lines); return true;
+  }
   // Remove a node: a free end drops its segment; a node between two collinear
   // straights (or two pieces of one arc) merges them; a junction is refused.
   function removeNode(model, nodeId) {
@@ -447,6 +459,6 @@
     POSITIONS, POS, TOL,
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
-    addLine, addArc, removePanel, splitPanel, moveNode, removeNode, validate, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
+    addLine, addArc, removePanel, splitPanel, moveNode, removeNode, setCurve, validate, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();
