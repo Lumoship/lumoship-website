@@ -68,10 +68,10 @@
       var req = [['vesselName', 'Vessel name'], ['L', 'L'], ['B', 'B'], ['D', 'D'], ['T', 'T'], ['Cb', 'C_b']];
       req.forEach(function (r) {
         var el = $(r[0]); var v = el ? el.value.trim() : '';
-        items.push({ ok: !!v, text: r[1] + (v ? '' : ' — blank') });
+        items.push({ ok: !!v, level: r[0] === 'vesselName' ? 'warn' : 'error', text: r[1] + (v ? '' : ' — blank'), fix: v ? '' : 'Enter ' + r[1] + ' on the Ship page', focus: r[0] });
       });
       var ms = numVal('MsDesign'), sag = numVal('MsSag');
-      items.push({ ok: ms != null && sag != null, text: 'Still-water moments M_s hog / sag' + ((ms == null || sag == null) ? ' — blank (loading manual)' : '') });
+      items.push({ ok: ms != null && sag != null, level: 'error', text: 'Still-water moments M_s hog / sag' + ((ms == null || sag == null) ? ' — blank' : ''), fix: 'Enter M_s hogging and sagging (loading manual)', focus: 'MsDesign' });
       return items;
     },
     2: function () {
@@ -80,14 +80,15 @@
       var ok = function (c, t) { items.push({ ok: !!c, text: t }); };
       if (!S) { ok(false, 'Section model not built yet'); return items; }
       var byPos = {}; S.panels.forEach(function (p) { byPos[p.position || 'none'] = (byPos[p.position || 'none'] || 0) + 1; });
-      ok(S.panels.length > 0, S.nodes.length + ' nodes · ' + S.panels.length + ' panels' + (S.manual ? ' (hand-edited)' : ' (from parameters)'));
-      ok(byPos.bottom && byPos.side, 'Shell: bottom' + (byPos.bilge ? ' · bilge' : '') + ' · side' + (byPos.bottom && byPos.side ? '' : ' — missing'));
-      ok(byPos.upperDeck || byPos.deck, (byPos.upperDeck || byPos.deck) ? 'Deck present' : 'No deck panel');
-      ok(byPos.innerBottom, byPos.innerBottom ? 'Inner bottom present' : 'No inner bottom (single bottom)');
+      var ok2 = function (c, t, level, fix) { items.push({ ok: !!c, text: t, level: level || 'warn', fix: fix || '' }); };
+      ok2(S.panels.length > 0, S.nodes.length + ' nodes · ' + S.panels.length + ' segments' + (S.manual ? ' (hand-edited)' : ' (from parameters)'), 'error', 'Draw or generate the section');
+      ok2(byPos.bottom && byPos.side, 'Shell: bottom' + (byPos.bilge ? ' · bilge' : '') + ' · side' + (byPos.bottom && byPos.side ? '' : ' — missing'), 'error', 'The section needs bottom and side shell segments');
+      ok2(byPos.upperDeck || byPos.deck, (byPos.upperDeck || byPos.deck) ? 'Deck present' : 'No deck segment', 'warn', 'Give the deck segment the position Upper deck');
+      ok2(byPos.innerBottom, byPos.innerBottom ? 'Inner bottom present' : 'No inner bottom (single bottom)', 'warn');
       var issues = (window.SectionModel ? SectionModel.validate(S) : []).filter(function (i) { return i.level !== 'info'; });
-      ok(!issues.length, issues.length ? issues.length + ' model-check issue' + (issues.length > 1 ? 's' : '') + ' — see the right panel' : 'Model check clean');
-      var noPos = S.panels.filter(function (p) { return !p.position; }).length;
-      ok(true, noPos ? noPos + ' panel' + (noPos > 1 ? 's' : '') + ' without a position (named in step 3)' : 'All panels have a position');
+      ok2(!issues.length, issues.length ? issues.length + ' model-check issue' + (issues.length > 1 ? 's' : '') : 'Model check clean', 'warn', issues.map(function (i) { return i.text; }).join('; '));
+      var noPos = S.panels.filter(function (p) { return !p.position; });
+      ok2(!noPos.length, noPos.length ? noPos.length + ' segment' + (noPos.length > 1 ? 's' : '') + ' without a position code (' + noPos.slice(0, 6).map(function (p) { return p.id; }).join(', ') + (noPos.length > 6 ? '…' : '') + ')' : 'Every segment has a position code', 'error', 'Set the position of each segment in the Segments table (Section step)');
       return items;
     },
     3: function () {
@@ -96,8 +97,7 @@
       var gids = Object.keys(S.groups || {}); var le = numVal('le'); var ship = le ? Math.round(le * 1000) : null;
       var own = gids.filter(function (g) { var d = S.panelData && S.panelData[g]; return d && d.supports && d.supports.span > 0; }).length;
       var unnamed = S.panels.filter(function (p) { return !p.position; }).length;
-      items.push({ ok: !!ship || own === gids.length, text: own ? own + ' of ' + gids.length + ' panels with their own span' + (ship ? ', rest use ship l_e ' + ship + ' mm' : '') : (ship ? 'All panels on ship l_e = ' + ship + ' mm' : 'No span — set l_e on the Ship page or per panel') });
-      items.push({ ok: !unnamed, text: unnamed ? unnamed + ' segment' + (unnamed > 1 ? 's' : '') + ' without a position code (Section step)' : 'Every segment has a position code' });
+      items.push({ ok: !!ship || own === gids.length, level: 'error', text: own ? own + ' of ' + gids.length + ' panels with their own span' + (ship ? ', rest use ship l_e ' + ship + ' mm' : '') : (ship ? 'All panels on ship l_e = ' + ship + ' mm' : 'No span — set l_e on the Ship page or per panel'), fix: 'Enter l_e on the Ship page or a span per panel (Supports)' });
       return items;
     },
     4: function () {
@@ -107,12 +107,15 @@
       var gids = Object.keys(S.groups || {}); var empty = [], bad = [], noT = 0, total = 0;
       gids.forEach(function (g) { var d = M.panelData(S, g); var L = M.chainInfo(S, g).L; if (!d.strakes.length) { empty.push(S.groups[g]); return; }
         var sum = d.strakes.reduce(function (a, x) { return a + (x.len || 0); }, 0); if (Math.abs(sum - L) > 5) bad.push(S.groups[g]); d.strakes.forEach(function (x) { total++; if (!(x.t > 0)) noT++; }); });
-      items.push({ ok: !empty.length, text: empty.length ? empty.length + ' panel' + (empty.length > 1 ? 's' : '') + ' without strakes (' + empty.slice(0, 4).join(', ') + (empty.length > 4 ? '…' : '') + ')' : total + ' strakes on ' + gids.length + ' panels' });
-      items.push({ ok: !bad.length, text: bad.length ? 'Σ strake length ≠ panel length: ' + bad.join(', ') : 'Strake lengths add up on every panel' });
-      items.push({ ok: !noT, text: noT ? noT + ' strake' + (noT > 1 ? 's' : '') + ' without a thickness' : 'Every strake has a thickness' });
+      items.push({ ok: !empty.length, level: 'error', text: empty.length ? empty.length + ' panel' + (empty.length > 1 ? 's' : '') + ' without strakes (' + empty.slice(0, 4).join(', ') + (empty.length > 4 ? '…' : '') + ')' : total + ' strakes on ' + gids.length + ' panels', fix: 'Strakes step: ＋ or Auto layout on each panel' });
+      items.push({ ok: !bad.length, level: 'error', text: bad.length ? 'Σ strake length ≠ panel length: ' + bad.join(', ') : 'Strake lengths add up on every panel', fix: 'Use ⇥ (fit last) on the panel' });
+      items.push({ ok: !noT, level: 'error', text: noT ? noT + ' strake' + (noT > 1 ? 's' : '') + ' without a thickness' : 'Every strake has a thickness', fix: 'Enter t (mm) for every strake' });
+      var noG = 0; gids.forEach(function (g) { M.panelData(S, g).strakes.forEach(function (x) { if (!x.grade) noG++; }); });
+      items.push({ ok: !noG, level: 'warn', text: noG ? noG + ' strake' + (noG > 1 ? 's' : '') + ' without a material grade' : 'Every strake has a grade', fix: 'Pick the material (A, AH32, AH36 …)' });
       var tight = 0, bad2 = 0;
       if (M.chainObstacles) gids.forEach(function (g) { var d = M.panelData(S, g); var obs = M.chainObstacles(S, g); var x = 0; d.strakes.forEach(function (st, i) { x += st.len || 0; if (i === d.strakes.length - 1) return; var dm = Infinity; obs.forEach(function (o) { dm = Math.min(dm, Math.abs(o.x - x)); }); if (dm < 50) bad2++; else if (dm < 100) tight++; }); });
-      items.push({ ok: !bad2, text: bad2 ? bad2 + ' seam' + (bad2 > 1 ? 's' : '') + ' within 50 mm of a member — cannot be built' : tight ? tight + ' seam' + (tight > 1 ? 's' : '') + ' closer than the recommended 100 mm' : 'Seams clear of girders, decks and stiffeners' });
+      items.push({ ok: !bad2, level: 'error', text: bad2 ? bad2 + ' seam' + (bad2 > 1 ? 's' : '') + ' within 50 mm of a member — cannot be built' : 'No seam within 50 mm of a member', fix: 'Move the seam (strake length) at least 50 mm off the girder / stiffener' });
+      items.push({ ok: !tight, level: 'warn', text: tight ? tight + ' seam' + (tight > 1 ? 's' : '') + ' closer than the recommended 100 mm' : 'Seams keep the recommended 100 mm', fix: '100 mm clearance recommended' });
       return items;
     },
     5: function () {
@@ -122,20 +125,23 @@
       var total = 0, dropped = 0, noProf = 0, withG = 0;
       Object.keys(S.groups || {}).forEach(function (g) { var d = M.panelData(S, g); if (d.stiffGroups.length) withG++; var prev = null;
         d.stiffGroups.forEach(function (x) { var r = M.groupPositions(S, g, x, prev); if (r.placed.length) prev = Math.max.apply(null, r.placed); total += r.placed.length; dropped += r.dropped.length; if (!x.profile) noProf += r.placed.length; }); });
-      items.push({ ok: total > 0, text: total ? total + ' stiffeners on ' + withG + ' panels' : 'No stiffeners yet' });
-      items.push({ ok: !dropped, text: dropped ? dropped + ' stiffener' + (dropped > 1 ? 's' : '') + ' did not fit on their panel' : 'Every stiffener fits its panel' });
-      items.push({ ok: !noProf, text: noProf ? noProf + ' stiffener' + (noProf > 1 ? 's' : '') + ' without a profile size' : 'Every stiffener has a profile' });
+      items.push({ ok: total > 0, level: 'error', text: total ? total + ' stiffeners on ' + withG + ' panels' : 'No stiffeners yet', fix: 'Stiffeners step: add a group per panel (＋ or ⤓)' });
+      var main = ['bottom', 'side', 'innerBottom', 'innerSide', 'upperDeck']; var bare = [];
+      Object.keys(S.groups || {}).forEach(function (g) { var d = M.panelData(S, g); var segs = M.chainOf(S, g); if (!d.stiffGroups.length && segs.some(function (q) { return main.indexOf(q.position) >= 0; })) bare.push(S.groups[g]); });
+      items.push({ ok: !bare.length, level: 'warn', text: bare.length ? 'Main panels without stiffeners: ' + bare.join(', ') : 'Main panels stiffened', fix: 'Shell, inner bottom, inner side and deck normally carry longitudinals' });
+      items.push({ ok: !dropped, level: 'error', text: dropped ? dropped + ' stiffener' + (dropped > 1 ? 's' : '') + ' did not fit on their panel' : 'Every stiffener fits its panel', fix: 'Reduce the count / spacing or use max' });
+      items.push({ ok: !noProf, level: 'error', text: noProf ? noProf + ' stiffener' + (noProf > 1 ? 's' : '') + ' without a profile size' : 'Every stiffener has a profile', fix: 'Pick a profile from the catalogue for each group' });
       return items;
     },
     6: function () {
       var items = []; var S = D().getSection ? D().getSection() : null;
       if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
       var cs = S.compartments || [];
-      items.push({ ok: cs.length > 0, text: cs.length ? cs.length + ' compartment' + (cs.length > 1 ? 's' : '') : 'No compartments yet' });
-      var openB = cs.filter(function (c) { return !(c.panels || []).length || !window.SectionCAD || !window.SectionCAD.isClosed(S, c); }).length;
-      items.push({ ok: !openB, text: openB ? openB + ' with an open boundary' : 'All boundaries closed' });
+      items.push({ ok: cs.length > 0, level: 'warn', text: cs.length ? cs.length + ' compartment' + (cs.length > 1 ? 's' : '') : 'No compartments yet', fix: 'Tanks and holds set the design heads — add at least the ballast tanks and the hold' });
+      var openB = cs.filter(function (c) { return !window.SectionCAD || !window.SectionCAD.isClosed(S, c); }).length;
+      items.push({ ok: !openB, level: 'error', text: openB ? openB + ' compartment' + (openB > 1 ? 's' : '') + ' with an open boundary' : 'All boundaries closed', fix: 'Pick the nodes round the space until it closes' });
       var tanksNoPipe = cs.filter(function (c) { return ['ballast', 'fuel', 'freshwater', 'liquidCargo'].indexOf(c.type) >= 0 && !(c.airpipe_mm > 0); }).length;
-      items.push({ ok: !tanksNoPipe, text: tanksNoPipe ? tanksNoPipe + ' tank' + (tanksNoPipe > 1 ? 's' : '') + ' without an air pipe height' : 'Tank heads defined' });
+      items.push({ ok: !tanksNoPipe, level: 'error', text: tanksNoPipe ? tanksNoPipe + ' tank' + (tanksNoPipe > 1 ? 's' : '') + ' without an air pipe height' : 'Tank heads defined', fix: 'Enter the air pipe top (mm AB) for every tank' });
       return items;
     },
     7: function () {
@@ -154,6 +160,53 @@
       return items;
     }
   };
+
+  // ------------------------------------------------------------------ checklist
+  // Every step's open items in one place. level 'error' blocks the analysis
+  // (the result would be meaningless without it), 'warn' only informs.
+  function allChecks() {
+    var out = [];
+    for (var n = 1; n < STEPS.length; n++) {
+      var items = []; try { items = CHECKS[n] ? CHECKS[n]() : []; } catch (_) { items = []; }
+      items.forEach(function (i) { out.push({ step: n, label: stepByN(n).label, ok: i.ok, level: i.level || 'warn', text: i.text, fix: i.fix || '', focus: i.focus || null }); });
+    }
+    return out;
+  }
+  function blockingErrors() { return allChecks().filter(function (i) { return !i.ok && i.level === 'error'; }); }
+  function showChecklist(anchor) {
+    document.querySelectorAll('.check-list').forEach(function (m) { m.remove(); });
+    var all = allChecks(); var open = all.filter(function (i) { return !i.ok; });
+    var errs = open.filter(function (i) { return i.level === 'error'; }), warns = open.filter(function (i) { return i.level !== 'error'; });
+    var box = document.createElement('div'); box.className = 'check-list';
+    var row = function (i) { return '<div class="cl-item ' + i.level + '" data-step="' + i.step + '"' + (i.focus ? ' data-focus="' + i.focus + '"' : '') + '><span class="cl-mark">' + (i.level === 'error' ? '✕' : '!') + '</span><div><div class="cl-text">' + i.text + '</div>' + (i.fix ? '<div class="cl-fix">' + i.fix + '</div>' : '') + '</div><span class="cl-step">' + i.label + ' →</span></div>'; };
+    box.innerHTML = '<div class="cl-head"><span>Checklist</span><span class="cl-sum">' + (errs.length ? '<b class="e">' + errs.length + ' error' + (errs.length > 1 ? 's' : '') + '</b>' : '') + (warns.length ? '<b class="w">' + warns.length + ' warning' + (warns.length > 1 ? 's' : '') + '</b>' : '') + (!open.length ? '<b class="ok">all clear ✓</b>' : '') + '</span><button class="cl-close" title="Close">✕</button></div>' +
+      (errs.length ? '<div class="cl-sec">Errors — the analysis will not run until these are fixed</div>' + errs.map(row).join('') : '') +
+      (warns.length ? '<div class="cl-sec">Warnings</div>' + warns.map(row).join('') : '') +
+      (!open.length ? '<div class="cl-empty">Every required input is present.</div>' : '');
+    document.body.appendChild(box);
+    var r = anchor ? anchor.getBoundingClientRect() : { right: window.innerWidth - 12, bottom: 60, top: 60 };
+    var top = r.bottom + 6; if (top + box.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - box.offsetHeight - 6);
+    box.style.top = top + 'px'; box.style.left = Math.max(8, Math.min(window.innerWidth - box.offsetWidth - 8, r.right - box.offsetWidth)) + 'px';
+    var close = function () { box.remove(); document.removeEventListener('mousedown', outside, true); };
+    var outside = function (ev) { if (!box.contains(ev.target) && ev.target !== anchor) close(); };
+    setTimeout(function () { document.addEventListener('mousedown', outside, true); }, 0);
+    box.querySelector('.cl-close').addEventListener('click', close);
+    box.querySelectorAll('.cl-item').forEach(function (el) { el.addEventListener('click', function () { close(); goToStep(parseInt(el.dataset.step)); var f = el.dataset.focus; if (f) setTimeout(function () { var inp = $(f); if (inp) { inp.focus(); inp.scrollIntoView({ block: 'center' }); } }, 300); }); });
+  }
+  // Badges open the checklist; the analysis is gated on the errors.
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.sb-badge'); if (b) { e.stopPropagation(); showChecklist(b); } }, true);
+  function gateAnalysis() {
+    if (window.toggleAnalysisMode && !window.toggleAnalysisMode.__gated) {
+      var orig = window.toggleAnalysisMode;
+      var wrapped = function () {
+        if (!window.ANALYSIS_MODE) { var errs = blockingErrors(); if (errs.length) { if (window.eaToast) window.eaToast('Missing input — ' + errs.length + ' error' + (errs.length > 1 ? 's' : '') + '. See the checklist.'); showChecklist(document.getElementById('runAnalysisBtn')); return; } }
+        return orig.apply(this, arguments);
+      };
+      wrapped.__gated = true; window.toggleAnalysisMode = wrapped;
+      var btn = document.getElementById('runAnalysisBtn'); if (btn) btn.setAttribute('onclick', 'window.toggleAnalysisMode()');
+    }
+  }
+  window.showChecklist = showChecklist; window.blockingErrors = blockingErrors; window.allStepChecks = allChecks;
 
   // ------------------------------------------------------------------ strip
   function stripHtml(step) {
@@ -194,11 +247,10 @@
     paintBadgeInto(el, step);
   }
   function paintBadgeInto(el, step) {
-    var items = []; try { items = CHECKS[step.n] ? CHECKS[step.n]() : []; } catch (_) { items = []; }
-    var open = items.filter(function (i) { return !i.ok; }).length, okN = items.length - open;
-    el.className = 'step-strip-badge sb-badge ' + (open ? 'todo' : 'ok');
-    el.innerHTML = okN + '/' + items.length + (open ? ' &middot; ' + open + ' open' : ' &#10003;');
-    el.title = items.map(function (i) { return (i.ok ? '✓ ' : '● ') + i.text; }).join(String.fromCharCode(10));
+    var all = allChecks(); var errs = all.filter(function (i) { return !i.ok && i.level === 'error'; }).length, warns = all.filter(function (i) { return !i.ok && i.level !== 'error'; }).length;
+    el.className = 'step-strip-badge sb-badge ' + (errs ? 'err' : warns ? 'todo' : 'ok');
+    el.innerHTML = errs ? '✕ ' + errs + (warns ? ' · ! ' + warns : '') : warns ? '! ' + warns : '&#10003; all clear';
+    el.title = 'Click for the checklist';
   }
   function mountStrip(step) {
     paintBadge(step);
@@ -297,6 +349,7 @@
     current = step.n;
     // The Check page reads the drawing state; make sure the engine has run once
     // even when the user jumps there straight from Ship.
+    if (step.page === 4) { var errsNow = blockingErrors(); document.body.classList.toggle('check-blocked', errsNow.length > 0); var blk = document.getElementById('checkBlocked'); if (!blk) { blk = document.createElement('div'); blk.id = 'checkBlocked'; var pg = document.getElementById('page-4'); var main = pg && (pg.querySelector('.ea-main') || pg); if (main) main.insertBefore(blk, main.firstChild); } if (blk) blk.innerHTML = errsNow.length ? '<div class="cl-block"><b>' + errsNow.length + ' missing input' + (errsNow.length > 1 ? 's' : '') + '</b> — the rule check needs them first.<ul>' + errsNow.map(function (i) { return '<li><span class="cl-mark">✕</span>' + i.text + (i.fix ? ' <em>· ' + i.fix + '</em>' : '') + ' <a href="#" data-goto="' + i.step + '">' + i.label + ' →</a></li>'; }).join('') + '</ul></div>' : ''; blk.querySelectorAll('[data-goto]').forEach(function (a) { a.addEventListener('click', function (ev) { ev.preventDefault(); goToStep(parseInt(a.dataset.goto)); }); }); }
     if (step.page === 4 && window.Draw && window.Draw.STRAKES && !(window.Draw.STRAKES.shell || []).length) {
       try { if (window.Draw.init) window.Draw.init(); if (window.Draw.computeStrakes) window.Draw.computeStrakes(); } catch (e) { console.warn('[steps] engine init before Check failed:', e); }
     }
@@ -431,6 +484,7 @@
     hookGoToPage();
     hookProject();
     wireRefresh();
+    gateAnalysis(); setTimeout(gateAnalysis, 1500);
     var saved = 1;
     try { saved = parseInt(localStorage.getItem(KEY)) || 1; } catch (_) {}
     if (/[?&]fresh=1/.test(location.search) || location.hash === '#fresh') saved = 1;
