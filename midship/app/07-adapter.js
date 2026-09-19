@@ -50,17 +50,20 @@
     const by = code => s.panels.filter(p => p.position === code);
     const side = by('side'), bilge = by('bilge'), ib = by('innerBottom'), is = by('innerSide'), ud = by('upperDeck'), coam = by('coaming'), ctop = by('coamingTop'), cg = by('centreGirder'), sg = by('sideGirder');
     const ys = s.nodes.map(n => n.y), zs = s.nodes.map(n => n.z);
-    if (side.length) G.B_half = Math.round(Math.max(...side.map(p => line(s, p).a.y))); else if (ys.length) G.B_half = Math.round(Math.max(...ys));
-    if (ib.length) G.IB = Math.round(line(s, ib[0]).a.z);
-    if (ud.length) G.UD = Math.round(line(s, ud[0]).a.z); else if (side.length) G.UD = Math.round(Math.max(...side.map(p => maxZ(s, p))));
-    if (is.length) G.IS = Math.round(line(s, is[0]).a.y);
+    // Only overwrite a parametric value with a sane one — a half-drawn or renamed
+    // section must never collapse the parametric geometry (IS at CL, B/2 = 0 …).
+    const setIf = (k, v, ok) => { if (isFinite(v) && ok(v)) G[k] = Math.round(v); };
+    if (side.length) setIf('B_half', Math.max(...side.map(p => line(s, p).a.y)), v => v > 1000); else if (ys.length) setIf('B_half', Math.max(...ys), v => v > 1000);
+    if (ib.length) setIf('IB', line(s, ib[0]).a.z, v => v > 0);
+    if (ud.length) setIf('UD', line(s, ud[0]).a.z, v => v > G.IB); else if (side.length) setIf('UD', Math.max(...side.map(p => maxZ(s, p))), v => v > G.IB);
+    if (is.length) setIf('IS', Math.max(...is.map(p => line(s, p).a.y)), v => v > (G.duct_half || 0) && v < G.B_half);
     G.HC = coam.length ? Math.round(Math.max(...coam.map(p => maxZ(s, p)))) : G.UD;
     G.R_B = bilge.length && bilge[0].curve ? Math.round(bilge[0].curve.r) : 0;
-    if (cg.length) G.duct_half = Math.round(line(s, cg[0]).a.y);
+    if (cg.length) { const v = Math.round(line(s, cg[0]).a.y); if (v >= 0 && v < (G.IS || Infinity)) G.duct_half = v; }
     P.coamingTop = ctop.length ? Math.round(ctop.reduce((a, p) => a + M().panelLength(p, s.nodes), 0)) : 0;
     // side girders: one entry per distinct y (a girder split by a node is still one girder)
     const sgYs = [...new Set(sg.map(p => Math.round(line(s, p).a.y)))].sort((a, b) => a - b);
-    SG.length = 0; sgYs.forEach(y => SG.push({ y }));
+    if (sgYs.length || !SG.length) { SG.length = 0; sgYs.forEach(y => SG.push({ y })); }   // keep the list when the model has no girders yet
     const strZ = [...new Set(by('stringer').map(p => Math.round(line(s, p).a.z)))].sort((a, b) => a - b);
     const twZ = [...new Set(by('tweenDeck').map(p => Math.round(line(s, p).a.z)))].sort((a, b) => a - b);
     P.stringerZs = strZ; P.tweenZs = twZ; G.TT = twZ.length ? twZ[0] : null;
