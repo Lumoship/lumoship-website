@@ -26,8 +26,6 @@
   let pendingGroup = null;   // panel that newly drawn lines join (set by the Panels ＋ button)
   let mode = 'section';      // 'section' (step 2: draw) | 'positions' (step 3: name panels) | 'strakes' (step 4)
   const GRADES = ['A', 'B', 'D', 'E', 'AH32', 'DH32', 'EH32', 'AH36', 'DH36', 'EH36', 'AH40', 'DH40', 'EH40'];
-  let selStrake = null;      // index of the selected strake in the selected panel (strakes mode)
-  let selGroup = null;       // id of the selected stiffener group (stiffeners mode)
   const STIFF_TYPES = ['HP', 'L', 'T', 'FB'];
   let selComp = null;        // id of the selected compartment (compartments mode)
   let compPick = false;      // true while clicking panels to toggle them into the selected compartment
@@ -237,33 +235,12 @@
     // Panels (hit area first, then the visible stroke)
     s.panels.forEach(pl => {
       const isSel = sel.panel === pl.id, isHov = hover && hover.panelId === pl.id;
-      if (inStrakes()) {
-        // hit area
+      if (inStrakes() || inStiffs() || inSupports()) {
+        // scantling steps: hit area + a quiet base line; the panel-level runs are drawn below
+        const cur = SP() && SP().state.gid;
+        const dim = cur && pl.group !== cur;
         h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
-        const ln = M().panelLine(pl, s.nodes); const L = M().panelLength(pl, s.nodes);
-        const arr = pl.strakes || [];
-        if (!arr.length) {
-          h += `${pathOf(pl)} stroke="${isSel ? '#3b82f6' : '#f59e0b'}" stroke-width="${isSel ? 3.5 : 2}" stroke-dasharray="8 5" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-        } else {
-          let acc = 0;
-          arr.forEach((st, i) => {
-            const t0 = Math.min(1, acc / L), t1 = Math.min(1, (acc + (st.len || 0)) / L); acc += (st.len || 0);
-            if (t1 <= t0) return;
-            const pts = []; const n = ln.curve ? 12 : 1;
-            for (let k = 0; k <= n; k++) { const q = M().pointAt(ln, t0 + (t1 - t0) * k / n); pts.push(`${X(q.y)},${Y(q.z)}`); }
-            const selS = isSel && selStrake === i;
-            h += `<polyline points="${pts.join(' ')}" fill="none" stroke="${selS ? '#3b82f6' : tColor(st.t)}" stroke-width="${selS ? 6 : isSel ? 4.5 : 3.5}" vector-effect="non-scaling-stroke" data-panel="${pl.id}" data-strake="${i}" style="cursor:pointer"/>`;
-            const m = M().pointAt(ln, (t0 + t1) / 2); const vert = Math.abs(ln.a.y - ln.b.y) < 1;
-            h += `<text x="${X(m.y) + (vert ? 7 : 0)}" y="${Y(m.z) + (vert ? 3 : -7)}" class="cad-pos" fill="${selS ? '#3b82f6' : tColor(st.t)}" ${vert ? '' : 'text-anchor="middle"'} pointer-events="none">${st.t != null ? st.t : '?'}</text>`;
-          });
-          // gap (Σ < L) shown dashed amber from the end of the last strake
-          if (acc < L - 5) {
-            const pts = []; const n = ln.curve ? 12 : 1;
-            for (let k = 0; k <= n; k++) { const q = M().pointAt(ln, acc / L + (1 - acc / L) * k / n); pts.push(`${X(q.y)},${Y(q.z)}`); }
-            h += `<polyline points="${pts.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-          }
-        }
-        // strake boundaries as small ticks
+        if (!inStrakes() || dim) h += `${pathOf(pl)} stroke="${dim ? '#475569' : (pl.group === cur ? '#93c5fd' : '#94a3b8')}" stroke-width="${pl.group === cur && !inStrakes() ? 2.5 : 1.5}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
         return;
       }
       const inGrp = !!(sel.group && pl.group === sel.group && !inPositions());
@@ -290,39 +267,57 @@
           h += `${pathOf(pl)} stroke="${col}" stroke-width="${isSel ? 4 : 2.5}" ${loop ? '' : 'stroke-dasharray="8 5"'} vector-effect="non-scaling-stroke" pointer-events="none" opacity="${isSel ? 1 : 0.7}"/>`; });
       });
     }
-    // Stiffeners view: tick per stiffener on the interior side, group colour, dropped ones as amber crosses
-    if (inStiffs()) {
-      s.panels.forEach(pl => {
-        const ln = M().panelLine(pl, s.nodes); const L = M().panelLength(pl, s.nodes);
-        const isSel = sel.panel === pl.id;
-        (pl.stiffGroups || []).forEach((g, gi) => {
-          const { placed, dropped } = groupPositions(pl, L, g);
-          const gSel = isSel && selGroup === g.id;
-          const col = gSel ? '#3b82f6' : g.dir === 'trans' ? '#a855f7' : (isSel ? '#93c5fd' : '#22c55e');
-          const sideSign = (g.side === 'out' ? -1 : 1) * interiorSide(pl, s);
-          const tick = 260; // mm on the drawing
-          placed.forEach(x => {
-            const t = x / L; const q = M().pointAt(ln, t);
-            // tangent
-            const q2 = M().pointAt(ln, Math.min(1, t + 0.001)); let ty = q2.y - q.y, tz = q2.z - q.z; const nl = Math.hypot(ty, tz) || 1; ty /= nl; tz /= nl;
-            const nx = -tz * sideSign, nz = ty * sideSign; // normal (left of travel when sideSign = 1)
-            if (g.dir === 'trans') {
-              h += `<line x1="${X(q.y - ty * 120)}" y1="${Y(q.z - tz * 120)}" x2="${X(q.y + ty * 120)}" y2="${Y(q.z + tz * 120)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-              h += `<circle cx="${X(q.y + nx * 90)}" cy="${Y(q.z + nz * 90)}" r="2" fill="${col}" pointer-events="none"/>`;
-            } else {
-              h += `<line x1="${X(q.y)}" y1="${Y(q.z)}" x2="${X(q.y + nx * tick)}" y2="${Y(q.z + nz * tick)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-              if (g.type === 'L' || g.type === 'HP') h += `<line x1="${X(q.y + nx * tick)}" y1="${Y(q.z + nz * tick)}" x2="${X(q.y + nx * tick + ty * 90)}" y2="${Y(q.z + nz * tick + tz * 90)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-              if (g.type === 'T') h += `<line x1="${X(q.y + nx * tick - ty * 70)}" y1="${Y(q.z + nz * tick - tz * 70)}" x2="${X(q.y + nx * tick + ty * 70)}" y2="${Y(q.z + nz * tick + tz * 70)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-            }
+    // Scantling steps: panel-level runs along each panel chain
+    if (inStrakes() || inStiffs() || inSupports()) {
+      const st = SP() ? SP().state : {}; const cur = st.gid;
+      const chainPts = (gid, x0, x1) => M().chainPolyline(s, gid, x0, x1).map(q => `${X(q.y)},${Y(q.z)}`).join(' ');
+      Object.keys(s.groups || {}).forEach(gid => {
+        const d = M().panelData(s, gid); const ci = M().chainInfo(s, gid); if (!ci.L) return;
+        const isCur = gid === cur;
+        if (inStrakes()) {
+          if (!d.strakes.length) { h += `<polyline points="${chainPts(gid, 0, ci.L)}" fill="none" stroke="${isCur ? '#f59e0b' : '#7c5a1a'}" stroke-width="${isCur ? 2.5 : 1.5}" stroke-dasharray="8 5" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
+          else {
+            let x = 0;
+            d.strakes.forEach((sk, i) => {
+              const x0 = x, x1 = Math.min(ci.L, x + (sk.len || 0)); x += (sk.len || 0); if (x1 <= x0) return;
+              const selS = isCur && st.strake === i;
+              h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${selS ? '#3b82f6' : tColor(sk.t)}" stroke-width="${selS ? 6 : isCur ? 4 : 2.5}" opacity="${isCur ? 1 : 0.55}" vector-effect="non-scaling-stroke" data-panel="${firstSegIdAt(s, gid, (x0 + x1) / 2)}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"/>`;
+              const at = M().chainPointAt(s, gid, (x0 + x1) / 2); if (at && (isCur || (x1 - x0) > 900)) {
+                const vert = Math.abs(at.ty) < 0.3;
+                h += `<text x="${X(at.y) + (vert ? 7 : 0)}" y="${Y(at.z) + (vert ? 3 : -7)}" class="cad-pos" fill="${selS ? '#3b82f6' : tColor(sk.t)}" ${vert ? '' : 'text-anchor="middle"'} pointer-events="none">${sk.t != null ? sk.t : '?'}</text>`;
+              }
+            });
+            if (x < ci.L - 5) h += `<polyline points="${chainPts(gid, x, ci.L)}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+          }
+        }
+        if (inStiffs()) {
+          let prevEnd = null;
+          d.stiffGroups.forEach(g => {
+            const r = M().groupPositions(s, gid, g, prevEnd); if (r.placed.length) prevEnd = Math.max(...r.placed);
+            const gSel = isCur && st.group === g.id;
+            const col = gSel ? '#3b82f6' : g.dir === 'trans' ? '#a855f7' : (isCur ? '#22c55e' : '#3f6b4a');
+            const tick = 260;
+            r.placed.forEach(x => {
+              const at = M().chainPointAt(s, gid, x); if (!at) return;
+              const sideSign = (g.side === 'out' ? -1 : 1) * interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1);
+              const nx = -at.tz * sideSign, nz = at.ty * sideSign;
+              if (g.dir === 'trans') {
+                h += `<line x1="${X(at.y - at.ty * 120)}" y1="${Y(at.z - at.tz * 120)}" x2="${X(at.y + at.ty * 120)}" y2="${Y(at.z + at.tz * 120)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+              } else {
+                h += `<line x1="${X(at.y)}" y1="${Y(at.z)}" x2="${X(at.y + nx * tick)}" y2="${Y(at.z + nz * tick)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+                if (g.type === 'L' || g.type === 'HP') h += `<line x1="${X(at.y + nx * tick)}" y1="${Y(at.z + nz * tick)}" x2="${X(at.y + nx * tick + at.ty * 90)}" y2="${Y(at.z + nz * tick + at.tz * 90)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+                if (g.type === 'T') h += `<line x1="${X(at.y + nx * tick - at.ty * 70)}" y1="${Y(at.z + nz * tick - at.tz * 70)}" x2="${X(at.y + nx * tick + at.ty * 70)}" y2="${Y(at.z + nz * tick + at.tz * 70)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+              }
+            });
+            r.dropped.forEach(x => { const at = M().chainPointAt(s, gid, x); if (at) h += `<text x="${X(at.y)}" y="${Y(at.z) + 3}" class="cad-pos" fill="#f59e0b" text-anchor="middle" pointer-events="none">✕</text>`; });
           });
-          dropped.forEach(x => {
-            const t = Math.max(0, Math.min(1, x / L)); const q = M().pointAt(ln, t);
-            h += `<text x="${X(q.y)}" y="${Y(q.z) + 3}" class="cad-pos" fill="#f59e0b" text-anchor="middle" pointer-events="none">✕</text>`;
-          });
-        });
-        if (!(pl.stiffGroups || []).length) {
-          const m = M().pointAt(ln, 0.5); const vert = Math.abs(ln.a.y - ln.b.y) < 1;
-          h += `<text x="${X(m.y) + (vert ? 7 : 0)}" y="${Y(m.z) + (vert ? 3 : -7)}" class="cad-pos" fill="#475569" ${vert ? '' : 'text-anchor="middle"'} pointer-events="none">·</text>`;
+        }
+        if (inSupports() && isCur) {
+          // exception areas as amber bands, span text at the panel middle
+          (d.supports.exceptions || []).forEach((e, i) => { const x0 = Math.min(e.from, e.to), x1 = Math.max(e.from, e.to); if (x1 > x0) h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${st.exc === i ? '#3b82f6' : '#f59e0b'}" stroke-width="7" opacity="0.55" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
+          const span = M().spanAt(s, gid, ci.L / 2) || defaultSpanFromShip(); const at = M().chainPointAt(s, gid, ci.L / 2);
+          if (at) { const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg; const lx = X(at.y + nx * 420), ly = Y(at.z + nz * 420); let ang = -Math.atan2(at.tz, at.ty) * 180 / Math.PI; if (ang > 90 || ang < -90) ang += 180;
+            h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${gName(s, gid)} · span ${span} mm</text>`; }
         }
       });
     }
@@ -406,55 +401,41 @@
     });
   }
   function setTool(t) { if (mode !== 'section') t = 'select'; tool = t; pending = []; arcAsk = null; B().svg().style.cursor = t === 'select' ? '' : 'crosshair'; ensureToolbar(); renderSvg(); renderPanel(); }
-  const CAD_MODES = ['section', 'positions', 'strakes', 'stiffeners', 'compartments'];
+  const CAD_MODES = ['section', 'positions', 'supports', 'strakes', 'stiffeners', 'compartments'];
+  function inSupports() { return mode === 'supports'; }
+  const SP = () => window.ScantlingPanels;
+  // Helpers the scantling panels need (kept here: they use the CAD state and 10-draw bridge)
+  function defaultSpanFromShip() { const le = parseFloat((document.getElementById('le') || {}).value); if (le > 0) return Math.round(le * 1000); const tf = parseFloat((document.getElementById('transFrameSpacing') || {}).value); return tf > 0 ? Math.round(tf) : 2400; }
+  function firstSeg(s, gid) { const c = M().chainOf(s, gid); return c.find(q => q.position) || c[0] || null; }
+  function spacingForGroup(s, gid) { const P = B().PARAMS() || {}; const q = firstSeg(s, gid); const pos = q ? q.position : null;
+    if (['bottom', 'bilge', 'innerBottom'].includes(pos)) return P.dbSpacing || 700;
+    if (['side', 'innerSide', 'longBhd'].includes(pos)) return P.sideSpacing || 700;
+    return P.deckSpacing || P.dbSpacing || 700; }
+  function profTypeForGroup(s, gid) { const P = B().PARAMS() || {}; const q = firstSeg(s, gid); const map = { bottom: 'profTypeBottom', bilge: 'profTypeBottom', innerBottom: 'profTypeIB', side: 'profTypeSide', innerSide: 'profTypeIS', upperDeck: 'profTypeDeck', tweenDeck: 'profTypeTween', stringer: 'profTypeStringer', coamingTop: 'profTypeCoaming' };
+    const t = q ? P[map[q.position]] : null; return ['HP', 'L', 'T', 'FB'].includes(t) ? t : 'HP'; }
+  function defaultSideForGroup(s, gid) { const q = firstSeg(s, gid); return q && ['innerBottom', 'innerSide'].includes(q.position) ? 'out' : 'in'; }
+  function profileNames(type) { try { return window.Profile.allProfiles([type]).map(p => p.name); } catch (_) { return []; } }
+  function defaultGradeGroup(s, gid) { const q = firstSeg(s, gid); return q ? defaultGrade(s, q) : 'AH36'; }
+  function hasLegacy() { const L = window.Draw && window.Draw.STRAKES; return !!(L && Object.keys(L).some(k => Array.isArray(L[k]) && L[k].length)); }
+  // Fill one panel's strakes from the engine's automatic layout (same legacy key).
+  function seedStrakesFor(gid) {
+    const m = JSON.parse(JSON.stringify(S())); const key = window.SectionAdapter && SectionAdapter.legacyKeyOfGroup ? SectionAdapter.legacyKeyOfGroup(m, gid) : null;
+    const src = key && window.Draw.STRAKES[key]; if (!src || !src.length) { toast('No automatic layout for this panel.'); return; }
+    const d = M().panelData(m, gid); const L = M().chainInfo(m, gid).L;
+    d.strakes = src.map(st => ({ len: Math.round(st.width || 0), t: st.thickness != null ? st.thickness : null, grade: st.materialFamily || defaultGradeGroup(m, gid), type: 'ordinary', hole: null }));
+    const sum = d.strakes.reduce((a, x) => a + x.len, 0); if (d.strakes.length) d.strakes[d.strakes.length - 1].len += Math.round(L - sum);
+    commitNames(m);
+  }
+  function panelsCtx() {
+    return { sel, setSel: o => { sel = o; renderSvg(); renderPanel(); }, commit: commitNames, refresh: () => { renderSvg(); renderPanel(); },
+      tColor, posLabel, defaultGrade: defaultGradeGroup, hasLegacy, seedStrakes: seedStrakesFor, profileNames,
+      spacingFor: gid => spacingForGroup(S(), gid), profTypeFor: gid => profTypeForGroup(S(), gid), defaultSide: gid => defaultSideForGroup(S(), gid), toast };
+  }
   function active() { const v = B() && B().viewMode(); return CAD_MODES.includes(v); }
   function inPositions() { return mode === 'positions'; }
   function inStrakes() { return mode === 'strakes'; }
-  // ---- stiffener groups -------------------------------------------------
-  // Positions (mm from the panel's `from` node) of a group's stiffeners, with
-  // the ones that do not fit on the panel reported separately.
-  function groupPositions(pl, L, g) {
-    const placed = [], dropped = [];
-    const start = g.fromEnd === 'to' ? L - (g.offset || 0) : (g.offset || 0);
-    const dir = g.fromEnd === 'to' ? -1 : 1;
-    for (let i = 0; i < (g.count || 0); i++) {
-      const x = start + dir * i * (g.spacing || 0);
-      if (x > 0.5 && x < L - 0.5) placed.push(x); else dropped.push(x);
-    }
-    return { placed, dropped };
-  }
-  function panelSpanDefault(s) { return s.stiffDefaultSpan || defaultSpanFromShip(); }
-  function defaultSpanFromShip() {
-    const le = parseFloat((document.getElementById('le') || {}).value);
-    if (le > 0) return Math.round(le * 1000);
-    const tf = parseFloat((document.getElementById('transFrameSpacing') || {}).value);
-    return tf > 0 ? Math.round(tf) : 2400;
-  }
-  // Spacing the parametric engine would use for this panel — the seed for a new group.
-  function spacingFor(pl) {
-    const P = B().PARAMS() || {};
-    if (['bottom', 'bilge', 'innerBottom'].includes(pl.position)) return P.dbSpacing || 700;
-    if (['side', 'innerSide', 'longBhd'].includes(pl.position)) return P.sideSpacing || 700;
-    if (['upperDeck', 'deck', 'tweenDeck', 'stringer', 'coamingTop'].includes(pl.position)) return P.deckSpacing || P.dbSpacing || 700;
-    return P.dbSpacing || 700;
-  }
-  function profTypeFor(pl) {
-    const P = B().PARAMS() || {};
-    const map = { bottom: 'profTypeBottom', bilge: 'profTypeBottom', innerBottom: 'profTypeIB', side: 'profTypeSide', innerSide: 'profTypeIS', upperDeck: 'profTypeDeck', tweenDeck: 'profTypeTween', stringer: 'profTypeStringer', coamingTop: 'profTypeCoaming' };
-    const t = P[map[pl.position]]; return STIFF_TYPES.includes(t) ? t : 'HP';
-  }
-  function profileNames(type) {
-    try { return window.Profile.allProfiles([type]).map(p => p.name); } catch (_) { return []; }
-  }
-  function newGroup(s, pl, L) {
-    const sp = spacingFor(pl), off = sp;
-    const n = Math.max(0, Math.floor((L - off) / sp) + (((L - off) % sp) > 0.5 ? 1 : 0));
-    const ids = (pl.stiffGroups || []).map(g => g.id);
-    let k = 1; while (ids.includes('G' + k)) k++;
-    // Inner bottom / inner side longitudinals sit in the double bottom / wing tank, i.e. away from the hold.
-    const side = ['innerBottom', 'innerSide'].includes(pl.position) ? 'out' : 'in';
-    return { id: 'G' + k, fromEnd: 'from', offset: off, spacing: sp, count: n, dir: 'long', type: profTypeFor(pl), profile: '', grade: defaultGrade(s, pl), span: null, side, spanOverrides: {} };
-  }
+  function firstSegIdAt(s, gid, x) { const at = M().chainPointAt(s, gid, x); return at ? at.seg.id : ''; }
+  function chainFwd(s, gid, seg) { const ci = M().chainInfo(s, gid); const it = ci.items.find(i => i.seg.id === seg.id); return it ? it.fwd : true; }
   // Which side of the panel (from→to) the hull interior lies on: +1 = left of travel.
   function interiorSide(pl, s) {
     const ln = M().panelLine(pl, s.nodes); const m = M().pointAt(ln, 0.5);
@@ -527,18 +508,13 @@
       else selComp = null;
       renderSvg(); renderPanel(); return;
     }
-    if (inStiffs()) {
+    if (inStiffs() || inStrakes() || inSupports()) {
       const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
-      if (pid !== sel.panel) selGroup = null;
-      sel = pid ? { panel: pid, node: null } : { panel: null, node: null };
-      renderSvg(); renderPanel(); return;
-    }
-    if (inStrakes()) {
-      const si = e.target && e.target.getAttribute && e.target.getAttribute('data-strake');
-      const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
-      if (pid && pid !== sel.panel) selStrake = null;
-      sel = pid ? { panel: pid, node: null } : { panel: null, node: null };
-      selStrake = (pid && si != null) ? parseInt(si) : (pid ? selStrake : null);
+      const q = pid ? s.panels.find(x => x.id === pid) : null;
+      const st = SP() ? SP().state : null;
+      if (q && st) { if (st.gid !== q.group) { st.gid = q.group; st.strake = null; st.group = null; st.exc = null; }
+        const si = e.target && e.target.getAttribute && e.target.getAttribute('data-strake'); if (inStrakes()) st.strake = si != null ? parseInt(si) : st.strake; }
+      sel = q ? { panel: q.id, node: null, group: q.group } : { panel: null, node: null, group: st ? st.gid : null };
       renderSvg(); renderPanel(); return;
     }
     placePoint(hp, s);
@@ -647,8 +623,10 @@
     }
     const s = S(); if (!s) return;
     if (inPositions()) { renderPositionsPanel(ec, s); return; }
-    if (inStrakes()) { renderStrakesPanel(ec, s); return; }
-    if (inStiffs()) { renderStiffsPanel(ec, s); return; }
+    if (SP()) { M().migratePanelData(s);
+      if (inStrakes()) { SP().renderStrakes(ec, s, panelsCtx()); return; }
+      if (inStiffs()) { SP().renderStiffs(ec, s, panelsCtx()); return; }
+      if (inSupports()) { SP().renderSupports(ec, s, panelsCtx()); return; } }
     if (inComps()) { renderCompsPanel(ec, s); return; }
     const g = G(); const meta = B().GEOMETRY_META().filter(m => m.key !== 'TT' && m.key !== 'duct_half');
     const issues = M().validate(s).filter(i => i.level !== 'info');
@@ -1003,248 +981,6 @@
     commitNames(m); toast(added + ' compartments seeded.');
   }
 
-  // ------------------------------------------------------------ stiffeners panel (step 5)
-  function renderStiffsPanel(ec, s) {
-    const span = panelSpanDefault(s);
-    let total = 0, dropped = 0, noProfile = 0;
-    s.panels.forEach(p => { const L = M().panelLength(p, s.nodes); (p.stiffGroups || []).forEach(g => { const r = groupPositions(p, L, g); total += r.placed.length; dropped += r.dropped.length; if (!g.profile) noProfile += r.placed.length; }); });
-    const withG = s.panels.filter(p => (p.stiffGroups || []).length).length;
-    let h = `<div class="cad-status ${dropped || noProfile ? 'manual' : ''}">
-      <span style="white-space:normal">${total} stiff · ${withG}/${s.panels.length} panels${dropped ? ' · <b style="color:var(--warning)">' + dropped + ' ✕ no fit</b>' : ''}${noProfile ? ' · ' + noProfile + ' no profile' : ''}</span>
-      <span class="cad-inline"><button class="ed-link-btn" data-sg="fill-all" title="Add one group to every panel that has none: engine spacing, first stiffener one spacing from the start node, as many as fit">Fill empty</button></span>
-    </div>`;
-    // Default span
-    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#f59e0b">Default span</span></div>
-      <div class="ed-row"><span class="ed-id" style="min-width:150px" title="Unsupported length of a stiffener between primary members (web frames for longitudinals). Every group uses it unless it sets its own.">Span for all stiffeners</span>
-        <input class="ed-input" id="stDefSpan" type="number" step="10" min="100" value="${span}" style="width:76px"><span class="ed-label" style="color:#475569">mm</span>
-        <button class="ed-link-btn" data-sg="span-ship" title="Take the web frame spacing l_e from the Ship page" style="margin-left:6px">from ship</button></div></div>`;
-
-    const pl = sel.panel ? s.panels.find(p => p.id === sel.panel) : null;
-    if (pl) {
-      const L = M().panelLength(pl, s.nodes); const a = nodeById(s, pl.from), b = nodeById(s, pl.to);
-      const groups = pl.stiffGroups || [];
-      h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6">${pl.id} · ${posLabel(pl.position)}</span><span class="ed-count">${fmt(L)} mm</span><button class="ed-add-btn" data-sg="add" title="Add a stiffener group on this panel">+ group</button></div>
-        `;
-      if (!groups.length) h += `<div class="ed-row" style="color:var(--text-muted)">No stiffeners on this panel.</div>`;
-      groups.forEach(g => {
-        const r = groupPositions(pl, L, g); const open = selGroup === g.id;
-        const need = g.count ? Math.round((g.offset || 0) + ((g.count || 1) - 1) * (g.spacing || 0)) : 0;
-        h += `<div class="sg-card ${open ? 'open' : ''}" data-gid="${g.id}">
-          <div class="sg-head" data-sg-open="${g.id}">
-            <span class="sg-id">${g.id}</span>
-            <span class="sg-sum">${r.placed.length} × ${g.type}${g.profile ? ' ' + g.profile : ''} · ${g.dir === 'trans' ? 'trans' : 'long'} · s ${g.spacing || '—'}</span>
-            ${r.dropped.length ? `<span class="sg-warn" title="Panel is ${fmt(L)} mm; ${g.count} × ${g.spacing} from ${g.offset} needs ${need} mm">${r.dropped.length} ✕</span>` : ''}
-            <button class="ed-del" data-sg="del" data-gid="${g.id}" title="Delete group">✕</button>
-          </div>`;
-        if (open) {
-          const F = (k, label, inner, tip) => `<div class="ed-row" title="${tip || ''}"><span class="ed-id" style="min-width:86px">${label}</span>${inner}</div>`;
-          const num = (k, v, step, w) => `<input class="ed-input sg-f" data-gid="${g.id}" data-k="${k}" type="number" step="${step}" value="${v == null ? '' : v}" style="width:${w || 70}px">`;
-          const opt = (k, v, list, labels) => `<select class="ed-input sg-f" data-gid="${g.id}" data-k="${k}" style="flex:1">${list.map((x, i) => `<option value="${x}" ${x === v ? 'selected' : ''}>${labels ? labels[i] : x}</option>`).join('')}</select>`;
-          const names = profileNames(g.type);
-          h += `<div class="sg-body">
-            ${F('fromEnd', 'Start from', opt('fromEnd', g.fromEnd || 'from', ['from', 'to'], [pl.from + ' (' + a.y + ', ' + a.z + ')', pl.to + ' (' + b.y + ', ' + b.z + ')']), 'Node the offset is measured from')}
-            ${F('offset', 'First at', num('offset', g.offset, 10) + '<span class="ed-label" style="color:#475569;white-space:nowrap">mm from node</span>')}
-            ${F('spacing', 'Spacing', num('spacing', g.spacing, 5) + '<span class="ed-label" style="color:#475569">mm</span>')}
-            ${F('count', 'Count', num('count', g.count, 1, 56) + `<button class="ed-link-btn" data-sg="fit" data-gid="${g.id}" title="As many as fit on the panel" style="margin-left:6px;white-space:nowrap">max fit</button>`)}
-            ${F('dir', 'Direction', opt('dir', g.dir || 'long', ['long', 'trans'], ['Longitudinal', 'Transverse']))}
-            ${F('type', 'Profile type', opt('type', g.type || 'HP', STIFF_TYPES, ['HP bulb', 'L (angle)', 'T', 'FB (flat bar)']))}
-            ${F('profile', 'Size', `<input class="ed-input sg-f" data-gid="${g.id}" data-k="profile" list="sgProfList-${g.id}" value="${g.profile || ''}" placeholder="${names[0] || 'e.g. 200x10'}" style="flex:1"><datalist id="sgProfList-${g.id}">${names.map(n => `<option value="${n}">`).join('')}</datalist>`, 'Pick from the catalogue or type a size')}
-            ${F('grade', 'Grade', opt('grade', g.grade || 'AH36', GRADES))}
-            ${F('span', 'Span', `<input class="ed-input sg-f" data-gid="${g.id}" data-k="span" type="number" step="10" value="${g.span == null ? '' : g.span}" placeholder="${span}" style="width:70px"><span class="ed-label" style="color:#475569;white-space:nowrap">mm</span>`, 'Unsupported length between primary members — blank uses the default span')}
-            ${F('side', 'Stiffener side', opt('side', g.side || 'in', ['in', 'out'], ['Towards hold / interior', 'Other side (tank / outboard)']))}
-            <div class="ed-row" style="font-size:0.6rem;color:${r.dropped.length ? 'var(--warning)' : 'var(--text-muted)'}">${r.dropped.length ? `Placed ${r.placed.length} of ${g.count} — ${r.dropped.length} did not fit (needs ${need} mm, panel ${fmt(L)} mm).` : `${r.placed.length} stiffeners at ${r.placed.slice(0, 8).map(x => fmt(x)).join(', ')}${r.placed.length > 8 ? '…' : ''} mm`}</div>
-            <details class="sg-items"><summary>Per stiffener (span override)</summary>
-              ${r.placed.map((x, i) => `<div class="ed-row"><span class="ed-id" style="min-width:104px">#${i + 1} at ${fmt(x)} mm</span><input class="ed-input sg-ov" data-gid="${g.id}" data-i="${i}" type="number" step="10" placeholder="${g.span || span}" value="${(g.spanOverrides || {})[i] || ''}" style="width:70px"><span class="ed-label" style="color:#475569">mm span</span></div>`).join('')}
-            </details>
-          </div>`;
-        }
-        h += `</div>`;
-      });
-      h += `</div>`;
-    } else {
-    }
-
-    // Panel list
-    const groupsByPos = {}; s.panels.forEach(p => { (groupsByPos[p.position || ''] = groupsByPos[p.position || ''] || []).push(p); });
-    [''].concat(M().POSITIONS.map(p => p.code)).forEach(code => {
-      const arr = groupsByPos[code]; if (!arr) return;
-      const col = code ? (POS_COLOR[code] || '#94a3b8') : '#f59e0b';
-      const open = arr.some(p => p.id === sel.panel);
-      h += `<div class="ed-group ${open ? '' : 'collapsed'}"><div class="ed-group-header"><span style="color:${col}">${code ? posLabel(code) : 'Unnamed'} <span class="ed-count">(${arr.length})</span></span></div>`;
-      arr.forEach(p => {
-        const L = M().panelLength(p, s.nodes); let n = 0, d = 0; (p.stiffGroups || []).forEach(g => { const r = groupPositions(p, L, g); n += r.placed.length; d += r.dropped.length; });
-        h += `<div class="ed-row pos-row ${sel.panel === p.id ? 'is-sel' : ''}" data-row="${p.id}" style="border-left:3px solid ${col};cursor:pointer">
-          <span class="ed-id" style="min-width:30px;color:${col}">${p.id}</span><span style="color:var(--text-muted)">${fmt(L)} mm</span><span style="flex:1"></span>
-          <span>${n ? n + ' stiff' : '<span style="color:var(--text-muted)">—</span>'}</span>${d ? `<span style="color:var(--warning);margin-left:6px">${d} ✕</span>` : ''}</div>`;
-      });
-      h += `</div>`;
-    });
-    ec.innerHTML = h;
-
-    const mutS = fn => { const m = JSON.parse(JSON.stringify(S())); fn(m); commitNames(m); };
-    const mutG = (gid, fn) => mutS(m => { const q = m.panels.find(x => x.id === sel.panel); if (!q) return; const g = (q.stiffGroups || []).find(x => x.id === gid); if (g) fn(g, q, M().panelLength(q, m.nodes), m); });
-    const defSpan = document.getElementById('stDefSpan');
-    if (defSpan) defSpan.addEventListener('change', e => mutS(m => { m.stiffDefaultSpan = Math.max(100, parseFloat(e.target.value) || 0); }));
-    ec.querySelectorAll('.sg-f').forEach(i => i.addEventListener('change', e => mutG(e.target.dataset.gid, g => {
-      const k = e.target.dataset.k; let v = e.target.value;
-      if (['offset', 'spacing', 'count', 'span'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = (k === 'span' ? null : 0); if (k === 'count') v = Math.max(0, Math.round(v)); }
-      if (k === 'type' && g.type !== v) g.profile = '';
-      g[k] = v;
-    })));
-    ec.querySelectorAll('.sg-ov').forEach(i => i.addEventListener('change', e => mutG(e.target.dataset.gid, g => { g.spanOverrides = g.spanOverrides || {}; const v = parseFloat(e.target.value); if (v > 0) g.spanOverrides[e.target.dataset.i] = v; else delete g.spanOverrides[e.target.dataset.i]; })));
-    ec.querySelectorAll('[data-sg-open]').forEach(hd => hd.addEventListener('click', e => { if (e.target.closest('button')) return; selGroup = selGroup === hd.dataset.sgOpen ? null : hd.dataset.sgOpen; renderSvg(); renderPanel(); }));
-    ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { if (sel.panel !== r.dataset.row) selGroup = null; sel = { panel: r.dataset.row, node: null }; renderSvg(); renderPanel(); }));
-    ec.querySelectorAll('.ed-group:not(.cad-sel-box) > .ed-group-header').forEach(hd => hd.addEventListener('click', e => { if (e.target.closest('button')) return; hd.parentElement.classList.toggle('collapsed'); }));
-    ec.querySelectorAll('[data-sg]').forEach(b => b.addEventListener('click', () => {
-      const act = b.dataset.sg;
-      if (act === 'span-ship') { mutS(m => { m.stiffDefaultSpan = defaultSpanFromShip(); }); return; }
-      if (act === 'fill-all') { mutS(m => { m.panels.forEach(q => { if ((q.stiffGroups || []).length) return; if (['centreGirder', 'sideGirder', 'coaming', 'coamingTop'].includes(q.position)) return; const L = M().panelLength(q, m.nodes); const g = newGroup(m, q, L); if (g.count > 0) q.stiffGroups = [g]; }); }); return; }
-      if (act === 'add') { mutS(m => { const q = m.panels.find(x => x.id === sel.panel); if (!q) return; const L = M().panelLength(q, m.nodes); q.stiffGroups = q.stiffGroups || []; const g = newGroup(m, q, L); q.stiffGroups.push(g); selGroup = g.id; }); return; }
-      if (act === 'del') { mutS(m => { const q = m.panels.find(x => x.id === sel.panel); if (!q) return; q.stiffGroups = (q.stiffGroups || []).filter(g => g.id !== b.dataset.gid); if (selGroup === b.dataset.gid) selGroup = null; }); return; }
-      if (act === 'fit') { mutG(b.dataset.gid, (g, q, L) => { const avail = g.fromEnd === 'to' ? L - (g.offset || 0) : L - (g.offset || 0); g.count = g.spacing > 0 ? Math.max(0, Math.floor((avail - 0.5) / g.spacing) + 1) : 0; }); return; }
-    }));
-  }
-
-  // ------------------------------------------------------------ strakes panel (step 4)
-  function renderStrakesPanel(ec, s) {
-    const withS = s.panels.filter(p => (p.strakes || []).length).length;
-    const bad = s.panels.filter(p => (p.strakes || []).length && Math.abs(sumLen(p) - M().panelLength(p, s.nodes)) > 5).length;
-    const gradeOpts = g => GRADES.map(x => `<option value="${x}" ${x === g ? 'selected' : ''}>${x}</option>`).join('');
-    let h = `<div class="cad-status ${withS < s.panels.length || bad ? 'manual' : ''}">
-      <span>${withS}/${s.panels.length} panels with strakes${bad ? ' · ' + bad + ' Σ mismatch' : ''}</span>
-      <span class="cad-inline">${hasLegacy() ? `<button class="ed-link-btn" data-st="seed" title="Fill every empty panel from the engine's automatic strake layout (Auto)">Seed from Auto</button>` : ''}</span>
-    </div>`;
-
-    const pl = sel.panel ? s.panels.find(p => p.id === sel.panel) : null;
-    if (pl) {
-      const L = M().panelLength(pl, s.nodes), arr = pl.strakes || [], sum = sumLen(pl), diff = Math.round(L - sum);
-      const a = nodeById(s, pl.from), b = nodeById(s, pl.to);
-      h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6" title="${pl.from} (${a.y}, ${a.z}) → ${pl.to} (${b.y}, ${b.z}) — strakes run from → to">${pl.id} · ${posLabel(pl.position)}</span><span class="ed-count">${fmt(L)} mm</span></div>
-        `;
-      if (!arr.length) {
-        h += `<div class="ed-row" style="gap:6px;flex-wrap:wrap">
-          <span class="ed-id" style="font-size:0.68rem">Start with</span>
-          <button class="ed-link-btn on" data-st="one">1 strake, full length</button>
-          <span class="ed-id" style="font-size:0.68rem">or split into</span>
-          <input class="ed-input" id="stSplitN" type="number" min="2" max="12" value="${Math.max(2, Math.min(6, Math.round(L / 2500)))}" style="width:52px">
-          <button class="ed-link-btn" data-st="split">equal strakes</button></div>`;
-      } else {
-        h += `<div class="ed-row st-head"><span style="width:22px">#</span><span style="width:74px">Length</span><span style="width:56px">t</span><span style="flex:1">Grade</span><span style="width:18px"></span></div>`;
-        let acc = 0;
-        arr.forEach((st, i) => {
-          const from = acc; acc += st.len || 0;
-          h += `<div class="ed-row st-row ${selStrake === i ? 'is-sel' : ''}" data-si="${i}" title="${fmt(from)} → ${fmt(acc)} mm from ${pl.from}">
-            <span class="ed-id" style="width:22px;min-width:22px;color:${tColor(st.t)}">${i + 1}</span>
-            <input class="ed-input st-len" data-si="${i}" type="number" step="10" min="10" value="${st.len != null ? fmt(st.len) : ''}" style="width:70px" title="Length along the panel, mm">
-            <input class="ed-input st-t" data-si="${i}" type="number" step="0.5" min="3" value="${st.t != null ? st.t : ''}" style="width:52px" title="Thickness, mm">
-            <select class="ed-input st-grade" data-si="${i}" style="flex:1;font-size:0.64rem">${gradeOpts(st.grade || defaultGrade(s, pl))}</select>
-            <button class="ed-del" data-st="del" data-si="${i}" title="Delete strake">✕</button>
-          </div>`;
-        });
-        const ok = Math.abs(diff) <= 5;
-        h += `<div class="ed-row" style="justify-content:space-between;font-size:0.66rem;font-family:var(--font-mono)">
-          <span style="color:${ok ? 'var(--success)' : diff > 0 ? 'var(--warning)' : 'var(--error)'}">Σ ${fmt(sum)} / ${fmt(L)} mm ${ok ? '✓' : diff > 0 ? '· ' + diff + ' mm short' : '· ' + (-diff) + ' mm over'}</span>
-          <span class="cad-inline">${ok ? '' : `<button class="ed-link-btn on" data-st="fit" title="Adjust the last strake so the lengths add up">Fit last</button>`}<button class="ed-link-btn" data-st="add" title="Append a strake for the remaining length">+ strake</button></span></div>`;
-        h += `<div class="ed-row" style="gap:6px;flex-wrap:wrap;font-size:0.64rem"><span class="ed-id" style="font-size:0.66rem">Copy to</span>
-          <button class="ed-link-btn" data-st="copy-pos" title="Give every other panel with the same position the same strake pattern (scaled to its length)">same position</button>
-          <button class="ed-link-btn" data-st="clear">clear</button></div>`;
-      }
-      h += `</div>`;
-    } else {
-    }
-
-    // Panel list grouped by position: strake count · Σ status · thickness range
-    const groups = {}; s.panels.forEach(p => { (groups[p.position || ''] = groups[p.position || ''] || []).push(p); });
-    [''].concat(M().POSITIONS.map(p => p.code)).forEach(code => {
-      const arr = groups[code]; if (!arr) return;
-      const col = code ? (POS_COLOR[code] || '#94a3b8') : '#f59e0b';
-      const open = arr.some(p => p.id === sel.panel);
-      h += `<div class="ed-group ${open ? '' : 'collapsed'}"><div class="ed-group-header"><span style="color:${col}">${code ? posLabel(code) : 'Unnamed'} <span class="ed-count">(${arr.length})</span></span></div>`;
-      arr.forEach(p => {
-        const L = M().panelLength(p, s.nodes), n = (p.strakes || []).length, d = Math.round(L - sumLen(p));
-        const ts = (p.strakes || []).map(x => x.t).filter(x => x != null);
-        const status = !n ? '<span style="color:var(--warning)">no strakes</span>' : Math.abs(d) <= 5 ? '<span style="color:var(--success)">✓</span>' : `<span style="color:var(--error)">Σ ${d > 0 ? '−' : '+'}${Math.abs(d)}</span>`;
-        h += `<div class="ed-row pos-row ${sel.panel === p.id ? 'is-sel' : ''}" data-row="${p.id}" style="border-left:3px solid ${col};cursor:pointer;font-size:0.64rem">
-          <span class="ed-id" style="min-width:30px;color:${col}">${p.id}</span><span style="color:var(--text-muted)">${fmt(L)} mm</span><span style="flex:1"></span>
-          <span>${n ? n + ' × ' + (ts.length ? (Math.min(...ts) === Math.max(...ts) ? ts[0] : Math.min(...ts) + '–' + Math.max(...ts)) + ' mm' : '?') : ''}</span><span style="min-width:44px;text-align:right">${status}</span></div>`;
-      });
-      h += `</div>`;
-    });
-    ec.innerHTML = h;
-
-    const mut = fn => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === sel.panel); if (!q) return; q.strakes = q.strakes || []; fn(m, q, M().panelLength(q, m.nodes)); commitNames(m); };
-    ec.querySelectorAll('.st-len').forEach(i => i.addEventListener('change', e => mut((m, q) => { q.strakes[+e.target.dataset.si].len = Math.max(10, parseFloat(e.target.value) || 0); })));
-    ec.querySelectorAll('.st-t').forEach(i => i.addEventListener('change', e => mut((m, q) => { q.strakes[+e.target.dataset.si].t = parseFloat(e.target.value) || null; })));
-    ec.querySelectorAll('.st-grade').forEach(i => i.addEventListener('change', e => mut((m, q) => { q.strakes[+e.target.dataset.si].grade = e.target.value; })));
-    ec.querySelectorAll('.st-row').forEach(r => r.addEventListener('click', e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return; selStrake = +r.dataset.si; renderSvg(); renderPanel(); }));
-    ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { if (sel.panel !== r.dataset.row) selStrake = null; sel = { panel: r.dataset.row, node: null }; renderSvg(); renderPanel(); }));
-    ec.querySelectorAll('.ed-group-header').forEach(hd => hd.addEventListener('click', () => hd.parentElement.classList.toggle('collapsed')));
-    ec.querBySt = null;
-    ec.querySelectorAll('[data-st]').forEach(b => b.addEventListener('click', () => {
-      const act = b.dataset.st;
-      if (act === 'seed') { seedFromLegacy(); return; }
-      mut((m, q, L) => {
-        const g = defaultGrade(m, q);
-        const tDef = (q.strakes[0] && q.strakes[0].t) || null;
-        switch (act) {
-          case 'one': q.strakes = [{ len: Math.round(L), t: tDef, grade: g }]; break;
-          case 'split': { const n = Math.max(2, parseInt((document.getElementById('stSplitN') || {}).value) || 2); const w = Math.round(L / n / 10) * 10; q.strakes = []; for (let i = 0; i < n; i++) q.strakes.push({ len: i === n - 1 ? Math.round(L - w * (n - 1)) : w, t: tDef, grade: g }); break; }
-          case 'add': { const rest = Math.round(L - sumLen(q)); q.strakes.push({ len: rest > 10 ? rest : 500, t: (q.strakes[q.strakes.length - 1] || {}).t || tDef, grade: g }); break; }
-          case 'fit': { const last = q.strakes[q.strakes.length - 1]; const others = sumLen(q) - (last.len || 0); last.len = Math.max(10, Math.round(L - others)); break; }
-          case 'del': { q.strakes.splice(+b.dataset.si, 1); selStrake = null; break; }
-          case 'clear': q.strakes = []; selStrake = null; break;
-          case 'copy-pos': {
-            m.panels.forEach(o => { if (o.id === q.id || o.position !== q.position) return; const Lo = M().panelLength(o, m.nodes); const k = Lo / L;
-              o.strakes = q.strakes.map(x => ({ len: Math.round(x.len * k / 10) * 10, t: x.t, grade: x.grade }));
-              const d = Math.round(Lo - sumLen(o)); if (o.strakes.length) o.strakes[o.strakes.length - 1].len += d; });
-            break; }
-        }
-      });
-    }));
-  }
-
-  // Seed strakes from the legacy engine layout (STRAKES.* — width/thickness/grade along
-  // each plate group) by walking the panel chain of each position and cutting at
-  // panel boundaries. Only fills panels that have no strakes yet.
-  function hasLegacy() { const L = window.Draw && window.Draw.STRAKES; return !!(L && Object.keys(L).some(k => Array.isArray(L[k]) && L[k].length)); }
-  function seedFromLegacy() {
-    const m = JSON.parse(JSON.stringify(S())); const L = window.Draw.STRAKES || {};
-    const chainOf = key => {
-      const ps = m.panels.filter(p => M().legacyKey(p) === key);
-      const ln = p => M().panelLine(p, m.nodes);
-      if (key === 'shell') {
-        const bottom = ps.filter(p => p.position === 'bottom').sort((a, b) => Math.min(ln(a).a.y, ln(a).b.y) - Math.min(ln(b).a.y, ln(b).b.y));
-        const bilge = ps.filter(p => p.position === 'bilge');
-        const side = ps.filter(p => p.position === 'side').sort((a, b) => Math.min(ln(a).a.z, ln(a).b.z) - Math.min(ln(b).a.z, ln(b).b.z));
-        return bottom.concat(bilge, side);
-      }
-      if (key === 'innerSide') return ps.sort((a, b) => Math.min(ln(a).a.z, ln(a).b.z) - Math.min(ln(b).a.z, ln(b).b.z));
-      if (/^sideGirder/.test(key)) return ps.sort((a, b) => Math.min(ln(a).a.z, ln(a).b.z) - Math.min(ln(b).a.z, ln(b).b.z));
-      return ps.sort((a, b) => Math.min(ln(a).a.y, ln(a).b.y) - Math.min(ln(b).a.y, ln(b).b.y));
-    };
-    const keys = new Set(m.panels.map(p => M().legacyKey(p)).filter(Boolean));
-    let filled = 0;
-    keys.forEach(key => {
-      const src = L[key]; if (!Array.isArray(src) || !src.length) return;
-      const chain = chainOf(key); if (!chain.length) return;
-      if (chain.some(p => (p.strakes || []).length)) return;  // never overwrite
-      // cumulative legacy strakes
-      let pos = 0; const segs = src.map(st => { const a = pos; pos += (st.width || 0); return { a, b: pos, t: st.thickness != null ? st.thickness : null, grade: st.materialFamily || null }; });
-      let off = 0;
-      chain.forEach(p => {
-        const Lp = M().panelLength(p, m.nodes); const A = off, Bp = off + Lp; off = Bp;
-        const out = [];
-        segs.forEach(sg => { const lo = Math.max(A, sg.a), hi = Math.min(Bp, sg.b); if (hi - lo > 5) out.push({ len: Math.round(hi - lo), t: sg.t, grade: sg.grade || defaultGrade(m, p) }); });
-        // merge neighbours with the same thickness and grade (cuts at panel
-        // boundaries otherwise leave 320 mm slivers of the same plate)
-        const merged = []; out.forEach(x => { const last = merged[merged.length - 1]; if (last && last.t === x.t && last.grade === x.grade) last.len += x.len; else merged.push(x); });
-        if (merged.length) { const d = Math.round(Lp - merged.reduce((s_, x) => s_ + x.len, 0)); merged[merged.length - 1].len += d; p.strakes = merged; filled++; }
-      });
-    });
-    if (!filled) { toast('Nothing to seed — panels already have strakes or no Auto layout matches.'); return; }
-    commitNames(m); toast(filled + ' panels seeded from the Auto layout.');
-  }
-
   // ------------------------------------------------------------ positions panel (step 3)
   function renderPositionsPanel(ec, s) {
     const opts = M().POSITIONS.map(p => `<option value="${p.code}">${p.label}</option>`).join('');
@@ -1398,7 +1134,7 @@
     if (mode !== 'compartments') compPick = false;
     init(); show(true); ensureToolbar(); renderSvg(); renderInfoCard();
     const hd = document.querySelector('.editor-header-title');
-    if (hd) hd.textContent = ({ section: 'Section', positions: 'Positions', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Section';
+    if (hd) hd.textContent = ({ section: 'Section', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Section';
   }
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 

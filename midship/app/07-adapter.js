@@ -67,44 +67,38 @@
     return { sgYs, strZ, twZ };
   }
 
-  // ---------------------------------------------------------------- strakes
+  // ---------------------------------------------------------------- strakes (panel level)
+  // Legacy key of a panel: from its first segment; index-bearing keys resolved from geometry.
+  function keyForGroup(s, gid, ctx) {
+    const segs = M().chainOf(s, gid); if (!segs.length) return null;
+    const p = segs.find(q => M().legacyKey(q)) || segs[0]; const base = M().legacyKey(p); if (!base) return null;
+    const y = Math.round(line(s, p).a.y), z = Math.round(line(s, p).a.z);
+    if (p.position === 'sideGirder') return 'sideGirder' + ctx.sgYs.indexOf(y);
+    if (p.position === 'stringer') return 'stringer' + ctx.strZ.indexOf(z);
+    if (p.position === 'tweenDeck') return 'tween' + ctx.twZ.indexOf(z);
+    return base;
+  }
+  function hasPanelStrakes(s) { return Object.values(s.panelData || {}).some(d => d && d.strakes && d.strakes.length); }
+  function hasPanelStiffs(s) { return Object.values(s.panelData || {}).some(d => d && d.stiffGroups && d.stiffGroups.length); }
   function applyStrakes(s, STRAKES, ctx) {
-    const keys = ['shell', 'innerBottom', 'innerSide', 'upperDeck', 'coamingTop']
-      .concat(ctx.sgYs.map((_, i) => 'sideGirder' + i), ctx.strZ.map((_, i) => 'stringer' + i), ctx.twZ.map((_, i) => 'tween' + i));
-    // Legacy tags follow the generator (SG1.. by y order, STR1.., TD1..); hand-added
-    // panels have no tag, so resolve the index from geometry instead.
-    const keyFor = p => {
-      const base = M().legacyKey(p); if (!base) return null;
-      const y = Math.round(line(s, p).a.y), z = Math.round(line(s, p).a.z);
-      if (p.position === 'sideGirder') return 'sideGirder' + ctx.sgYs.indexOf(y);
-      if (p.position === 'stringer') return 'stringer' + ctx.strZ.indexOf(z);
-      if (p.position === 'tweenDeck') return 'tween' + ctx.twZ.indexOf(z);
-      return base;
-    };
     Object.keys(STRAKES).forEach(k => { if (Array.isArray(STRAKES[k])) STRAKES[k] = []; });
-    keys.forEach(key => {
-      const ps = s.panels.filter(p => keyFor(p) === key);
-      const ordered = key === 'shell' ? chain(s, 'shell') : (key === 'innerSide' || /^sideGirder/.test(key)) ? ps.sort((a, b) => minZ(s, a) - minZ(s, b)) : ps.sort((a, b) => minY(s, a) - minY(s, b));
-      const out = [];
-      ordered.forEach(p => {
-        const L = M().panelLength(p, s.nodes);
-        const arr = (p.strakes && p.strakes.length) ? p.strakes : [{ len: L, t: null, grade: null }];
-        arr.forEach(st => out.push({ width: Math.round(st.len || 0), thickness: st.t != null ? st.t : null, materialFamily: st.grade || null, materialFamilyManual: !!st.grade, panelId: p.id, effB: p.effB != null ? p.effB / 100 : 1, effS: p.effS != null ? p.effS / 100 : 1 }));
+    Object.keys(s.groups || {}).forEach(gid => {
+      const key = keyForGroup(s, gid, ctx); if (!key) return;
+      const d = M().panelData(s, gid); const ci = M().chainInfo(s, gid);
+      const arr = d.strakes.length ? d.strakes : [{ len: ci.L, t: null, grade: null }];
+      let x = 0;
+      const out = arr.map((st, i) => {
+        const x0 = x; x += (st.len || 0);
+        const at = M().chainPointAt(s, gid, (x0 + x) / 2); const seg = at ? at.seg : ci.items[0].seg;
+        return { name: key.toUpperCase() + '-' + (i + 1), width: Math.round(st.len || 0), thickness: st.t != null ? st.t : null, materialFamily: st.grade || null, materialFamilyManual: !!st.grade,
+                 kind: st.type && st.type !== 'ordinary' ? st.type : (seg ? seg.position : null), panelId: seg ? seg.id : null, groupId: gid,
+                 effB: seg && seg.effB != null ? seg.effB / 100 : 1, effS: seg && seg.effS != null ? seg.effS / 100 : 1, hole: st.hole || null };
       });
-      // merge equal neighbours across panel boundaries so the strake list reads like a plan
-      const merged = []; out.forEach(x => { const l = merged[merged.length - 1]; if (l && l.thickness === x.thickness && l.materialFamily === x.materialFamily && l.panelId === x.panelId) l.width += x.width; else merged.push(x); });
-      merged.forEach((x, i) => { x.name = key.toUpperCase() + '-' + (i + 1); });
-      STRAKES[key] = merged;
+      STRAKES[key] = (STRAKES[key] || []).concat(out);
     });
   }
 
-  // ---------------------------------------------------------------- stiffeners
-  function placed(s, p, g) {
-    const L = M().panelLength(p, s.nodes); const out = [];
-    const start = g.fromEnd === 'to' ? L - (g.offset || 0) : (g.offset || 0), dir = g.fromEnd === 'to' ? -1 : 1;
-    for (let i = 0; i < (g.count || 0); i++) { const x = start + dir * i * (g.spacing || 0); if (x > 0.5 && x < L - 0.5) out.push({ x, i }); }
-    return out.map(o => ({ ...o, pt: M().pointAt(line(s, p), o.x / L) }));
-  }
+  // ---------------------------------------------------------------- stiffeners (panel level)
   function applyProfiles(s, profiles, G, ctx) {
     const groups = ['bottomShell', 'innerBottom', 'stringerStiff', 'tweenStiff', 'coamingStiff', 'sideShell', 'innerSide', 'upperDeck'];
     groups.forEach(k => { profiles[k] = []; });
@@ -113,12 +107,16 @@
     profiles.stringer = ctx.strZ.map(z => ({ z }));
     profiles.tweenDeck = ctx.twZ.map(z => ({ z }));
     const defSpan = s.stiffDefaultSpan || null;
-    s.panels.forEach(p => {
-      (p.stiffGroups || []).forEach(g => {
-        const name = profileName(g);
-        placed(s, p, g).forEach(o => {
-          const item = { profileName: name, manual: true, grade: g.grade || null, dir: g.dir || 'long', span_mm: (g.spanOverrides && g.spanOverrides[o.i]) || g.span || defSpan, panelId: p.id, groupId: g.id, effB: p.effB != null ? p.effB / 100 : 1 };
-          const y = Math.round(o.pt.y), z = Math.round(o.pt.z);
+    Object.keys(s.groups || {}).forEach(gid => {
+      const d = M().panelData(s, gid); let prevEnd = null;
+      d.stiffGroups.forEach(g => {
+        const name = profileName(g); const r = M().groupPositions(s, gid, g, prevEnd);
+        if (r.placed.length) prevEnd = Math.max(...r.placed);
+        r.placed.forEach((x, i) => {
+          const at = M().chainPointAt(s, gid, x); if (!at) return; const p = at.seg;
+          const span = (g.spanOverrides && g.spanOverrides[i]) || g.span || M().spanAt(s, gid, x) || defSpan;
+          const item = { profileName: name, manual: true, grade: g.grade || null, dir: g.dir || 'long', span_mm: span, panelId: p.id, groupId: gid, stiffGroup: g.id, effB: p.effB != null ? p.effB / 100 : 1 };
+          const y = Math.round(at.y), z = Math.round(at.z);
           switch (p.position) {
             case 'bottom': profiles.bottomShell.push({ ...item, y }); break;
             case 'bilge': if (z < (G.R_B || 0) / 2) profiles.bottomShell.push({ ...item, y }); else profiles.sideShell.push({ ...item, z }); break;
@@ -129,8 +127,8 @@
             case 'coamingTop': profiles.coamingStiff.push({ ...item, y }); break;
             case 'stringer': profiles.stringerStiff.push({ ...item, y, z }); break;
             case 'tweenDeck': profiles.tweenStiff.push({ ...item, y, z }); break;
-            case 'sideGirder': { const i = ctx.sgYs.indexOf(Math.round(line(s, p).a.y)); if (i >= 0) profiles['sideGirder' + i].push({ ...item, z }); break; }
-            default: break; // centreGirder / longBhd / other: no legacy group
+            case 'sideGirder': { const k = ctx.sgYs.indexOf(Math.round(line(s, p).a.y)); if (k >= 0) profiles['sideGirder' + k].push({ ...item, z }); break; }
+            default: break;
           }
         });
       });
@@ -171,8 +169,9 @@
       // Until the user has entered strakes / stiffeners on the model (steps 4 and 5)
       // the engine keeps its own automatic layout, so a single drawn line in step 2
       // does not empty the analysis.
-      if (s.panels.some(p => (p.strakes || []).length)) applyStrakes(s, D().STRAKES, ctx);
-      if (s.panels.some(p => (p.stiffGroups || []).length)) applyProfiles(s, D().profiles, G, ctx);
+      if (M().migratePanelData) M().migratePanelData(s);
+      if (hasPanelStrakes(s)) applyStrakes(s, D().STRAKES, ctx);
+      if (hasPanelStiffs(s)) applyProfiles(s, D().profiles, G, ctx);
       applyCompartments(s, D().COMPARTMENTS);
       if (D().WT_FLAGS) applyWT(s, D().WT_FLAGS, ctx);
     } finally { applying = false; }
@@ -208,5 +207,12 @@
     });
     return best;
   }
-  window.SectionAdapter = { apply, unmapped, profileName, effSAt, deckLoadFor };
+  function ctxOf(s) {
+    const by = code => s.panels.filter(p => p.position === code);
+    return { sgYs: [...new Set(by('sideGirder').map(p => Math.round(line(s, p).a.y)))].sort((a, b) => a - b),
+             strZ: [...new Set(by('stringer').map(p => Math.round(line(s, p).a.z)))].sort((a, b) => a - b),
+             twZ: [...new Set(by('tweenDeck').map(p => Math.round(line(s, p).a.z)))].sort((a, b) => a - b) };
+  }
+  function legacyKeyOfGroup(s, gid) { return keyForGroup(s, gid, ctxOf(s)); }
+  window.SectionAdapter = { apply, unmapped, profileName, effSAt, deckLoadFor, legacyKeyOfGroup };
 })();

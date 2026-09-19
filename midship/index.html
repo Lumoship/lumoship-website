@@ -288,7 +288,7 @@
       <div class="ea-wizard-line"></div>
       <button class="ea-wizard-step" data-step="2" onclick="goToStep(2)" title="Section geometry parameters"><span class="ea-wizard-num">2</span> Section</button>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="3" onclick="goToStep(3)" title="Side girders, deck levels, compartments, watertightness"><span class="ea-wizard-num">3</span> Positions</button>
+      <button class="ea-wizard-step" data-step="3" onclick="goToStep(3)" title="Primary supports and stiffener spans per panel"><span class="ea-wizard-num">3</span> Supports</button>
       <div class="ea-wizard-line"></div>
       <button class="ea-wizard-step" data-step="4" onclick="goToStep(4)" title="Strake layout, thickness and grade"><span class="ea-wizard-num">4</span> Strakes</button>
       <div class="ea-wizard-line"></div>
@@ -1121,7 +1121,8 @@
         <div class="view-pills" id="viewPills">
           <!-- DRAW MODE pills (visible in draw mode) -->
           <button class="view-pill draw-pill" data-viewmode="section" title="Section geometry — lines and nodes only (step 2)">Section</button>
-          <button class="view-pill draw-pill" data-viewmode="positions" title="Panel positions (step 3)">Positions</button>
+          <button class="view-pill draw-pill" data-viewmode="positions" title="Panel positions">Positions</button>
+          <button class="view-pill draw-pill" data-viewmode="supports" title="Supports and spans (step 3)">Supports</button>
           <button class="view-pill draw-pill" data-viewmode="strakes" title="Strakes per panel (step 4)">Strakes</button>
           <button class="view-pill draw-pill" data-viewmode="stiffeners" title="Stiffener groups per panel (step 5)">Stiffeners</button>
           <button class="view-pill draw-pill" data-viewmode="compartments" title="Tanks and spaces (step 6)">Compartments</button>
@@ -1942,6 +1943,7 @@
 <script src="app/07-adapter.js"></script>
   <script src="app/10-draw.js"></script>
   <script src="app/12-cad.js"></script>
+  <script src="app/14-scantling-panels.js"></script>
 <script src="app/20-profile.js"></script>
 <script src="app/21-buckling.js"></script>
 <script src="app/22-variants-materials.js"></script>

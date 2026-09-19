@@ -96,3 +96,9 @@ Adım navigasyonu (uygulanan): **1 Ship · 2 Section · 3 Positions · 4 Strakes
 - **Panel** = adlandırılmış segment dizisi (`SECTION.groups {G1:'Shell', …}`, segment.group). Üretici adlandırır (Shell, Duct keel / Centre girder, Side girder N, Inner bottom, Inner side, Stringer N, Tween deck N, Upper deck, Coaming top); elle çizilen çizgi aynı doğrultuda devam ettiği panele katılır, yoksa `Panel N`. Bölme (node ekleme) panel/pozisyon/WT/eff bilgisini iki parçaya taşır.
 - **Section (adım 2)**: seçili segmentte Panel seçici (+ yeni panel adı), katlanır "Panels" listesi (yeniden adlandır, seç).
 - **Positions (adım 3)**: liste panele göre; her segmentin kendi pozisyonu (Shell → bottom · bilge · side …), panel başına "set all…".
+
+## G. MARS düzeni (19.09.2026, 2. tur)
+- **Panel seviyesi veri** (`SECTION.panelData[gid]`): strake'ler panel zinciri boyunca (Σ len = zincir boyu), stiffener grupları panel başından mesafeyle (start · spacing · number · along start/end · reference node/previous · direction · side · span), **supports** (aft/fore frame → span, istisna alanları). Eski segment bazlı alanlar `migratePanelData` ile bir kez taşınır. Adapter panel seviyesinden okur (`chainPointAt` → segment → pozisyon → eski profil grubu).
+- **Adımlar**: 1 Ship · 2 Section (panel + segment + pozisyon + WT + eğri) · **3 Supports** · 4 Strakes · 5 Stiffeners · 6 Compartments · 7 Check. Positions sayfası kaldırıldı (kod duruyor).
+- **Sağ paneller** (`14-scantling-panels.js`): panel seçici (‹ n · ad ›), araç çubuğu (＋ ⧉ ✕ ‹ › ⤓ ⇥), tablo, seçili öğe editörü — MARS Strakes / Stiffeners / Supports ekranlarına göre.
+- **Üst çubuk**: Lumoship site barı tek satır (LUMOSHIP | MIDSHIP SCANTLING … ← Workspace · kullanıcı); mod satırı = Mirror/zoom | adım navı | dosya ikonları · Run Analysis · ↶ ↷ ⟳.

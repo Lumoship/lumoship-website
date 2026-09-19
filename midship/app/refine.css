@@ -773,8 +773,11 @@ body.geometry-active .step-strip-hint{display:-webkit-box;-webkit-line-clamp:2;-
    the app header collapses to one row, the step strip becomes a single line,
    the side panels narrow. Everything is scoped to body.geometry-active so the
    Setup and Summary pages keep their roomier layout. */
-body.geometry-active .lumoship-nav,
 body.geometry-active .ea-footer{display:none}
+/* site bar stays as the single top row on the Geometry page (LumoStruct style) */
+body.geometry-active .lumoship-nav{display:block}
+body.geometry-active .lumoship-nav-inner{height:46px;padding:0 18px}
+body.geometry-active .ea-header{display:none}
 body.geometry-active .ea-header-inner{padding:4px var(--spacing-md)}
 body.geometry-active .ea-header-top{margin-bottom:2px;gap:var(--spacing-md)}
 body.geometry-active .ea-logo{width:26px;height:26px;border-radius:var(--radius-sm);font-size:0.8rem}
@@ -919,8 +922,8 @@ body.geometry-active .ed-input{padding:2px 6px;font-size:0.66rem}
 .cad-seg button.on{background:#2563eb;color:#fff}
 body.cad-mode .ed-tabs,body.cad-mode .ed-tabs-more{display:none !important}
 body.cad-mode #cadToolbar{display:flex}
-body.cad-mode .view-pill:not([data-viewmode="section"]):not([data-viewmode="positions"]):not([data-viewmode="strakes"]):not([data-viewmode="stiffeners"]):not([data-viewmode="compartments"]){display:none}
-body:not(.cad-mode) .view-pill[data-viewmode="section"],body:not(.cad-mode) .view-pill[data-viewmode="positions"],body:not(.cad-mode) .view-pill[data-viewmode="strakes"],body:not(.cad-mode) .view-pill[data-viewmode="stiffeners"],body:not(.cad-mode) .view-pill[data-viewmode="compartments"]{display:none}
+body.cad-mode .view-pill:not([data-viewmode="section"]):not([data-viewmode="positions"]):not([data-viewmode="strakes"]):not([data-viewmode="stiffeners"]):not([data-viewmode="compartments"]):not([data-viewmode="supports"]){display:none}
+body:not(.cad-mode) .view-pill[data-viewmode="section"],body:not(.cad-mode) .view-pill[data-viewmode="positions"],body:not(.cad-mode) .view-pill[data-viewmode="strakes"],body:not(.cad-mode) .view-pill[data-viewmode="stiffeners"],body:not(.cad-mode) .view-pill[data-viewmode="compartments"],body:not(.cad-mode) .view-pill[data-viewmode="supports"]{display:none}
 .sg-card{border:1px solid var(--border);border-radius:var(--radius-sm);margin:3px 0;background:rgba(255,255,255,0.015)}
 .sg-card.open{border-color:rgba(59,130,246,0.5)}
 .sg-head{display:flex;align-items:center;gap:6px;padding:4px 6px;cursor:pointer;font-family:var(--font-mono);font-size:0.6rem}
@@ -1171,3 +1174,72 @@ body.cad-mode .cad-status{flex-wrap:wrap}
 .mb-editor .cad-seg{width:max-content}
 .mb-row .pc-inline{min-width:0;overflow:hidden}
 .mb-row .pc-inline em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+
+/* ── Scantling panels (Supports / Strakes / Stiffeners) ─────────────────── */
+.mb-panelbar{display:grid;grid-template-columns:auto 20px 1fr 20px;gap:4px;align-items:center;padding:2px 0 8px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.mb-panelbar-title{font-family:var(--font-mono);font-size:0.6rem;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;color:var(--text-secondary);margin-right:6px}
+.mb-panelbar button{width:20px;height:20px;border:1px solid var(--border);border-radius:3px;background:var(--bg-tertiary);color:var(--text-secondary);font-size:0.7rem;line-height:1;cursor:pointer}
+.mb-panelbar button:disabled{opacity:0.35;cursor:default}
+.mb-panelbar .sp-pick{font-size:0.62rem;padding:2px 6px;height:20px;min-width:0}
+.mb-em{font-style:normal;font-weight:400;color:var(--text-muted);margin-left:6px}
+.mb-note{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);padding:0 8px 4px;line-height:1.35}
+.mb-note b{color:var(--text-secondary);font-weight:600}
+.mb-empty{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);padding:10px 4px}
+.mb-sum{font-family:var(--font-mono);font-size:0.6rem;padding:2px 8px 6px;font-variant-numeric:tabular-nums}
+.mb-sum.ok{color:var(--success)}.mb-sum.warn{color:var(--warning)}.mb-sum.bad{color:var(--error)}
+.mb-tr.muted{color:var(--text-muted);cursor:default}
+.mb-th.sp-st-th,.mb-tr.sp-st-th{grid-template-columns:24px 46px 56px 60px 1fr}
+.mb-th.sp-sg-th,.mb-tr.sp-sg-th{grid-template-columns:30px 48px 52px 28px 1fr 40px}
+.mb-th.sp-exc-th,.mb-tr.sp-exc-th{grid-template-columns:18px 52px 52px 46px 1fr}
+.mb-th.sp-list-th,.mb-tr.sp-list-th{grid-template-columns:22px 52px 48px 48px 1fr;cursor:default}
+.mb-tr.sp-list-th .ed-input{width:100% !important;padding:1px 4px;font-size:0.58rem}
+.mb-split{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 8px 2px}
+.mb-box{border:1px solid var(--border);border-radius:3px;padding:4px 0 2px}
+.mb-box-title{font-family:var(--font-mono);font-size:0.56rem;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);padding:0 8px 2px}
+.mb-box .mb-row{grid-template-columns:56px 1fr;padding:1px 6px}
+.mb-box .mb-row .ed-input[type=number]{width:52px !important}
+.mb-radio{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:0.6rem;color:var(--text-secondary);padding:2px 8px;cursor:pointer}
+.mb-radio input{margin:0;accent-color:#3b82f6}
+.sp-types button{min-width:30px}
+.mb-editor .mb-table{margin:4px 8px 2px}
+
+/* Geometry page chrome: mode bar = DRAW MODE · zoom | step nav | files · Run Analysis · Undo · Redo · Re-sync */
+body.chrome-geometry .draw-bridge-bar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:6px 12px;min-height:44px}
+body.chrome-geometry .bridge-mid{display:flex;justify-content:center;min-width:0}
+body.chrome-geometry .bridge-mid .ea-wizard{display:flex;justify-content:center;flex-wrap:nowrap;gap:0;padding:0;border:none;background:transparent;margin:0}
+body.chrome-geometry .bridge-mid .ea-wizard-step{padding:4px 8px;font-size:0.7rem}
+body.chrome-geometry .bridge-mid .ea-wizard-line{width:16px}
+body.chrome-geometry .bridge-files{display:inline-flex;gap:4px;margin-right:8px;padding-right:8px;border-right:1px solid var(--border)}
+body.chrome-geometry .bridge-files .ea-header-btn{padding:3px 8px;font-size:0.64rem}
+body.chrome-geometry .bridge-files .ea-header-btn svg{width:11px;height:11px}
+body.chrome-geometry .draw-bridge-bar .counts{display:flex;align-items:center;gap:6px;white-space:nowrap}
+body.chrome-geometry .draw-bridge-bar > div:first-child{display:flex;align-items:center;gap:8px;white-space:nowrap}
+body.chrome-geometry .main-grid{margin-top:6px}
+@media (max-width:1500px){ body.chrome-geometry .bridge-mid .ea-wizard-line{display:none} body.chrome-geometry .bridge-mid .ea-wizard-step{padding:4px 6px} }
+.mb-row .pc-inline.mb-wrap{flex-wrap:wrap;white-space:normal;overflow:visible;row-gap:3px}
+body.chrome-geometry .draw-bridge-bar{display:grid !important;grid-template-columns:auto 1fr auto;height:auto !important;max-height:none !important;min-height:44px;overflow:visible;flex-wrap:nowrap}
+body.geometry-active .lumoship-nav{padding:0 1.25rem;position:static}
+body.geometry-active .lumoship-nav-inner{max-width:none;height:44px}
+body.geometry-active .lumoship-nav-logo-text{font-size:0.9rem}
+body.geometry-active .nav-context{font-size:0.62rem}
+body.geometry-active .user-badge,body.geometry-active .nav-back{font-size:0.72rem}
+body.geometry-active .user-badge-login{padding:5px 14px}
+body.geometry-active .ea-page#page-3 > .ea-main{padding-top:8px}
+.mb-panelbar{grid-template-columns:auto 20px minmax(0,1fr) 20px}
+/* mode bar: keep the step nav inside its cell — icon-only file / edit buttons make room */
+body.chrome-geometry .bridge-mid{overflow:hidden}
+body.chrome-geometry .bridge-mid .ea-wizard{max-width:100%}
+body.chrome-geometry .bridge-files .ea-header-btn{font-size:0;padding:4px 7px;gap:0}
+body.chrome-geometry .bridge-files .ea-header-btn svg{width:13px;height:13px}
+body.chrome-geometry .draw-bridge-bar .ea-btn span:last-child:not(#runAnalysisLabel):not(#runAnalysisIcon){display:none}
+body.chrome-geometry #undoBtn,body.chrome-geometry #redoBtn{font-size:0;padding:4px 7px !important}
+body.chrome-geometry #undoBtn::before{content:'↶';font-size:0.8rem}
+body.chrome-geometry #redoBtn::before{content:'↷';font-size:0.8rem}
+body.chrome-geometry .draw-bridge-bar > div:first-child{gap:6px}
+body.chrome-geometry #modeIndicator{display:none}
+@media (max-width:1400px){ body.chrome-geometry .bridge-mid .ea-wizard-step{padding:4px 5px;font-size:0.66rem} body.chrome-geometry .bridge-mid .ea-wizard-line{display:none} }
+.mb-actions{display:flex;flex-wrap:wrap;gap:4px;padding:3px 8px 6px}
+.mb-empty-row{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);padding:4px 8px;line-height:1.35}
+body.chrome-geometry #undoBtn,body.chrome-geometry #redoBtn{font-size:0 !important}
+body.chrome-geometry #undoBtn::before,body.chrome-geometry #redoBtn::before{font-size:0.8rem;line-height:1}
+.mb-panelbar .sp-pick{width:100%}

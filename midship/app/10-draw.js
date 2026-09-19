@@ -3333,7 +3333,7 @@ function renderWTBlock() {
 
 function renderEditor() {
   const ec = document.getElementById('edContent');
-  if (['section', 'positions', 'strakes', 'stiffeners', 'compartments'].includes(VIEW_MODE) && window.SectionCAD) { SectionCAD.renderPanel(); return; }
+  if (['section', 'positions', 'supports', 'strakes', 'stiffeners', 'compartments'].includes(VIEW_MODE) && window.SectionCAD) { SectionCAD.renderPanel(); return; }
   let html = '';
 
   // Helper: any drawing-side mutation that affects geometry / scantling
@@ -6747,7 +6747,7 @@ function render() {
   syncSectionModel();
   // Step-2 Section CAD owns the drawing in 'section' view (12-cad.js).
   if (window.SectionCAD) {
-    if (['section', 'positions', 'strakes', 'stiffeners', 'compartments'].includes(VIEW_MODE)) { SectionCAD.render(); return; }
+    if (['section', 'positions', 'supports', 'strakes', 'stiffeners', 'compartments'].includes(VIEW_MODE)) { SectionCAD.render(); return; }
     SectionCAD.leave();
   }
   // Keep window.SELECTED_STIFF in sync with the local render scope's state,
@@ -8169,7 +8169,7 @@ function render() {
         const help = document.getElementById('modeHelp');
         if (help && !window.ANALYSIS_MODE) help.textContent = 'Review geometry only. Click "Run Analysis" to check LR rule compliance.';
       }
-      const cadModes = ['section', 'positions', 'strakes', 'stiffeners', 'compartments'];
+      const cadModes = ['section', 'positions', 'supports', 'strakes', 'stiffeners', 'compartments'];
       // Leaving the CAD: push the hand-edited model into the legacy state so the
       // analysis views and the Check page see the drawn section.
       if (cadModes.includes(prevMode) && !cadModes.includes(mode) && SECTION && SECTION.manual && window.SectionAdapter) {

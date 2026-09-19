@@ -391,6 +391,96 @@
     rebuild(model, lines); return { ok: true };
   }
 
+  // ------------------------------------------------------------ panel chains + panel-level data
+  // A panel (group) is walked as a chain from its start node (lowest z, then lowest
+  // y) so "distance along the panel" is well defined: keel → bottom → bilge → side.
+  function chainOf(model, gid) {
+    const segs = model.panels.filter(p => p.group === gid); if (segs.length < 2) return segs.slice();
+    const deg = {}; segs.forEach(p => { deg[p.from] = (deg[p.from] || 0) + 1; deg[p.to] = (deg[p.to] || 0) + 1; });
+    const ends = Object.keys(deg).filter(k => deg[k] === 1).map(id => model.nodes.find(n => n.id === id)).filter(Boolean).sort((a, b) => (a.z - b.z) || (a.y - b.y));
+    const key = q => { const ln = panelLine(q, model.nodes); return Math.min(ln.a.z, ln.b.z) * 1e6 + Math.min(ln.a.y, ln.b.y); };
+    if (!ends.length) return segs.sort((a, b) => key(a) - key(b));
+    const out = [], left = segs.slice(); let at = ends[0].id, guard = 0;
+    while (left.length && guard++ < 500) { const i = left.findIndex(q => q.from === at || q.to === at); if (i < 0) break; const q = left.splice(i, 1)[0]; out.push(q); at = q.from === at ? q.to : q.from; }
+    return out.concat(left.sort((a, b) => key(a) - key(b)));
+  }
+  // Chain with cumulative starts; `fwd` says whether the segment is walked from→to.
+  function chainInfo(model, gid) {
+    const segs = chainOf(model, gid); const items = []; let x = 0; let at = null;
+    if (segs.length) { const first = segs[0], nxt = segs[1]; at = nxt ? ((nxt.from === first.to || nxt.to === first.to) ? first.from : first.to) : first.from; }
+    const startNode = at;
+    segs.forEach(q => { const L = panelLength(q, model.nodes); const fwd = q.from === at; items.push({ seg: q, start: x, len: L, fwd }); x += L; at = fwd ? q.to : q.from; });
+    return { items, L: x, startNode, endNode: at };
+  }
+  function chainPointAt(model, gid, x) {
+    const ci = chainInfo(model, gid); if (!ci.items.length) return null;
+    x = Math.max(0, Math.min(ci.L, x));
+    let it = ci.items.find(i => x >= i.start && x <= i.start + i.len) || ci.items[ci.items.length - 1];
+    const t = it.len > 0 ? (x - it.start) / it.len : 0;
+    const ln = panelLine(it.seg, model.nodes); const pt = pointAt(ln, it.fwd ? t : 1 - t);
+    // tangent along the chain direction
+    const q2 = pointAt(ln, it.fwd ? Math.min(1, t + 0.001) : Math.max(0, 1 - t - 0.001));
+    let ty = q2.y - pt.y, tz = q2.z - pt.z; const n = Math.hypot(ty, tz) || 1;
+    return { y: pt.y, z: pt.z, seg: it.seg, t, ty: ty / n, tz: tz / n };
+  }
+  // Points along the chain between x0 and x1 (for drawing a strake run).
+  function chainPolyline(model, gid, x0, x1) {
+    const ci = chainInfo(model, gid); const pts = [];
+    ci.items.forEach(it => {
+      const a = Math.max(x0, it.start), b = Math.min(x1, it.start + it.len); if (b <= a) return;
+      const ln = panelLine(it.seg, model.nodes); const n = ln.curve ? 12 : 1;
+      for (let k = 0; k <= n; k++) { const x = a + (b - a) * k / n; const t = it.len ? (x - it.start) / it.len : 0; pts.push(pointAt(ln, it.fwd ? t : 1 - t)); }
+    });
+    return pts;
+  }
+  // Per-panel scantling data. Strakes run along the chain (Σ len = chain length);
+  // stiffener groups start at a distance from the panel start (or end).
+  function panelData(model, gid) {
+    model.panelData = model.panelData || {};
+    if (!model.panelData[gid]) model.panelData[gid] = { strakes: [], stiffGroups: [], supports: { span: null, aftFr: null, foreFr: null, exceptions: [] } };
+    const d = model.panelData[gid];
+    d.strakes = d.strakes || []; d.stiffGroups = d.stiffGroups || []; d.supports = d.supports || { span: null, aftFr: null, foreFr: null, exceptions: [] };
+    return d;
+  }
+  // One-off migration from the segment-level fields (strakes / stiffGroups on segments).
+  function migratePanelData(model) {
+    if (model.panelData) return model;
+    model.panelData = {};
+    Object.keys(model.groups || {}).forEach(gid => {
+      const d = panelData(model, gid); const ci = chainInfo(model, gid);
+      ci.items.forEach(it => {
+        const q = it.seg;
+        (q.strakes || []).forEach(st => d.strakes.push({ len: st.len, t: st.t, grade: st.grade || null, type: 'ordinary', hole: null }));
+        (q.stiffGroups || []).forEach(g => {
+          // offset measured from the segment's from-node → distance along the chain
+          const segStart = it.fwd ? (g.fromEnd === 'to' ? it.start + it.len - (g.offset || 0) : it.start + (g.offset || 0)) : (g.fromEnd === 'to' ? it.start + (g.offset || 0) : it.start + it.len - (g.offset || 0));
+          const dir = (it.fwd ? (g.fromEnd !== 'to') : (g.fromEnd === 'to')) ? 1 : -1;
+          d.stiffGroups.push({ id: 'G' + (d.stiffGroups.length + 1), start: Math.round(dir > 0 ? segStart : ci.L - segStart), fromEnd: dir > 0 ? 'start' : 'end', ref: 'node', spacing: g.spacing, count: g.count, dir: g.dir || 'long', type: g.type || 'HP', profile: g.profile || '', grade: g.grade || null, side: g.side || 'in', span: g.span || null, spanOverrides: g.spanOverrides || {} });
+        });
+      });
+      // fill a missing tail so Σ = L when strakes exist
+      const sum = d.strakes.reduce((a, x) => a + (x.len || 0), 0);
+      if (d.strakes.length && Math.abs(sum - ci.L) > 5) d.strakes[d.strakes.length - 1].len += Math.round(ci.L - sum);
+    });
+    model.panels.forEach(q => { delete q.strakes; delete q.stiffGroups; });
+    return model;
+  }
+  // Stiffener positions (distance from the panel start) of one group.
+  function groupPositions(model, gid, g, prevEnd) {
+    const ci = chainInfo(model, gid); const placed = [], dropped = [];
+    let start = g.ref === 'prev' && prevEnd != null ? prevEnd + (g.start || 0) : (g.fromEnd === 'end' ? ci.L - (g.start || 0) : (g.start || 0));
+    const dir = g.fromEnd === 'end' && g.ref !== 'prev' ? -1 : 1;
+    for (let i = 0; i < (g.count || 0); i++) { const x = start + dir * i * (g.spacing || 0); if (x > 0.5 && x < ci.L - 0.5) placed.push(x); else dropped.push(x); }
+    return { placed, dropped, L: ci.L };
+  }
+  // Effective span at distance x along the panel: exception range → its span, else panel span, else null.
+  function spanAt(model, gid, x) {
+    const d = panelData(model, gid);
+    const ex = (d.supports.exceptions || []).find(e => x >= Math.min(e.from, e.to) && x <= Math.max(e.from, e.to));
+    if (ex && ex.span > 0) return ex.span;
+    return d.supports.span > 0 ? d.supports.span : null;
+  }
+
   // ------------------------------------------------------------ position guess
   // For hand-drawn panels: a geometric guess the user confirms in step 3.
   function guessPosition(model, panel) {
@@ -442,10 +532,12 @@
       if (!p.position) issues.push({ level: 'warn', panel: p.id, text: p.id + ': no position code' });
       const L = panelLength(p, model.nodes);
       if (L < 50) issues.push({ level: 'warn', panel: p.id, text: p.id + ': very short panel (' + Math.round(L) + ' mm)' });
-      if (p.strakes && p.strakes.length) {
-        const sum = p.strakes.reduce((s, x) => s + (x.len || 0), 0);
-        if (Math.abs(sum - L) > 5) issues.push({ level: 'error', panel: p.id, text: p.id + ': strakes Σ ' + Math.round(sum) + ' ≠ panel ' + Math.round(L) + ' mm' });
-      }
+
+    });
+    Object.keys(model.panelData || {}).forEach(gid => {
+      const d = model.panelData[gid]; if (!d || !d.strakes || !d.strakes.length) return;
+      const L = chainInfo(model, gid).L; const sum = d.strakes.reduce((a, x) => a + (x.len || 0), 0);
+      if (Math.abs(sum - L) > 5) issues.push({ level: 'error', group: gid, text: ((model.groups || {})[gid] || gid) + ': strakes Σ ' + Math.round(sum) + ' ≠ panel ' + Math.round(L) + ' mm' });
     });
     // Dangling nodes: a node touching only one panel that is not on CL (y≈0) or a free deck edge.
     model.nodes.forEach(n => {
@@ -459,6 +551,7 @@
     POSITIONS, POS, TOL,
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
-    addLine, addArc, removePanel, splitPanel, moveNode, removeNode, setCurve, validate, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
+    addLine, addArc, removePanel, splitPanel, moveNode, removeNode, setCurve, validate,
+    chainOf, chainInfo, chainPointAt, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();

@@ -22,9 +22,9 @@
     { n: 2, key: 'section',    label: 'Section',    page: 3, tab: 'geometry', view: 'section',
       title: 'Section geometry',
       hint: 'Lines and nodes only. Start from the Ship Geometry parameters, add girders / decks with Add panel, or draw with the Line, Arc and Node tools. Set bending / shear efficiency and watertightness per panel.' },
-    { n: 3, key: 'positions',  label: 'Positions',  page: 3, tab: null, view: 'positions',
-      title: 'Panel positions',
-      hint: 'Name every panel: bottom, bilge, side shell, inner bottom, inner side, girders, stringers, decks, bulkheads. The rule mapping and the later steps key off these names. Guess fills them from geometry; check the amber ones.' },
+    { n: 3, key: 'supports',   label: 'Supports',   page: 3, tab: null, view: 'supports',
+      title: 'Supports & spans',
+      hint: 'Per panel: the transverse primary members that support the plating and longitudinals (aft / fore frame → span), and any areas supported differently.' },
     { n: 4, key: 'strakes',    label: 'Strakes',    page: 3, tab: null, view: 'strakes',
       title: 'Strakes & plate thickness',
       hint: 'Pick a panel and split it into strakes along its length: length, thickness, grade. Lengths must add up to the panel length. Seed from Auto fills empty panels from the engine layout.' },
@@ -91,46 +91,37 @@
       return items;
     },
     3: function () {
-      var items = []; var S = D().getSection ? D().getSection() : null;
+      var items = []; var S = D().getSection ? D().getSection() : null; var M = window.SectionModel;
       if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
-      var unnamed = S.panels.filter(function (p) { return !p.position; });
-      items.push({ ok: !unnamed.length, text: unnamed.length ? unnamed.length + ' panel' + (unnamed.length > 1 ? 's' : '') + ' unnamed (' + unnamed.slice(0, 6).map(function (p) { return p.id; }).join(', ') + (unnamed.length > 6 ? '…' : '') + ')' : 'All ' + S.panels.length + ' panels named' });
-      var has = function (c) { return S.panels.some(function (p) { return p.position === c; }); };
-      items.push({ ok: has('bottom') && has('side'), text: 'Shell named (bottom · side' + (has('bilge') ? ' · bilge' : '') + ')' });
-      items.push({ ok: has('upperDeck') || has('deck'), text: (has('upperDeck') ? 'Upper deck' : has('deck') ? 'Deck' : 'No deck') + ' named' });
-      var nwt = S.panels.filter(function (p) { return p.wt === false; }).length;
-      items.push({ ok: true, text: nwt + ' non‑watertight panel' + (nwt === 1 ? '' : 's') + ' (set in step 2)' });
+      var gids = Object.keys(S.groups || {}); var le = numVal('le'); var ship = le ? Math.round(le * 1000) : null;
+      var own = gids.filter(function (g) { var d = S.panelData && S.panelData[g]; return d && d.supports && d.supports.span > 0; }).length;
+      var unnamed = S.panels.filter(function (p) { return !p.position; }).length;
+      items.push({ ok: !!ship || own === gids.length, text: own ? own + ' of ' + gids.length + ' panels with their own span' + (ship ? ', rest use ship l_e ' + ship + ' mm' : '') : (ship ? 'All panels on ship l_e = ' + ship + ' mm' : 'No span — set l_e on the Ship page or per panel') });
+      items.push({ ok: !unnamed, text: unnamed ? unnamed + ' segment' + (unnamed > 1 ? 's' : '') + ' without a position code (Section step)' : 'Every segment has a position code' });
       return items;
     },
     4: function () {
-      var items = []; var S = D().getSection ? D().getSection() : null;
+      var items = []; var S = D().getSection ? D().getSection() : null; var M = window.SectionModel;
       if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
-      var M = window.SectionModel;
-      var empty = S.panels.filter(function (p) { return !(p.strakes || []).length; });
-      var bad = S.panels.filter(function (p) { var L = M.panelLength(p, S.nodes); var sum = (p.strakes || []).reduce(function (a, x) { return a + (x.len || 0); }, 0); return (p.strakes || []).length && Math.abs(sum - L) > 5; });
-      var noT = 0; S.panels.forEach(function (p) { (p.strakes || []).forEach(function (x) { if (!(x.t > 0)) noT++; }); });
-      var total = S.panels.reduce(function (a, p) { return a + (p.strakes || []).length; }, 0);
-      items.push({ ok: !empty.length, text: empty.length ? empty.length + ' panel' + (empty.length > 1 ? 's' : '') + ' without strakes (' + empty.slice(0, 5).map(function (p) { return p.id; }).join(', ') + (empty.length > 5 ? '…' : '') + ')' : total + ' strakes on ' + S.panels.length + ' panels' });
-      items.push({ ok: !bad.length, text: bad.length ? bad.length + ' panel' + (bad.length > 1 ? 's' : '') + ' where Σ strake length ≠ panel length' : 'Strake lengths add up on every panel' });
+      if (M.migratePanelData) M.migratePanelData(S);
+      var gids = Object.keys(S.groups || {}); var empty = [], bad = [], noT = 0, total = 0;
+      gids.forEach(function (g) { var d = M.panelData(S, g); var L = M.chainInfo(S, g).L; if (!d.strakes.length) { empty.push(S.groups[g]); return; }
+        var sum = d.strakes.reduce(function (a, x) { return a + (x.len || 0); }, 0); if (Math.abs(sum - L) > 5) bad.push(S.groups[g]); d.strakes.forEach(function (x) { total++; if (!(x.t > 0)) noT++; }); });
+      items.push({ ok: !empty.length, text: empty.length ? empty.length + ' panel' + (empty.length > 1 ? 's' : '') + ' without strakes (' + empty.slice(0, 4).join(', ') + (empty.length > 4 ? '…' : '') + ')' : total + ' strakes on ' + gids.length + ' panels' });
+      items.push({ ok: !bad.length, text: bad.length ? 'Σ strake length ≠ panel length: ' + bad.join(', ') : 'Strake lengths add up on every panel' });
       items.push({ ok: !noT, text: noT ? noT + ' strake' + (noT > 1 ? 's' : '') + ' without a thickness' : 'Every strake has a thickness' });
       return items;
     },
     5: function () {
-      var items = []; var S = D().getSection ? D().getSection() : null;
+      var items = []; var S = D().getSection ? D().getSection() : null; var M = window.SectionModel;
       if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
-      var M = window.SectionModel; var total = 0, dropped = 0, noProf = 0, withG = 0;
-      S.panels.forEach(function (p) {
-        var L = M.panelLength(p, S.nodes); var gs = p.stiffGroups || []; if (gs.length) withG++;
-        gs.forEach(function (g) {
-          var start = g.fromEnd === 'to' ? L - (g.offset || 0) : (g.offset || 0), dir = g.fromEnd === 'to' ? -1 : 1;
-          for (var i = 0; i < (g.count || 0); i++) { var x = start + dir * i * (g.spacing || 0); if (x > 0.5 && x < L - 0.5) { total++; if (!g.profile) noProf++; } else dropped++; }
-        });
-      });
-      items.push({ ok: total > 0, text: total ? total + ' stiffeners on ' + withG + ' panels' : 'No stiffeners yet — Fill empty panels or add groups' });
+      if (M.migratePanelData) M.migratePanelData(S);
+      var total = 0, dropped = 0, noProf = 0, withG = 0;
+      Object.keys(S.groups || {}).forEach(function (g) { var d = M.panelData(S, g); if (d.stiffGroups.length) withG++; var prev = null;
+        d.stiffGroups.forEach(function (x) { var r = M.groupPositions(S, g, x, prev); if (r.placed.length) prev = Math.max.apply(null, r.placed); total += r.placed.length; dropped += r.dropped.length; if (!x.profile) noProf += r.placed.length; }); });
+      items.push({ ok: total > 0, text: total ? total + ' stiffeners on ' + withG + ' panels' : 'No stiffeners yet' });
       items.push({ ok: !dropped, text: dropped ? dropped + ' stiffener' + (dropped > 1 ? 's' : '') + ' did not fit on their panel' : 'Every stiffener fits its panel' });
       items.push({ ok: !noProf, text: noProf ? noProf + ' stiffener' + (noProf > 1 ? 's' : '') + ' without a profile size' : 'Every stiffener has a profile' });
-      var sp = S.stiffDefaultSpan || numVal('le') * 1000;
-      items.push({ ok: sp > 0, text: sp > 0 ? 'Default span ' + Math.round(sp) + ' mm' : 'Default span not set' });
       return items;
     },
     6: function () {
@@ -249,11 +240,32 @@
     if (fwd) { fwd.textContent = (n < STEPS.length ? stepByN(n + 1).label : 'Report') + ' →'; fwd.onclick = stepNext; }
   }
 
+  // Geometry page: move the step nav into the mode bar and the file actions next to
+  // Run Analysis; put them back for the form pages. Idempotent.
+  function arrangeChrome(onGeometry) {
+    var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar');
+    var acts = document.querySelector('.ea-header-actions'); var header = document.querySelector('.ea-header');
+    if (!wiz || !bar || !header) return;
+    var mid = bar.querySelector('.bridge-mid'); if (!mid) { mid = document.createElement('div'); mid.className = 'bridge-mid'; bar.insertBefore(mid, bar.children[1] || null); }
+    var right = bar.querySelector('.counts');
+    var fileHost = bar.querySelector('.bridge-files'); if (!fileHost && right) { fileHost = document.createElement('div'); fileHost.className = 'bridge-files'; right.insertBefore(fileHost, right.firstChild); }
+    if (onGeometry) {
+      if (wiz.parentElement !== mid) mid.appendChild(wiz);
+      if (fileHost && acts) acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)').forEach(function (b) { fileHost.appendChild(b); });
+      document.body.classList.add('chrome-geometry');
+    } else {
+      var inner = header.querySelector('.ea-header-inner') || header;
+      if (wiz.parentElement !== inner) inner.appendChild(wiz);
+      if (fileHost && acts) { var badge = acts.querySelector('.ea-header-badge'); Array.prototype.slice.call(fileHost.children).forEach(function (b) { if (badge && badge.nextSibling) acts.insertBefore(b, badge.nextSibling); else acts.appendChild(b); }); }
+      document.body.classList.remove('chrome-geometry');
+    }
+  }
   function goToStep(n) {
     var step = stepByN(n);
     current = step.n;
     try { localStorage.setItem(KEY, String(current)); } catch (_) {}
     if (typeof window.goToPage === 'function') window.goToPage(step.page);
+    arrangeChrome(step.page === 3);
     paintNav(current);
     mountStrip(step);
     if (step.page === 3) {
@@ -295,6 +307,7 @@
       if (n === 2) n = 3;
       var s = n === 1 ? 1 : n === 4 ? STEPS.length : (current >= 2 && current < STEPS.length ? current : 2);
       if (s !== current) { current = s; try { localStorage.setItem(KEY, String(current)); } catch (_) {} }
+      arrangeChrome(stepByN(current).page === 3);
       paintNav(current);
       mountStrip(stepByN(current));
       document.body.setAttribute('data-step', String(current));
