@@ -501,7 +501,7 @@
   // nav, so it is hidden and the zoom bar moves up into the mode bar.
   function placeZoomBar(on) {
     const zb = document.querySelector('.zoom-bar-inline'); if (!zb) return;
-    if (on) { const host = document.querySelector('.draw-bridge-bar > div:first-child'); if (host && zb.parentElement !== host) { host.appendChild(zb); zb.classList.add('in-bridge'); } }
+    if (on) { const host = document.querySelector('.draw-bridge-bar:not(.form-bar) > div:first-child'); if (host && zb.parentElement !== host) { host.appendChild(zb); zb.classList.add('in-bridge'); } }
     else { const home = document.querySelector('.ea-panel-header'); if (home && zb.parentElement !== home) { home.appendChild(zb); zb.classList.remove('in-bridge'); } }
   }
   function show(on) {

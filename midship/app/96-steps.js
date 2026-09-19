@@ -253,7 +253,7 @@
   function formBar() {
     var fb = document.getElementById('formBar');
     if (!fb) {
-      fb = document.createElement('div'); fb.id = 'formBar'; fb.className = 'draw-bridge-bar form-bar';
+      fb = document.createElement('div'); fb.id = 'formBar'; fb.className = 'chrome-bar form-bar';
       fb.innerHTML = '<div class="form-bar-left"></div><div class="bridge-mid"></div><div class="form-bar-right"><div class="bridge-files"></div><span id="fbStepBadge" class="step-strip-badge sb-badge"></span></div>';
       var header = document.querySelector('.ea-header'); if (header && header.parentElement) header.parentElement.insertBefore(fb, header);
     }
@@ -266,7 +266,7 @@
     return fb;
   }
   function arrangeChrome(onGeometry) {
-    var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar:not(.form-bar)');
+    var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar');
     var acts = document.querySelector('.ea-header-actions'); var header = document.querySelector('.ea-header');
     if (!wiz || !bar || !header) return;
     var fb = formBar();
