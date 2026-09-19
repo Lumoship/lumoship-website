@@ -664,6 +664,49 @@
       <div class="ed-row"><span class="ed-id" style="min-width:96px">Midship</span><span class="cad-seg"><button class="${s.isMidship !== false ? 'on' : ''}" data-cad="mid-on">Midship</button><button class="${s.isMidship === false ? 'on' : ''}" data-cad="mid-off">Other</button></span></div>
     </div>`;
 
+    // Status / regenerate
+    h += `<div class="cad-status ${s.manual ? 'manual' : ''}" style="flex-wrap:wrap">
+      <span>${s.nodes.length} nodes · ${s.panels.length} panels${s.manual ? ' · hand-edited' : ''}</span>
+      ${s.manual && parametric ? (regenAsk
+        ? `<span class="cad-inline"><span>Discard hand edits?</span><button class="ed-link-btn on" data-cad="regen-go">Regenerate</button><button class="ed-link-btn" data-cad="regen-cancel">Cancel</button></span>`
+        : `<button class="ed-link-btn" data-cad="regen-ask" title="Rebuild the section from the Ship Geometry parameters (hand edits are lost)">⟲ Reset to parameters</button>`) : ''}
+    </div>`;
+
+    // Ship geometry (general-cargo midship only)
+    if (parametric) {
+    h += `<div class="ed-group" data-cad-group="geom"><div class="ed-group-header"><span style="color:#f59e0b">Ship Geometry</span>${s.manual ? '<span class="ed-count" title="The section is hand-edited; parameters only apply after Regenerate">locked</span>' : ''}</div>`;
+    meta.forEach(m => {
+      const v = g[m.key];
+      h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${m.label}</span>
+        <input class="ed-input cad-geom" type="number" value="${v == null ? '' : v}" data-key="${m.key}" min="${m.min}" max="${m.max}" step="${m.step}" ${s.manual ? 'disabled' : ''}>
+        <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
+    });
+    h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap" title="Hatch coaming top plate width (0 = no coaming)">Coaming top width</span>
+        <input class="ed-input cad-param" type="number" value="${B().PARAMS().coamingTop || 0}" data-key="coamingTop" min="0" max="2000" step="50" ${s.manual ? 'disabled' : ''}>
+        <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
+    // Centre girder or duct keel (with its half-width)
+    const duct = g.duct_half > 0;
+    h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">Centre structure</span>
+        <select class="ed-input cad-centre" style="flex:1" ${s.manual ? 'disabled' : ''}><option value="cg" ${duct ? '' : 'selected'}>Centre girder</option><option value="duct" ${duct ? 'selected' : ''}>Duct keel</option></select></div>`;
+    if (duct) h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">Duct keel half-width</span>
+        <input class="ed-input cad-geom" type="number" value="${g.duct_half}" data-key="duct_half" min="200" max="3000" step="50" ${s.manual ? 'disabled' : ''}><span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
+    h += `</div>`;
+    }
+
+    // Add panel
+    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#22c55e">Add panel</span></div><div class="cad-add-btns">`;
+    Object.keys(ADD_TYPES).forEach(k => { h += `<button class="ed-add-btn ${addForm === k ? 'on' : ''}" data-cad-add="${k}">+ ${ADD_TYPES[k].label}</button>`; });
+    h += `</div>`;
+    if (addForm && ADD_TYPES[addForm]) {
+      const d = addDefaults(addForm);
+      h += `<div class="cad-form" data-cad-form="${addForm}">`;
+      ADD_TYPES[addForm].fields.forEach(([k, label, unit]) => {
+        h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${label}</span><input class="ed-input" type="number" data-f="${k}" value="${d[k] != null ? d[k] : ''}" step="10"><span class="ed-label" style="color:#475569;font-size:0.65rem">${unit}</span></div>`;
+      });
+      h += `<div class="ed-row" style="justify-content:flex-end;gap:6px"><button class="ed-link-btn on" data-cad="add-go">Add</button><button class="ed-link-btn" data-cad="add-cancel">Cancel</button></div></div>`;
+    }
+    h += `</div>`;
+
     // ── Panels ─────────────────────────────────────────────────────────────
     // MARS layout: a Panels block (toolbar · name · bending / shear efficiency) and a
     // Segments block (toolbar · node table) with the selected node / segment editor.
@@ -732,49 +775,6 @@
         h += `</div>`;
       }
     }
-
-    // Status / regenerate
-    h += `<div class="cad-status ${s.manual ? 'manual' : ''}" style="flex-wrap:wrap">
-      <span>${s.nodes.length} nodes · ${s.panels.length} panels${s.manual ? ' · hand-edited' : ''}</span>
-      ${s.manual && parametric ? (regenAsk
-        ? `<span class="cad-inline"><span>Discard hand edits?</span><button class="ed-link-btn on" data-cad="regen-go">Regenerate</button><button class="ed-link-btn" data-cad="regen-cancel">Cancel</button></span>`
-        : `<button class="ed-link-btn" data-cad="regen-ask" title="Rebuild the section from the Ship Geometry parameters (hand edits are lost)">⟲ Reset to parameters</button>`) : ''}
-    </div>`;
-
-    // Ship geometry (general-cargo midship only)
-    if (parametric) {
-    h += `<div class="ed-group" data-cad-group="geom"><div class="ed-group-header"><span style="color:#f59e0b">Ship Geometry</span>${s.manual ? '<span class="ed-count" title="The section is hand-edited; parameters only apply after Regenerate">locked</span>' : ''}</div>`;
-    meta.forEach(m => {
-      const v = g[m.key];
-      h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${m.label}</span>
-        <input class="ed-input cad-geom" type="number" value="${v == null ? '' : v}" data-key="${m.key}" min="${m.min}" max="${m.max}" step="${m.step}" ${s.manual ? 'disabled' : ''}>
-        <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
-    });
-    h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap" title="Hatch coaming top plate width (0 = no coaming)">Coaming top width</span>
-        <input class="ed-input cad-param" type="number" value="${B().PARAMS().coamingTop || 0}" data-key="coamingTop" min="0" max="2000" step="50" ${s.manual ? 'disabled' : ''}>
-        <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
-    // Centre girder or duct keel (with its half-width)
-    const duct = g.duct_half > 0;
-    h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">Centre structure</span>
-        <select class="ed-input cad-centre" style="flex:1" ${s.manual ? 'disabled' : ''}><option value="cg" ${duct ? '' : 'selected'}>Centre girder</option><option value="duct" ${duct ? 'selected' : ''}>Duct keel</option></select></div>`;
-    if (duct) h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">Duct keel half-width</span>
-        <input class="ed-input cad-geom" type="number" value="${g.duct_half}" data-key="duct_half" min="200" max="3000" step="50" ${s.manual ? 'disabled' : ''}><span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
-    h += `</div>`;
-    }
-
-    // Add panel
-    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#22c55e">Add panel</span></div><div class="cad-add-btns">`;
-    Object.keys(ADD_TYPES).forEach(k => { h += `<button class="ed-add-btn ${addForm === k ? 'on' : ''}" data-cad-add="${k}">+ ${ADD_TYPES[k].label}</button>`; });
-    h += `</div>`;
-    if (addForm && ADD_TYPES[addForm]) {
-      const d = addDefaults(addForm);
-      h += `<div class="cad-form" data-cad-form="${addForm}">`;
-      ADD_TYPES[addForm].fields.forEach(([k, label, unit]) => {
-        h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${label}</span><input class="ed-input" type="number" data-f="${k}" value="${d[k] != null ? d[k] : ''}" step="10"><span class="ed-label" style="color:#475569;font-size:0.65rem">${unit}</span></div>`;
-      });
-      h += `<div class="ed-row" style="justify-content:flex-end;gap:6px"><button class="ed-link-btn on" data-cad="add-go">Add</button><button class="ed-link-btn" data-cad="add-cancel">Cancel</button></div></div>`;
-    }
-    h += `</div>`;
 
     // Arc radius prompt
     if (arcAsk) {
