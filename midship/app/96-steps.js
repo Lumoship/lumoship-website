@@ -378,8 +378,15 @@
     // only after that dance is over, otherwise it is overwritten.
     var hasProject = false;
     try { hasProject = !!localStorage.getItem('midship_project_v1'); } catch (_) {}
-    if (hasProject && saved !== 1) setTimeout(function () { goToStep(saved); }, 1300);
-    else goToStep(saved);
+    if (hasProject) {
+      // Hide the page dance of the restore (Geometry page → back) and land on
+      // the remembered step once 95-project.js says it is done.
+      document.body.classList.add('booting');
+      var done = false;
+      var finish = function () { if (done) return; done = true; document.body.classList.remove('booting'); goToStep(saved); };
+      window.addEventListener('midship:restored', finish, { once: true });
+      setTimeout(finish, 2500);
+    } else goToStep(saved);
   }
 
   window.STEPS = STEPS;

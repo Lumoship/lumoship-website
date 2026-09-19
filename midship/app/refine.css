@@ -875,7 +875,7 @@ body:not(.all-tabs) .ed-tab{flex:1 1 auto}
 .ed-group.collapsed > :not(.ed-group-header){display:none !important}
 .ed-group-header{justify-content:flex-start;gap:6px}
 .ed-group-header > :first-child{margin-right:auto}
-.ed-group-header::before{content:'▾';display:inline-block;width:10px;flex:0 0 auto;color:var(--text-muted);font-size:0.65rem;transition:transform .15s}
+.ed-group-header::before{content:'▾';display:inline-block;width:8px;flex:0 0 auto;color:var(--text-muted);font-size:0.5rem;line-height:1;transition:transform .15s}
 .ed-group.collapsed > .ed-group-header::before{transform:rotate(-90deg)}
 /* row density */
 body.geometry-active .ed-row{padding:2px 6px}
@@ -1026,3 +1026,51 @@ body.cad-mode .cad-add-btns .ed-add-btn{padding:2px 8px}
 .ea-page-actions .ea-btn{padding:5px 12px;font-size:0.68rem}
 .ea-btn{font-weight:500}
 .np-modal .ea-input,.np-modal .ea-select{font-size:0.74rem}
+
+/* ── Section page round 2 ─────────────────────────────────────────────────── */
+.cad-toolbar .cad-sep{width:1px;height:14px;background:var(--border);margin:0 2px}
+.cad-toolbar .cad-cmd{width:150px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);font-family:var(--font-mono);font-size:0.62rem;padding:2px 7px;border-radius:var(--radius-sm);margin-left:4px}
+.cad-toolbar .cad-cmd:focus{outline:none;border-color:#3b82f6}
+#midshipSVG text.cad-cursor{font-family:var(--font-mono);font-size:7.5px;paint-order:stroke;stroke:#0f172a;stroke-width:3px}
+body.booting .ea-page{visibility:hidden}
+/* rail toggles: small, quiet, same family as the tool bar */
+.panel-toggle-btn{width:16px;height:34px;font-size:0.7rem;font-weight:500;border-radius:var(--radius-sm);color:var(--text-muted);background:transparent;border-color:transparent}
+.panel-toggle-btn:hover{color:var(--text-primary);background:var(--bg-tertiary);border-color:var(--border)}
+/* nav arrows in the strip / status bar: thin glyphs */
+.step-strip-nav .ea-btn,.status-bar .sb-nav-btn{letter-spacing:0}
+/* wizard connector lines thinner */
+.ea-wizard-line{height:1px}
+
+/* CAD steps: no drawing header (the step nav already says where we are); zoom bar lives in the mode bar */
+body.cad-mode .ea-page#page-3 .ea-panel > .ea-panel-header{display:none}
+body.cad-mode .draw-bridge-bar > div:first-child{gap:6px}
+.zoom-bar-inline.in-bridge{display:inline-flex;align-items:center;gap:3px;margin-left:8px}
+.zoom-bar-inline.in-bridge .zoom-btn{padding:2px 7px;font-size:0.62rem}
+
+/* ── Results card inside the drawing (Strakes / Stiffeners) ─────────────── */
+.cad-info{position:absolute;top:10px;right:12px;width:250px;max-height:calc(100% - 24px);overflow:auto;background:rgba(15,23,42,0.92);border:1px solid var(--border);border-radius:var(--radius-md);z-index:5;backdrop-filter:blur(4px);font-family:var(--font-mono);font-size:0.62rem;color:var(--text-secondary)}
+.cad-info details{border-top:1px solid var(--border)}
+.cad-info details.ci-root{border-top:none}
+.cad-info summary{list-style:none;cursor:pointer;padding:5px 9px;display:flex;align-items:center;gap:6px;color:var(--text-primary);font-weight:600;font-size:0.62rem;letter-spacing:0.3px;text-transform:uppercase;user-select:none}
+.cad-info summary::-webkit-details-marker{display:none}
+.cad-info summary::before{content:'▸';display:inline-block;width:8px;color:var(--text-muted);font-size:0.5rem;transition:transform .15s}
+.cad-info details[open] > summary::before{transform:rotate(90deg)}
+.cad-info summary em{font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);margin-left:auto;font-size:0.56rem}
+.cad-info .ci-root > details{margin-left:0}
+.cad-info .ci-root > details > summary{padding-left:16px;font-size:0.6rem}
+.cad-info .ci-row{display:flex;justify-content:space-between;gap:8px;padding:2px 9px 2px 24px;font-variant-numeric:tabular-nums}
+.cad-info .ci-row > span:last-child{color:var(--text-primary);text-align:right;white-space:nowrap}
+.cad-info .ci-row em{font-style:normal;color:var(--text-muted);margin-left:4px}
+.cad-info .ci-row.ci-4{display:grid;grid-template-columns:34px 1fr auto 52px}
+.cad-info .ci-row.ci-4 > span{text-align:right}
+.cad-info .ci-row.ci-4 > span:first-child{text-align:left}
+.cad-info .ci-row .muted,.cad-info .ci-row.muted{color:var(--text-muted)}
+.cad-info .ci-row .accent{color:#93c5fd}
+.cad-info .ci-row .ok{color:var(--success)}
+.cad-info .ci-row .tight{color:var(--warning)}
+.cad-info .ci-row .bad{color:var(--error)}
+.cad-info details:last-child .ci-row:last-child{padding-bottom:6px}
+/* CAD steps: no left panel at all */
+body.cad-mode .main-grid,body.cad-mode .main-grid.left-collapsed,body.cad-mode .main-grid.right-collapsed,body.cad-mode .main-grid.left-collapsed.right-collapsed{grid-template-columns:0 1fr 300px}
+body.cad-mode .main-grid.right-collapsed,body.cad-mode .main-grid.left-collapsed.right-collapsed{grid-template-columns:0 1fr 30px}
+body.cad-mode .main-grid > :first-child{display:none}

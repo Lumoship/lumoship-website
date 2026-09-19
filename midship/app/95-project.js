@@ -842,8 +842,10 @@
         if (ok) {
           console.log('[Project] restored autosaved project');
           markMissing();
-          if (typeof goToPage === 'function') goToPage(1);
         }
+        // 96-steps.js lands on the remembered step; without it fall back to Setup.
+        if (typeof window.goToStep !== 'function' && typeof goToPage === 'function') goToPage(1);
+        try { window.dispatchEvent(new Event('midship:restored')); } catch (e) {}
       }, 600);
     }
 

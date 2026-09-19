@@ -168,8 +168,11 @@
     try {
       const G = bridge.GEOMETRY(), P = bridge.PARAMS();
       const ctx = deriveGeometry(s, G, P, D().SIDE_GIRDERS);
-      applyStrakes(s, D().STRAKES, ctx);
-      applyProfiles(s, D().profiles, G, ctx);
+      // Until the user has entered strakes / stiffeners on the model (steps 4 and 5)
+      // the engine keeps its own automatic layout, so a single drawn line in step 2
+      // does not empty the analysis.
+      if (s.panels.some(p => (p.strakes || []).length)) applyStrakes(s, D().STRAKES, ctx);
+      if (s.panels.some(p => (p.stiffGroups || []).length)) applyProfiles(s, D().profiles, G, ctx);
       applyCompartments(s, D().COMPARTMENTS);
       if (D().WT_FLAGS) applyWT(s, D().WT_FLAGS, ctx);
     } finally { applying = false; }
