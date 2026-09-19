@@ -317,7 +317,7 @@
           (d.supports.exceptions || []).forEach((e, i) => { const x0 = Math.min(e.from, e.to), x1 = Math.max(e.from, e.to); if (x1 > x0) h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${st.exc === i ? '#3b82f6' : '#f59e0b'}" stroke-width="7" opacity="0.55" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
           const span = M().spanAt(s, gid, ci.L / 2) || defaultSpanFromShip(); const at = M().chainPointAt(s, gid, ci.L / 2);
           if (at) { const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg; const lx = X(at.y + nx * 420), ly = Y(at.z + nz * 420); let ang = -Math.atan2(at.tz, at.ty) * 180 / Math.PI; if (ang > 90 || ang < -90) ang += 180;
-            h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${gName(s, gid)} · span ${span} mm</text>`; }
+            h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${span} mm</text>`; }
         }
       });
     }
@@ -353,7 +353,7 @@
         const sgn = interiorSide(pl, s); const nx = -tz * sgn, nz = ty * sgn;   // normal towards the interior
         const off = 230; const lx = X(m.y + nx * off), ly = Y(m.z + nz * off);
         let ang = -Math.atan2(tz, ty) * 180 / Math.PI; if (ang > 90 || ang < -90) ang += 180;   // keep text upright
-        h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${gName(s, pl.group)} · ${pl.id} · ${fmt(M().panelLength(pl, s.nodes))} mm</text>`;
+        h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${pl.id}</text>`;
       }
     }
     // Rubber band for the line / arc tool
