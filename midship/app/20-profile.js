@@ -15,73 +15,87 @@
 window.Profile = (function(){
   // HP catalog — EN 10067 bulb flat profiles (extended)
   const HP_CATALOG = [
-    { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.08, dx:3.24, Ixx:8.82 },
-    { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:3.79, dx:3.32, Ixx:10.6 },
-    { name:"HP 60x6", b:60, t:6, c:13, r:3.5, A:4.49, dx:3.40, Ixx:12.2 },
-    { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.09, dx:4.33, Ixx:26.3 },
-    { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.03, dx:4.43, Ixx:30.4 },
-    { name:"HP 80x7", b:80, t:7, c:14, r:4, A:6.95, dx:4.52, Ixx:34.2 },
-    { name:"HP 80x8", b:80, t:8, c:14, r:4, A:7.86, dx:4.61, Ixx:37.7 },
-    { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.64, dx:5.40, Ixx:61.7 },
-    { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.82, dx:5.51, Ixx:69.7 },
-    { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.98, dx:5.61, Ixx:77.2 },
-    { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.24, dx:6.48, Ixx:112 },
-    { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.7, dx:6.60, Ixx:127 },
-    // ⚠ CORRECTED — this row held A:11.72, dx:6.96, Ixx:165 and was the ONLY
-    // entry in the 59-row catalogue that broke its own trends: inside a b-group
-    // I/(A·b²) must fall and dx/b must rise as t increases, and this row
-    // reversed both (I/Ab² 0,0842 → 0,0824 → 0,0978; dx/b 0,540 → 0,550 → 0,580),
-    // while ΔA/Δt dropped from 1,46 to 1,02 where every neighbour is constant.
-    // Ixx:165 overstated the section modulus with attached plate by 5,5 %.
-    // The values below are what the catalogue's own trends give and they agree
-    // with EN 10067 (9,54 kg/m → 12,15 cm²). CONFIRM against your EN 10067 table.
-    { name:"HP 120x8", b:120, t:8, c:17, r:5, A:12.15, dx:6.72, Ixx:142 },
-    { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.6, dx:7.68, Ixx:208 },
-    { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:14.3, dx:7.81, Ixx:232 },
-    { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.9, dx:7.93, Ixx:254 },
-    { name:"HP 160x7", b:160, t:7, c:22, r:6, A:14.5, dx:8.83, Ixx:322 },
-    { name:"HP 160x8", b:160, t:8, c:22, r:6, A:16.4, dx:8.97, Ixx:359 },
-    { name:"HP 160x9", b:160, t:9, c:22, r:6, A:18.3, dx:9.10, Ixx:394 },
-    { name:"HP 180x8", b:180, t:8, c:25, r:7, A:18.6, dx:10.10, Ixx:526 },
-    { name:"HP 180x9", b:180, t:9, c:25, r:7, A:20.8, dx:10.25, Ixx:579 },
-    { name:"HP 180x10", b:180, t:10, c:25, r:7, A:22.9, dx:10.39, Ixx:629 },
-    { name:"HP 180x11", b:180, t:11, c:25, r:7, A:25.0, dx:10.52, Ixx:677 },
-    { name:"HP 200x9", b:200, t:9, c:28, r:8, A:23.3, dx:11.38, Ixx:814 },
-    { name:"HP 200x10", b:200, t:10, c:28, r:8, A:25.7, dx:11.54, Ixx:886 },
-    { name:"HP 200x11", b:200, t:11, c:28, r:8, A:28.1, dx:11.69, Ixx:955 },
-    { name:"HP 200x12", b:200, t:12, c:28, r:8, A:30.4, dx:11.83, Ixx:1020 },
-    { name:"HP 220x10", b:220, t:10, c:31, r:9, A:28.6, dx:12.68, Ixx:1210 },
-    { name:"HP 220x11", b:220, t:11, c:31, r:9, A:31.2, dx:12.84, Ixx:1300 },
-    { name:"HP 220x12", b:220, t:12, c:31, r:9, A:33.8, dx:12.99, Ixx:1400 },
-    { name:"HP 240x10", b:240, t:10, c:34, r:10, A:31.4, dx:13.82, Ixx:1610 },
-    { name:"HP 240x11", b:240, t:11, c:34, r:10, A:34.4, dx:13.99, Ixx:1740 },
-    { name:"HP 240x12", b:240, t:12, c:34, r:10, A:37.3, dx:14.15, Ixx:1870 },
-    { name:"HP 260x10", b:260, t:10, c:37, r:11, A:34.3, dx:14.96, Ixx:2100 },
-    { name:"HP 260x11", b:260, t:11, c:37, r:11, A:37.5, dx:15.14, Ixx:2270 },
-    { name:"HP 260x12", b:260, t:12, c:37, r:11, A:40.7, dx:15.31, Ixx:2440 },
-    { name:"HP 280x11", b:280, t:11, c:40, r:12, A:40.7, dx:16.28, Ixx:2900 },
-    { name:"HP 280x12", b:280, t:12, c:40, r:12, A:44.2, dx:16.46, Ixx:3120 },
-    { name:"HP 280x13", b:280, t:13, c:40, r:12, A:47.6, dx:16.63, Ixx:3330 },
-    { name:"HP 300x11", b:300, t:11, c:43, r:13, A:43.8, dx:17.42, Ixx:3640 },
-    { name:"HP 300x12", b:300, t:12, c:43, r:13, A:47.6, dx:17.61, Ixx:3920 },
-    { name:"HP 300x13", b:300, t:13, c:43, r:13, A:51.3, dx:17.79, Ixx:4190 },
-    { name:"HP 320x12", b:320, t:12, c:46, r:14, A:51.0, dx:18.75, Ixx:4840 },
-    { name:"HP 320x13", b:320, t:13, c:46, r:14, A:55.0, dx:18.94, Ixx:5180 },
-    { name:"HP 320x14", b:320, t:14, c:46, r:14, A:59.0, dx:19.12, Ixx:5510 },
-    { name:"HP 340x12", b:340, t:12, c:49, r:15, A:54.4, dx:19.89, Ixx:5900 },
-    { name:"HP 340x13", b:340, t:13, c:49, r:15, A:58.7, dx:20.09, Ixx:6310 },
-    { name:"HP 340x14", b:340, t:14, c:49, r:15, A:62.9, dx:20.28, Ixx:6710 },
-    { name:"HP 370x13", b:370, t:13, c:53.5, r:16.5, A:64.1, dx:21.73, Ixx:8230 },
-    { name:"HP 370x14", b:370, t:14, c:53.5, r:16.5, A:68.7, dx:21.94, Ixx:8760 },
-    { name:"HP 370x15", b:370, t:15, c:53.5, r:16.5, A:73.3, dx:22.14, Ixx:9270 },
-    { name:"HP 400x14", b:400, t:14, c:58, r:18, A:74.6, dx:23.59, Ixx:11200 },
-    { name:"HP 400x15", b:400, t:15, c:58, r:18, A:79.6, dx:23.81, Ixx:11900 },
-    { name:"HP 400x16", b:400, t:16, c:58, r:18, A:84.6, dx:24.02, Ixx:12500 },
-    { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:80.5, dx:25.32, Ixx:14100 },
-    { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:85.9, dx:25.55, Ixx:14900 },
-    { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:96.5, dx:25.99, Ixx:16500 },
-    { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:107, dx:26.41, Ixx:18000 },
-    { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:112, dx:26.61, Ixx:18700 }
+    // EN 10067 bulb flats — values from LumoStruct js/core/data.js (2026-09-14 revision; mass/0.785 area, dx, Ixx in cm units)
+    { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.58, dx:3.48, Ixx:13.2 },
+    { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:4.18, dx:3.41, Ixx:15.12 },
+    { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.41, dx:4.96, Ixx:33.36 },
+    { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.21, dx:4.84, Ixx:38.27 },
+    { name:"HP 80x7", b:80, t:7, c:14, r:4, A:7.01, dx:4.74, Ixx:43.04 },
+    { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.74, dx:6.03, Ixx:75.87 },
+    { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.74, dx:5.91, Ixx:85.14 },
+    { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.74, dx:5.82, Ixx:94.22 },
+    { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.32, dx:7.25, Ixx:132.9 },
+    { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.52, dx:7.11, Ixx:149 },
+    { name:"HP 120x8", b:120, t:8, c:17, r:5, A:11.72, dx:6.99, Ixx:164.7 },
+    { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.43, dx:8.35, Ixx:241.2 },
+    { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:13.83, dx:8.21, Ixx:266.3 },
+    { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.2, dx:8.09, Ixx:290.3 },
+    { name:"HP 140x10", b:140, t:10, c:19, r:5.5, A:16.63, dx:8.01, Ixx:315.5 },
+    { name:"HP 160x7", b:160, t:7, c:22, r:6, A:14.6, dx:9.67, Ixx:371.1 },
+    { name:"HP 160x8", b:160, t:8, c:22, r:6, A:16.2, dx:9.51, Ixx:409.3 },
+    { name:"HP 160x9", b:160, t:9, c:22, r:6, A:17.8, dx:9.37, Ixx:446.7 },
+    { name:"HP 160x10", b:160, t:10, c:22, r:6, A:19.34, dx:9.26, Ixx:481.3 },
+    { name:"HP 160x11", b:160, t:11, c:22, r:6, A:21, dx:9.17, Ixx:517.8 },
+    { name:"HP 160x11.5", b:160, t:11.5, c:22, r:6, A:21.74, dx:9.13, Ixx:535.9 },
+    { name:"HP 180x8", b:180, t:8, c:25, r:7, A:18.86, dx:10.9, Ixx:606.6 },
+    { name:"HP 180x9", b:180, t:9, c:25, r:7, A:20.66, dx:10.74, Ixx:661.1 },
+    { name:"HP 180x10", b:180, t:10, c:25, r:7, A:22.46, dx:10.6, Ixx:711.7 },
+    { name:"HP 180x11", b:180, t:11, c:25, r:7, A:24.26, dx:10.48, Ixx:764.6 },
+    { name:"HP 180x11.5", b:180, t:11.5, c:25, r:7, A:25.1, dx:10.43, Ixx:790.8 },
+    { name:"HP 200x8.5", b:200, t:8.5, c:28, r:8, A:22.63, dx:12.22, Ixx:901.1 },
+    { name:"HP 200x9", b:200, t:9, c:28, r:8, A:23.66, dx:12.13, Ixx:939.1 },
+    { name:"HP 200x10", b:200, t:10, c:28, r:8, A:25.66, dx:11.97, Ixx:1010 },
+    { name:"HP 200x11", b:200, t:11, c:28, r:8, A:27.66, dx:11.83, Ixx:1084 },
+    { name:"HP 200x11.5", b:200, t:11.5, c:28, r:8, A:28.6, dx:11.76, Ixx:1121 },
+    { name:"HP 200x12", b:200, t:12, c:28, r:8, A:29.66, dx:11.7, Ixx:1157 },
+    { name:"HP 220x9", b:220, t:9, c:31, r:9, A:26.78, dx:13.55, Ixx:1290 },
+    { name:"HP 220x10", b:220, t:10, c:31, r:9, A:29, dx:13.37, Ixx:1388 },
+    { name:"HP 220x11", b:220, t:11, c:31, r:9, A:31.2, dx:13.2, Ixx:1488 },
+    { name:"HP 220x11.5", b:220, t:11.5, c:31, r:9, A:32.24, dx:13.12, Ixx:1538 },
+    { name:"HP 220x12", b:220, t:12, c:31, r:9, A:33.4, dx:13.05, Ixx:1587 },
+    { name:"HP 240x9.5", b:240, t:9.5, c:34, r:10, A:31.23, dx:14.89, Ixx:1787 },
+    { name:"HP 240x10", b:240, t:10, c:34, r:10, A:32.49, dx:14.79, Ixx:1855 },
+    { name:"HP 240x10.5", b:240, t:10.5, c:34, r:10, A:33.63, dx:14.69, Ixx:1921 },
+    { name:"HP 240x11", b:240, t:11, c:34, r:10, A:34.89, dx:14.59, Ixx:1987 },
+    { name:"HP 240x11.5", b:240, t:11.5, c:34, r:10, A:36.03, dx:14.51, Ixx:2053 },
+    { name:"HP 240x12", b:240, t:12, c:34, r:10, A:37.29, dx:14.43, Ixx:2118 },
+    { name:"HP 260x10", b:260, t:10, c:37, r:11, A:36.11, dx:16.23, Ixx:2422 },
+    { name:"HP 260x11", b:260, t:11, c:37, r:11, A:38.71, dx:16.01, Ixx:2593 },
+    { name:"HP 260x12", b:260, t:12, c:37, r:11, A:41.31, dx:15.82, Ixx:2762 },
+    { name:"HP 260x13", b:260, t:13, c:37, r:11, A:43.85, dx:15.65, Ixx:2928 },
+    { name:"HP 280x10.5", b:280, t:10.5, c:40, r:12, A:41.22, dx:17.57, Ixx:3210 },
+    { name:"HP 280x11", b:280, t:11, c:40, r:12, A:42.68, dx:17.45, Ixx:3319 },
+    { name:"HP 280x12", b:280, t:12, c:40, r:12, A:45.48, dx:17.24, Ixx:3533 },
+    { name:"HP 280x13", b:280, t:13, c:40, r:12, A:48.28, dx:17.05, Ixx:3744 },
+    { name:"HP 300x11", b:300, t:11, c:43, r:13, A:46.75, dx:18.91, Ixx:4175 },
+    { name:"HP 300x12", b:300, t:12, c:43, r:13, A:49.79, dx:18.67, Ixx:4443 },
+    { name:"HP 300x13", b:300, t:13, c:43, r:13, A:52.79, dx:18.46, Ixx:4707 },
+    { name:"HP 320x11.5", b:320, t:11.5, c:46, r:14, A:52.59, dx:20.25, Ixx:5342 },
+    { name:"HP 320x12", b:320, t:12, c:46, r:14, A:54.25, dx:20.13, Ixx:5507 },
+    { name:"HP 320x12.5", b:320, t:12.5, c:46, r:14, A:55.79, dx:20.01, Ixx:5670 },
+    { name:"HP 320x13", b:320, t:13, c:46, r:14, A:57.45, dx:19.9, Ixx:5831 },
+    { name:"HP 320x13.5", b:320, t:13.5, c:46, r:14, A:58.94, dx:19.8, Ixx:5978 },
+    { name:"HP 320x14", b:320, t:14, c:46, r:14, A:60.64, dx:19.7, Ixx:6137 },
+    { name:"HP 340x12", b:340, t:12, c:49, r:15, A:58.84, dx:21.6, Ixx:6736 },
+    { name:"HP 340x12.5", b:340, t:12.5, c:49, r:15, A:60.48, dx:21.47, Ixx:6935 },
+    { name:"HP 340x13", b:340, t:13, c:49, r:15, A:62.24, dx:21.35, Ixx:7132 },
+    { name:"HP 340x14", b:340, t:14, c:49, r:15, A:65.61, dx:21.13, Ixx:7504 },
+    { name:"HP 340x15", b:340, t:15, c:49, r:15, A:68.94, dx:20.92, Ixx:7887 },
+    { name:"HP 370x12.5", b:370, t:12.5, c:53.5, r:16.5, A:67.79, dx:23.69, Ixx:9185 },
+    { name:"HP 370x13", b:370, t:13, c:53.5, r:16.5, A:69.7, dx:23.55, Ixx:9444 },
+    { name:"HP 370x14", b:370, t:14, c:53.5, r:16.5, A:73.4, dx:23.3, Ixx:9937 },
+    { name:"HP 370x15", b:370, t:15, c:53.5, r:16.5, A:77.07, dx:23.07, Ixx:10440 },
+    { name:"HP 370x16", b:370, t:16, c:53.5, r:16.5, A:80.7, dx:22.86, Ixx:10936 },
+    { name:"HP 400x13", b:400, t:13, c:58, r:18, A:77.43, dx:25.79, Ixx:12235 },
+    { name:"HP 400x14", b:400, t:14, c:58, r:18, A:81.48, dx:25.51, Ixx:12873 },
+    { name:"HP 400x15", b:400, t:15, c:58, r:18, A:85.48, dx:25.25, Ixx:13522 },
+    { name:"HP 400x16", b:400, t:16, c:58, r:18, A:89.43, dx:25.02, Ixx:14161 },
+    { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:89.94, dx:27.75, Ixx:16367 },
+    { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:94.14, dx:27.46, Ixx:17189 },
+    { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:102.79, dx:26.96, Ixx:18794 },
+    { name:"HP 430x18", b:430, t:18, c:62.5, r:19.5, A:106.98, dx:26.74, Ixx:19580 },
+    { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:111.34, dx:26.54, Ixx:20356 },
+    { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:115.67, dx:26.35, Ixx:21124 },
   ];
 
   // L-profile catalog — unequal/equal angles (common shipbuilding sizes)
@@ -299,13 +313,16 @@ window.Profile = (function(){
   }
 
   function _calcT(h, tw, bf, tf) {
+    // h = WEB height (LumoStruct convention, tests/verify-korozyon.js); total depth = h + tf.
+    // "T 300x12/150x15" → 300 web × 12 + 150 × 15 flange. The old formula read h as the
+    // total depth, which understated the web by tf on every T (see hp-katalog-tek-kaynak).
     const hCm=h/10, twCm=tw/10, bfCm=bf/10, tfCm=tf/10;
-    const webArea = (hCm-tfCm)*twCm, flangeArea = bfCm*tfCm, area = webArea+flangeArea;
-    const webCY = tfCm + (hCm-tfCm)/2, flangeCY = tfCm/2;
+    const webArea = hCm*twCm, flangeArea = bfCm*tfCm, area = webArea+flangeArea;
+    const webCY = tfCm + hCm/2, flangeCY = tfCm/2;                 // measured from the flange face (free edge)
     const centroidY = (webArea*webCY + flangeArea*flangeCY) / area;
-    const Ixx = (twCm*(hCm-tfCm)**3)/12 + webArea*(webCY-centroidY)**2 + (bfCm*tfCm**3)/12 + flangeArea*(flangeCY-centroidY)**2;
-    const Iyy = ((hCm-tfCm)*twCm**3)/12 + (tfCm*bfCm**3)/12;
-    return { type:'T', name:`T ${h}x${tw}/${bf}x${tf}`, area, centroidX:bfCm/2, centroidY, Ixx, Iyy, height:hCm, maxWidth:bfCm, xOffsetFromWebCenter:0, dimensions:{h,tw,bf,tf} };
+    const Ixx = (twCm*hCm**3)/12 + webArea*(webCY-centroidY)**2 + (bfCm*tfCm**3)/12 + flangeArea*(flangeCY-centroidY)**2;
+    const Iyy = (hCm*twCm**3)/12 + (tfCm*bfCm**3)/12;
+    return { type:'T', name:`T ${h}x${tw}/${bf}x${tf}`, area, centroidX:bfCm/2, centroidY, Ixx, Iyy, height:hCm+tfCm, maxWidth:bfCm, xOffsetFromWebCenter:0, dimensions:{h,tw,bf,tf} };
   }
 
   function _calcFB(h, t) {

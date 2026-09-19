@@ -62,7 +62,27 @@
   const compColor = (s, id) => COMP_COLORS[Math.max(0, (s.compartments || []).findIndex(c => c.id === id)) % COMP_COLORS.length];
   // Ordered closed loop of the compartment's panels, as points, or null when the
   // boundary is open (a gap) or branches.
+  // Node circuit → polygon. Consecutive nodes joined by a panel follow that panel
+  // (arcs sampled); otherwise a straight virtual edge (centreline, hatch opening).
+  function circuitLoop(s, c) {
+    const ids = (c.nodes || []).filter(id => nodeById(s, id)); if (ids.length < 3) return null;
+    const pts = []; const virt = [];
+    ids.forEach((id, i) => {
+      const a = nodeById(s, id), b = nodeById(s, ids[(i + 1) % ids.length]);
+      const pl = s.panels.find(p => (p.from === a.id && p.to === b.id) || (p.from === b.id && p.to === a.id));
+      if (pl && pl.curve) { const ln = M().panelLine(pl, s.nodes); const fwd = pl.from === a.id; for (let k = 0; k < 12; k++) pts.push(M().pointAt(ln, fwd ? k / 12 : 1 - k / 12)); }
+      else { pts.push({ y: a.y, z: a.z }); if (!pl) virt.push([a, b]); }
+    });
+    pts.virtualEdges = virt; pts.virtual = null; return pts;
+  }
+  // Panels a node circuit runs along (for the engine mapping / highlight)
+  function circuitPanels(s, c) {
+    const ids = c.nodes || []; const out = [];
+    ids.forEach((id, i) => { const b = ids[(i + 1) % ids.length]; const pl = s.panels.find(p => (p.from === id && p.to === b) || (p.from === b && p.to === id)); if (pl) out.push(pl.id); });
+    return out;
+  }
   function compLoop(s, c) {
+    if (c.nodes && c.nodes.length) return circuitLoop(s, c);
     let pls = (c.panels || []).map(id => s.panels.find(p => p.id === id)).filter(Boolean).map(p => ({ ...p }));
     if (pls.length < 2) return null;
     const deg = {}; pls.forEach(p => { deg[p.from] = (deg[p.from] || 0) + 1; deg[p.to] = (deg[p.to] || 0) + 1; });
@@ -186,7 +206,7 @@
   // Snap: node within 12 px, else panel within 8 px, else free (10 mm grid).
   function snap(p, shiftFrom) {
     const s = S(); if (!s) return { ...p, kind: 'free' };
-    const tolN = 12 * mmPerPx(), tolP = 8 * mmPerPx();
+    const tolN = (compPick ? 18 : 12) * mmPerPx(), tolP = 8 * mmPerPx();
     let best = null;
     s.nodes.forEach(n => { const d = Math.hypot(n.y - p.y, n.z - p.z); if (d <= tolN && (!best || d < best.d)) best = { d, y: n.y, z: n.z, kind: 'node', nodeId: n.id }; });
     if (best) return best;
@@ -261,12 +281,15 @@
         if (loop) {
           h += `<polygon points="${loop.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="${col}" fill-opacity="${isSel ? 0.22 : 0.10}" stroke="${col}" stroke-width="${isSel ? 2 : 1}" vector-effect="non-scaling-stroke" data-comp="${c.id}" style="cursor:pointer"/>`;
           if (loop.virtual) { const va = nodeById(s, loop.virtual.from), vb = nodeById(s, loop.virtual.to); const seq = [va].concat(loop.virtual.via || [], [vb]); h += `<polyline points="${seq.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
+          (loop.virtualEdges || []).forEach(([va, vb]) => { h += `<line x1="${X(va.y)}" y1="${Y(va.z)}" x2="${X(vb.y)}" y2="${Y(vb.z)}" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
           const m = polyCentroid(loop);
           h += `<text x="${X(m.y)}" y="${Y(m.z)}" class="cad-comp" fill="${col}" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer">${c.name || c.id}</text>`;
           if (polyArea(loop) > 4e6) h += `<text x="${X(m.y)}" y="${Y(m.z) + 11}" class="cad-comp-sub" fill="${col}" text-anchor="middle" pointer-events="none">${compType(c.type).label}${c.rho ? ' · ρ ' + c.rho : ''}</text>`;
         }
+        // picked nodes, numbered, while the circuit is being drawn / for the selected compartment
+        if (isSel && c.nodes && c.nodes.length) c.nodes.forEach((nid, i) => { const n = nodeById(s, nid); if (!n) return; h += `<circle cx="${X(n.y)}" cy="${Y(n.z)}" r="6" fill="${col}" fill-opacity="0.9" pointer-events="none"/><text x="${X(n.y)}" y="${Y(n.z) + 3}" class="cad-pos" fill="#0f172a" text-anchor="middle" pointer-events="none" style="stroke:none">${i + 1}</text>`; });
         // boundary panels: highlighted so an open loop is visible
-        (c.panels || []).forEach(id => { const pl = s.panels.find(p => p.id === id); if (!pl) return;
+        ((c.nodes && c.nodes.length) ? circuitPanels(s, c) : (c.panels || [])).forEach(id => { const pl = s.panels.find(p => p.id === id); if (!pl) return;
           h += `${pathOf(pl)} stroke="${col}" stroke-width="${isSel ? 4 : 2.5}" ${loop ? '' : 'stroke-dasharray="8 5"'} vector-effect="non-scaling-stroke" pointer-events="none" opacity="${isSel ? 1 : 0.7}"/>`; });
       });
     }
@@ -289,7 +312,8 @@
               h += `<polyline points="${pts}" fill="none" stroke="transparent" stroke-width="16" vector-effect="non-scaling-stroke" data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"/>`;
               h += `<polyline points="${pts}" fill="none" stroke="${selS ? '#3b82f6' : tColor(sk.t)}" stroke-width="${selS ? 6 : isCur ? 4 : 2.5}" opacity="${selS ? 1 : isCur ? (i % 2 ? 0.75 : 1) : 0.5}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
               // boundary tick at the start of every strake but the first
-              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); if (b) h += `<line x1="${X(b.y - b.tz * 160)}" y1="${Y(b.z + b.ty * 160)}" x2="${X(b.y + b.tz * 160)}" y2="${Y(b.z - b.ty * 160)}" stroke="${isCur ? '#e2e8f0' : '#64748b'}" stroke-width="1.4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
+              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); const cl = seamClearance(s, gid, x0); const cc = cl < 50 ? '#ef4444' : cl < 100 ? '#f59e0b' : (isCur ? '#e2e8f0' : '#64748b');
+                if (b) h += `<line x1="${X(b.y - b.tz * (cl < 100 ? 240 : 160))}" y1="${Y(b.z + b.ty * (cl < 100 ? 240 : 160))}" x2="${X(b.y + b.tz * (cl < 100 ? 240 : 160))}" y2="${Y(b.z - b.ty * (cl < 100 ? 240 : 160))}" stroke="${cc}" stroke-width="${cl < 100 ? 2.2 : 1.4}" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
               const at = M().chainPointAt(s, gid, (x0 + x1) / 2); if (at && (isCur || (x1 - x0) > 900)) {
                 // thickness label on the interior side of the plate, clear of the AB / CL dimension labels
                 const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg;
@@ -440,11 +464,15 @@
   function panelsCtx() {
     return { sel, setSel: o => { sel = o; renderSvg(); renderPanel(); }, commit: commitNames, refresh: () => { renderSvg(); renderPanel(); },
       tColor, posLabel, defaultGrade: defaultGradeGroup, hasLegacy, seedStrakes: seedStrakesFor, profileNames,
-      spacingFor: gid => spacingForGroup(S(), gid), profTypeFor: gid => profTypeForGroup(S(), gid), defaultSide: gid => defaultSideForGroup(S(), gid), toast };
+      spacingFor: gid => spacingForGroup(S(), gid), profTypeFor: gid => profTypeForGroup(S(), gid), defaultSide: gid => defaultSideForGroup(S(), gid), toast,
+      // keel plate half-width for the shell panel (first strake starts at CL), 0 elsewhere
+      keelHalfFor: gid => { const q = firstSeg(S(), gid); return q && q.position === 'bottom' ? (G().keel_half || 0) : 0; } };
   }
   function active() { const v = B() && B().viewMode(); return CAD_MODES.includes(v); }
   function inPositions() { return mode === 'positions'; }
   function inStrakes() { return mode === 'strakes'; }
+  // Distance from a seam to the nearest node / stiffener on the panel (mm)
+  function seamClearance(s, gid, x) { const obs = M().chainObstacles ? M().chainObstacles(s, gid) : []; let d = Infinity; obs.forEach(o => { d = Math.min(d, Math.abs(o.x - x)); }); return d; }
   function firstSegIdAt(s, gid, x) { const at = M().chainPointAt(s, gid, x); return at ? at.seg.id : ''; }
   function chainFwd(s, gid, seg) { const ci = M().chainInfo(s, gid); const it = ci.items.find(i => i.seg.id === seg.id); return it ? it.fwd : true; }
   // Which side of the panel (from→to) the hull interior lies on: +1 = left of travel.
@@ -510,9 +538,11 @@
     if (inComps()) {
       const cid = e.target && e.target.getAttribute && e.target.getAttribute('data-comp');
       const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
-      if (compPick && selComp && pid) {
-        // toggle the clicked panel in / out of the selected compartment's boundary
-        const c = s.compartments.find(x => x.id === selComp); if (c) { c.panels = c.panels || []; const i = c.panels.indexOf(pid); if (i >= 0) c.panels.splice(i, 1); else c.panels.push(pid); commitNames(s); }
+      if (compPick && selComp) {
+        // node circuit: click nodes in order round the space; clicking a picked node removes it
+        const c = s.compartments.find(x => x.id === selComp);
+        if (c && hp.kind === 'node') { c.nodes = c.nodes || []; const i = c.nodes.indexOf(hp.nodeId); if (i >= 0) c.nodes.splice(i, 1); else c.nodes.push(hp.nodeId); c.panels = circuitPanels(s, c); commitNames(s); }
+        else if (c) toast('Click the nodes round the space, in order.');
         return;
       }
       if (cid) selComp = cid; else if (pid) { const owner = (s.compartments || []).find(c => (c.panels || []).includes(pid)); selComp = owner ? owner.id : selComp; }
@@ -910,19 +940,19 @@
       const opt = (k, v, list, labels) => `<select class="ed-input cp-f" data-k="${k}" style="flex:1">${list.map((x, i) => `<option value="${x}" ${x === v ? 'selected' : ''}>${labels ? labels[i] : x}</option>`).join('')}</select>`;
       const num = (k, v, step, w, ph) => `<input class="ed-input cp-f" data-k="${k}" type="number" step="${step}" value="${v == null ? '' : v}" placeholder="${ph || ''}" style="width:${w || 74}px">`;
       const F = (label, inner, tip) => `<div class="ed-row" title="${tip || ''}"><span class="ed-id" style="min-width:96px">${label}</span>${inner}</div>`;
-      h += `<div class="ed-group cad-sel-box" style="border-left-color:${col}"><div class="ed-group-header"><span style="color:${col}">${c.name || c.id}</span><span class="ed-count">${area != null ? area.toFixed(1) + ' m² (half)' : 'open'}</span><button class="ed-del" data-cp="del" title="Delete compartment">✕</button></div>
-        ${F('Name', `<input class="ed-input cp-f" data-k="name" value="${c.name || ''}" style="flex:1">`)}
-        ${F('Type', opt('type', c.type, COMP_TYPES.map(t => t.code), COMP_TYPES.map(t => t.label)))}
-        <div class="ed-row" style="color:var(--text-muted);font-size:0.6rem;white-space:normal;line-height:1.35">${T.hint}</div>
-        ${T.rho || T.tank ? F('Density ρ', num('rho', c.rho, 0.005, 70) + '<span class="ed-label" style="color:#475569">t/m³</span>', 'Contents density') : ''}
-        ${T.tank ? F('Air pipe top', num('airpipe_mm', c.airpipe_mm, 10, 74, zTop != null ? String(zTop + 760) : '') + '<span class="ed-label" style="color:#475569;white-space:nowrap">mm above BL</span>', 'Top of the air pipe / overflow — sets the deep-tank head h4 (LR Pt 4 Ch 1 Table 1.9.1)') : ''}
-        ${T.tank ? F('Test head', num('testHead_m', c.testHead_m, 0.1, 60, '2.4') + '<span class="ed-label" style="color:#475569;white-space:nowrap">m above tank top</span>', 'Hydrostatic test head; blank = 2.4 m') : ''}
-        ${c.type === 'cargo' ? F('Cargo load', num('cargoLoad', c.cargoLoad, 0.5, 60, '20') + '<span class="ed-label" style="color:#475569">t/m² on IB</span>', 'Stowage load on the inner bottom (LR Pt 4 Ch 1 Sec 8.4)') : ''}
-        <div class="ed-row" style="gap:6px;flex-wrap:wrap"><span class="ed-id" style="min-width:96px">Boundary</span>
-          <span style="color:${loop ? 'var(--success)' : 'var(--warning)'}">${(c.panels || []).length} panels${loop ? (loop.virtual ? ' · closed ✓ (CL / opening)' : ' · closed ✓') : (c.panels || []).length >= 2 ? ' · not closed' : ''}</span>
-          <button class="ed-link-btn ${compPick ? 'on' : ''}" data-cp="pick" title="Click panels on the drawing to add / remove them">${compPick ? 'Done picking' : 'Pick panels'}</button>
-          <button class="ed-link-btn" data-cp="clear-b">clear</button></div>
-        <div class="ed-row" style="color:var(--text-muted);white-space:normal;line-height:1.4;flex-wrap:wrap">${(c.panels || []).map(id => { const p = s.panels.find(x => x.id === id); return p ? `<span class="cp-chip" data-cp-rm="${id}" title="remove">${id} ${shortPos(p.position)}</span>` : ''; }).join(' ') || '—'}</div>
+      const R = (label, inner, tip) => `<div class="mb-row" title="${tip || ''}"><span>${label}</span><span class="pc-inline">${inner}</span></div>`;
+      const nodes = c.nodes || [];
+      h += `<div class="mb" style="border-left:3px solid ${col}"><div class="mb-title"><span style="color:${col}">${c.name || c.id}</span><em class="mb-em">${area != null ? area.toFixed(1) + ' m² (half)' : 'open'}</em><button class="ed-del" data-cp="del" title="Delete compartment" style="margin-left:auto">✕</button></div>
+        ${R('Name', `<input class="ed-input cp-f" data-k="name" value="${c.name || ''}" style="flex:1">`)}
+        ${R('Type', opt('type', c.type, COMP_TYPES.map(t => t.code), COMP_TYPES.map(t => t.label)))}
+        ${T.rho || T.tank ? R('Density ρ', num('rho', c.rho, 0.005, 62) + '<em>t/m³</em>', 'Contents density') : ''}
+        ${T.tank ? R('Air pipe top', num('airpipe_mm', c.airpipe_mm, 10, 62, zTop != null ? String(zTop + 760) : '') + '<em>mm AB</em>', 'Top of the air pipe / overflow — deep-tank head h4 (LR Pt 4 Ch 1 Table 1.9.1)') : ''}
+        ${T.tank ? R('Test head', num('testHead_m', c.testHead_m, 0.1, 62, '2.4') + '<em>m above top</em>', 'Hydrostatic test head; blank = 2.4 m') : ''}
+        ${c.type === 'cargo' ? R('Cargo load', num('cargoLoad', c.cargoLoad, 0.5, 62, '20') + '<em>t/m² on IB</em>', 'Stowage load on the inner bottom (LR Pt 4 Ch 1 Sec 8.4)') : ''}
+        <div class="mb-row"><span>Boundary</span><span class="pc-inline mb-wrap"><span style="color:${loop ? 'var(--success)' : 'var(--warning)'}">${nodes.length} node${nodes.length === 1 ? '' : 's'}${loop ? ' · closed ✓' : nodes.length ? ' · need ≥ 3' : ''}</span>
+          <button class="ed-link-btn ${compPick ? 'on' : ''}" data-cp="pick" title="Click the nodes round the space, in order">${compPick ? 'Done' : 'Pick nodes'}</button>
+          <button class="ed-link-btn" data-cp="clear-b">clear</button></span></div>
+        <div class="mb-row"><span></span><span class="pc-inline mb-wrap">${nodes.map((id, i) => `<span class="cp-chip" data-cp-rm="${id}" title="remove">${i + 1}·${id}</span>`).join('') || '<em>—</em>'}</span></div>
       </div>`;
     } else {
     }
@@ -963,13 +993,13 @@
     ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { selComp = r.dataset.row; compPick = false; renderSvg(); renderPanel(); }));
     ec.querySelectorAll('.dl-type').forEach(el => el.addEventListener('change', e => mutC(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q) return; const T = DECK_LOAD_TYPES.find(t => t.code === e.target.value); q.deckLoad = e.target.value === 'none' ? null : { type: e.target.value, p: T && T.p != null ? T.p : (q.deckLoad && q.deckLoad.p) || null }; })));
     ec.querySelectorAll('.dl-p').forEach(el => el.addEventListener('change', e => mutC(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q || !q.deckLoad) return; const v = parseFloat(e.target.value); q.deckLoad.p = isNaN(v) ? null : v; })));
-    ec.querySelectorAll('[data-cp-rm]').forEach(ch => ch.addEventListener('click', () => mutC((m, c) => { if (c) c.panels = (c.panels || []).filter(id => id !== ch.dataset.cpRm); })));
+    ec.querySelectorAll('[data-cp-rm]').forEach(ch => ch.addEventListener('click', () => mutC((m, c) => { if (!c) return; c.nodes = (c.nodes || []).filter(id => id !== ch.dataset.cpRm); c.panels = circuitPanels(m, c); })));
     ec.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', () => {
       const act = b.dataset.cp;
-      if (act === 'add') { mutC(m => { let k = 1; while (m.compartments.some(x => x.id === 'C' + k)) k++; const T = COMP_TYPES[0]; m.compartments.push({ id: 'C' + k, name: 'C' + k, type: T.code, rho: T.rho, airpipe_mm: null, testHead_m: null, cargoLoad: null, panels: [] }); selComp = 'C' + k; compPick = true; }); return; }
+      if (act === 'add') { mutC(m => { let k = 1; while (m.compartments.some(x => x.id === 'C' + k)) k++; const T = COMP_TYPES[0]; m.compartments.push({ id: 'C' + k, name: 'C' + k, type: T.code, rho: T.rho, airpipe_mm: null, testHead_m: null, cargoLoad: null, panels: [], nodes: [] }); selComp = 'C' + k; compPick = true; }); return; }
       if (act === 'del') { mutC(m => { m.compartments = m.compartments.filter(x => x.id !== selComp); selComp = null; compPick = false; }); return; }
       if (act === 'pick') { compPick = !compPick; renderPanel(); return; }
-      if (act === 'clear-b') { mutC((m, c) => { if (c) c.panels = []; }); return; }
+      if (act === 'clear-b') { mutC((m, c) => { if (c) { c.panels = []; c.nodes = []; } }); return; }
       if (act === 'seed') { seedCompsFromLegacy(); return; }
     }));
   }
@@ -989,7 +1019,8 @@
       const panels = m.panels.filter(p => { const ln = M().panelLine(p, m.nodes); if (ln.curve) { return onEdge(ln.a) && onEdge(ln.b) && poly.length > 4; } return onEdge(M().pointAt(ln, 0.5)); }).map(p => p.id);
       if (panels.length < 3) return;
       k++; const type = COMP_TYPES.some(t => t.code === lc.type) ? lc.type : (lc.type === 'void' ? 'void' : 'ballast');
-      m.compartments.push({ id: 'C' + k, name: lc.name || 'C' + k, type, rho: lc.rho || compType(type).rho, airpipe_mm: lc.airpipeZ_mm || null, testHead_m: lc.testHead_m || null, cargoLoad: lc.cargoLoad || null, panels }); added++;
+      const nodes = poly.map(q => { const n = m.nodes.find(x => Math.abs(x.y - q.y) <= 1 && Math.abs(x.z - q.z) <= 1); return n ? n.id : null; }).filter(Boolean);
+      m.compartments.push({ id: 'C' + k, name: lc.name || 'C' + k, type, rho: lc.rho || compType(type).rho, airpipe_mm: lc.airpipeZ_mm || null, testHead_m: lc.testHead_m || null, cargoLoad: lc.cargoLoad || null, panels, nodes: nodes.length >= 3 ? nodes : [] }); added++;
     });
     if (!added) { toast('No legacy compartment could be mapped onto the panels.'); return; }
     commitNames(m); toast(added + ' compartments seeded.');

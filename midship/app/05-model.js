@@ -485,6 +485,45 @@
     for (let i = 0; i < (g.count || 0); i++) { const x = start + dir * i * (g.spacing || 0); if (x > 0.5 && x < ci.L - 0.5) placed.push(x); else dropped.push(x); }
     return { placed, dropped, L: ci.L };
   }
+  // Obstacles along a panel chain (distance from the panel start): every internal node
+  // where another panel lands, and every stiffener of the panel. Seams must stay clear.
+  function chainObstacles(model, gid) {
+    const ci = chainInfo(model, gid); const out = [];
+    ci.items.forEach((it, i) => {
+      if (i === 0) return;
+      const nid = it.fwd ? it.seg.from : it.seg.to;             // node at the start of this item
+      const others = model.panels.filter(p => p.group !== gid && (p.from === nid || p.to === nid));
+      if (others.length) out.push({ x: it.start, kind: 'node', id: nid });
+    });
+    const d = (model.panelData || {})[gid];
+    if (d && d.stiffGroups) { let prev = null; d.stiffGroups.forEach(g => { const r = groupPositions(model, gid, g, prev); if (r.placed.length) prev = Math.max(...r.placed); r.placed.forEach(x => out.push({ x, kind: 'stiff', id: g.id })); }); }
+    return out.sort((a, b) => a.x - b.x);
+  }
+  // Plates of a preferred width along the panel; a seam that would land within
+  // `clear` mm of an obstacle is shifted past it. Thickness / grade are taken from
+  // whatever strake covered that spot before (else null / grade default).
+  function autoStrakes(model, gid, opts) {
+    opts = opts || {}; const W = opts.width || 2480, clear = opts.clear || 100, keel = opts.keel || 0;
+    const ci = chainInfo(model, gid); const L = ci.L; if (!(L > 0)) return [];
+    const obs = chainObstacles(model, gid).map(o => o.x);
+    const d = panelData(model, gid); const old = d.strakes.slice(); const oldAt = x => { let acc = 0; for (const st of old) { acc += st.len || 0; if (x <= acc) return st; } return old[old.length - 1] || null; };
+    const seams = [];
+    let x = 0;
+    const avoid = v => { for (const o of obs) { if (Math.abs(v - o) < clear) { const up = o + clear, dn = o - clear; return (Math.abs(up - v) <= Math.abs(dn - v) || dn <= (seams[seams.length - 1] || 0) + 500) ? up : dn; } } return v; };
+    if (keel > 0 && keel < L - 500) { const k = Math.round(avoid(keel) / 10) * 10; seams.push(k); x = k; }   // keel seam clear of the duct / centre girder too
+    let guard = 0;
+    while (L - x > W + 500 && guard++ < 200) {
+      let sm = Math.round(avoid(x + W) / 10) * 10;
+      if (sm <= x + 500) sm = Math.round(avoid(x + W + clear) / 10) * 10;
+      if (sm >= L - 500) break;
+      seams.push(sm); x = sm;
+    }
+    const out = []; let from = 0;
+    seams.concat([L]).forEach(to => { const len = Math.round(to - from); if (len <= 0) return; const src = oldAt((from + to) / 2); out.push({ len, t: src ? src.t : null, grade: src ? src.grade : (opts.grade || null), type: out.length === 0 && keel > 0 ? 'keel' : 'ordinary', hole: null }); from = to; });
+    const sum = out.reduce((a, q) => a + q.len, 0); if (out.length) out[out.length - 1].len += Math.round(L - sum);
+    return out;
+  }
+
   // Effective span at distance x along the panel: exception range → its span, else panel span, else null.
   function spanAt(model, gid, x) {
     const d = panelData(model, gid);
@@ -564,6 +603,6 @@
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
     addLine, addArc, removePanel, splitPanel, moveNode, removeNode, setCurve, validate,
-    chainOf, chainInfo, chainPointAt, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
+    chainOf, chainInfo, chainPointAt, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, chainObstacles, autoStrakes, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();

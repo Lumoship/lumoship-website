@@ -1255,3 +1255,34 @@ select.ed-input:focus{outline:none;border-color:#3b82f6}
 .mb-panelbar button{border-radius:3px 0 0 3px;border-right:none}
 .mb-panelbar button[data-sp="pnl-next"]{border-radius:0 3px 3px 0;border-left:none;border-right:1px solid var(--border)}
 .mb-panelbar .sp-pick{width:auto;max-width:150px;border-radius:0;height:20px}
+
+.mb-auto{display:flex;align-items:center;gap:5px;padding:0 8px 6px;font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted);flex-wrap:wrap}
+.mb-auto .sp-autow{width:82px;height:20px;padding:1px 6px;font-size:0.6rem}
+.mb-auto .sp-autoc{width:48px !important;height:20px;padding:1px 5px;font-size:0.6rem;text-align:right}
+.mb-auto em{font-style:normal}
+
+/* ── Form pages (Ship, Check): same chrome as the drawing pages ──────────── */
+body.chrome-form .ea-header{display:none}
+body.chrome-form .lumoship-nav{padding:0 1.25rem;position:static}
+body.chrome-form .lumoship-nav-inner{max-width:none;height:44px}
+body.chrome-form .lumoship-nav-logo-text{font-size:0.9rem}
+body.chrome-form .nav-context{font-size:0.62rem}
+body.chrome-form .ea-footer{display:none}
+body.chrome-form .step-strip-host{display:none}
+#formBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:8px 12px 0;padding:6px 12px;min-height:44px;height:auto;max-height:none;overflow:visible}
+#formBar .bridge-mid{display:flex;justify-content:center;min-width:0}
+#formBar .ea-wizard{display:flex;justify-content:center;gap:0;margin:0}
+#formBar .ea-wizard-step{padding:4px 8px;font-size:0.7rem}
+#formBar .ea-wizard-line{width:16px}
+#formBar .form-bar-right{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+#formBar .bridge-files{display:inline-flex;gap:4px}
+#formBar .bridge-files .ea-header-btn{font-size:0;padding:4px 7px;gap:0}
+#formBar .bridge-files .ea-header-btn svg{width:13px;height:13px}
+#formBar .sb-badge{display:inline-block !important}
+body.chrome-form .ea-page > .ea-main{padding-top:10px}
+body.chrome-form .ea-page.active{padding:0 12px}
+#formStatusBar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-secondary);border-top:1px solid var(--border)}
+#formStatusBar .sb-spacer{flex:1}
+#formStatusBar .sb-badge{display:inline-block !important;margin-right:6px}
+body.chrome-form{padding-bottom:44px}
+body.chrome-form .ea-page.active{padding-bottom:16px}

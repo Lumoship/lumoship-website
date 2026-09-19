@@ -110,6 +110,9 @@
       items.push({ ok: !empty.length, text: empty.length ? empty.length + ' panel' + (empty.length > 1 ? 's' : '') + ' without strakes (' + empty.slice(0, 4).join(', ') + (empty.length > 4 ? '…' : '') + ')' : total + ' strakes on ' + gids.length + ' panels' });
       items.push({ ok: !bad.length, text: bad.length ? 'Σ strake length ≠ panel length: ' + bad.join(', ') : 'Strake lengths add up on every panel' });
       items.push({ ok: !noT, text: noT ? noT + ' strake' + (noT > 1 ? 's' : '') + ' without a thickness' : 'Every strake has a thickness' });
+      var tight = 0, bad2 = 0;
+      if (M.chainObstacles) gids.forEach(function (g) { var d = M.panelData(S, g); var obs = M.chainObstacles(S, g); var x = 0; d.strakes.forEach(function (st, i) { x += st.len || 0; if (i === d.strakes.length - 1) return; var dm = Infinity; obs.forEach(function (o) { dm = Math.min(dm, Math.abs(o.x - x)); }); if (dm < 50) bad2++; else if (dm < 100) tight++; }); });
+      items.push({ ok: !bad2, text: bad2 ? bad2 + ' seam' + (bad2 > 1 ? 's' : '') + ' within 50 mm of a member — cannot be built' : tight ? tight + ' seam' + (tight > 1 ? 's' : '') + ' closer than the recommended 100 mm' : 'Seams clear of girders, decks and stiffeners' });
       return items;
     },
     5: function () {
@@ -185,7 +188,12 @@
 
   // Status-bar badge (Geometry page): the step's own strip is hidden there.
   function paintBadge(step) {
+    var el2 = $('fbStepBadge'); if (el2) { paintBadgeInto(el2, step); }
+    var el3 = $('fsStepBadge'); if (el3) { paintBadgeInto(el3, step); }
     var el = $('sbStepBadge'); if (!el) return;
+    paintBadgeInto(el, step);
+  }
+  function paintBadgeInto(el, step) {
     var items = []; try { items = CHECKS[step.n] ? CHECKS[step.n]() : []; } catch (_) { items = []; }
     var open = items.filter(function (i) { return !i.ok; }).length, okN = items.length - open;
     el.className = 'step-strip-badge sb-badge ' + (open ? 'todo' : 'ok');
@@ -242,27 +250,56 @@
 
   // Geometry page: move the step nav into the mode bar and the file actions next to
   // Run Analysis; put them back for the form pages. Idempotent.
+  function formBar() {
+    var fb = document.getElementById('formBar');
+    if (!fb) {
+      fb = document.createElement('div'); fb.id = 'formBar'; fb.className = 'draw-bridge-bar form-bar';
+      fb.innerHTML = '<div class="form-bar-left"></div><div class="bridge-mid"></div><div class="form-bar-right"><div class="bridge-files"></div><span id="fbStepBadge" class="step-strip-badge sb-badge"></span></div>';
+      var header = document.querySelector('.ea-header'); if (header && header.parentElement) header.parentElement.insertBefore(fb, header);
+    }
+    var sb = document.getElementById('formStatusBar');
+    if (!sb) {
+      sb = document.createElement('div'); sb.id = 'formStatusBar'; sb.className = 'status-bar form-status';
+      sb.innerHTML = '<button class="sb-nav-btn back" onclick="stepPrev()">← Back</button><span class="sb-spacer"></span><span id="fsStepBadge" class="step-strip-badge sb-badge"></span><button class="sb-nav-btn fwd" onclick="stepNext()">Next →</button>';
+      document.body.appendChild(sb);
+    }
+    return fb;
+  }
   function arrangeChrome(onGeometry) {
-    var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar');
+    var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar:not(.form-bar)');
     var acts = document.querySelector('.ea-header-actions'); var header = document.querySelector('.ea-header');
     if (!wiz || !bar || !header) return;
+    var fb = formBar();
+    if (!onGeometry) {
+      // form pages (Ship, Check): the same one-row bar, steps centred, files right
+      var fmid = fb.querySelector('.bridge-mid'), ffiles = fb.querySelector('.bridge-files');
+      if (wiz.parentElement !== fmid) fmid.appendChild(wiz);
+      var pool = [].concat(Array.prototype.slice.call(acts ? acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)') : []), Array.prototype.slice.call((bar.querySelector('.bridge-files') || { children: [] }).children));
+      pool.forEach(function (b) { ffiles.appendChild(b); });
+      fb.style.display = ''; document.body.classList.add('chrome-form'); document.body.classList.remove('chrome-geometry');
+      var sb = document.getElementById('formStatusBar'); if (sb) { sb.style.display = ''; var n = current; var b = sb.querySelector('.back'), f = sb.querySelector('.fwd'); if (b) b.textContent = '← ' + (n > 1 ? stepByN(n - 1).label : 'Back'); if (f) f.textContent = (n < STEPS.length ? stepByN(n + 1).label : 'Report') + ' →'; }
+      return;
+    }
+    fb.style.display = 'none'; document.body.classList.remove('chrome-form');
+    var sb2 = document.getElementById('formStatusBar'); if (sb2) sb2.style.display = 'none';
     var mid = bar.querySelector('.bridge-mid'); if (!mid) { mid = document.createElement('div'); mid.className = 'bridge-mid'; bar.insertBefore(mid, bar.children[1] || null); }
     var right = bar.querySelector('.counts');
     var fileHost = bar.querySelector('.bridge-files'); if (!fileHost && right) { fileHost = document.createElement('div'); fileHost.className = 'bridge-files'; right.insertBefore(fileHost, right.firstChild); }
-    if (onGeometry) {
-      if (wiz.parentElement !== mid) mid.appendChild(wiz);
-      if (fileHost && acts) acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)').forEach(function (b) { fileHost.appendChild(b); });
-      document.body.classList.add('chrome-geometry');
-    } else {
-      var inner = header.querySelector('.ea-header-inner') || header;
-      if (wiz.parentElement !== inner) inner.appendChild(wiz);
-      if (fileHost && acts) { var badge = acts.querySelector('.ea-header-badge'); Array.prototype.slice.call(fileHost.children).forEach(function (b) { if (badge && badge.nextSibling) acts.insertBefore(b, badge.nextSibling); else acts.appendChild(b); }); }
-      document.body.classList.remove('chrome-geometry');
+    if (wiz.parentElement !== mid) mid.appendChild(wiz);
+    if (fileHost) {
+      var pool2 = [].concat(Array.prototype.slice.call(acts ? acts.querySelectorAll('.ea-header-btn:not(.ea-header-link):not(.ea-export-btn)') : []), Array.prototype.slice.call((fb.querySelector('.bridge-files') || { children: [] }).children));
+      pool2.forEach(function (b) { fileHost.appendChild(b); });
     }
+    document.body.classList.add('chrome-geometry');
   }
   function goToStep(n) {
     var step = stepByN(n);
     current = step.n;
+    // The Check page reads the drawing state; make sure the engine has run once
+    // even when the user jumps there straight from Ship.
+    if (step.page === 4 && window.Draw && window.Draw.STRAKES && !(window.Draw.STRAKES.shell || []).length) {
+      try { if (window.Draw.init) window.Draw.init(); if (window.Draw.computeStrakes) window.Draw.computeStrakes(); } catch (e) { console.warn('[steps] engine init before Check failed:', e); }
+    }
     try { localStorage.setItem(KEY, String(current)); } catch (_) {}
     if (typeof window.goToPage === 'function') window.goToPage(step.page);
     arrangeChrome(step.page === 3);
