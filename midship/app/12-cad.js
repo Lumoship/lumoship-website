@@ -158,6 +158,7 @@
     coaming:'#84cc16', coamingTop:'#facc15', longBhd:'#ec4899', deck:'#e879f9', other:'#94a3b8' };
   let sel = { panel: null, node: null, group: null };   // group: highlighted panel (Section step)
   let hover = null;          // { y, z, kind:'node'|'panel'|'free', nodeId, panelId }
+  let hoverSg = null;        // stiffener group under the pointer (Stiffeners view): { gid, sg }
   let pending = [];          // clicked points for line / arc
   let arcAsk = null;         // { a, b } waiting for a radius
   let addForm = null;        // which "Add panel" form is open
@@ -370,13 +371,16 @@
           let prevEnd = null;
           d.stiffGroups.forEach(g => {
             const r = M().groupPositions(s, gid, g, prevEnd); if (r.placed.length) prevEnd = Math.max(...r.placed);
-            const gSel = isCur && st.group === g.id;
-            const col = gSel ? '#3b82f6' : g.dir === 'trans' ? '#a855f7' : (isCur ? '#22c55e' : '#3f6b4a');
+            const gSel = isCur && st.group === g.id; const gHov = hoverSg && hoverSg.gid === gid && hoverSg.sg === g.id;
+            const col = gSel ? '#3b82f6' : gHov ? '#93c5fd' : g.dir === 'trans' ? '#a855f7' : (isCur ? '#22c55e' : '#3f6b4a');
             const tick = 260;
             r.placed.forEach(x => {
               const at = M().chainPointAt(s, gid, x); if (!at) return;
               const sideSign = (g.side === 'out' ? -1 : 1) * interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1);
               const nx = -at.tz * sideSign, nz = at.ty * sideSign;
+              // wide invisible hit line: hovering lights the group, clicking opens it in the list
+              const hx1 = g.dir === 'trans' ? at.y - at.ty * 120 : at.y, hz1 = g.dir === 'trans' ? at.z - at.tz * 120 : at.z, hx2 = g.dir === 'trans' ? at.y + at.ty * 120 : at.y + nx * tick, hz2 = g.dir === 'trans' ? at.z + at.tz * 120 : at.z + nz * tick;
+              h += `<line x1="${X(hx1)}" y1="${Y(hz1)}" x2="${X(hx2)}" y2="${Y(hz2)}" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-panel="${at.seg.id}" data-gid="${gid}" data-sg="${g.id}" style="cursor:pointer"/>`;
               if (g.dir === 'trans') {
                 h += `<line x1="${X(at.y - at.ty * 120)}" y1="${Y(at.z - at.tz * 120)}" x2="${X(at.y + at.ty * 120)}" y2="${Y(at.z + at.tz * 120)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
               } else {
@@ -563,6 +567,7 @@
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) moved = true;
     const p = realFromEvent(e); if (!p) return;
     hover = snap(p, ((e.shiftKey || ortho) && pending.length) ? pending[0] : null);
+    if (inStiffs()) { const t = e.target; const sg = t && t.getAttribute ? t.getAttribute('data-sg') : null; const nh = sg ? { gid: t.getAttribute('data-gid'), sg } : null; if ((nh && nh.sg) !== (hoverSg && hoverSg.sg) || (nh && nh.gid) !== (hoverSg && hoverSg.gid)) hoverSg = nh; }
     renderSvg();
   }
   function onClick(e) {
@@ -598,10 +603,12 @@
       const st = SP() ? SP().state : null;
       if (q && st) { if (st.gid !== q.group) { st.gid = q.group; st.strake = null; st.group = null; st.exc = null; }
         let tgt = e.target; if (!(tgt && tgt.getAttribute && tgt.getAttribute('data-strake'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-strake')) tgt = under; }
-        const si = tgt && tgt.getAttribute && tgt.getAttribute('data-strake'); if (inStrakes()) st.strake = si != null ? parseInt(si) : null; }
+        const si = tgt && tgt.getAttribute && tgt.getAttribute('data-strake'); if (inStrakes()) st.strake = si != null ? parseInt(si) : null;
+        if (inStiffs()) { let tg = e.target; if (!(tg && tg.getAttribute && tg.getAttribute('data-sg'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-sg')) tg = under; } const sg = tg && tg.getAttribute && tg.getAttribute('data-sg'); st.group = sg || null; } }
       sel = q ? { panel: q.id, node: null, group: q.group } : { panel: null, node: null, group: st ? st.gid : null };
       renderSvg(); renderPanel();
       if (st && st.strake != null) { const row = document.querySelector(`.mb-tr[data-st="${st.strake}"]`); if (row) row.scrollIntoView({ block: 'nearest' }); }
+      if (st && inStiffs() && st.group) { const row = document.querySelector(`.mb-tr[data-sg="${st.group}"]`); if (row) row.scrollIntoView({ block: 'nearest' }); }
       return;
     }
     placePoint(hp, s);
