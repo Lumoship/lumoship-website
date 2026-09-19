@@ -1412,3 +1412,27 @@ body.with-rail #formStatusBar{left:var(--rail-w)}
 body.chrome-form .ea-subwizard{display:none}
 .bar-page-title{font-family:var(--font-mono);font-size:0.7rem;font-weight:600;letter-spacing:0.04em;color:var(--text-secondary)}
 body.chrome-geometry .bar-page-title{display:none}
+
+/* sections under the "Sections" item */
+#sideRail .rail-sections{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px 0;padding-left:14px;max-height:40vh;overflow:auto}
+#sideRail .rail-sec{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 8px 5px 10px;border:none;background:transparent;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);cursor:pointer;position:relative}
+#sideRail .rail-sec::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border-soft)}
+#sideRail .rail-sec:hover{color:var(--text-secondary);background:rgba(255,255,255,0.03)}
+#sideRail .rail-sec.active{color:var(--text-primary);background:rgba(37,99,235,0.08)}
+#sideRail .rail-sec.active::before{background:#2563eb}
+#sideRail .rail-sec i{width:5px;height:5px;border-radius:50%;background:var(--border-strong,#475569);flex:none}
+#sideRail .rail-sec.active i{background:#60a5fa}
+#sideRail .rail-sec-name{font-weight:600}
+#sideRail .rail-sec-sub{margin-left:auto;font-size:0.56rem;color:var(--text-muted);opacity:0.8}
+/* Bulkheads placeholder */
+.bh-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:280px;text-align:center;color:var(--text-muted)}
+.bh-empty-mark{font-size:1.6rem;opacity:0.35}
+.bh-empty-title{font-family:var(--font-mono);font-size:0.8rem;font-weight:600;letter-spacing:0.06em;color:var(--text-secondary)}
+.bh-empty-sub{font-size:0.68rem;max-width:420px;line-height:1.5}
+body.chrome-form .ea-page#page-5 > .ea-main{padding-top:10px}
+
+#sideRail .rail-sec.current{color:var(--text-secondary)}
+#sideRail .rail-sec.current i{background:#93c5fd}
+.cad-menu.rail-menu{min-width:200px}
+.cad-menu-item.danger{color:#fca5a5}
+.cad-menu-item.off{opacity:0.4;cursor:default}

@@ -12177,6 +12177,8 @@ window.exportFullState = function(returnObj) {
     // Section topology — only meaningful once hand-edited; otherwise it is
     // regenerated from GEOMETRY/PARAMS on load.
     SECTION: (SECTION && SECTION.manual) ? SECTION : null,
+    // every section of the project (the active one included); SECTION above stays for older readers
+    SECTIONS: (window.Sections && SECTION && SECTION.manual) ? Sections.exportState() : null,
     // --- Scantling page form values ---
     formValues
   };
@@ -12219,8 +12221,12 @@ window.importFullState = function(data) {
     // Section model (05-model.js): a hand-edited model is the source of truth and is
     // pushed into the legacy state after STRAKES / profiles below; a file without one
     // (older projects) gets its model built and filled from STRAKES / profiles.
-    if (data.SECTION && data.SECTION.manual && Array.isArray(data.SECTION.panels)) { SECTION = data.SECTION; window.__legacyFill = false; }
-    else { SECTION = null; window.__legacyFill = !!(data.STRAKES && !data.SECTION); }
+    if (window.Sections && data.SECTIONS && Sections.importState(data.SECTIONS)) { window.__legacyFill = false; }   // sets SECTION through setSection
+    else {
+      if (window.Sections) Sections.importState(null);
+      if (data.SECTION && data.SECTION.manual && Array.isArray(data.SECTION.panels)) { SECTION = data.SECTION; window.__legacyFill = false; }
+      else { SECTION = null; window.__legacyFill = !!(data.STRAKES && !data.SECTION); }
+    }
     if (data.PLATE_THICKNESS) Object.assign(PLATE_THICKNESS, data.PLATE_THICKNESS);
     // Material grade / yield-family pins. v1 payloads don't include these,
     // so guard each one. Use Object.assign so existing keys not present in

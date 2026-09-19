@@ -208,6 +208,7 @@
   let saveT = null;
   function pushLegacy(s) {
     if (window.SectionAdapter) { try { SectionAdapter.apply(s); } catch (e) { console.warn('[SectionAdapter]', e); } }
+    try { window.dispatchEvent(new Event('midship:model-changed')); } catch (_) {}
     // autosave soon after a model edit (the project timer alone is 30 s)
     clearTimeout(saveT); saveT = setTimeout(() => { try { window.Project && window.Project.saveLocal && window.Project.saveLocal(); } catch (_) {} }, 800);
   }
@@ -1372,5 +1373,6 @@
   }
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
-  window.SectionCAD = { render, renderPanel, leave, setTool, seedCompsInto, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
+  function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; pending = []; hover = null; hoverSg = null; hoverComp = null; }
+  window.SectionCAD = { render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
 })();

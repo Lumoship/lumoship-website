@@ -287,8 +287,11 @@
       <button class="ea-wizard-step active" data-step="1" onclick="goToStep(1)" title="Identification, main dimensions, loads, materials, ice"><span class="ea-wizard-num">1</span> Main particulars</button>
       <div class="ea-wizard-line"></div>
       <button class="ea-wizard-step" data-step="2" data-group="sections" onclick="goToSections()" title="Section geometry, supports, strakes, stiffeners, compartments"><span class="ea-wizard-num">2</span> Sections</button>
+      <div class="rail-sections" id="railSections"></div>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="7" onclick="goToStep(7)" title="Rule check summary and report"><span class="ea-wizard-num">3</span> Check</button>
+      <button class="ea-wizard-step" data-step="7" onclick="goToStep(7)" title="Transverse and longitudinal bulkheads"><span class="ea-wizard-num">3</span> Bulkheads</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" data-step="8" onclick="goToStep(8)" title="Rule check summary and report"><span class="ea-wizard-num">4</span> Check</button>
     </nav>
     <nav class="ea-subwizard" aria-label="Section steps">
       <button class="ea-sub-step" data-step="2" onclick="goToStep(2)" title="Section geometry: nodes, panels, positions"><i></i>Geometry</button>
@@ -1464,6 +1467,18 @@
   </main>
 </div>
 
+<!-- PAGE 5: BULKHEADS (placeholder) -->
+<div class="ea-page" id="page-5">
+  <main class="ea-main">
+    <div class="step-strip-host"></div>
+    <div class="ea-panel bh-empty">
+      <div class="bh-empty-mark">▭</div>
+      <div class="bh-empty-title">Bulkheads</div>
+      <div class="bh-empty-sub">Transverse and longitudinal bulkheads — plating, stiffeners and stools — will be defined here.</div>
+    </div>
+  </main>
+</div>
+
 <footer class="ea-footer">
   <div class="ea-footer-inner">
     <div>Created by <strong>Ebubekir Akarsu</strong> — Structural Engineer</div>
@@ -1940,6 +1955,7 @@
 
 <script src="app/05-model.js"></script>
 <script src="app/07-adapter.js"></script>
+<script src="app/08-sections.js"></script>
   <script src="app/10-draw.js"></script>
   <script src="app/12-cad.js"></script>
   <script src="app/14-scantling-panels.js"></script>

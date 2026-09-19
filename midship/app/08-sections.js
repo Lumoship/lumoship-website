@@ -1,0 +1,80 @@
+// ============================================================================
+// Sections registry — several cross sections in one project.
+//
+// The active section is the model the drawing works on (Draw.getSection / setSection);
+// the others rest here as plain model objects. Switching swaps the active model and
+// re-derives the legacy engine state through the adapter. Everything is saved with
+// the project as SECTIONS { active, items }.
+// ============================================================================
+(function () {
+  'use strict';
+  const D = () => window.Draw;
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const store = { items: [], active: null, seq: 1 };   // items: models (id, frame, isMidship, nodes, panels, …)
+
+  function nextId() { let id; do { id = 'S' + (store.seq++); } while (store.items.some(m => m.id === id)); return id; }
+  // make sure the active model is registered and carries an id
+  function adopt() {
+    const cur = D() && D().getSection ? D().getSection() : null; if (!cur) return null;
+    if (!cur.id) cur.id = store.active || nextId();   // a regenerated model replaces the active one
+    const i = store.items.findIndex(m => m.id === cur.id);
+    if (i < 0) store.items.push(cur); else store.items[i] = cur;
+    store.active = cur.id;
+    return cur;
+  }
+  function list() { adopt(); return store.items.map(m => ({ id: m.id, frame: m.frame, isMidship: m.isMidship !== false, active: m.id === store.active })); }
+  function activeId() { adopt(); return store.active; }
+
+  function afterSwitch() {
+    const s = D().getSection();
+    if (window.SectionAdapter) { try { SectionAdapter.apply(s); } catch (e) { console.warn('[Sections] adapter', e); } }
+    if (window.ScantlingPanels) { const st = ScantlingPanels.state; st.gid = null; st.strake = null; st.group = null; st.exc = null; }
+    if (window.SectionCAD && SectionCAD.resetSelection) SectionCAD.resetSelection();
+    try { D().render(); } catch (_) {}
+    try { window.Project && window.Project.saveLocal && window.Project.saveLocal(); } catch (_) {}
+    try { window.dispatchEvent(new CustomEvent('midship:section-switched', { detail: { id: store.active } })); } catch (_) {}
+  }
+  function activate(id) {
+    adopt(); const m = store.items.find(x => x.id === id); if (!m || id === store.active) return false;
+    store.active = id; D().setSection(clone(m)); afterSwitch(); return true;
+  }
+  // A new section: the parametric section of the Main particulars (fresh layout).
+  function create() {
+    adopt();
+    const m = window.SectionModel ? SectionModel.generate({ GEOMETRY: D().__cad.GEOMETRY(), PARAMS: D().__cad.PARAMS(), SIDE_GIRDERS: D().SIDE_GIRDERS || [], stringerZs: [], tweenZs: [] }) : null;
+    if (!m) return null;
+    m.id = nextId(); m.manual = true; m.frame = null; m.isMidship = false;
+    store.items.push(m); store.active = m.id; D().setSection(m); afterSwitch(); return m.id;
+  }
+  function duplicate(id) {
+    adopt(); const src = store.items.find(x => x.id === id); if (!src) return null;
+    const m = clone(id === store.active ? D().getSection() : src); m.id = nextId(); m.frame = null; m.isMidship = false;
+    const i = store.items.findIndex(x => x.id === id); store.items.splice(i + 1, 0, m);
+    store.active = m.id; D().setSection(m); afterSwitch(); return m.id;
+  }
+  function remove(id) {
+    adopt(); if (store.items.length < 2) return false;
+    const i = store.items.findIndex(x => x.id === id); if (i < 0) return false;
+    store.items.splice(i, 1);
+    if (store.active === id) { const nxt = store.items[Math.min(i, store.items.length - 1)]; store.active = nxt.id; D().setSection(clone(nxt)); afterSwitch(); }
+    else { try { window.Project && window.Project.saveLocal && window.Project.saveLocal(); } catch (_) {} try { window.dispatchEvent(new CustomEvent('midship:section-switched', { detail: { id: store.active } })); } catch (_) {} }
+    return true;
+  }
+  // project file
+  function exportState() { adopt(); return { active: store.active, items: store.items.map(m => m.id === store.active ? D().getSection() : m) }; }
+  function importState(S) {
+    store.items = []; store.active = null; store.seq = 1;
+    if (S && Array.isArray(S.items) && S.items.length) {
+      S.items.forEach(m => { if (m && Array.isArray(m.panels)) { if (!m.id) m.id = nextId(); store.items.push(m); } });
+      const act = store.items.find(m => m.id === S.active) || store.items[0];
+      if (act) { store.active = act.id; D().setSection(clone(act)); const n = parseInt(String(act.id).slice(1)); if (n >= store.seq) store.seq = n + 1; store.items.forEach(m => { const k = parseInt(String(m.id).slice(1)); if (k >= store.seq) store.seq = k + 1; }); return true; }
+    }
+    return false;
+  }
+  function label(m) {
+    const fr = m && m.frame != null && String(m.frame).trim() !== '' ? 'Fr. ' + String(m.frame).trim() : null;
+    const mid = !m || m.isMidship !== false;
+    return { name: fr || (mid ? 'Midship' : 'Section ' + String(m.id || '').replace(/^S/, '')), sub: mid ? (fr ? 'midship' : '') : '' };
+  }
+  window.Sections = { list, activeId, activate, create, duplicate, remove, exportState, importState, label, adopt };
+})();
