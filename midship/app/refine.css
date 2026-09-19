@@ -1243,3 +1243,9 @@ body.chrome-geometry #modeIndicator{display:none}
 body.chrome-geometry #undoBtn,body.chrome-geometry #redoBtn{font-size:0 !important}
 body.chrome-geometry #undoBtn::before,body.chrome-geometry #redoBtn::before{font-size:0.8rem;line-height:1}
 .mb-panelbar .sp-pick{width:100%}
+/* no native spinners / arrows — one quiet chevron for every select, none for numbers */
+.ed-input[type=number]::-webkit-inner-spin-button,.ed-input[type=number]::-webkit-outer-spin-button,.ea-input[type=number]::-webkit-inner-spin-button,.ea-input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.ed-input[type=number],.ea-input[type=number]{-moz-appearance:textfield;appearance:textfield}
+select.ed-input{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M1 2.5l3 3 3-3' fill='none' stroke='%2364748b' stroke-width='1.2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:18px !important}
+select.ed-input:focus{outline:none;border-color:#3b82f6}
+.ed-input:focus{outline:none;border-color:#3b82f6;box-shadow:none}
