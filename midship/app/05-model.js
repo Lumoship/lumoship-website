@@ -507,6 +507,15 @@
     if (d && d.stiffGroups) { let prev = null; d.stiffGroups.forEach(g => { const r = groupPositions(model, gid, g, prev); if (r.placed.length) prev = Math.max(...r.placed); r.placed.forEach(x => out.push({ x, kind: 'stiff', id: g.id })); }); }
     return out.sort((a, b) => a.x - b.x);
   }
+  // A seam at x that lands within `clear` of an obstacle pulls back to `clear` before
+  // it (the plate shortens, as in the yard); only when that would leave a sliver
+  // (< 500 mm from the previous seam) does it step past the member instead.
+  function seamPullBack(obs, x, clear, prev) {
+    for (const o of obs) {
+      if (Math.abs(x - o) < clear) { const dn = o - clear; return dn > (prev || 0) + 500 ? dn : o + clear; }
+    }
+    return x;
+  }
   // Plates of a preferred width along the panel; a seam that would land within
   // `clear` mm of an obstacle is shifted past it. Thickness / grade are taken from
   // whatever strake covered that spot before (else null / grade default).
@@ -517,7 +526,7 @@
     const d = panelData(model, gid); const old = d.strakes.slice(); const oldAt = x => { let acc = 0; for (const st of old) { acc += st.len || 0; if (x <= acc) return st; } return old[old.length - 1] || null; };
     const seams = [];
     let x = 0;
-    const avoid = v => { for (const o of obs) { if (Math.abs(v - o) < clear) { const up = o + clear, dn = o - clear; return (Math.abs(up - v) <= Math.abs(dn - v) || dn <= (seams[seams.length - 1] || 0) + 500) ? up : dn; } } return v; };
+    const avoid = v => seamPullBack(obs, v, clear, seams[seams.length - 1] || 0);
     if (keel > 0 && keel < L - 500) { const k = Math.round(avoid(keel) / 10) * 10; seams.push(k); x = k; }   // keel seam clear of the duct / centre girder too
     let guard = 0;
     while (L - x > W + 500 && guard++ < 200) {
@@ -611,6 +620,6 @@
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
     addLine, addArc, removePanel, splitPanel, moveNode, removeNode, setCurve, validate,
-    chainOf, chainInfo, chainPointAt, chainDistanceOf, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, chainObstacles, autoStrakes, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
+    chainOf, chainInfo, chainPointAt, chainDistanceOf, chainPolyline, panelData, migratePanelData, groupPositions, spanAt, chainObstacles, autoStrakes, seamPullBack, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();

@@ -96,19 +96,15 @@
     h += `<div class="mb"><div class="mb-title">Strakes <em class="mb-em">${arr.length} · ${fmt(ci.L)} mm</em></div>
       ${tools([{ k: 'st-add', i: '＋', t: 'Split the selected strake in two (the panel length stays)' }, { k: 'st-copy', i: '⧉', t: 'Split the selected strake keeping its thickness and grade', off: state.strake == null }, { k: 'st-del', i: '✕', t: 'Delete the selected strake (its length goes to the neighbour)', off: state.strake == null }, { k: 'st-prev', i: '‹', t: 'Previous', off: state.strake == null }, { k: 'st-next', i: '›', t: 'Next', off: state.strake == null }, { k: 'st-fit', i: '⇥', t: 'Fit the last strake so lengths add up', off: !arr.length || Math.abs(diff) <= 5 }])}
       <div class="mb-auto"><span>Auto layout</span>
-        <select class="ed-input sp-autow" title="Standard plate width">${[1980, 2480, 2980].map(w => `<option value="${w}" ${(state.autoW || 2480) === w ? 'selected' : ''}>${w} mm</option>`).join('')}</select>
+        <select class="ed-input sp-autow" title="Preferred plate width — used by the automatic layout and by ＋ when splitting">${[1980, 2480, 2980].map(w => `<option value="${w}" ${(state.autoW || 2480) === w ? 'selected' : ''}>${w} mm</option>`).join('')}</select>
         <input class="ed-input sp-autoc" type="number" step="10" min="50" value="${state.autoC || 100}" title="Seam clearance from nodes and stiffeners (min 50, recommended 100 mm)"><em>mm clear</em>
         <button class="ed-link-btn on" data-sp="st-auto" title="Lay the panel out in plates of this width; seams keep clear of girders, decks and stiffeners">Apply</button></div>
-      <div class="mb-table"><div class="mb-th sp-st-th"><span>ID</span><span>t (mm)</span><span>From</span><span>To</span><span>Grade</span></div>`;
+      <div class="mb-table"><div class="mb-th sp-st-th"><span>ID</span><span>t (mm)</span><span>Length</span><span>Grade</span></div>`;
     let acc = 0;
     const autoG = ctx.defaultGrade(s, gid);
-    arr.forEach((st, i) => { const from = acc; acc += st.len || 0; h += `<div class="mb-tr sp-st-th ${state.strake === i ? 'is-sel' : ''}" data-st="${i}" title="length ${fmt(st.len || 0)} mm"><span>${i + 1}</span><span style="color:${ctx.tColor(st.t)}">${st.t != null ? st.t : '—'}</span><span>${fmt(from)}</span><span>${fmt(acc)}</span><span class="sp-grade ${st.grade ? '' : 'is-auto'}" data-g="${i}" title="${st.grade ? 'Material grade — click to change' : 'Automatic (' + autoG + ' from the zone material) — click to set'}">${st.grade || autoG}</span></div>`; });
-    if (!arr.length) h += `<div class="mb-empty-row">no strakes yet — ＋ adds one, ⤓ fills from the automatic layout</div>`;
+    arr.forEach((st, i) => { const from = acc; acc += st.len || 0; h += `<div class="mb-tr sp-st-th ${state.strake === i ? 'is-sel' : ''}" data-st="${i}" title="length ${fmt(st.len || 0)} mm"><span>${i + 1}</span><span style="color:${ctx.tColor(st.t)}">${st.t != null ? st.t : '—'}</span><span class="sp-len" data-l="${i}" title="${fmt(from)} → ${fmt(acc)} mm — click to edit; the neighbour adjusts">${fmt(st.len || 0)}</span><span class="sp-grade ${st.grade ? '' : 'is-auto'}" data-g="${i}" title="${st.grade ? 'Material grade — click to change' : 'Automatic (' + autoG + ' from the zone material) — click to set'}">${st.grade || autoG}</span></div>`; });
+    if (!arr.length) h += `<div class="mb-empty-row">no strakes yet — ＋ adds one, Auto layout fills the panel</div>`;
     h += `</div><div class="mb-sum ${Math.abs(diff) <= 5 ? 'ok' : diff > 0 ? 'warn' : 'bad'}">Σ ${fmt(sum)} / ${fmt(ci.L)} mm ${Math.abs(diff) <= 5 ? '✓' : diff > 0 ? '· ' + diff + ' mm short' : '· ' + (-diff) + ' mm over'}</div>`;
-    // seam clearance: a seam on top of a girder / deck / stiffener cannot be built
-    const obs = M().chainObstacles ? M().chainObstacles(s, gid) : []; const seamIssues = [];
-    { let x = 0; arr.forEach((st, i) => { x += st.len || 0; if (i === arr.length - 1) return; let best = null; obs.forEach(o => { const d = Math.abs(o.x - x); if (!best || d < best.d) best = { d, o }; }); if (best && best.d < 100) seamIssues.push({ i, x, d: best.d, o: best.o }); }); }
-    seamIssues.forEach(si => { h += `<div class="mb-sum ${si.d < 50 ? 'bad' : 'warn'}" style="padding-top:0">seam ${si.i + 1}|${si.i + 2} at ${fmt(si.x)} mm is ${fmt(si.d)} mm from ${si.o.kind === 'node' ? 'node ' + si.o.id : 'stiffener (' + si.o.id + ')'} — ${si.d < 50 ? 'cannot be built (min 50)' : 'below the recommended 100'}</div>`; });
     h += `</div>`;
     if (state.strake != null && arr[state.strake]) {
       const st = arr[state.strake]; const x0 = sumLen(arr.slice(0, state.strake)), x1 = x0 + (st.len || 0);
@@ -116,8 +112,6 @@
       h += `<div class="mb-editor">
         <div class="mb-row"><span>From → To</span><span>${fmt(x0)} → ${fmt(x1)} mm${seg ? ' · ' + ctx.posLabel(seg.position) : ''}</span></div>
         <div class="mb-row"><span>Thickness</span><span class="pc-inline"><input class="ed-input sp-s" data-k="t" type="number" step="0.5" min="3" value="${st.t != null ? st.t : ''}"><em>mm</em></span></div>
-        <div class="mb-row"><span>Length</span><span class="pc-inline"><input class="ed-input sp-s" data-k="len" type="number" step="10" min="10" max="${fmt(ci.L)}" value="${fmt(st.len || 0)}"><em>mm · neighbour adjusts</em></span></div>
-        <div class="mb-row"><span>Material</span><select class="ed-input sp-s" data-k="grade"><option value="" ${!st.grade ? 'selected' : ''}>auto · ${autoG}</option>${GRADES.map(g => `<option value="${g}" ${st.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
         <div class="mb-row"><span>User ID</span><input class="ed-input sp-s" data-k="uid" type="text" value="${st.uid || ''}" placeholder="optional"></div>
         <div class="mb-split">
           <div class="mb-box"><div class="mb-box-title">Hole</div>
@@ -137,31 +131,51 @@
       const items = [{ value: '', short: 'auto', label: autoG + ' · zone material' }].concat(GRADES.map(g => ({ value: g, short: g, label: yieldOf(g) })));
       ctx.popupMenu(el, items, arr[i].grade || '', v => mut(dd => { if (dd.strakes[i]) dd.strakes[i].grade = v || null; }));
     }));
+    // the panel length is fixed: what one strake gains its neighbour gives (next, else previous)
+    const setLen = (dd, i, v) => {
+      const st = dd.strakes[i]; if (!st || isNaN(v)) return;
+      const nb = dd.strakes[i + 1] || dd.strakes[i - 1]; const old = st.len || 0;
+      let nv = Math.max(10, Math.round(v / 10) * 10);
+      if (nb) { const room = (nb.len || 0) - 10; nv = Math.min(nv, old + room); nb.len = (nb.len || 0) - (nv - old); }
+      else nv = Math.round(ci.L);
+      st.len = nv;
+    };
+    ec.querySelectorAll('.sp-len').forEach(el => el.addEventListener('click', e => {
+      e.stopPropagation(); const i = +el.dataset.l; if (el.querySelector('input')) return;
+      state.strake = i; ec.querySelectorAll('[data-st]').forEach(r => r.classList.toggle('is-sel', +r.dataset.st === i));
+      const inp = document.createElement('input'); inp.className = 'ed-input sp-len-in'; inp.type = 'number'; inp.step = 10; inp.min = 10; inp.value = fmt(arr[i].len || 0);
+      el.textContent = ''; el.appendChild(inp); inp.focus(); inp.select();
+      let done = false; const fin = ok => { if (done) return; done = true; if (ok) mut(dd => setLen(dd, i, parseFloat(inp.value))); else ctx.refresh(); };
+      inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') fin(true); else if (ev.key === 'Escape') fin(false); ev.stopPropagation(); });
+      inp.addEventListener('blur', () => fin(true)); inp.addEventListener('click', ev => ev.stopPropagation());
+    }));
     ec.querySelectorAll('.sp-s').forEach(i => i.addEventListener('change', e => mut(dd => {
       const st = dd.strakes[state.strake]; if (!st) return; const k = e.target.dataset.k;
       if (k === 'grade') { st.grade = e.target.value || null; return; }
       if (k === 'uid') { st[k] = e.target.value; return; }
       const v = parseFloat(e.target.value);
       if (k !== 'len') { st[k] = isNaN(v) ? null : v; return; }
-      // the panel length is fixed: what one strake gains its neighbour gives (next, else previous)
-      if (isNaN(v)) return;
-      const nb = dd.strakes[state.strake + 1] || dd.strakes[state.strake - 1]; const old = st.len || 0;
-      let nv = Math.max(10, Math.round(v / 10) * 10);
-      if (nb) { const room = (nb.len || 0) - 10; nv = Math.min(nv, old + room); nb.len = (nb.len || 0) - (nv - old); }
-      else nv = Math.round(ci.L);
-      st.len = nv;
+      setLen(dd, state.strake, v);
     })));
     ec.querySelectorAll('.sp-h').forEach(i => i.addEventListener('change', e => mut(dd => { const st = dd.strakes[state.strake]; if (!st) return; st.hole = st.hole || { b: 0, loc: 0 }; st.hole[e.target.dataset.k] = parseFloat(e.target.value) || 0; if (!st.hole.b) st.hole = null; })));
     ec.querySelectorAll('.sp-type').forEach(i => i.addEventListener('change', e => mut(dd => { const st = dd.strakes[state.strake]; if (st) st.type = e.target.value; })));
+    const aw = ec.querySelector('.sp-autow'); if (aw) aw.addEventListener('change', () => { state.autoW = parseFloat(aw.value) || 2480; });
     ec.querySelectorAll('[data-sp]').forEach(b => b.addEventListener('click', () => {
       const k = b.dataset.sp; if (k.startsWith('pnl')) return;
       const grade = ctx.defaultGrade(s, gid);
       switch (k) {
-        case 'st-add': mut(dd => {
+        case 'st-add': mut((dd, m) => {
           if (!dd.strakes.length) { dd.strakes.push({ len: Math.round(ci.L), t: null, grade, type: 'ordinary', hole: null }); state.strake = 0; return; }
-          // split: the selected (else the last) strake becomes two halves — no length is added
+          // split: the selected (else the last) strake gives a plate of the preferred width
+          // (Auto layout choice) and keeps the rest; halves when it is too short for that
           const i = state.strake != null ? state.strake : dd.strakes.length - 1; const st = dd.strakes[i];
-          const a = Math.max(10, Math.round((st.len || 0) / 2 / 10) * 10); const b = (st.len || 0) - a; if (b < 10) return;
+          const W = parseFloat((ec.querySelector('.sp-autow') || {}).value) || state.autoW || 2480;
+          const C = Math.max(50, parseFloat((ec.querySelector('.sp-autoc') || {}).value) || 100);
+          let a = (st.len || 0) > W + 10 ? W : Math.max(10, Math.round((st.len || 0) / 2 / 10) * 10);
+          // the new seam keeps clear of girders / decks / stiffeners: pull back, never forward
+          const x0 = sumLen(dd.strakes.slice(0, i)); const obs = M().chainObstacles(m, gid).map(o => o.x);
+          a = Math.max(10, Math.round(M().seamPullBack(obs, x0 + a, C, x0) - x0));
+          const b = (st.len || 0) - a; if (b < 10) return;
           st.len = a; dd.strakes.splice(i + 1, 0, { len: b, t: st.t, grade: st.grade, type: st.type || 'ordinary', hole: null }); state.strake = i + 1;
         }); break;
         case 'st-copy': mut(dd => { const i = state.strake; const st = dd.strakes[i]; if (!st) return; const a = Math.max(10, Math.round((st.len || 0) / 2 / 10) * 10); const b = (st.len || 0) - a; if (b < 10) return; const c = JSON.parse(JSON.stringify(st)); st.len = a; c.len = b; dd.strakes.splice(i + 1, 0, c); state.strake = i + 1; }); break;

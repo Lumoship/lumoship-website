@@ -724,6 +724,7 @@
       return;
     }
     const s = S(); if (!s) return;
+    renderMsgPane();
     if (inPositions()) { renderPositionsPanel(ec, s); return; }
     if (SP()) { M().migratePanelData(s);
       if (inStrakes()) { SP().renderStrakes(ec, s, panelsCtx()); return; }
@@ -1191,6 +1192,68 @@
   const INFO_KEY = 'midship_infocard';
   function infoState() { try { return JSON.parse(localStorage.getItem(INFO_KEY) || '{}'); } catch (_) { return {}; } }
   function fmtM(n) { n = +n || 0; const a = Math.abs(n); return a >= 1e6 ? (n / 1e6).toFixed(2) + '·10⁶' : a >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : n.toFixed(0); }
+  // ---------------------------------------------------------------- messages pane
+  // Errors (cannot be built / blocks the analysis) and warnings of the current step,
+  // for every panel, with a target to select when clicked.
+  function collectMessages(s) {
+    const out = []; const gids = Object.keys(s.groups || {});
+    const name = gid => s.groups[gid] || gid;
+    if (inStrakes()) {
+      gids.forEach(gid => {
+        const d = M().panelData(s, gid); const ci = M().chainInfo(s, gid); if (!ci.L) return;
+        if (!d.strakes.length) { out.push({ level: 'warn', where: name(gid), text: 'no strakes yet', gid }); return; }
+        const sum = d.strakes.reduce((a, x) => a + (x.len || 0), 0), diff = Math.round(ci.L - sum);
+        if (Math.abs(diff) > 5) out.push({ level: 'bad', where: name(gid), text: 'strakes add up to ' + fmt(sum) + ' of ' + fmt(ci.L) + ' mm (' + (diff > 0 ? diff + ' short' : (-diff) + ' over') + ')', gid, strake: d.strakes.length - 1 });
+        d.strakes.forEach((st, i) => { if (st.t == null) out.push({ level: 'bad', where: name(gid), text: 'strake ' + (i + 1) + ' has no thickness', gid, strake: i }); });
+        const obs = M().chainObstacles(s, gid); let x = 0;
+        d.strakes.forEach((st, i) => {
+          x += st.len || 0; if (i === d.strakes.length - 1) return;
+          let best = null; obs.forEach(o => { const dd = Math.abs(o.x - x); if (!best || dd < best.d) best = { d: dd, o }; });
+          if (best && best.d < 100) out.push({ level: best.d < 50 ? 'bad' : 'warn', where: name(gid), text: 'seam ' + (i + 1) + '|' + (i + 2) + ' at ' + fmt(x) + ' mm is ' + fmt(best.d) + ' mm from ' + (best.o.kind === 'node' ? 'node ' + best.o.id : 'stiffener ' + best.o.id) + ' — ' + (best.d < 50 ? 'cannot be built (min 50)' : 'below the recommended 100'), gid, strake: i });
+        });
+      });
+    } else if (inStiffs()) {
+      gids.forEach(gid => {
+        const d = M().panelData(s, gid); let prev = null;
+        d.stiffGroups.forEach(g => {
+          const r = M().groupPositions(s, gid, g, prev); if (r.placed.length) prev = Math.max(...r.placed);
+          if (r.dropped.length) out.push({ level: 'warn', where: name(gid), text: g.id + ': ' + r.dropped.length + ' of ' + g.count + ' do not fit on the panel', gid, group: g.id });
+          if (!g.profile) out.push({ level: 'bad', where: name(gid), text: g.id + ' has no profile size', gid, group: g.id });
+        });
+      });
+    } else if (inComps()) {
+      (s.compartments || []).forEach(c => {
+        if (!compLoop(s, c)) out.push({ level: 'bad', where: c.name || c.id, text: 'boundary is open — pick the nodes round the space', comp: c.id });
+        const T = compType(c.type); if (T.tank && !(c.airpipe_mm > 0)) out.push({ level: 'warn', where: c.name || c.id, text: 'no air pipe height — deep-tank head falls back to the tank top', comp: c.id });
+      });
+    }
+    return out;
+  }
+  let msgsCollapsed = false;
+  function renderMsgPane() {
+    const host = document.getElementById('svgContainer'); if (!host) return;
+    let pane = document.getElementById('cadMsgPane');
+    const s = S(); const msgs = (s && (inStrakes() || inStiffs() || inComps())) ? collectMessages(s) : [];
+    if (!msgs.length) { if (pane) pane.style.display = 'none'; return; }
+    if (!pane) {
+      pane = document.createElement('div'); pane.id = 'cadMsgPane'; pane.className = 'cad-msgs'; host.appendChild(pane);
+      pane.addEventListener('click', e => {
+        const head = e.target.closest('.cad-msgs-head'); if (head) { msgsCollapsed = !msgsCollapsed; pane.classList.toggle('collapsed', msgsCollapsed); return; }
+        const row = e.target.closest('.cad-msg'); if (!row) return;
+        const m = pane.__msgs[+row.dataset.i]; if (!m) return;
+        const st = SP() ? SP().state : null;
+        if (m.gid && st) { if (st.gid !== m.gid) { st.gid = m.gid; st.strake = null; st.group = null; st.exc = null; } if (m.strake != null) st.strake = m.strake; if (m.group) st.group = m.group; sel = { panel: null, node: null, group: m.gid }; }
+        if (m.comp) selComp = m.comp;
+        renderSvg(); renderPanel();
+        const target = m.strake != null ? `.mb-tr[data-st="${m.strake}"]` : m.group ? `.mb-tr[data-sg="${m.group}"]` : m.comp ? `.pos-row[data-row="${m.comp}"]` : null;
+        if (target) { const r = document.querySelector(target); if (r) r.scrollIntoView({ block: 'nearest' }); }
+      });
+    }
+    pane.__msgs = msgs; pane.style.display = ''; pane.classList.toggle('collapsed', msgsCollapsed);
+    const nb = msgs.filter(m => m.level === 'bad').length, nw = msgs.length - nb;
+    pane.innerHTML = `<div class="cad-msgs-head"><span>Messages</span>${nb ? `<b class="n-bad">${nb} error${nb > 1 ? 's' : ''}</b>` : ''}${nw ? `<b class="n-warn">${nw} warning${nw > 1 ? 's' : ''}</b>` : ''}<span class="chev">${msgsCollapsed ? '▴' : '▾'}</span></div>
+      <div class="cad-msgs-body">${msgs.map((m, i) => `<div class="cad-msg ${m.level}" data-i="${i}"><span class="dot"></span><span class="where">${m.where}</span><span class="txt">${m.text}</span></div>`).join('')}</div>`;
+  }
   function renderInfoCard() {
     const host = document.getElementById('svgContainer'); if (!host) return;
     let card = document.getElementById('cadInfoCard');
@@ -1275,11 +1338,11 @@
     const v = B().viewMode(); mode = CAD_MODES.includes(v) ? v : 'section';
     if (mode !== 'section') { tool = 'select'; pending = []; arcAsk = null; }
     if (mode !== 'compartments') compPick = false;
-    init(); show(true); ensureToolbar(); renderSvg(); renderInfoCard();
+    init(); show(true); ensureToolbar(); renderSvg(); renderInfoCard(); renderMsgPane();
     const hd = document.querySelector('.editor-header-title');
     if (hd) hd.textContent = ({ section: 'Section', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Section';
   }
-  function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
+  function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
   window.SectionCAD = { render, renderPanel, leave, setTool, seedCompsInto, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
 })();
