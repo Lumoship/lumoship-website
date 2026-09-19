@@ -1380,3 +1380,20 @@ body.cad-mode .cad-msgs.closed{background:none;border:none;backdrop-filter:none;
 .cad-msg.ok{cursor:default}
 .cad-msg.ok .dot{background:var(--success,#22c55e)}
 .cad-msg.ok .txt{color:var(--text-muted)}
+
+/* ── Second nav row: the section steps, smaller, same language as the bar ─────── */
+#subBar{display:flex;justify-content:center;align-items:center;margin:0 12px -2px;padding:0 12px;min-height:22px;background:transparent;border:none;box-shadow:none}
+.ea-subwizard{display:flex;align-items:center;gap:2px}
+.ea-sub-step{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:none;background:transparent;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.6rem;font-weight:500;letter-spacing:0.03em;color:var(--text-muted);cursor:pointer;transition:color .16s ease,background-color .16s ease}
+.ea-sub-step:hover{color:var(--text-secondary);background:rgba(255,255,255,0.03)}
+.ea-sub-step i{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--border-strong,#475569);background:transparent;transition:all .18s ease}
+.ea-sub-step.completed i{border-color:var(--success,#22c55e);background:var(--success,#22c55e)}
+.ea-sub-step.completed{color:var(--text-secondary)}
+.ea-sub-step.active{color:var(--accent,#60a5fa)}
+.ea-sub-step.active i{border-color:#2563eb;background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.25)}
+.ea-sub-step.incomplete:not(.active) i{border-color:var(--warning);background:transparent;box-shadow:0 0 0 2px rgba(245,158,11,0.25)}
+.ea-sub-step.incomplete:not(.active){color:var(--warning)}
+.ea-sub-step + .ea-sub-step{position:relative;margin-left:14px}
+.ea-sub-step + .ea-sub-step::before{content:'';position:absolute;left:-10px;top:50%;width:8px;height:1px;background:var(--border-soft)}
+.ea-subwizard.is-off .ea-sub-step:not(.completed):not(.incomplete){opacity:0.55}
+body.chrome-form #subBar{margin-top:4px}

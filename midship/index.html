@@ -286,17 +286,16 @@
     <nav class="ea-wizard" aria-label="Design steps">
       <button class="ea-wizard-step active" data-step="1" onclick="goToStep(1)" title="Identification, main dimensions, loads, materials, ice"><span class="ea-wizard-num">1</span> Main particulars</button>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="2" onclick="goToStep(2)" title="Section geometry parameters"><span class="ea-wizard-num">2</span> Section</button>
+      <button class="ea-wizard-step" data-step="2" data-group="sections" onclick="goToSections()" title="Section geometry, supports, strakes, stiffeners, compartments"><span class="ea-wizard-num">2</span> Sections</button>
       <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="3" onclick="goToStep(3)" title="Primary supports and stiffener spans per panel"><span class="ea-wizard-num">3</span> Supports</button>
-      <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="4" onclick="goToStep(4)" title="Strake layout, thickness and grade"><span class="ea-wizard-num">4</span> Strakes</button>
-      <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="5" onclick="goToStep(5)" title="Stiffener spacing and profile sizes"><span class="ea-wizard-num">5</span> Stiffeners</button>
-      <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="6" onclick="goToStep(6)" title="Tanks and spaces: type, density, air pipe, boundary panels"><span class="ea-wizard-num">6</span> Compartments</button>
-      <div class="ea-wizard-line"></div>
-      <button class="ea-wizard-step" data-step="7" onclick="goToStep(7)" title="Rule check summary and report"><span class="ea-wizard-num">7</span> Check</button>
+      <button class="ea-wizard-step" data-step="7" onclick="goToStep(7)" title="Rule check summary and report"><span class="ea-wizard-num">3</span> Check</button>
+    </nav>
+    <nav class="ea-subwizard" aria-label="Section steps">
+      <button class="ea-sub-step" data-step="2" onclick="goToStep(2)" title="Section geometry: nodes, panels, positions"><i></i>Geometry</button>
+      <button class="ea-sub-step" data-step="3" onclick="goToStep(3)" title="Primary supports and stiffener spans per panel"><i></i>Supports</button>
+      <button class="ea-sub-step" data-step="4" onclick="goToStep(4)" title="Strake layout, thickness and grade"><i></i>Strakes</button>
+      <button class="ea-sub-step" data-step="5" onclick="goToStep(5)" title="Stiffener spacing and profile sizes"><i></i>Stiffeners</button>
+      <button class="ea-sub-step" data-step="6" onclick="goToStep(6)" title="Tanks and spaces: type, density, air pipe, boundary"><i></i>Compartments</button>
     </nav>
   </div>
 </header>

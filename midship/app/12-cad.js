@@ -1368,7 +1368,7 @@
     if (mode !== 'compartments') compPick = false;
     init(); show(true); ensureToolbar(); renderSvg(); renderInfoCard(); renderMsgPane();
     const hd = document.querySelector('.editor-header-title');
-    if (hd) hd.textContent = ({ section: 'Section', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Section';
+    if (hd) hd.textContent = ({ section: 'Geometry', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Geometry';
   }
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 

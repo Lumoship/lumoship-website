@@ -19,7 +19,7 @@
     { n: 1, key: 'ship',       label: 'Main particulars',       page: 1,
       title: 'Ship particulars',
       hint: 'Identification, class, main dimensions, still-water bending moments, material family, ice class. Everything the rules need before a section exists.' },
-    { n: 2, key: 'section',    label: 'Section',    page: 3, tab: 'geometry', view: 'section',
+    { n: 2, key: 'section',    label: 'Geometry',   page: 3, tab: 'geometry', view: 'section',
       title: 'Section geometry',
       hint: 'Lines and nodes only. Start from the Ship Geometry parameters, add girders / decks with Add panel, or draw with the Line, Arc and Node tools. Set bending / shear efficiency and watertightness per panel.' },
     { n: 3, key: 'supports',   label: 'Supports',   page: 3, tab: null, view: 'supports',
@@ -279,22 +279,36 @@
   }
 
   // ------------------------------------------------------------------- nav
+  var SECTION_STEPS = [2, 3, 4, 5, 6];
+  var openCount = function (s) { try { return (CHECKS[s] ? CHECKS[s]() : []).filter(function (i) { return !i.ok; }).length; } catch (_) { return 0; } };
   function paintNav(n) {
+    var inSections = SECTION_STEPS.indexOf(n) >= 0;
+    // main row: Main particulars · Sections (steps 2–6 as one) · Check
     document.querySelectorAll('.ea-wizard-step').forEach(function (b) {
-      var s = parseInt(b.dataset.step);
-      b.classList.toggle('active', s === n);
-      b.classList.toggle('completed', s < n);
-      // Amber ring on any step whose checklist still has open items, so a
-      // step skipped with "Next" is visible from every other step.
-      var open = 0;
-      try { open = (CHECKS[s] ? CHECKS[s]() : []).filter(function (i) { return !i.ok; }).length; } catch (_) { open = 0; }
-      // Only steps already passed get the ring; the current one has the
-      // badge, and steps not reached yet are naturally open.
-      b.classList.toggle('incomplete', open > 0 && s < n);
+      var s = parseInt(b.dataset.step); var grp = b.dataset.group === 'sections';
+      var active = grp ? inSections : s === n;
+      var done = grp ? n > 6 : (s === 1 ? n > 1 : false);
+      // Amber ring on any passed step whose checklist still has open items, so a
+      // step skipped with "Next" stays visible from every other step.
+      var open = grp ? SECTION_STEPS.reduce(function (a, k) { return a + openCount(k); }, 0) : openCount(s);
+      b.classList.toggle('active', active);
+      b.classList.toggle('completed', done);
+      b.classList.toggle('incomplete', open > 0 && done);
       var num = b.querySelector('.ea-wizard-num');
       if (num) num.title = open ? open + ' open item(s)' : 'Complete';
     });
-    document.querySelectorAll('.ea-wizard-line').forEach(function (l, i) { l.classList.toggle('completed', i < n - 1); });
+    var mainLines = document.querySelectorAll('.ea-wizard .ea-wizard-line');
+    if (mainLines[0]) mainLines[0].classList.toggle('completed', n > 1);
+    if (mainLines[1]) mainLines[1].classList.toggle('completed', n > 6);
+    // sub row: the five section steps
+    document.querySelectorAll('.ea-sub-step').forEach(function (b) {
+      var s = parseInt(b.dataset.step); var open = openCount(s);
+      b.classList.toggle('active', s === n);
+      b.classList.toggle('completed', s < n);
+      b.classList.toggle('incomplete', open > 0 && s < n);
+      b.title = b.title.replace(/ — .*$/, '') + (open ? ' — ' + open + ' open item(s)' : '');
+    });
+    var sub = document.querySelector('.ea-subwizard'); if (sub) sub.classList.toggle('is-off', !inSections);
     var back = document.querySelector('#bottomStatusBar .sb-nav-btn.back');
     var fwd = document.querySelector('#bottomStatusBar .sb-nav-btn.fwd');
     if (back) { back.textContent = '← ' + (n > 1 ? stepByN(n - 1).label : 'Back'); back.onclick = stepPrev; }
@@ -318,11 +332,19 @@
     }
     return fb;
   }
+  function subBar() {
+    var sb = document.getElementById('subBar');
+    if (!sb) { sb = document.createElement('div'); sb.id = 'subBar'; sb.className = 'chrome-bar sub-bar'; }
+    var sw = document.querySelector('.ea-subwizard'); if (sw && sw.parentElement !== sb) sb.appendChild(sw);
+    return sb;
+  }
   function arrangeChrome(onGeometry) {
     var wiz = document.querySelector('.ea-wizard'); var bar = document.querySelector('.draw-bridge-bar');
     var acts = document.querySelector('.ea-header-actions'); var header = document.querySelector('.ea-header');
     if (!wiz || !bar || !header) return;
     var fb = formBar();
+    var sub = subBar(); var after = onGeometry ? bar : fb;
+    if (after.nextElementSibling !== sub) after.insertAdjacentElement('afterend', sub);
     if (!onGeometry) {
       // form pages (Ship, Check): the same one-row bar, steps centred, files right
       var fmid = fb.querySelector('.bridge-mid'), ffiles = fb.querySelector('.bridge-files');
@@ -345,8 +367,12 @@
     }
     document.body.classList.add('chrome-geometry');
   }
+  var lastSectionStep = 2;
+  function goToSections() { goToStep(SECTION_STEPS.indexOf(current) >= 0 ? current : lastSectionStep); }
+  window.goToSections = goToSections;
   function goToStep(n) {
     var step = stepByN(n);
+    if (SECTION_STEPS.indexOf(step.n) >= 0) lastSectionStep = step.n;
     current = step.n;
     // The Check page reads the drawing state; make sure the engine has run once
     // even when the user jumps there straight from Ship.
