@@ -964,7 +964,7 @@ body.cad-mode .step-strip-badge{font-size:0.62rem}
 body.cad-mode .cad-status > span:first-child{white-space:nowrap}
 body.cad-mode .cad-status .ed-link-btn{white-space:nowrap}
 
-#midshipSVG text.cad-comp{font-family:var(--font-mono);font-size:9px;font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:3px}
+#midshipSVG text.cad-comp{font-family:var(--font-mono);font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:3px}
 #midshipSVG text.cad-comp-sub{font-family:var(--font-mono);font-size:7px;paint-order:stroke;stroke:#0f172a;stroke-width:3px;opacity:0.9}
 .cp-chip{display:inline-block;border:1px solid var(--border);border-radius:3px;padding:0 5px;margin:1px 2px 1px 0;font-family:var(--font-mono);font-size:0.58rem;cursor:pointer;color:var(--text-secondary)}
 .cp-chip:hover{border-color:var(--error);color:var(--error)}

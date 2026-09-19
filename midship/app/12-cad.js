@@ -119,6 +119,37 @@
   }
   function polyArea(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p.y * q.z - q.y * p.z; } return Math.abs(a) / 2; }
   function polyCentroid(pts) { let cy = 0, cz = 0; pts.forEach(p => { cy += p.y; cz += p.z; }); return { y: cy / pts.length, z: cz / pts.length }; }
+  function pointInPoly(pts, p) { let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a.z > p.z) !== (b.z > p.z) && p.y < (b.y - a.y) * (p.z - a.z) / (b.z - a.z) + a.y) inside = !inside; } return inside; }
+  function distToEdges(pts, p) { let d = Infinity; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; const vy = b.y - a.y, vz = b.z - a.z; const L2 = vy * vy + vz * vz || 1; const t = Math.max(0, Math.min(1, ((p.y - a.y) * vy + (p.z - a.z) * vz) / L2)); d = Math.min(d, Math.hypot(p.y - a.y - t * vy, p.z - a.z - t * vz)); } return d; }
+  // Free distance from p to the boundary along a direction (dy, dz), unit
+  function freeExtent(pts, p, dy, dz) {
+    let best = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length]; const ey = b.y - a.y, ez = b.z - a.z;
+      const den = dy * ez - dz * ey; if (Math.abs(den) < 1e-9) continue;
+      const t = ((a.y - p.y) * ez - (a.z - p.z) * ey) / den; const u = ((a.y - p.y) * dz - (a.z - p.z) * dy) / den;
+      if (t > 1e-6 && u >= -1e-6 && u <= 1 + 1e-6) best = Math.min(best, t);
+    }
+    return best === Infinity ? 0 : best;
+  }
+  // Where a label sits inside a space: the interior point farthest from the boundary
+  // (an L-shaped wing tank gets its label in the tank, not on the hold side of the
+  // corner), recentred between the walls, with the free room around it.
+  function labelSpot(pts) {
+    const ys = pts.map(q => q.y), zs = pts.map(q => q.z);
+    const y0 = Math.min(...ys), y1 = Math.max(...ys), z0 = Math.min(...zs), z1 = Math.max(...zs);
+    let best = null, bd = -1; const N = 28;
+    for (let i = 1; i < N; i++) for (let j = 1; j < N; j++) {
+      const p = { y: y0 + (y1 - y0) * i / N, z: z0 + (z1 - z0) * j / N };
+      if (!pointInPoly(pts, p)) continue; const d = distToEdges(pts, p); if (d > bd) { bd = d; best = p; }
+    }
+    if (!best) return { p: polyCentroid(pts), w: 0, h: 0 };
+    // recentre between the walls the label will sit between
+    let l = freeExtent(pts, best, -1, 0), r = freeExtent(pts, best, 1, 0); best = { y: best.y + (r - l) / 2, z: best.z };
+    let dn = freeExtent(pts, best, 0, -1), up = freeExtent(pts, best, 0, 1); best = { y: best.y, z: best.z + (up - dn) / 2 };
+    l = freeExtent(pts, best, -1, 0); r = freeExtent(pts, best, 1, 0); dn = freeExtent(pts, best, 0, -1); up = freeExtent(pts, best, 0, 1);
+    return { p: best, w: 2 * Math.min(l, r), h: 2 * Math.min(dn, up) };
+  }
   function inStiffs() { return mode === 'stiffeners'; }
   function inComps() { return mode === 'compartments'; }
   // Muted colour per position, used only in the Positions view.
@@ -282,9 +313,21 @@
           h += `<polygon points="${loop.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="${col}" fill-opacity="${isSel ? 0.22 : 0.10}" stroke="${col}" stroke-width="${isSel ? 2 : 1}" vector-effect="non-scaling-stroke" data-comp="${c.id}" style="cursor:pointer"/>`;
           if (loop.virtual) { const va = nodeById(s, loop.virtual.from), vb = nodeById(s, loop.virtual.to); const seq = [va].concat(loop.virtual.via || [], [vb]); h += `<polyline points="${seq.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
           (loop.virtualEdges || []).forEach(([va, vb]) => { h += `<line x1="${X(va.y)}" y1="${Y(va.z)}" x2="${X(vb.y)}" y2="${Y(vb.z)}" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
-          const m = polyCentroid(loop);
-          h += `<text x="${X(m.y)}" y="${Y(m.z)}" class="cad-comp" fill="${col}" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer">${c.name || c.id}</text>`;
-          if (polyArea(loop) > 4e6) h += `<text x="${X(m.y)}" y="${Y(m.z) + 11}" class="cad-comp-sub" fill="${col}" text-anchor="middle" pointer-events="none">${compType(c.type).label}${c.rho ? ' · ρ ' + c.rho : ''}</text>`;
+          // label inside the space: horizontal when the room allows, else along the
+          // longer free direction (double side), smaller down to 6 px, sub line only when it fits
+          const spot = labelSpot(loop); const m = spot.p; const sc = Math.abs(X(1000) - X(0)) / 1000 || 1e-3;
+          const name = c.name || c.id, sub = compType(c.type).label + (c.rho ? ' · ρ ' + c.rho : '');
+          const roomW = spot.w * sc - 6, roomH = spot.h * sc - 6;   // px, with a margin
+          const CH = 0.62; let fs = 9, vert = false, showSub = false;
+          const fits = (f, w, hh) => name.length * CH * f <= w && f * 1.1 <= hh;
+          const trySize = f => { if (fits(f, roomW, roomH)) { fs = f; vert = false; return true; } if (fits(f, roomH, roomW)) { fs = f; vert = true; return true; } return false; };
+          if (!trySize(9) && !trySize(8) && !trySize(7)) { trySize(6); }
+          if (!vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomW && fs * 1.1 + 9 <= roomH; }
+          else if (vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomH && fs * 1.1 + 9 <= roomW; }
+          const lx = X(m.y), ly = Y(m.z); const tr = vert ? ` transform="rotate(-90 ${lx} ${ly})"` : '';
+          const dy0 = showSub ? -3 : 3;
+          h += `<text x="${lx}" y="${ly + dy0}" class="cad-comp" fill="${col}" font-size="${fs}" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer"${tr}>${name}</text>`;
+          if (showSub) h += `<text x="${lx}" y="${ly + 8}" class="cad-comp-sub" fill="${col}" text-anchor="middle" pointer-events="none"${tr}>${sub}</text>`;
         }
         // picked nodes, numbered, while the circuit is being drawn / for the selected compartment
         if (isSel && c.nodes && c.nodes.length) c.nodes.forEach((nid, i) => { const n = nodeById(s, nid); if (!n) return; h += `<circle cx="${X(n.y)}" cy="${Y(n.z)}" r="6" fill="${col}" fill-opacity="0.9" pointer-events="none"/><text x="${X(n.y)}" y="${Y(n.z) + 3}" class="cad-pos" fill="#0f172a" text-anchor="middle" pointer-events="none" style="stroke:none">${i + 1}</text>`; });
@@ -379,8 +422,8 @@
         h += `<text x="${X(m.y) + dx}" y="${Y(m.z) + dy}" class="cad-pos" fill="${col}" ${vert ? '' : 'text-anchor="middle"'} data-panel="${pl.id}" style="cursor:pointer">${txt}</text>`;
       });
     }
-    // Selected panel length + endpoints
-    if (sel.panel) {
+    // Selected panel id (section mode only — the strake / stiffener views carry their own values)
+    if (sel.panel && (mode === 'section' || mode === 'positions')) {
       const pl = s.panels.find(p => p.id === sel.panel);
       if (pl) {
         const ln = M().panelLine(pl, s.nodes); const m = M().pointAt(ln, 0.5);
