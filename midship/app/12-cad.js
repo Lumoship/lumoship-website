@@ -106,7 +106,7 @@
   const POS_COLOR = { bottom:'#f97316', bilge:'#fb923c', side:'#ef4444', innerBottom:'#3b82f6', innerSide:'#22c55e',
     centreGirder:'#a78bfa', sideGirder:'#a855f7', stringer:'#06b6d4', tweenDeck:'#14b8a6', upperDeck:'#eab308',
     coaming:'#84cc16', coamingTop:'#facc15', longBhd:'#ec4899', deck:'#e879f9', other:'#94a3b8' };
-  let sel = { panel: null, node: null };
+  let sel = { panel: null, node: null, group: null };   // group: highlighted panel (Section step)
   let hover = null;          // { y, z, kind:'node'|'panel'|'free', nodeId, panelId }
   let pending = [];          // clicked points for line / arc
   let arcAsk = null;         // { a, b } waiting for a radius
@@ -123,6 +123,22 @@
   const SHORT = { bottom:'BTM', bilge:'BLG', side:'SS', innerBottom:'IB', innerSide:'IS', centreGirder:'CG', sideGirder:'SG',
     stringer:'STR', tweenDeck:'TD', upperDeck:'UD', coaming:'HC', coamingTop:'HCT', longBhd:'LBH', deck:'DK', other:'—' };
   const shortPos = code => SHORT[code] || code;
+
+  // Segments of a panel in chain order (walk from a free end; fall back to geometric sort).
+  function orderedSegments(s, gid) {
+    const segs = s.panels.filter(p => p.group === gid); if (segs.length < 2) return segs;
+    const deg = {}; segs.forEach(p => { deg[p.from] = (deg[p.from] || 0) + 1; deg[p.to] = (deg[p.to] || 0) + 1; });
+    const ends = Object.keys(deg).filter(k => deg[k] === 1);
+    const byKey = q => { const ln = M().panelLine(q, s.nodes); return Math.min(ln.a.z, ln.b.z) * 1e6 + Math.min(ln.a.y, ln.b.y); };
+    let start = ends.length ? ends.map(id => nodeById(s, id)).sort((a, b) => (a.z - b.z) || (a.y - b.y))[0].id : null;
+    if (!start) return segs.sort((a, b) => byKey(a) - byKey(b));
+    const out = []; const left = segs.slice(); let at = start, guard = 0;
+    while (left.length && guard++ < 500) {
+      const i = left.findIndex(p => p.from === at || p.to === at); if (i < 0) break;
+      const p = left.splice(i, 1)[0]; out.push(p); at = p.from === at ? p.to : p.from;
+    }
+    return out.concat(left.sort((a, b) => byKey(a) - byKey(b)));
+  }
 
   // Extents of the current model (fallback: parametric geometry).
   function extents() {
@@ -249,9 +265,11 @@
         // strake boundaries as small ticks
         return;
       }
-      let col = isSel ? '#3b82f6' : isHov ? '#93c5fd' : (pl.wt ? '#cbd5e1' : '#94a3b8');
+      const inGrp = !!(sel.group && pl.group === sel.group && !inPositions());
+      let col = isSel ? '#3b82f6' : isHov ? '#93c5fd' : inGrp ? '#60a5fa' : (pl.wt ? '#cbd5e1' : '#94a3b8');
       if (inPositions() && !isSel && !isHov) col = pl.position ? (POS_COLOR[pl.position] || '#94a3b8') : '#f59e0b';
-      const w = isSel ? 3.5 : isHov ? 3 : (inPositions() ? 2.5 : 2);
+      if (sel.group && !inGrp && !isSel && !isHov && !inPositions()) col = pl.wt ? '#64748b' : '#475569';   // dim the rest
+      const w = isSel ? 3.5 : isHov ? 3 : inGrp ? 3 : (inPositions() ? 2.5 : 2);
       h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
       h += `${pathOf(pl)} stroke="${col}" stroke-width="${w}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
     });
@@ -335,7 +353,11 @@
       const pl = s.panels.find(p => p.id === sel.panel);
       if (pl) {
         const ln = M().panelLine(pl, s.nodes); const m = M().pointAt(ln, 0.5);
-        h += `<text x="${X(m.y) + 8}" y="${Y(m.z) - 8}" class="cad-sel">${pl.id} · ${fmt(M().panelLength(pl, s.nodes))} mm</text>`;
+        const q2 = M().pointAt(ln, 0.51); let ty = q2.y - m.y, tz = q2.z - m.z; const nl = Math.hypot(ty, tz) || 1; ty /= nl; tz /= nl;
+        const sgn = interiorSide(pl, s); const nx = -tz * sgn, nz = ty * sgn;   // normal towards the interior
+        const off = 230; const lx = X(m.y + nx * off), ly = Y(m.z + nz * off);
+        let ang = -Math.atan2(tz, ty) * 180 / Math.PI; if (ang > 90 || ang < -90) ang += 180;   // keep text upright
+        h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${gName(s, pl.group)} · ${pl.id} · ${fmt(M().panelLength(pl, s.nodes))} mm</text>`;
       }
     }
     // Rubber band for the line / arc tool
@@ -524,9 +546,10 @@
   function placePoint(hp, s) {
     s = s || JSON.parse(JSON.stringify(S()));
     switch (tool) {
-      case 'select':
-        sel = hp.kind === 'node' ? { panel: null, node: hp.nodeId } : hp.kind === 'panel' ? { panel: hp.panelId, node: null } : { panel: null, node: null };
-        renderSvg(); renderPanel(); break;
+      case 'select': {
+        const g = hp.kind === 'panel' ? (s.panels.find(q => q.id === hp.panelId) || {}).group : null;
+        sel = hp.kind === 'node' ? { panel: null, node: hp.nodeId, group: null } : hp.kind === 'panel' ? { panel: hp.panelId, node: null, group: g } : { panel: null, node: null, group: null };
+        renderSvg(); renderPanel(); scrollToSeg(); break; }
       case 'line':
         pending.push({ y: hp.y, z: hp.z });
         if (pending.length === 2) {
@@ -545,7 +568,8 @@
         else toast('Node: click on a panel line.');
         break;
       case 'delete':
-        if (hp.kind === 'panel') { M().removePanel(s, hp.panelId); if (sel.panel === hp.panelId) sel.panel = null; commit(s); }
+        if (hp.kind === 'node') { const r = M().removeNode(s, hp.nodeId); if (r.ok) { sel = { panel: null, node: null }; commit(s); } else toast('Node: ' + r.why); }
+        else if (hp.kind === 'panel') { M().removePanel(s, hp.panelId); if (sel.panel === hp.panelId) sel.panel = null; commit(s); }
         break;
     }
   }
@@ -577,6 +601,7 @@
     if (mode !== 'section') return;
     const t = TOOLS.find(x => x.k.toLowerCase() === k); if (t) { setTool(t.key); e.preventDefault(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel.panel) { const s = JSON.parse(JSON.stringify(S())); M().removePanel(s, sel.panel); sel.panel = null; commit(s); }
+    else if ((e.key === 'Delete' || e.key === 'Backspace') && sel.node) { const s = JSON.parse(JSON.stringify(S())); const r = M().removeNode(s, sel.node); if (r.ok) { sel.node = null; commit(s); } else toast('Node: ' + r.why); }
   }
   function toast(msg) { if (typeof window.eaToast === 'function') window.eaToast(msg); else console.log('[CAD]', msg); }
 
@@ -638,6 +663,59 @@
       <div class="ed-row"><span class="ed-id" style="min-width:96px">Midship</span><span class="cad-seg"><button class="${s.isMidship !== false ? 'on' : ''}" data-cad="mid-on">Midship</button><button class="${s.isMidship === false ? 'on' : ''}" data-cad="mid-off">Other</button></span></div>
     </div>`;
 
+    // Panels: every named run as an accordion row (name · segments · length · chevron).
+    // Header click highlights the whole panel on the drawing and lists its segments in
+    // chain order; a segment click opens its properties.
+    {
+      const gids = Object.keys(s.groups || {});
+      h += `<div class="pc-list"><div class="pc-list-head">Panels <span class="ed-count">(${gids.length})</span></div>`;
+      gids.forEach(gid => {
+        const segs = orderedSegments(s, gid);
+        const Ltot = segs.reduce((a_, q) => a_ + M().panelLength(q, s.nodes), 0);
+        const open = sel.group === gid;
+        h += `<div class="pc ${open ? 'open' : ''}" data-pc-group="${gid}"><div class="pc-head" data-pc-head="${gid}">
+            <input class="pc-name cad-gname" data-gid="${gid}" type="text" value="${gName(s, gid)}" title="Panel name — click to rename">
+            <span class="pc-meta">${segs.length} seg</span><span class="pc-meta">${fmt(Ltot)} mm</span><span class="pc-chev">${open ? '▾' : '▸'}</span></div>`;
+        if (open) {
+          const groupOpts = gids.map(id => `<option value="${id}" ${gid === id ? 'selected' : ''}>${gName(s, id)}</option>`).join('') + '<option value="__new">+ new panel…</option>';
+          segs.forEach((q, i) => {
+            const a = nodeById(s, q.from), b = nodeById(s, q.to), L = M().panelLength(q, s.nodes), isSel = q.id === sel.panel;
+            h += `<div class="pc-seg ${isSel ? 'open' : ''}" data-pc-seg="${q.id}">
+              <div class="pc-seg-head"><span class="pc-i">${i + 1}</span><span class="pc-nodes">${q.from} → ${q.to}</span><span class="pc-len">${fmt(L)} mm</span><span class="pc-pos" style="color:${q.position ? (POS_COLOR[q.position] || '#94a3b8') : '#f59e0b'}">${q.position ? shortPos(q.position) : '?'}</span></div>`;
+            if (isSel) {
+              h += `<div class="pc-body">
+                <div class="pc-row"><span>Nodes</span><span title="${q.from} (${a.y}, ${a.z}) → ${q.to} (${b.y}, ${b.z})">${a.y}, ${a.z} → ${b.y}, ${b.z}${q.curve ? ' · R ' + fmt(q.curve.r) : ''}</span></div>
+                <div class="pc-row"><span>Position</span><span>${posLabel(q.position)} <em>step 3</em></span></div>
+                <div class="pc-row"><span>Panel</span><select class="ed-input cad-group">${groupOpts}</select></div>
+                <div class="pc-row" data-cad-newgroup hidden><span>Name</span><span class="pc-inline"><input class="ed-input" id="cadNewGroup" type="text" placeholder="e.g. Hopper"><button class="ed-link-btn on" data-cad="group-new">Create</button></span></div>
+                <div class="pc-row"><span title="Share of area counted in the hull girder">Bending eff.</span><span class="pc-inline"><input class="ed-input cad-eff" data-k="effB" type="number" min="0" max="100" step="5" value="${q.effB}"><em>%</em></span></div>
+                <div class="pc-row"><span title="Share of thickness carrying hull girder shear">Shear eff.</span><span class="pc-inline"><input class="ed-input cad-eff" data-k="effS" type="number" min="0" max="100" step="5" value="${q.effS}"><em>%</em></span></div>
+                <div class="pc-row"><span>Watertight</span><span class="cad-seg"><button class="${q.wt ? 'on' : ''}" data-cad="wt-on">WT</button><button class="${q.wt ? '' : 'on'}" data-cad="wt-off">Non‑WT</button></span></div>
+                <div class="pc-row"><span>Node at</span><span class="pc-inline"><input class="ed-input" id="cadSplitAt" type="number" min="10" max="${fmt(L) - 10}" step="10" value="${fmt(L / 2)}"><em>mm</em><button class="ed-link-btn" data-cad="split-at">Add</button></span></div>
+                <div class="pc-row"><span></span><span><button class="ed-link-btn danger" data-cad="del-panel">Delete segment</button></span></div>
+              </div>`;
+            }
+            h += `</div>`;
+          });
+        }
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    if (sel.node) {
+      const n = nodeById(s, sel.node);
+      if (n) {
+        const links = s.panels.filter(p => p.from === n.id || p.to === n.id);
+        h += `<div class="pc open"><div class="pc-head"><span class="pc-name" style="border-color:transparent">Node ${n.id}</span><span class="pc-meta">${links.length} panel${links.length === 1 ? '' : 's'}</span></div>
+          <div class="pc-body">
+            <div class="pc-row"><span>Y from CL</span><span class="pc-inline"><input class="ed-input cad-node" data-k="y" type="number" step="10" value="${n.y}"><em>mm</em></span></div>
+            <div class="pc-row"><span>Z above BL</span><span class="pc-inline"><input class="ed-input cad-node" data-k="z" type="number" step="10" value="${n.z}"><em>mm</em></span></div>
+            <div class="pc-row"><span>Panels</span><span>${links.map(q => q.id).join(', ') || '—'}</span></div>
+            <div class="pc-row"><span></span><span><button class="ed-link-btn danger" data-cad="del-node" title="Free end: removes its segment · between two collinear segments: merges them">Delete node</button></span></div>
+          </div></div>`;
+      }
+    }
+
     // Status / regenerate
     h += `<div class="cad-status ${s.manual ? 'manual' : ''}" style="flex-wrap:wrap">
       <span>${s.nodes.length} nodes · ${s.panels.length} panels${s.manual ? ' · hand-edited' : ''}</span>
@@ -690,46 +768,6 @@
         <div class="ed-row" style="justify-content:flex-end;gap:6px"><button class="ed-link-btn on" data-cad="arc-go">Add arc</button><button class="ed-link-btn" data-cad="arc-cancel">Cancel</button></div></div>`;
     }
 
-    // Selected panel / node
-    if (sel.panel) {
-      const pl = s.panels.find(p => p.id === sel.panel);
-      if (pl) {
-        const a = nodeById(s, pl.from), b = nodeById(s, pl.to), L = M().panelLength(pl, s.nodes);
-        h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6" title="${pl.from} (${a.y}, ${a.z}) → ${pl.to} (${b.y}, ${b.z})">${pl.id} · ${pl.from}→${pl.to}${pl.curve ? ' · R ' + fmt(pl.curve.r) : ''}</span><span class="ed-count">${fmt(L)} mm</span><button class="ed-del" data-cad="del-panel" title="Delete panel">✕</button></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Panel</span>
-            <select class="ed-input cad-group" style="flex:1">${Object.keys(s.groups || {}).map(id => `<option value="${id}" ${pl.group === id ? 'selected' : ''}>${gName(s, id)}</option>`).join('')}<option value="__new">+ new panel…</option></select></div>
-          <div class="ed-row" data-cad-newgroup hidden><span class="ed-id" style="min-width:150px;font-size:0.68rem">New panel name</span><input class="ed-input" id="cadNewGroup" type="text" placeholder="e.g. Hopper" style="flex:1"><button class="ed-link-btn on" data-cad="group-new" style="margin-left:6px">Create</button></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Position</span><span style="font-size:0.7rem">${posLabel(pl.position)}</span><span class="ed-label" style="color:#475569;font-size:0.62rem;margin-left:6px">(step 3)</span></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem" title="Share of this panel's area counted in the hull girder section modulus">Bending efficiency</span><input class="ed-input cad-eff" data-k="effB" type="number" min="0" max="100" step="5" value="${pl.effB}"><span class="ed-label" style="color:#475569;font-size:0.65rem">%</span></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem" title="Share of this panel's area counted for hull girder shear">Shear efficiency</span><input class="ed-input cad-eff" data-k="effS" type="number" min="0" max="100" step="5" value="${pl.effS}"><span class="ed-label" style="color:#475569;font-size:0.65rem">%</span></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Watertight</span>
-            <span class="cad-seg"><button class="${pl.wt ? 'on' : ''}" data-cad="wt-on">WT</button><button class="${pl.wt ? '' : 'on'}" data-cad="wt-off">Non‑WT</button></span></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Add node at</span><input class="ed-input" id="cadSplitAt" type="number" min="10" max="${fmt(L) - 10}" step="10" value="${fmt(L / 2)}"><span class="ed-label" style="color:#475569;font-size:0.65rem">mm from ${pl.from}</span><button class="ed-link-btn" data-cad="split-at" style="margin-left:6px">Add</button></div>
-        </div>`;
-      }
-    } else if (sel.node) {
-      const n = nodeById(s, sel.node);
-      if (n) {
-        const links = s.panels.filter(p => p.from === n.id || p.to === n.id).map(p => p.id).join(', ');
-        h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6">Node ${n.id}</span></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Y from CL</span><input class="ed-input cad-node" data-k="y" type="number" step="10" value="${n.y}"><span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>
-          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Z above BL</span><input class="ed-input cad-node" data-k="z" type="number" step="10" value="${n.z}"><span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>
-          <div class="ed-row" style="font-size:0.66rem;color:var(--text-muted)">Panels: ${links || '—'}</div></div>`;
-      }
-    }
-
-    // Panels: the named runs, renamable; click a row to select its first segment
-    {
-      const gids = Object.keys(s.groups || {});
-      h += `<div class="ed-group collapsed" data-cad-group="panels"><div class="ed-group-header"><span style="color:#94a3b8">Panels <span class="ed-count">(${gids.length})</span></span></div>`;
-      gids.forEach(gid => {
-        const segs = s.panels.filter(p => p.group === gid);
-        const L = segs.reduce((a, p) => a + M().panelLength(p, s.nodes), 0);
-        h += `<div class="ed-row" style="gap:6px"><input class="ed-input cad-gname" data-gid="${gid}" type="text" value="${gName(s, gid)}" style="flex:1;min-width:0"><span class="ed-label" style="color:var(--text-muted);white-space:nowrap">${segs.length} seg · ${fmt(L)} mm</span><button class="ed-link-btn" data-cad-selg="${gid}" title="Select">→</button></div>`;
-      });
-      h += `</div>`;
-    }
-
     // Issues (only when there are any)
     if (issues.length) {
       h += `<div class="ed-group"><div class="ed-group-header"><span style="color:${issues.some(i => i.level === 'error') ? 'var(--error)' : 'var(--warning)'}">Issues <span class="ed-count">(${issues.length})</span></span></div>`;
@@ -747,7 +785,11 @@
       const m = JSON.parse(JSON.stringify(S())); M().setGroup(m, [sel.panel], e.target.value); commit(m);
     }));
     ec.querySelectorAll('.cad-gname').forEach(el => el.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); M().renameGroup(m, e.target.dataset.gid, e.target.value.trim()); commit(m); }));
-    ec.querySelectorAll('[data-cad-selg]').forEach(b => b.addEventListener('click', () => { const first = S().panels.find(p => p.group === b.dataset.cadSelg); if (first) { sel = { panel: first.id, node: null }; renderSvg(); renderPanel(); } }));
+    ec.querySelectorAll('.pc-seg-head').forEach(hd => hd.addEventListener('click', () => { const id = hd.parentElement.dataset.pcSeg; const q = S().panels.find(x => x.id === id); sel = { panel: id, node: null, group: q ? q.group : sel.group }; renderSvg(); renderPanel(); }));
+    ec.querySelectorAll('[data-pc-head]').forEach(hd => hd.addEventListener('click', e => {
+      if (e.target.tagName === 'INPUT') return;
+      const gid = hd.dataset.pcHead; sel = { panel: null, node: null, group: sel.group === gid ? null : gid }; renderSvg(); renderPanel();
+    }));
     ec.querySelectorAll('.cad-sec').forEach(inp => inp.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); m[e.target.dataset.k] = e.target.value; B().setSection(m); renderPanel(); }));
     ec.querySelectorAll('.cad-centre').forEach(sel_ => sel_.addEventListener('change', e => {
       const g = G(); g.duct_half = e.target.value === 'duct' ? (g.duct_half > 0 ? g.duct_half : 900) : 0;
@@ -805,6 +847,7 @@
         }
         case 'arc-cancel': arcAsk = null; renderPanel(); break;
         case 'del-panel': if (pl) { M().removePanel(s, pl.id); sel.panel = null; commit(s); } break;
+        case 'del-node': if (sel.node) { const r = M().removeNode(s, sel.node); if (r.ok) { sel.node = null; commit(s); } else toast('Node: ' + r.why); } break;
         case 'wt-on': if (pl) { pl.wt = true; commit(s); } break;
         case 'wt-off': if (pl) { pl.wt = false; commit(s); } break;
         case 'split-at': {
@@ -1235,6 +1278,7 @@
   // Naming pins the section (manual): the names must survive, and the
   // generator would otherwise rebuild the panels with its own guesses.
   function commitNames(m) { m.manual = true; B().setSection(m); pushLegacy(m); B().render(); renderPanel(); if (typeof window.refreshStepStrip === 'function') window.refreshStepStrip(); }
+  function scrollToSeg() { const el = sel.panel && document.querySelector(`.pc-seg[data-pc-seg="${sel.panel}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); }
   function scrollToRow() {
     const r = sel.panel && document.querySelector(`.pos-row[data-row="${sel.panel}"]`);
     if (r) { const g = r.closest('.ed-group'); if (g) g.classList.remove('collapsed'); r.scrollIntoView({ block: 'nearest' }); }

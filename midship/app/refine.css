@@ -1085,3 +1085,55 @@ body:not(.geometry-active) .sb-badge{display:none}
 body.cad-mode .ed-group{margin-bottom:6px}
 body.cad-mode .ed-group.collapsed{margin-bottom:0}
 body.cad-mode .ed-group.collapsed > .ed-group-header{padding:4px 0;margin:0}
+
+/* ── Panel card (Section step): panel → segments → selected segment ─────── */
+.pc{border:1px solid rgba(59,130,246,0.45);border-radius:var(--radius-sm);margin:6px 0 10px;background:rgba(59,130,246,0.04);overflow:hidden}
+.pc-head{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border)}
+.pc-name{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:3px;color:#93c5fd;font-family:var(--font-mono);font-size:0.66rem;font-weight:600;padding:2px 4px}
+.pc-name:hover,.pc-name:focus{border-color:var(--border);background:var(--bg-input);outline:none}
+.pc-meta{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);white-space:nowrap}
+.pc-seg{border-bottom:1px solid rgba(255,255,255,0.04)}
+.pc-seg:last-child{border-bottom:none}
+.pc-seg-head{display:grid;grid-template-columns:18px 1fr auto 34px;gap:6px;align-items:center;padding:3px 8px;cursor:pointer;font-family:var(--font-mono);font-size:0.6rem;color:var(--text-secondary)}
+.pc-seg-head:hover{background:rgba(255,255,255,0.03)}
+.pc-seg.open > .pc-seg-head{background:rgba(59,130,246,0.14);color:var(--text-primary)}
+.pc-i{color:var(--text-muted)}
+.pc-len{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pc-pos{text-align:right;font-weight:700}
+.pc-body{padding:4px 8px 6px 8px;background:rgba(0,0,0,0.12)}
+.pc-row{display:grid;grid-template-columns:82px 1fr;gap:6px;align-items:center;padding:2px 0;font-family:var(--font-mono);font-size:0.6rem}
+.pc-row > span:first-child{color:var(--text-muted)}
+.pc-row > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary)}
+.pc-row em{font-style:normal;color:var(--text-muted);margin-left:4px}
+.pc-inline{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.pc-row .ed-input[type=number]{width:64px !important}
+.pc-row .ed-input[type=text]{flex:1;min-width:0}
+.pc-row select.ed-input{width:100%}
+.ed-link-btn.danger{color:var(--error);border-color:rgba(239,68,68,0.35)}
+.ed-link-btn.danger:hover{background:rgba(239,68,68,0.12)}
+/* never let a right-panel row spill past the panel */
+body.cad-mode #edContent{overflow-x:hidden}
+body.cad-mode .ed-row{flex-wrap:wrap;min-width:0}
+body.cad-mode .cad-status{flex-wrap:wrap}
+.pc-row[hidden],.ed-row[hidden]{display:none !important}
+
+/* Panels accordion: one grid for every row so names, counts, lengths and chevrons line up */
+.pc-list{margin:4px 0 10px}
+.pc-list-head{font-family:var(--font-mono);font-size:0.6rem;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;color:var(--text-secondary);padding:4px 0 4px}
+.pc-list-head .ed-count{font-weight:400;color:var(--text-muted)}
+.pc{margin:0;border:none;border-top:1px solid var(--border);border-radius:0;background:transparent}
+.pc:last-child{border-bottom:1px solid var(--border)}
+.pc.open{background:rgba(59,130,246,0.05)}
+.pc-head{display:grid;grid-template-columns:1fr 44px 74px 12px;gap:6px;align-items:center;padding:3px 4px 3px 2px;border-bottom:none;cursor:pointer}
+.pc.open > .pc-head{border-bottom:1px solid var(--border)}
+.pc-head:hover{background:rgba(255,255,255,0.03)}
+.pc-name{width:100%;min-width:0;background:transparent;border:1px solid transparent;border-radius:3px;color:var(--text-primary);font-family:var(--font-mono);font-size:0.62rem;font-weight:500;padding:2px 4px}
+.pc.open .pc-name{color:#93c5fd;font-weight:600}
+.pc-name:hover,.pc-name:focus{border-color:var(--border);background:var(--bg-input);outline:none}
+.pc-meta{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.pc-chev{color:var(--text-muted);font-size:0.55rem;text-align:right}
+.pc-seg-head{grid-template-columns:16px 1fr 60px 32px;padding:2px 6px 2px 10px}
+.pc-row{grid-template-columns:76px 1fr}
+.pc-row .ed-input[type=number]{width:60px !important}
+.pc-body{padding:3px 6px 5px 10px}
+.pc-row .cad-seg{width:max-content}

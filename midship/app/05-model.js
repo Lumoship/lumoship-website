@@ -355,6 +355,30 @@
     return rebuild(model, lines);
   }
 
+  // Remove a node: a free end drops its segment; a node between two collinear
+  // straights (or two pieces of one arc) merges them; a junction is refused.
+  function removeNode(model, nodeId) {
+    const n = model.nodes.find(x => x.id === nodeId); if (!n) return { ok: false, why: 'no such node' };
+    const touching = model.panels.filter(p => p.from === nodeId || p.to === nodeId);
+    if (touching.length === 0) return { ok: false, why: 'unused node' };
+    let lines = toLines(model);
+    if (touching.length === 1) { lines = lines.filter(l => l._keep.id !== touching[0].id); rebuild(model, lines); return { ok: true }; }
+    if (touching.length !== 2) return { ok: false, why: 'junction of ' + touching.length + ' panels — delete a panel instead' };
+    const [p1, p2] = touching; const l1 = panelLine(p1, model.nodes), l2 = panelLine(p2, model.nodes);
+    const far1 = p1.from === nodeId ? l1.b : l1.a, far2 = p2.from === nodeId ? l2.b : l2.a;
+    let merged;
+    if (!p1.curve && !p2.curve) {
+      const cross = Math.abs((l1.b.y - l1.a.y) * (far2.z - l1.a.z) - (l1.b.z - l1.a.z) * (far2.y - l1.a.y)) / Math.max(1, dist(l1.a, l1.b));
+      if (cross > TOL) return { ok: false, why: 'panels meet at an angle — remove one instead' };
+      merged = { a: { ...far1 }, b: { ...far2 }, position: p1.position, curve: null };
+    } else if (p1.curve && p2.curve && Math.abs(p1.curve.r - p2.curve.r) <= TOL && samePt(p1.curve.centre, p2.curve.centre)) {
+      merged = { a: { ...far1 }, b: { ...far2 }, position: p1.position, curve: { type: 'arc', r: p1.curve.r, centre: { ...p1.curve.centre } } };
+    } else return { ok: false, why: 'cannot merge a straight with an arc' };
+    Object.assign(merged, { wt: p1.wt, effB: p1.effB, effS: p1.effS, group: p1.group, deckLoad: p1.deckLoad, _keep: { ...p1, strakes: [], stiffGroups: [] } });
+    lines = lines.filter(l => l._keep.id !== p1.id && l._keep.id !== p2.id); lines.push(merged);
+    rebuild(model, lines); return { ok: true };
+  }
+
   // ------------------------------------------------------------ position guess
   // For hand-drawn panels: a geometric guess the user confirms in step 3.
   function guessPosition(model, panel) {
@@ -423,6 +447,6 @@
     POSITIONS, POS, TOL,
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
-    addLine, addArc, removePanel, splitPanel, moveNode, validate, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
+    addLine, addArc, removePanel, splitPanel, moveNode, removeNode, validate, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();
