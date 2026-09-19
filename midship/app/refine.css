@@ -1436,3 +1436,5 @@ body.chrome-form .ea-page#page-5 > .ea-main{padding-top:10px}
 .cad-menu.rail-menu{min-width:200px}
 .cad-menu-item.danger{color:#fca5a5}
 .cad-menu-item.off{opacity:0.4;cursor:default}
+
+#sideRail .rail-rename{width:100%;height:16px;padding:0 4px;border:1px solid var(--accent,#3b82f6);border-radius:3px;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-mono);font-size:0.62rem;outline:none}

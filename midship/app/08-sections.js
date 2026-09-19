@@ -71,10 +71,22 @@
     }
     return false;
   }
+  // Label: the given name, else the frame, else Midship / Section n; the frame (or
+  // "midship") as the small second part when it is not already the name.
   function label(m) {
     const fr = m && m.frame != null && String(m.frame).trim() !== '' ? 'Fr. ' + String(m.frame).trim() : null;
     const mid = !m || m.isMidship !== false;
-    return { name: fr || (mid ? 'Midship' : 'Section ' + String(m.id || '').replace(/^S/, '')), sub: mid ? (fr ? 'midship' : '') : '' };
+    const nm = m && m.name && String(m.name).trim() ? String(m.name).trim() : null;
+    if (nm) return { name: nm, sub: fr || (mid ? 'midship' : '') };
+    return { name: fr || (mid ? 'Midship' : 'Section ' + String(m.id || '').replace(/^S/, '')), sub: mid && fr ? 'midship' : '' };
   }
-  window.Sections = { list, activeId, activate, create, duplicate, remove, exportState, importState, label, adopt };
+  function rename(id, name) {
+    adopt(); const m = store.items.find(x => x.id === id); if (!m) return false;
+    const v = String(name || '').trim() || null; m.name = v;
+    if (id === store.active) { const cur = D().getSection(); cur.name = v; }
+    try { window.Project && window.Project.saveLocal && window.Project.saveLocal(); } catch (_) {}
+    try { window.dispatchEvent(new CustomEvent('midship:section-switched', { detail: { id: store.active } })); } catch (_) {}
+    return true;
+  }
+  window.Sections = { list, activeId, activate, create, duplicate, remove, rename, exportState, importState, label, adopt };
 })();

@@ -410,10 +410,22 @@
       close(); it.run();
     });
   }
+  // the row's label becomes a field; Enter / blur saves, Escape keeps the old name
+  function renameInline(row, id) {
+    var nameEl = row.querySelector('.rail-sec-name'); if (!nameEl || row.querySelector('input')) return;
+    var models = {}; try { Sections.exportState().items.forEach(function (m) { models[m.id] = m; }); } catch (_) {}
+    var cur = models[id] && models[id].name ? models[id].name : '';
+    var inp = document.createElement('input'); inp.className = 'rail-rename'; inp.type = 'text'; inp.value = cur; inp.placeholder = nameEl.textContent; inp.maxLength = 40;
+    nameEl.textContent = ''; nameEl.appendChild(inp); inp.focus(); inp.select();
+    var done = false; var fin = function (ok) { if (done) return; done = true; if (ok) Sections.rename(id, inp.value); paintNav(current); };
+    inp.addEventListener('keydown', function (ev) { ev.stopPropagation(); if (ev.key === 'Enter') fin(true); else if (ev.key === 'Escape') fin(false); });
+    inp.addEventListener('blur', function () { fin(true); });
+    inp.addEventListener('click', function (ev) { ev.stopPropagation(); });
+  }
   function wireRail() {
     var rail = document.getElementById('sideRail'); if (!rail || rail.__wired) return; rail.__wired = true;
     rail.addEventListener('click', function (e) {
-      var row = e.target.closest('.rail-sec'); if (!row) return;
+      var row = e.target.closest('.rail-sec'); if (!row || row.querySelector('input')) return;
       if (window.Sections) Sections.activate(row.dataset.sec);
       goToSections();
     });
@@ -424,6 +436,7 @@
       if (row) {
         var id = row.dataset.sec; var n = 0; try { n = Sections.list().length; } catch (_) {}
         railMenu(row, e.clientX, e.clientY, [
+          { short: 'ab', label: 'Rename section', run: function () { renameInline(row, id); } },
           { short: '⧉', label: 'Duplicate section', run: function () { Sections.duplicate(id); goToStep(2); after(); } },
           { short: '✕', label: 'Delete section', confirm: 'Delete — click again to confirm', danger: true, off: n < 2, run: function () { Sections.remove(id); if (SECTION_STEPS.indexOf(current) >= 0) goToStep(current); after(); } }
         ]);
