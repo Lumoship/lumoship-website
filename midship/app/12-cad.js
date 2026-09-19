@@ -114,7 +114,8 @@
   let regenAsk = false;
 
   // ------------------------------------------------------------ helpers
-  const S = () => B().getSection();
+  const S = () => { const m = B().getSection(); if (m && (!m.groups || m.panels.some(p => !p.group)) && M().assignGroups) M().assignGroups(m); return m; };
+  const gName = (s, gid) => (s.groups && s.groups[gid]) || gid || '—';
   const G = () => B().GEOMETRY();
   const fmt = v => Math.round(v);
   const nodeById = (s, id) => s.nodes.find(n => n.id === id);
@@ -695,6 +696,9 @@
       if (pl) {
         const a = nodeById(s, pl.from), b = nodeById(s, pl.to), L = M().panelLength(pl, s.nodes);
         h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6" title="${pl.from} (${a.y}, ${a.z}) → ${pl.to} (${b.y}, ${b.z})">${pl.id} · ${pl.from}→${pl.to}${pl.curve ? ' · R ' + fmt(pl.curve.r) : ''}</span><span class="ed-count">${fmt(L)} mm</span><button class="ed-del" data-cad="del-panel" title="Delete panel">✕</button></div>
+          <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Panel</span>
+            <select class="ed-input cad-group" style="flex:1">${Object.keys(s.groups || {}).map(id => `<option value="${id}" ${pl.group === id ? 'selected' : ''}>${gName(s, id)}</option>`).join('')}<option value="__new">+ new panel…</option></select></div>
+          <div class="ed-row" data-cad-newgroup hidden><span class="ed-id" style="min-width:150px;font-size:0.68rem">New panel name</span><input class="ed-input" id="cadNewGroup" type="text" placeholder="e.g. Hopper" style="flex:1"><button class="ed-link-btn on" data-cad="group-new" style="margin-left:6px">Create</button></div>
           <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Position</span><span style="font-size:0.7rem">${posLabel(pl.position)}</span><span class="ed-label" style="color:#475569;font-size:0.62rem;margin-left:6px">(step 3)</span></div>
           <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem" title="Share of this panel's area counted in the hull girder section modulus">Bending efficiency</span><input class="ed-input cad-eff" data-k="effB" type="number" min="0" max="100" step="5" value="${pl.effB}"><span class="ed-label" style="color:#475569;font-size:0.65rem">%</span></div>
           <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem" title="Share of this panel's area counted for hull girder shear">Shear efficiency</span><input class="ed-input cad-eff" data-k="effS" type="number" min="0" max="100" step="5" value="${pl.effS}"><span class="ed-label" style="color:#475569;font-size:0.65rem">%</span></div>
@@ -714,6 +718,18 @@
       }
     }
 
+    // Panels: the named runs, renamable; click a row to select its first segment
+    {
+      const gids = Object.keys(s.groups || {});
+      h += `<div class="ed-group collapsed" data-cad-group="panels"><div class="ed-group-header"><span style="color:#94a3b8">Panels <span class="ed-count">(${gids.length})</span></span></div>`;
+      gids.forEach(gid => {
+        const segs = s.panels.filter(p => p.group === gid);
+        const L = segs.reduce((a, p) => a + M().panelLength(p, s.nodes), 0);
+        h += `<div class="ed-row" style="gap:6px"><input class="ed-input cad-gname" data-gid="${gid}" type="text" value="${gName(s, gid)}" style="flex:1;min-width:0"><span class="ed-label" style="color:var(--text-muted);white-space:nowrap">${segs.length} seg · ${fmt(L)} mm</span><button class="ed-link-btn" data-cad-selg="${gid}" title="Select">→</button></div>`;
+      });
+      h += `</div>`;
+    }
+
     // Issues (only when there are any)
     if (issues.length) {
       h += `<div class="ed-group"><div class="ed-group-header"><span style="color:${issues.some(i => i.level === 'error') ? 'var(--error)' : 'var(--warning)'}">Issues <span class="ed-count">(${issues.length})</span></span></div>`;
@@ -726,6 +742,12 @@
   }
 
   function bindPanel(ec) {
+    ec.querySelectorAll('.cad-group').forEach(el => el.addEventListener('change', e => {
+      if (e.target.value === '__new') { const r = ec.querySelector('[data-cad-newgroup]'); if (r) { r.hidden = false; const i = r.querySelector('input'); i && i.focus(); } return; }
+      const m = JSON.parse(JSON.stringify(S())); M().setGroup(m, [sel.panel], e.target.value); commit(m);
+    }));
+    ec.querySelectorAll('.cad-gname').forEach(el => el.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); M().renameGroup(m, e.target.dataset.gid, e.target.value.trim()); commit(m); }));
+    ec.querySelectorAll('[data-cad-selg]').forEach(b => b.addEventListener('click', () => { const first = S().panels.find(p => p.group === b.dataset.cadSelg); if (first) { sel = { panel: first.id, node: null }; renderSvg(); renderPanel(); } }));
     ec.querySelectorAll('.cad-sec').forEach(inp => inp.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); m[e.target.dataset.k] = e.target.value; B().setSection(m); renderPanel(); }));
     ec.querySelectorAll('.cad-centre').forEach(sel_ => sel_.addEventListener('change', e => {
       const g = G(); g.duct_half = e.target.value === 'duct' ? (g.duct_half > 0 ? g.duct_half : 900) : 0;
@@ -759,6 +781,7 @@
       const act = b.dataset.cad; const s = JSON.parse(JSON.stringify(S()));
       const pl = s.panels.find(p => p.id === sel.panel);
       switch (act) {
+        case 'group-new': { const name = ((document.getElementById('cadNewGroup') || {}).value || '').trim(); if (!name) { toast('Give the panel a name.'); return; } const m = JSON.parse(JSON.stringify(S())); M().setGroup(m, [sel.panel], name); commit(m); break; }
         case 'mid-on': { const m = JSON.parse(JSON.stringify(S())); m.isMidship = true; B().setSection(m); renderPanel(); break; }
         case 'mid-off': { const m = JSON.parse(JSON.stringify(S())); m.isMidship = false; B().setSection(m); renderPanel(); break; }
         case 'regen-ask': regenAsk = true; renderPanel(); break;
@@ -1149,21 +1172,25 @@
     const selP = sel.panel ? s.panels.find(p => p.id === sel.panel) : null;
     if (selP) {
       const a = nodeById(s, selP.from), b = nodeById(s, selP.to);
-      h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6">Panel ${selP.id}</span><span class="ed-count">${fmt(M().panelLength(selP, s.nodes))} mm</span></div>
+      h += `<div class="ed-group cad-sel-box"><div class="ed-group-header"><span style="color:#3b82f6">${gName(s, selP.group)} · ${selP.id}</span><span class="ed-count">${fmt(M().panelLength(selP, s.nodes))} mm</span></div>
         <div class="ed-row"><span class="ed-id" style="min-width:90px;font-size:0.68rem">Position</span><select class="ed-input pos-select" data-panel="${selP.id}" style="flex:1"><option value="">— unnamed —</option>${opts}</select></div>
         <div class="ed-row"><span class="ed-id" style="min-width:90px;font-size:0.68rem">Same for</span><button class="ed-link-btn" data-pos="same-line" title="Give this position to every panel on the same straight line / arc">collinear panels</button></div>
       </div>`;
     }
-    const order = [''].concat(M().POSITIONS.map(p => p.code));
-    order.forEach(code => {
-      const arr = groups[code]; if (!arr) return;
-      const col = code ? (POS_COLOR[code] || '#94a3b8') : '#f59e0b';
-      h += `<div class="ed-group ${code ? 'collapsed' : ''}" data-pos-group="${code}"><div class="ed-group-header"><span style="color:${col}">${code ? posLabel(code) : 'Unnamed'} <span class="ed-count">(${arr.length})</span></span></div>`;
-      arr.forEach(p => {
-        const a = nodeById(s, p.from), b = nodeById(s, p.to);
-        h += `<div class="ed-row pos-row ${sel.panel === p.id ? 'is-sel' : ''}" data-row="${p.id}" style="border-left:3px solid ${col};cursor:pointer">
-          <span class="ed-id" style="min-width:30px;font-size:0.68rem;color:${col}">${p.id}</span>
-          <span style="font-size:0.62rem;color:var(--text-muted);white-space:nowrap">${a.y},${a.z} → ${b.y},${b.z}</span>
+    // By panel: each named run, its segments in geometric order, one position each
+    const gids = Object.keys(s.groups || {});
+    gids.forEach(gid => {
+      const segs = s.panels.filter(p => p.group === gid).sort((a, b) => { const la = M().panelLine(a, s.nodes), lb = M().panelLine(b, s.nodes); const ka = Math.min(la.a.z, la.b.z) * 1e6 + Math.min(la.a.y, la.b.y), kb = Math.min(lb.a.z, lb.b.z) * 1e6 + Math.min(lb.a.y, lb.b.y); return ka - kb; });
+      const un = segs.filter(p => !p.position).length;
+      const hasSel = segs.some(p => p.id === sel.panel);
+      const posSet = [...new Set(segs.map(p => p.position).filter(Boolean))];
+      h += `<div class="ed-group ${hasSel || un ? '' : 'collapsed'}" data-pos-group="${gid}"><div class="ed-group-header"><span style="color:${un ? '#f59e0b' : 'var(--text-primary)'}">${gName(s, gid)} <span class="ed-count">(${segs.length}${un ? ' · ' + un + ' unnamed' : ''})</span></span>
+        <select class="ed-input pos-setall" data-gid="${gid}" title="Set every segment of this panel" style="width:112px;font-size:0.6rem"><option value="">set all…</option>${opts}</select></div>`;
+      segs.forEach(p => {
+        const a = nodeById(s, p.from), b = nodeById(s, p.to); const col = p.position ? (POS_COLOR[p.position] || '#94a3b8') : '#f59e0b';
+        h += `<div class="ed-row pos-row ${sel.panel === p.id ? 'is-sel' : ''}" data-row="${p.id}" style="border-left:3px solid ${col};cursor:pointer" title="${a.y},${a.z} → ${b.y},${b.z}">
+          <span class="ed-id" style="min-width:28px;color:${col}">${p.id}</span>
+          <span style="color:var(--text-muted);white-space:nowrap">${fmt(M().panelLength(p, s.nodes))} mm</span>
           <span style="flex:1"></span>
           <select class="ed-input pos-select" data-panel="${p.id}" style="width:118px;font-size:0.62rem"><option value="">—</option>${opts}</select>
         </div>`;
@@ -1182,6 +1209,10 @@
       el.addEventListener('click', e => e.stopPropagation());
     });
     ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { sel = { panel: r.dataset.row, node: null }; renderSvg(); renderPanel(); }));
+    ec.querySelectorAll('.pos-setall').forEach(el => { el.addEventListener('click', e => e.stopPropagation()); el.addEventListener('change', e => {
+      if (!e.target.value) return; const m = JSON.parse(JSON.stringify(S())); const def = M().POS[e.target.value];
+      m.panels.forEach(p => { if (p.group === e.target.dataset.gid) { p.position = e.target.value; if (def) p.wt = def.wt; } }); commitNames(m);
+    }); });
     ec.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => {
       const m = JSON.parse(JSON.stringify(S()));
       if (b.dataset.pos === 'guess') m.panels.forEach(p => { if (!p.position) p.position = M().guessPosition(m, p); });

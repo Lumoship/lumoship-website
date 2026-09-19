@@ -91,3 +91,8 @@ Adım navigasyonu (uygulanan): **1 Ship · 2 Section · 3 Positions · 4 Strakes
 - **Bending / shear efficiency motora bağlandı**: `computeSectionProperties` her katkıyı (strake ve stiffener) panelin `effB`'si ile ölçekler (A, I_self, Q); `totalArea` brüt kalır, `effectiveArea` ayrı. Kayma: `SectionAdapter.effSAt(y,z)` → `_bucklingPlateResult` τ = F·Q/(I·t·effS). Test: UD effB = 0 → I 72,7 → 65,3 m⁴, Z_D 8335 → 7152 cm³·10; tween effS 50 → 0,5.
 - **Deck load → LR** (yukarıda adım 6).
 - **Sakin arayüz**: tek tip ölçeği (11 px mono veri, 12 px kontrol, 13 px tek başlık); başlık/nav/şerit/alt bar/form alanları küçültüldü; bridge bar'daki gereksiz "Geometry" ve yardım metni kaldırıldı; sağ panel başlığı adıma göre (Section / Positions / …); SVG etiketleri 7,5–8 px (min 10 px). Kullanıcı tercihi olarak not alındı.
+
+## F. Panel ↔ pozisyon ayrımı (19.09.2026)
+- **Panel** = adlandırılmış segment dizisi (`SECTION.groups {G1:'Shell', …}`, segment.group). Üretici adlandırır (Shell, Duct keel / Centre girder, Side girder N, Inner bottom, Inner side, Stringer N, Tween deck N, Upper deck, Coaming top); elle çizilen çizgi aynı doğrultuda devam ettiği panele katılır, yoksa `Panel N`. Bölme (node ekleme) panel/pozisyon/WT/eff bilgisini iki parçaya taşır.
+- **Section (adım 2)**: seçili segmentte Panel seçici (+ yeni panel adı), katlanır "Panels" listesi (yeniden adlandır, seç).
+- **Positions (adım 3)**: liste panele göre; her segmentin kendi pozisyonu (Shell → bottom · bilge · side …), panel başına "set all…".

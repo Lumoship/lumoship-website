@@ -152,7 +152,7 @@
         const seg = { from: A.n.id, to: B.n.id, position: ln.position || null,
                       effB: ln.effB != null ? ln.effB : 100, effS: ln.effS != null ? ln.effS : 100,
                       wt: ln.wt != null ? ln.wt : (POS[ln.position] ? POS[ln.position].wt : true),
-                      curve: null, strakes: [], stiffGroups: [], tag: ln.tag || null };
+                      curve: null, strakes: [], stiffGroups: [], tag: ln.tag || null, group: ln.group || null, deckLoad: ln.deckLoad || null };
         if (ln.curve && ln.curve.type === 'arc') seg.curve = { type: 'arc', r: ln.curve.r, centre: { ...ln.curve.centre } };
         panels.push(seg);
       }
@@ -214,13 +214,61 @@
     return lines;
   }
 
+  // Panel = a named run of segments (Shell, Inner bottom, Side girder 2 …).
+  // Positions are per segment; the panel is what the user names in step 2.
+  function groupNameFor(seg) {
+    const m = /^(SG|STR|TD)(\d+)$/.exec(seg.tag || '');
+    switch (seg.position) {
+      case 'bottom': case 'bilge': case 'side': return 'Shell';
+      case 'innerBottom': return 'Inner bottom';
+      case 'innerSide': case 'coaming': return 'Inner side';
+      case 'upperDeck': return 'Upper deck';
+      case 'coamingTop': return 'Coaming top';
+      case 'centreGirder': return seg.tag === 'duct' ? 'Duct keel' : 'Centre girder';
+      case 'sideGirder': return 'Side girder' + (m ? ' ' + m[2] : '');
+      case 'stringer': return 'Stringer' + (m ? ' ' + m[2] : '');
+      case 'tweenDeck': return 'Tween deck' + (m ? ' ' + m[2] : '');
+      case 'longBhd': return 'Long. bulkhead';
+      case 'deck': return 'Deck';
+    }
+    return 'Panel';
+  }
+  function assignGroups(model) {
+    model.groups = model.groups || {};
+    const byName = {}; Object.keys(model.groups).forEach(id => { byName[model.groups[id]] = id; });
+    let k = Object.keys(model.groups).length;
+    model.panels.forEach(seg => {
+      if (seg.group && model.groups[seg.group]) return;
+      let name = groupNameFor(seg);
+      if (name === 'Panel') { k++; name = 'Panel ' + k; model.groups['G' + k] = name; seg.group = 'G' + k; return; }  // each free line its own panel
+      if (!byName[name]) { k++; const id = 'G' + k; model.groups[id] = name; byName[name] = id; }
+      seg.group = byName[name];
+    });
+    // drop empty groups
+    Object.keys(model.groups).forEach(id => { if (!model.panels.some(p => p.group === id)) delete model.groups[id]; });
+    return model;
+  }
   function generate(src) {
     const model = build(linesFromParams(src));
     model.id = 'MS'; model.name = 'Midship'; model.xRef_m = null; model.half = true;
     model.manual = false;          // true once the user edits nodes/panels by hand
     model.version = 1;
+    assignGroups(model);
     return model;
   }
+  // Rename / create / move segments between panels.
+  function setGroup(model, segIds, groupIdOrName) {
+    model.groups = model.groups || {};
+    let gid = groupIdOrName;
+    if (!model.groups[gid]) { // a name → existing by name or new
+      const found = Object.keys(model.groups).find(id => model.groups[id] === groupIdOrName);
+      if (found) gid = found; else { let k = Object.keys(model.groups).length; do { k++; gid = 'G' + k; } while (model.groups[gid]); model.groups[gid] = groupIdOrName || ('Panel ' + k); }
+    }
+    model.panels.forEach(p => { if (segIds.includes(p.id)) p.group = gid; });
+    Object.keys(model.groups).forEach(id => { if (!model.panels.some(p => p.group === id)) delete model.groups[id]; });
+    return gid;
+  }
+  function renameGroup(model, gid, name) { if (model.groups && model.groups[gid] != null && name) model.groups[gid] = name; }
 
   // Legacy STRAKES key for a panel (what the rule engine / strake editor key
   // off today). Index-bearing keys (sideGirderN, stringerN, tweenN) are
@@ -240,7 +288,7 @@
     return model.panels.map(p => {
       const ln = panelLine(p, model.nodes);
       return { a: { y: ln.a.y, z: ln.a.z }, b: { y: ln.b.y, z: ln.b.z }, position: p.position, curve: p.curve,
-               wt: p.wt, effB: p.effB, effS: p.effS, tag: p.tag, _keep: p };
+               wt: p.wt, effB: p.effB, effS: p.effS, tag: p.tag, group: p.group, deckLoad: p.deckLoad, _keep: p };
     });
   }
   function rebuild(model, lines) {
@@ -248,10 +296,21 @@
     // carry per-panel data (strakes, stiffener groups, flags) across by geometry match
     fresh.panels.forEach(np => {
       const nl = panelLine(np, fresh.nodes);
-      const old = lines.find(l => l._keep && ((samePt(l.a, nl.a) && samePt(l.b, nl.b)) || (samePt(l.a, nl.b) && samePt(l.b, nl.a))));
-      if (old && old._keep) { np.strakes = old._keep.strakes || []; np.stiffGroups = old._keep.stiffGroups || []; }
+      const exact = lines.find(l => l._keep && ((samePt(l.a, nl.a) && samePt(l.b, nl.b)) || (samePt(l.a, nl.b) && samePt(l.b, nl.a))));
+      if (exact) { np.strakes = exact._keep.strakes || []; np.stiffGroups = exact._keep.stiffGroups || []; return; }
+      // a split piece of an old segment keeps its panel, position and flags (not its strakes — lengths changed)
+      const host = lines.find(l => l._keep && paramOn(l, nl.a) != null && paramOn(l, nl.b) != null);
+      if (host) { const o = host._keep; np.group = o.group; np.position = o.position; np.wt = o.wt; np.effB = o.effB; np.effS = o.effS; np.deckLoad = o.deckLoad || null; }
+    });
+    // a brand-new line: join the panel it continues collinearly from, else its own panel
+    fresh.panels.forEach(np => {
+      if (np.group) return;
+      const nl = panelLine(np, fresh.nodes);
+      const mate = fresh.panels.find(o => o !== np && o.group && !o.curve && !nl.curve && (o.from === np.from || o.from === np.to || o.to === np.from || o.to === np.to) && (() => { const ol = panelLine(o, fresh.nodes); const cross = (a, b, c) => Math.abs((b.y - a.y) * (c.z - a.z) - (b.z - a.z) * (c.y - a.y)); return cross(ol.a, ol.b, nl.a) < 1 && cross(ol.a, ol.b, nl.b) < 1; })());
+      if (mate) { np.group = mate.group; if (!np.position) np.position = mate.position; }
     });
     model.nodes = fresh.nodes; model.panels = fresh.panels; model.manual = true;
+    assignGroups(model);
     return model;
   }
   function addLine(model, a, b, opts) {
@@ -364,6 +423,6 @@
     POSITIONS, POS, TOL,
     generate, linesFromParams, build, legacyKey,
     panelLine, panelLength, pointAt, paramOn, intersect,
-    addLine, addArc, removePanel, splitPanel, moveNode, validate, guessPosition,
+    addLine, addArc, removePanel, splitPanel, moveNode, validate, guessPosition, assignGroups, setGroup, renameGroup, groupNameFor,
   };
 })();
