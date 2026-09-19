@@ -241,7 +241,8 @@
         // scantling steps: hit area + a quiet base line; the panel-level runs are drawn below
         const cur = SP() && SP().state.gid;
         const dim = cur && pl.group !== cur;
-        h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
+        const hasRun = inStrakes() && (M().panelData(s, pl.group).strakes || []).length;
+        if (!hasRun) h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
         if (!inStrakes() || dim) h += `${pathOf(pl)} stroke="${dim ? '#475569' : (pl.group === cur ? '#93c5fd' : '#94a3b8')}" stroke-width="${pl.group === cur && !inStrakes() ? 2.5 : 1.5}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
         return;
       }
@@ -283,10 +284,16 @@
             d.strakes.forEach((sk, i) => {
               const x0 = x, x1 = Math.min(ci.L, x + (sk.len || 0)); x += (sk.len || 0); if (x1 <= x0) return;
               const selS = isCur && st.strake === i;
-              h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${selS ? '#3b82f6' : tColor(sk.t)}" stroke-width="${selS ? 6 : isCur ? 4 : 2.5}" opacity="${isCur ? 1 : 0.55}" vector-effect="non-scaling-stroke" data-panel="${firstSegIdAt(s, gid, (x0 + x1) / 2)}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"/>`;
+              const pts = chainPts(gid, x0, x1); const segId = firstSegIdAt(s, gid, (x0 + x1) / 2);
+              // wide invisible hit line so a strake can be picked, then the visible run (alternating shade)
+              h += `<polyline points="${pts}" fill="none" stroke="transparent" stroke-width="16" vector-effect="non-scaling-stroke" data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"/>`;
+              h += `<polyline points="${pts}" fill="none" stroke="${selS ? '#3b82f6' : tColor(sk.t)}" stroke-width="${selS ? 6 : isCur ? 4 : 2.5}" opacity="${selS ? 1 : isCur ? (i % 2 ? 0.75 : 1) : 0.5}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+              // boundary tick at the start of every strake but the first
+              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); if (b) h += `<line x1="${X(b.y - b.tz * 160)}" y1="${Y(b.z + b.ty * 160)}" x2="${X(b.y + b.tz * 160)}" y2="${Y(b.z - b.ty * 160)}" stroke="${isCur ? '#e2e8f0' : '#64748b'}" stroke-width="1.4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
               const at = M().chainPointAt(s, gid, (x0 + x1) / 2); if (at && (isCur || (x1 - x0) > 900)) {
-                const vert = Math.abs(at.ty) < 0.3;
-                h += `<text x="${X(at.y) + (vert ? 7 : 0)}" y="${Y(at.z) + (vert ? 3 : -7)}" class="cad-pos" fill="${selS ? '#3b82f6' : tColor(sk.t)}" ${vert ? '' : 'text-anchor="middle"'} pointer-events="none">${sk.t != null ? sk.t : '?'}</text>`;
+                // thickness label on the interior side of the plate, clear of the AB / CL dimension labels
+                const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg;
+                h += `<text x="${X(at.y + nx * 230)}" y="${Y(at.z + nz * 230) + 3}" class="cad-pos" fill="${selS ? '#3b82f6' : tColor(sk.t)}" text-anchor="middle" pointer-events="none">${sk.t != null ? sk.t : '?'}</text>`;
               }
             });
             if (x < ci.L - 5) h += `<polyline points="${chainPts(gid, x, ci.L)}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
@@ -517,9 +524,12 @@
       const q = pid ? s.panels.find(x => x.id === pid) : null;
       const st = SP() ? SP().state : null;
       if (q && st) { if (st.gid !== q.group) { st.gid = q.group; st.strake = null; st.group = null; st.exc = null; }
-        const si = e.target && e.target.getAttribute && e.target.getAttribute('data-strake'); if (inStrakes()) st.strake = si != null ? parseInt(si) : st.strake; }
+        let tgt = e.target; if (!(tgt && tgt.getAttribute && tgt.getAttribute('data-strake'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-strake')) tgt = under; }
+        const si = tgt && tgt.getAttribute && tgt.getAttribute('data-strake'); if (inStrakes()) st.strake = si != null ? parseInt(si) : null; }
       sel = q ? { panel: q.id, node: null, group: q.group } : { panel: null, node: null, group: st ? st.gid : null };
-      renderSvg(); renderPanel(); return;
+      renderSvg(); renderPanel();
+      if (st && st.strake != null) { const row = document.querySelector(`.mb-tr[data-st="${st.strake}"]`); if (row) row.scrollIntoView({ block: 'nearest' }); }
+      return;
     }
     placePoint(hp, s);
   }
