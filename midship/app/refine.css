@@ -1249,3 +1249,9 @@ body.chrome-geometry #undoBtn::before,body.chrome-geometry #redoBtn::before{font
 select.ed-input{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M1 2.5l3 3 3-3' fill='none' stroke='%2364748b' stroke-width='1.2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:18px !important}
 select.ed-input:focus{outline:none;border-color:#3b82f6}
 .ed-input:focus{outline:none;border-color:#3b82f6;box-shadow:none}
+/* panel bar: title left, one joined control ‹ [panel] › on the right */
+.mb-panelbar{display:flex;align-items:center;gap:0}
+.mb-panelbar-title{flex:1;margin-right:8px}
+.mb-panelbar button{border-radius:3px 0 0 3px;border-right:none}
+.mb-panelbar button[data-sp="pnl-next"]{border-radius:0 3px 3px 0;border-left:none;border-right:1px solid var(--border)}
+.mb-panelbar .sp-pick{width:auto;max-width:150px;border-radius:0;height:20px}

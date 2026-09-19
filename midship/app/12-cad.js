@@ -160,6 +160,8 @@
   }
   function commit(s) {
     s.manual = true;
+    if (s.__idMap && sel.panel && s.__idMap[sel.panel]) sel.panel = s.__idMap[sel.panel];
+    delete s.__idMap;
     B().setSection(s); pushLegacy(s);
     if (window.HistoryManager && typeof window.HistoryManager.recordChange === 'function') { try { window.HistoryManager.recordChange(); } catch (_) {} }
     B().render();
@@ -315,9 +317,7 @@
         if (inSupports() && isCur) {
           // exception areas as amber bands, span text at the panel middle
           (d.supports.exceptions || []).forEach((e, i) => { const x0 = Math.min(e.from, e.to), x1 = Math.max(e.from, e.to); if (x1 > x0) h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${st.exc === i ? '#3b82f6' : '#f59e0b'}" stroke-width="7" opacity="0.55" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
-          const span = M().spanAt(s, gid, ci.L / 2) || defaultSpanFromShip(); const at = M().chainPointAt(s, gid, ci.L / 2);
-          if (at) { const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg; const lx = X(at.y + nx * 420), ly = Y(at.z + nz * 420); let ang = -Math.atan2(at.tz, at.ty) * 180 / Math.PI; if (ang > 90 || ang < -90) ang += 180;
-            h += `<text x="${lx}" y="${ly}" class="cad-sel" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang.toFixed(1)} ${lx} ${ly})">${span} mm</text>`; }
+
         }
       });
     }
@@ -330,9 +330,13 @@
     const zs = [...new Set(s.nodes.map(n => n.z))].filter(z => z > 0 && (s.nodes.filter(n => n.z === z).length >= 2 || z === ex.zMax));
     zs.forEach(z => { h += `<text x="${X(ex.yMax + 260)}" y="${Y(z) + 4}" class="cad-dim">${fmt(z)} AB</text>`; });
     const ys = [...new Set(s.nodes.map(n => n.y))].filter(y => y > 0 && (s.nodes.filter(n => n.y === y).length >= 2 || y === ex.yMax)).sort((a, b) => a - b);
-    // two rows so neighbouring labels (e.g. 10030 / 11880) never overlap
-    let lastY = -Infinity, row = 0;
-    ys.forEach(y => { row = (y - lastY < 2400) ? 1 - row : 0; lastY = y; h += `<text x="${X(y)}" y="${Y(-720 - row * 330)}" class="cad-dim" text-anchor="middle">${fmt(y)} CL</text>`; });
+    // one row; neighbours closer than a label width lean away from each other instead of stacking
+    ys.forEach((y, i) => {
+      const prevClose = i > 0 && y - ys[i - 1] < 2400, nextClose = i < ys.length - 1 && ys[i + 1] - y < 2400;
+      const anchor = prevClose && !nextClose ? 'start' : nextClose && !prevClose ? 'end' : 'middle';
+      const dx = anchor === 'start' ? 3 : anchor === 'end' ? -3 : 0;
+      h += `<text x="${X(y) + dx}" y="${Y(-720)}" class="cad-dim" text-anchor="${anchor}">${fmt(y)} CL</text>`;
+    });
     // Positions view: code chip at every panel midpoint (amber "?" when unnamed)
     if (inPositions()) {
       s.panels.forEach(pl => {
@@ -1055,7 +1059,7 @@
   }
   // Naming pins the section (manual): the names must survive, and the
   // generator would otherwise rebuild the panels with its own guesses.
-  function commitNames(m) { m.manual = true; B().setSection(m); pushLegacy(m); B().render(); renderPanel(); if (typeof window.refreshStepStrip === 'function') window.refreshStepStrip(); }
+  function commitNames(m) { m.manual = true; if (m.__idMap && sel.panel && m.__idMap[sel.panel]) sel.panel = m.__idMap[sel.panel]; delete m.__idMap; B().setSection(m); pushLegacy(m); B().render(); renderPanel(); if (typeof window.refreshStepStrip === 'function') window.refreshStepStrip(); }
   function scrollToSeg() { const el = sel.panel && document.querySelector(`.pc-seg[data-pc-seg="${sel.panel}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); }
   function scrollToRow() {
     const r = sel.panel && document.querySelector(`.pos-row[data-row="${sel.panel}"]`);

@@ -246,7 +246,19 @@
     });
     // drop empty groups
     Object.keys(model.groups).forEach(id => { if (!model.panels.some(p => p.group === id)) delete model.groups[id]; });
+    renumber(model);
     return model;
+  }
+  // Segment ids run P1, P2, … panel by panel (group order) and along each panel chain,
+  // so Shell is P1…Pn from the keel, the next panel continues the count.
+  function renumber(model) {
+    const map = {}; let n = 0;
+    Object.keys(model.groups || {}).forEach(gid => { chainOf(model, gid).forEach(q => { n++; map[q.id] = 'P' + n; }); });
+    model.panels.forEach(q => { if (!map[q.id]) { n++; map[q.id] = 'P' + n; } });
+    if (Object.keys(map).every(k => map[k] === k)) return;
+    model.panels.forEach(q => { q.id = map[q.id]; });
+    (model.compartments || []).forEach(c => { c.panels = (c.panels || []).map(id => map[id] || id); });
+    model.__idMap = map;   // last renumbering, for callers that hold a selection
   }
   function generate(src) {
     const model = build(linesFromParams(src));
