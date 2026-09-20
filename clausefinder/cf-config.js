@@ -27,6 +27,6 @@ window.CF_CONFIG = {
   apiBase: '/api/',
   semantic: 'browser',
   noStore: false,
-  dataVersion: '20260918a'  // LR Ships 165 + Lifting 6 embedded formulas read, DocumentId links resolved (20260917b: LR SSC inline formulas read, 64 figures with non-ASCII names now served (20260917a: BV NR615 buckling; (20260916c: LR Materials, BV NR467 Parts A-F, DNV class guidelines). Bump when a book is added: browsers cache
+  dataVersion: '20260920a'  // Finnish-Swedish Ice Class Rules 2021 (Traficom) added, 69 numbered equations read (20260918a: LR Ships 165 + Lifting 6 embedded formulas read, DocumentId links resolved (20260917b: LR SSC inline formulas read, 64 figures with non-ASCII names now served (20260917a: BV NR615 buckling; (20260916c: LR Materials, BV NR467 Parts A-F, DNV class guidelines). Bump when a book is added: browsers cache
                             // books.json for a year (the CDN purges itself on upsert).
 };
