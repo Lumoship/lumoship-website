@@ -144,14 +144,11 @@
   // ---------------------------------------------------------------- compartments / WT
   const LEGACY_TYPE = { ballast: 'ballast', fuel: 'fuel', freshwater: 'freshwater', cargo: 'cargo', liquidCargo: 'fuel', void: 'void', machinery: 'void', accommodation: 'void' };
   function applyCompartments(s, COMPARTMENTS) {
-    if (!Array.isArray(s.compartments) || !s.compartments.length) return;   // keep whatever the project had
-    const loops = window.SectionCAD && window.SectionCAD.loopOf;
+    if (!window.ShipComps) return;
+    const here = ShipComps.forSection(s).filter(c => ShipComps.hasSize(c));
+    if (!here.length && !ShipComps.list().length) return;   // nothing defined yet: keep whatever the project had
     COMPARTMENTS.length = 0;
-    s.compartments.forEach(c => {
-      const poly = loops ? loops(s, c) : null;
-      COMPARTMENTS.push({ name: c.name || c.id, type: LEGACY_TYPE[c.type] || 'void', rho: c.rho || 0, airpipeZ_mm: c.airpipe_mm || null, testHead_m: c.testHead_m || null, cargoLoad: c.cargoLoad || 0,
-        poly: poly ? poly.map(q => ({ y: q.y, z: q.z })) : null, sectionId: c.id });
-    });
+    here.forEach(c => COMPARTMENTS.push(ShipComps.toEngine(c)));
   }
   function applyWT(s, WT, ctx) {
     const wtOf = code => { const ps = s.panels.filter(p => p.position === code); return ps.length ? (ps.every(p => p.wt) ? 'WT' : 'Non-WT') : null; };

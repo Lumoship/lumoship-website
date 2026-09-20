@@ -432,35 +432,34 @@
   // the boundary is drawn in the section's Compartments step.
   var Comps = {
     render: function () {
-      var host = $('compsOverview'); if (!host || !window.Sections) return;
-      var st; try { st = Sections.exportState(); } catch (_) { st = { items: [], active: null }; }
-      var types = (window.SectionCAD && SectionCAD.COMP_TYPES) || [];
-      var h = '';
-      st.items.forEach(function (m) {
-        var lb = Sections.label(m); var cs = m.compartments || [];
-        h += '<div class="mb"><div class="mb-title"><span>' + lb.name + '</span><em class="mb-em">' + cs.length + ' compartment' + (cs.length === 1 ? '' : 's') + (m.id === st.active ? ' · active' : '') + '</em></div>';
-        if (!cs.length) h += '<div class="mb-empty-row">none — draw them in the section’s Compartments step</div>';
-        else {
-          h += '<div class="mb-table co-table"><div class="mb-th co-th"><span>Name</span><span>Type</span><span>ρ t/m³</span><span>Air pipe mm</span><span>Test head m</span><span>Boundary</span></div>';
-          cs.forEach(function (c) {
-            var closed = window.SectionCAD && SectionCAD.isClosed ? SectionCAD.isClosed(m, c) : true;
-            h += '<div class="mb-tr co-th" data-sec="' + m.id + '" data-c="' + c.id + '"><span><input class="ed-input co-f" data-k="name" type="text" value="' + (c.name || c.id) + '"></span><span><select class="ed-input co-f" data-k="type">' + types.map(function (t) { return '<option value="' + t.code + '" ' + (t.code === c.type ? 'selected' : '') + '>' + t.label + '</option>'; }).join('') + '</select></span><span><input class="ed-input co-f" data-k="rho" type="number" step="0.005" value="' + (c.rho != null ? c.rho : '') + '"></span><span><input class="ed-input co-f" data-k="airpipe_mm" type="number" step="10" value="' + (c.airpipe_mm != null ? c.airpipe_mm : '') + '"></span><span><input class="ed-input co-f" data-k="testHead_m" type="number" step="0.1" value="' + (c.testHead_m != null ? c.testHead_m : '') + '"></span><span style="color:' + (closed ? 'var(--success)' : 'var(--warning)') + '">' + ((c.nodes || []).length || (c.panels || []).length) + ' ' + (closed ? '✓' : '○') + '</span></div>';
-          });
-          h += '</div>';
-        }
-        h += '</div>';
+      var host = $('compsOverview'); if (!host || !window.ShipComps) return;
+      var models = []; try { models = Sections.exportState().items; } catch (_) {}
+      var types = (window.SectionCAD && SectionCAD.COMP_TYPES) || []; var list = ShipComps.list();
+      var num = function (id, k, v, step, ph) { return '<input class="ed-input co-f" data-id="' + id + '" data-k="' + k + '" type="number" step="' + step + '" value="' + (v == null ? '' : v) + '" placeholder="' + (ph || '') + '">'; };
+      var h = '<div class="mb"><div class="mb-title">Compartments <em class="mb-em">' + list.length + ' · frames × Y × Z, half section, mm</em></div>';
+      h += '<div class="mb-tools"><button class="mb-tool" data-co="add" title="Add a compartment">＋</button></div>';
+      h += '<div class="mb-table co-table"><div class="mb-th co-th"><span>Name</span><span>Type</span><span>Fr. from</span><span>Fr. to</span><span>Y from</span><span>Y to</span><span>Z from</span><span>Z to</span><span>ρ t/m³</span><span>Air pipe</span><span>Test head</span><span>Sections</span><span></span></div>';
+      if (!list.length) h += '<div class="mb-empty-row">none yet — ＋ adds one; a compartment can also be added inside a section</div>';
+      list.forEach(function (c) {
+        var secs = ShipComps.sectionsOf(c, models).map(function (m) { return Sections.label(m).name; });
+        h += '<div class="mb-tr co-th" data-id="' + c.id + '"><span><input class="ed-input co-f" data-id="' + c.id + '" data-k="name" type="text" value="' + (c.name || c.id) + '"></span>' +
+          '<span><select class="ed-input co-f" data-id="' + c.id + '" data-k="type">' + types.map(function (t) { return '<option value="' + t.code + '" ' + (t.code === c.type ? 'selected' : '') + '>' + t.label + '</option>'; }).join('') + '</select></span>' +
+          '<span>' + num(c.id, 'frFrom', c.frFrom, 1, 'aft') + '</span><span>' + num(c.id, 'frTo', c.frTo, 1, 'fwd') + '</span>' +
+          '<span>' + num(c.id, 'y0', c.y0, 10) + '</span><span>' + num(c.id, 'y1', c.y1, 10) + '</span><span>' + num(c.id, 'z0', c.z0, 10) + '</span><span>' + num(c.id, 'z1', c.z1, 10) + '</span>' +
+          '<span>' + num(c.id, 'rho', c.rho, 0.005) + '</span><span>' + num(c.id, 'airpipe_mm', c.airpipe_mm, 10) + '</span><span>' + num(c.id, 'testHead_m', c.testHead_m, 0.1) + '</span>' +
+          '<span class="co-secs" title="' + secs.join(', ') + '">' + (secs.length ? secs.join(', ') : '<em>none</em>') + '</span><span><button class="ed-link-btn co-del" data-id="' + c.id + '" title="Delete">✕</button></span></div>';
       });
-      host.innerHTML = h || '<div class="mb-empty">No sections yet.</div>';
+      h += '</div></div>';
+      host.innerHTML = h;
+      var refresh = function () { Comps.render(); try { if (window.SectionAdapter) SectionAdapter.apply(D().getSection()); } catch (_) {} };
       host.querySelectorAll('.co-f').forEach(function (inp) { inp.addEventListener('change', function () {
-        var row = inp.closest('.mb-tr'); var sid = row.dataset.sec, cid = row.dataset.c; var k = inp.dataset.k; var v = inp.value;
-        if (['rho', 'airpipe_mm', 'testHead_m'].indexOf(k) >= 0) { v = parseFloat(v); if (isNaN(v)) v = null; }
-        var apply = function (m) { var c = (m.compartments || []).find(function (x) { return x.id === cid; }); if (c) c[k] = v; };
-        var st2 = Sections.exportState(); var m = st2.items.find(function (x) { return x.id === sid; }); if (!m) return;
-        if (sid === st2.active) { var cur = D().getSection(); apply(cur); D().setSection(cur); if (window.SectionAdapter) { try { SectionAdapter.apply(cur); } catch (_) {} } }
-        else apply(m);
-        try { window.Project && window.Project.saveLocal && window.Project.saveLocal(); } catch (_) {}
-        Comps.render();
+        var k = inp.dataset.k; var v = inp.value; var patch = {};
+        if (['rho', 'airpipe_mm', 'testHead_m', 'frFrom', 'frTo', 'y0', 'y1', 'z0', 'z1'].indexOf(k) >= 0) { v = parseFloat(v); if (isNaN(v)) v = null; }
+        if (k === 'type') { var T = types.find(function (t) { return t.code === v; }) || {}; patch.rho = T.rho || null; if (!T.tank) { patch.airpipe_mm = null; patch.testHead_m = null; } }
+        patch[k] = v; ShipComps.update(inp.dataset.id, patch); refresh();
       }); });
+      host.querySelectorAll('.co-del').forEach(function (b) { b.addEventListener('click', function () { ShipComps.remove(b.dataset.id); refresh(); }); });
+      var add = host.querySelector('[data-co="add"]'); if (add) add.addEventListener('click', function () { ShipComps.add({}); refresh(); });
     }
   };
 
@@ -469,11 +468,13 @@
     carveShipViews();
     Profiles.applyCustom();
     wireRail();
-    window.addEventListener('midship:restored', function () { Profiles.applyCustom(); FrameTable.render(); FrameTable.syncSection(); paint(); });
+    var migrateComps = function () { try { if (window.ShipComps && window.Sections) { ShipComps.reload(); var st = Sections.exportState(); var n = ShipComps.migrate(st.items); var cur = D().getSection(); if (cur && cur.compartments) delete cur.compartments; if (n && window.SectionAdapter) SectionAdapter.apply(cur); } } catch (_) {} };
+    window.addEventListener('midship:restored', function () { Profiles.applyCustom(); migrateComps(); FrameTable.render(); FrameTable.syncSection(); paint(); });
+    window.addEventListener('midship:comps-changed', function () { if (stepNow() === 10) Comps.render(); });
     window.addEventListener('midship:section-switched', function () { FrameTable.syncSection(); });
     window.addEventListener('midship:model-changed', function () { FrameTable.syncSection(); });
     // opening a project file re-reads the tables
-    if (window.importFullState && !window.importFullState.__treeHooked) { var orig = window.importFullState; var w = function () { var r = orig.apply(this, arguments); try { Profiles.applyCustom(); FrameTable.render(); FrameTable.syncSection(); paint(); } catch (_) {} return r; }; w.__treeHooked = true; window.importFullState = w; }
+    if (window.importFullState && !window.importFullState.__treeHooked) { var orig = window.importFullState; var w = function () { var r = orig.apply(this, arguments); try { Profiles.applyCustom(); migrateComps(); FrameTable.render(); FrameTable.syncSection(); paint(); } catch (_) {} return r; }; w.__treeHooked = true; window.importFullState = w; }
     if (stepNow() === 1) document.body.setAttribute('data-ship-view', currentView);
     paint();
   }

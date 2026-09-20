@@ -28,7 +28,8 @@
   const GRADES = ['A', 'B', 'D', 'E', 'AH32', 'DH32', 'EH32', 'AH36', 'DH36', 'EH36', 'AH40', 'DH40', 'EH40'];
   const STIFF_TYPES = ['HP', 'L', 'T', 'FB'];
   let selComp = null;        // id of the selected compartment (compartments mode)
-  let compPick = false;      // true while clicking panels to toggle them into the selected compartment
+  let compPick = false;      // true while the two corners of the selected compartment's box are being picked
+  let compPickA = null;      // first corner (real coordinates)
   // Compartment types with their LR inputs. Heads are resolved per element by the
   // rule engine (60-scantling-rules.js): tanks use the air pipe / overflow height
   // (LR Pt 4 Ch 1 Table 1.9.1 deep-tank formula, Sec 8.4.4 for a DB common with a
@@ -59,64 +60,12 @@
   ];
   const DECK_POS = ['upperDeck', 'deck', 'tweenDeck', 'stringer', 'coamingTop'];
   const COMP_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#eab308', '#14b8a6'];
-  const compColor = (s, id) => COMP_COLORS[Math.max(0, (s.compartments || []).findIndex(c => c.id === id)) % COMP_COLORS.length];
-  // Ordered closed loop of the compartment's panels, as points, or null when the
-  // boundary is open (a gap) or branches.
-  // Node circuit → polygon. Consecutive nodes joined by a panel follow that panel
-  // (arcs sampled); otherwise a straight virtual edge (centreline, hatch opening).
-  function circuitLoop(s, c) {
-    const ids = (c.nodes || []).filter(id => nodeById(s, id)); if (ids.length < 3) return null;
-    const pts = []; const virt = [];
-    ids.forEach((id, i) => {
-      const a = nodeById(s, id), b = nodeById(s, ids[(i + 1) % ids.length]);
-      const pl = s.panels.find(p => (p.from === a.id && p.to === b.id) || (p.from === b.id && p.to === a.id));
-      if (pl && pl.curve) { const ln = M().panelLine(pl, s.nodes); const fwd = pl.from === a.id; for (let k = 0; k < 12; k++) pts.push(M().pointAt(ln, fwd ? k / 12 : 1 - k / 12)); }
-      else { pts.push({ y: a.y, z: a.z }); if (!pl) virt.push([a, b]); }
-    });
-    pts.virtualEdges = virt; pts.virtual = null; return pts;
-  }
-  // Panels a node circuit runs along (for the engine mapping / highlight)
-  function circuitPanels(s, c) {
-    const ids = c.nodes || []; const out = [];
-    ids.forEach((id, i) => { const b = ids[(i + 1) % ids.length]; const pl = s.panels.find(p => (p.from === id && p.to === b) || (p.from === b && p.to === id)); if (pl) out.push(pl.id); });
-    return out;
-  }
-  function compLoop(s, c) {
-    if (c.nodes && c.nodes.length) return circuitLoop(s, c);
-    let pls = (c.panels || []).map(id => s.panels.find(p => p.id === id)).filter(Boolean).map(p => ({ ...p }));
-    if (pls.length < 2) return null;
-    const deg = {}; pls.forEach(p => { deg[p.from] = (deg[p.from] || 0) + 1; deg[p.to] = (deg[p.to] || 0) + 1; });
-    // Exactly two loose ends may be closed by a virtual straight edge: the
-    // centreline of a half section, or a hatch opening at deck level.
-    const loose = Object.keys(deg).filter(k => deg[k] === 1);
-    if (loose.length === 2) {
-      // straight when the ends share y or z; otherwise go round a corner on the
-      // centreline (a hold: up the CL, then across the hatch opening)
-      const A = nodeById(s, loose[0]), Bn = nodeById(s, loose[1]);
-      let via = [];
-      if (Math.abs(A.y - Bn.y) > 1 && Math.abs(A.z - Bn.z) > 1) {
-        if (A.y <= 1) via = [{ y: 0, z: Bn.z }]; else if (Bn.y <= 1) via = [{ y: 0, z: A.z }]; else via = [{ y: A.y, z: Bn.z }];
-      }
-      pls.push({ id: '~virtual', from: loose[0], to: loose[1], curve: null, virtual: true, via });
-      deg[loose[0]] = 2; deg[loose[1]] = 2;
-    }
-    if (Object.values(deg).some(d => d !== 2)) return null;
-    if (pls.length < 3) return null;
-    const left = pls.slice(); let cur = left.shift(); const pts = []; let at = cur.from; const start = at;
-    const push = (p, fwd) => {
-      if (p.virtual) { const a = nodeById(s, p.from), b = nodeById(s, p.to); const seq = [a].concat(p.via || [], [b]); const ordered = fwd ? seq : seq.slice().reverse(); ordered.slice(0, -1).forEach(q => pts.push({ y: q.y, z: q.z })); return; }
-      const ln = M().panelLine(p, s.nodes); const n = ln.curve ? 12 : 1; for (let k = 0; k < n; k++) { const q = M().pointAt(ln, fwd ? k / n : 1 - k / n); pts.push(q); }
-    };
-    push(cur, true); at = cur.to;
-    let guard = 0;
-    while (left.length && guard++ < 200) {
-      const i = left.findIndex(p => p.from === at || p.to === at); if (i < 0) return null;
-      const p = left.splice(i, 1)[0]; const fwd = p.from === at; push(p, fwd); at = fwd ? p.to : p.from;
-    }
-    if (at !== start) return null;
-    pts.virtual = pls.find(p => p.virtual) || null;
-    return pts;
-  }
+  const compColor = (s, id) => COMP_COLORS[Math.max(0, (window.ShipComps ? ShipComps.list() : []).findIndex(c => c.id === id)) % COMP_COLORS.length];
+  const CS = () => window.ShipComps;
+  const compsHere = s => CS() ? CS().forSection(s) : [];
+  // A compartment is a box: its outline on the section and the panels on / inside it.
+  function compLoop(s, c) { return CS() && CS().hasSize(c) ? CS().polyOf(c) : null; }
+  function compPanels(s, c) { return CS() ? CS().panelsOf(s, c) : []; }
   function polyArea(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p.y * q.z - q.y * p.z; } return Math.abs(a) / 2; }
   function polyCentroid(pts) { let cy = 0, cz = 0; pts.forEach(p => { cy += p.y; cz += p.z; }); return { y: cy / pts.length, z: cz / pts.length }; }
   function pointInPoly(pts, p) { let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a.z > p.z) !== (b.z > p.z) && p.y < (b.y - a.y) * (p.z - a.z) / (b.z - a.z) + a.y) inside = !inside; } return inside; }
@@ -308,36 +257,36 @@
       h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
       h += `${pathOf(pl)} stroke="${col}" stroke-width="${w}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
     });
-    // Compartments view: filled loops (or dashed boundary when the loop is open) + name / type label
+    // Compartments view: the boxes the section cuts, their boundary panels, a label inside
     if (inComps()) {
-      (s.compartments || []).forEach(c => {
+      compsHere(s).forEach(c => {
         const col = compColor(s, c.id); const isSel = selComp === c.id, isHovC = hoverComp === c.id; const loop = compLoop(s, c);
-        if (loop) {
-          h += `<polygon points="${loop.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="${col}" fill-opacity="${isSel ? 0.22 : isHovC ? 0.17 : 0.10}" stroke="${col}" stroke-width="${isSel ? 2 : isHovC ? 1.6 : 1}" vector-effect="non-scaling-stroke" data-comp="${c.id}" style="cursor:pointer"/>`;
-          if (loop.virtual) { const va = nodeById(s, loop.virtual.from), vb = nodeById(s, loop.virtual.to); const seq = [va].concat(loop.virtual.via || [], [vb]); h += `<polyline points="${seq.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
-          (loop.virtualEdges || []).forEach(([va, vb]) => { h += `<line x1="${X(va.y)}" y1="${Y(va.z)}" x2="${X(vb.y)}" y2="${Y(vb.z)}" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
-          // label inside the space: horizontal when the room allows, else along the
-          // longer free direction (double side), smaller down to 6 px, sub line only when it fits
-          const spot = labelSpot(loop); const m = spot.p; const sc = Math.abs(X(1000) - X(0)) / 1000 || 1e-3;
-          const name = c.name || c.id, sub = compType(c.type).label + (c.rho ? ' · ρ ' + c.rho : '');
-          const roomW = spot.w * sc - 6, roomH = spot.h * sc - 6;   // px, with a margin
-          const CH = 0.62; let fs = 9, vert = false, showSub = false;
-          const fits = (f, w, hh) => name.length * CH * f <= w && f * 1.1 <= hh;
-          const trySize = f => { if (fits(f, roomW, roomH)) { fs = f; vert = false; return true; } if (fits(f, roomH, roomW)) { fs = f; vert = true; return true; } return false; };
-          if (!trySize(9) && !trySize(8) && !trySize(7)) { trySize(6); }
-          if (!vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomW && fs * 1.1 + 9 <= roomH; }
-          else if (vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomH && fs * 1.1 + 9 <= roomW; }
-          const lx = X(m.y), ly = Y(m.z); const tr = vert ? ` transform="rotate(-90 ${lx} ${ly})"` : '';
-          const dy0 = showSub ? -3 : 3;
-          h += `<text x="${lx}" y="${ly + dy0}" class="cad-comp" fill="${col}" font-size="${fs}" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer"${tr}>${name}</text>`;
-          if (showSub) h += `<text x="${lx}" y="${ly + 8}" class="cad-comp-sub" fill="${col}" text-anchor="middle" pointer-events="none"${tr}>${sub}</text>`;
-        }
-        // picked nodes, numbered, while the circuit is being drawn / for the selected compartment
-        if (isSel && c.nodes && c.nodes.length) c.nodes.forEach((nid, i) => { const n = nodeById(s, nid); if (!n) return; h += `<circle cx="${X(n.y)}" cy="${Y(n.z)}" r="6" fill="${col}" fill-opacity="0.9" pointer-events="none"/><text x="${X(n.y)}" y="${Y(n.z) + 3}" class="cad-pos" fill="#0f172a" text-anchor="middle" pointer-events="none" style="stroke:none">${i + 1}</text>`; });
-        // boundary panels: highlighted so an open loop is visible
-        ((c.nodes && c.nodes.length) ? circuitPanels(s, c) : (c.panels || [])).forEach(id => { const pl = s.panels.find(p => p.id === id); if (!pl) return;
-          h += `${pathOf(pl)} stroke="${col}" stroke-width="${isSel ? 4 : 2.5}" ${loop ? '' : 'stroke-dasharray="8 5"'} vector-effect="non-scaling-stroke" pointer-events="none" opacity="${isSel ? 1 : 0.7}"/>`; });
+        if (!loop) return;
+        h += `<polygon points="${loop.map(q => `${X(q.y)},${Y(q.z)}`).join(' ')}" fill="${col}" fill-opacity="${isSel ? 0.22 : isHovC ? 0.17 : 0.10}" stroke="${col}" stroke-width="${isSel ? 2 : isHovC ? 1.6 : 1}" stroke-dasharray="${isSel ? '' : '4 3'}" vector-effect="non-scaling-stroke" data-comp="${c.id}" style="cursor:pointer"/>`;
+        // boundary panels
+        compPanels(s, c).forEach(id => { const pl = s.panels.find(p => p.id === id); if (pl) h += `${pathOf(pl)} stroke="${col}" stroke-width="${isSel ? 4 : 2.5}" vector-effect="non-scaling-stroke" pointer-events="none" opacity="${isSel ? 1 : 0.8}"/>`; });
+        // corner handles of the selected box
+        if (isSel) loop.forEach(q => { h += `<rect x="${X(q.y) - 3.5}" y="${Y(q.z) - 3.5}" width="7" height="7" fill="#0f172a" stroke="${col}" stroke-width="1.5" pointer-events="none"/>`; });
+        // label inside the box: horizontal when the room allows, else along the longer side
+        const spot = labelSpot(loop); const m = spot.p; const sc = Math.abs(X(1000) - X(0)) / 1000 || 1e-3;
+        const name = c.name || c.id, sub = compType(c.type).label + (c.rho ? ' · ρ ' + c.rho : '');
+        const roomW = spot.w * sc - 6, roomH = spot.h * sc - 6;
+        const CH = 0.62; let fs = 9, vert = false, showSub = false;
+        const fits = (f, w, hh) => name.length * CH * f <= w && f * 1.1 <= hh;
+        const trySize = f => { if (fits(f, roomW, roomH)) { fs = f; vert = false; return true; } if (fits(f, roomH, roomW)) { fs = f; vert = true; return true; } return false; };
+        if (!trySize(9) && !trySize(8) && !trySize(7)) { trySize(6); }
+        if (!vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomW && fs * 1.1 + 9 <= roomH; }
+        else if (vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomH && fs * 1.1 + 9 <= roomW; }
+        const lx = X(m.y), ly = Y(m.z); const tr = vert ? ` transform="rotate(-90 ${lx} ${ly})"` : '';
+        const dy0 = showSub ? -3 : 3;
+        h += `<text x="${lx}" y="${ly + dy0}" class="cad-comp" fill="${col}" font-size="${fs}" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer"${tr}>${name}</text>`;
+        if (showSub) h += `<text x="${lx}" y="${ly + 8}" class="cad-comp-sub" fill="${col}" text-anchor="middle" pointer-events="none"${tr}>${sub}</text>`;
       });
+      // picking the corners: first corner marked, rubber box to the pointer
+      if (compPick && selComp && compPickA && hover) {
+        const a = compPickA; h += `<rect x="${Math.min(X(a.y), X(hover.y))}" y="${Math.min(Y(a.z), Y(hover.z))}" width="${Math.abs(X(hover.y) - X(a.y))}" height="${Math.abs(Y(hover.z) - Y(a.z))}" fill="rgba(59,130,246,0.10)" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+        h += `<circle cx="${X(a.y)}" cy="${Y(a.z)}" r="4" fill="#3b82f6" pointer-events="none"/>`;
+      }
     }
     // Scantling steps: panel-level runs along each panel chain
     if (inStrakes() || inStiffs() || inSupports()) {
@@ -606,13 +555,13 @@
       if (!cid) { const under = document.elementFromPoint(e.clientX, e.clientY); cid = under && under.getAttribute ? under.getAttribute('data-comp') : null; }
       const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
       if (compPick && selComp) {
-        // node circuit: click nodes in order round the space; clicking a picked node removes it
-        const c = s.compartments.find(x => x.id === selComp);
-        if (c && hp.kind === 'node') { c.nodes = c.nodes || []; const i = c.nodes.indexOf(hp.nodeId); if (i >= 0) c.nodes.splice(i, 1); else c.nodes.push(hp.nodeId); c.panels = circuitPanels(s, c); commitNames(s); }
-        else if (c) toast('Click the nodes round the space, in order.');
-        return;
+        // two corners define the box (snapped to nodes / panels / grid)
+        const c = CS().get(selComp); if (!c) { compPick = false; return; }
+        if (!compPickA) { compPickA = { y: hp.y, z: hp.z }; renderSvg(); renderPanel(); return; }
+        CS().update(selComp, { y0: Math.round(Math.min(compPickA.y, hp.y)), y1: Math.round(Math.max(compPickA.y, hp.y)), z0: Math.round(Math.min(compPickA.z, hp.z)), z1: Math.round(Math.max(compPickA.z, hp.z)) });
+        compPick = false; compPickA = null; pushLegacy(s); renderSvg(); renderPanel(); return;
       }
-      if (cid) selComp = cid; else if (pid) { const owner = (s.compartments || []).find(c => (c.panels || []).includes(pid)); selComp = owner ? owner.id : selComp; }
+      if (cid) selComp = cid; else if (pid) { const owner = compsHere(s).find(c => compPanels(s, c).includes(pid)); selComp = owner ? owner.id : selComp; }
       else selComp = null;
       renderSvg(); renderPanel();
       if (selComp) { const row = document.querySelector(`.pos-row[data-row="${selComp}"]`); if (row) row.scrollIntoView({ block: 'nearest' }); }
@@ -1002,35 +951,30 @@
 
   // ------------------------------------------------------------ compartments panel (step 6)
   function renderCompsPanel(ec, s) {
-    s.compartments = s.compartments || [];
-    const open = s.compartments.filter(c => !compLoop(s, c)).length;
-    let h = `<div class="cad-status ${open ? 'manual' : ''}">
-      <span style="white-space:normal">${s.compartments.length} compartment${s.compartments.length === 1 ? '' : 's'}${open ? ' · <b style="color:var(--warning)">' + open + ' open boundary</b>' : ''}</span>
-      <span class="cad-inline"><button class="ed-link-btn on" data-cp="add">+ compartment</button>${!s.compartments.length && hasLegacyComps() ? `<button class="ed-link-btn" data-cp="seed" title="Bring over the example's compartments (duct, void, cargo hold, ballast)">Seed</button>` : ''}</span>
+    const all = CS() ? CS().list() : []; const here = compsHere(s); const fr = CS() ? CS().frameOf(s) : null;
+    let h = `<div class="cad-status">
+      <span style="white-space:normal">${here.length} compartment${here.length === 1 ? '' : 's'} at this section${fr == null ? ' · <b style="color:var(--warning)">no frame — every compartment applies</b>' : ''}${all.length > here.length ? ' · ' + (all.length - here.length) + ' elsewhere' : ''}</span>
+      <span class="cad-inline"><button class="ed-link-btn on" data-cp="add">+ compartment</button></span>
     </div>`;
-    const c = selComp ? s.compartments.find(x => x.id === selComp) : null;
+    const c = selComp ? all.find(x => x.id === selComp) : null;
     if (c) {
-      const T = compType(c.type); const loop = compLoop(s, c); const col = compColor(s, c.id);
-      const area = loop ? polyArea(loop) / 1e6 : null;
-      const zTop = (c.panels || []).length ? Math.max(...c.panels.map(id => { const p = s.panels.find(x => x.id === id); return p ? Math.max(nodeById(s, p.from).z, nodeById(s, p.to).z) : 0; })) : null;
+      const T = compType(c.type); const col = compColor(s, c.id); const pls = compPanels(s, c);
       const opt = (k, v, list, labels) => `<select class="ed-input cp-f" data-k="${k}" style="flex:1">${list.map((x, i) => `<option value="${x}" ${x === v ? 'selected' : ''}>${labels ? labels[i] : x}</option>`).join('')}</select>`;
       const num = (k, v, step, w, ph) => `<input class="ed-input cp-f" data-k="${k}" type="number" step="${step}" value="${v == null ? '' : v}" placeholder="${ph || ''}" style="width:${w || 74}px">`;
-      const F = (label, inner, tip) => `<div class="ed-row" title="${tip || ''}"><span class="ed-id" style="min-width:96px">${label}</span>${inner}</div>`;
       const R = (label, inner, tip) => `<div class="mb-row" title="${tip || ''}"><span>${label}</span><span class="pc-inline">${inner}</span></div>`;
-      const nodes = c.nodes || [];
-      h += `<div class="mb" style="border-left:3px solid ${col}"><div class="mb-title"><span style="color:${col}">${c.name || c.id}</span><em class="mb-em">${area != null ? area.toFixed(1) + ' m² (half)' : 'open'}</em><button class="ed-del" data-cp="del" title="Delete compartment" style="margin-left:auto">✕</button></div>
+      const inHere = here.some(x => x.id === c.id);
+      h += `<div class="mb" style="border-left:3px solid ${col}"><div class="mb-title"><span style="color:${col}">${c.name || c.id}</span><em class="mb-em">${CS().hasSize(c) ? ((c.y1 - c.y0) * (c.z1 - c.z0) / 1e6).toFixed(1) + ' m² (half)' : 'no size'}${inHere ? '' : ' · not at this frame'}</em><button class="mb-x" data-cp="del" title="Delete">✕</button></div>
         ${R('Name', `<input class="ed-input cp-f" data-k="name" value="${c.name || ''}" style="flex:1">`)}
         ${R('Type', opt('type', c.type, COMP_TYPES.map(t => t.code), COMP_TYPES.map(t => t.label)))}
+        ${R('Frames', num('frFrom', c.frFrom, 1, 58, 'aft') + '<em>→</em>' + num('frTo', c.frTo, 1, 58, 'fwd') + '<em>blank = whole length</em>', 'Frame range the compartment spans; blank ends run to the ship\u2019s ends')}
+        ${R('Y', num('y0', c.y0, 10, 66) + '<em>→</em>' + num('y1', c.y1, 10, 66) + '<em>mm from CL</em>', 'Transverse extent on the half section')}
+        ${R('Z', num('z0', c.z0, 10, 66) + '<em>→</em>' + num('z1', c.z1, 10, 66) + '<em>mm AB</em>', 'Vertical extent above baseline')}
+        <div class="mb-row"><span>Box</span><span class="pc-inline mb-wrap"><button class="ed-link-btn ${compPick ? 'on' : ''}" data-cp="pick" title="Click two opposite corners on the drawing (snaps to nodes)">${compPick ? (compPickA ? 'second corner…' : 'first corner…') : 'Pick corners'}</button><span style="color:var(--text-muted)">${pls.length} panel${pls.length === 1 ? '' : 's'} on the boundary</span></span></div>
         ${T.rho || T.tank ? R('Density ρ', num('rho', c.rho, 0.005, 62) + '<em>t/m³</em>', 'Contents density') : ''}
-        ${T.tank ? R('Air pipe top', num('airpipe_mm', c.airpipe_mm, 10, 62, zTop != null ? String(zTop + 760) : '') + '<em>mm AB</em>', 'Top of the air pipe / overflow — deep-tank head h4 (LR Pt 4 Ch 1 Table 1.9.1)') : ''}
+        ${T.tank ? R('Air pipe top', num('airpipe_mm', c.airpipe_mm, 10, 62, c.z1 ? String(c.z1 + 760) : '') + '<em>mm AB</em>', 'Top of the air pipe / overflow — deep-tank head h4 (LR Pt 4 Ch 1 Table 1.9.1)') : ''}
         ${T.tank ? R('Test head', num('testHead_m', c.testHead_m, 0.1, 62, '2.4') + '<em>m above top</em>', 'Hydrostatic test head; blank = 2.4 m') : ''}
         ${c.type === 'cargo' ? R('Cargo load', num('cargoLoad', c.cargoLoad, 0.5, 62, '20') + '<em>t/m² on IB</em>', 'Stowage load on the inner bottom (LR Pt 4 Ch 1 Sec 8.4)') : ''}
-        <div class="mb-row"><span>Boundary</span><span class="pc-inline mb-wrap"><span style="color:${loop ? 'var(--success)' : 'var(--warning)'}">${nodes.length} node${nodes.length === 1 ? '' : 's'}${loop ? ' · closed ✓' : nodes.length ? ' · need ≥ 3' : ''}</span>
-          <button class="ed-link-btn ${compPick ? 'on' : ''}" data-cp="pick" title="Click the nodes round the space, in order">${compPick ? 'Done' : 'Pick nodes'}</button>
-          <button class="ed-link-btn" data-cp="clear-b">clear</button></span></div>
-        <div class="mb-row"><span></span><span class="pc-inline mb-wrap">${nodes.map((id, i) => `<span class="cp-chip" data-cp-rm="${id}" title="remove">${i + 1}·${id}</span>`).join('') || '<em>—</em>'}</span></div>
       </div>`;
-    } else {
     }
     // Deck loads
     const decks = s.panels.filter(p => DECK_POS.includes(p.position));
@@ -1046,77 +990,40 @@
       });
       h += `</div>`;
     }
-    // list
-    if (s.compartments.length) {
-      h += `<div class="ed-group"><div class="ed-group-header"><span style="color:var(--text-secondary)">Compartments <span class="ed-count">(${s.compartments.length})</span></span></div>`;
-      s.compartments.forEach(x => {
-        const col = compColor(s, x.id); const loop = compLoop(s, x);
-        h += `<div class="ed-row pos-row ${selComp === x.id ? 'is-sel' : ''}" data-row="${x.id}" style="border-left:3px solid ${col};cursor:pointer">
-          <span class="ed-id" style="min-width:60px;color:${col}">${x.name || x.id}</span><span style="color:var(--text-muted)">${compType(x.type).label}</span><span style="flex:1"></span>
-          <span style="color:${loop ? 'var(--success)' : 'var(--warning)'}">${(x.panels || []).length} p ${loop ? '✓' : '○'}</span></div>`;
+    // list: the ship's compartments, those at this section first
+    if (all.length) {
+      h += `<div class="ed-group"><div class="ed-group-header"><span style="color:var(--text-secondary)">Compartments <span class="ed-count">(${all.length})</span></span></div>
+        <div class="ed-row st-head cmp-head"><span>Name</span><span>Type</span><span>Frames</span><span>Y</span><span>Z</span></div>`;
+      all.slice().sort((x, y) => (here.includes(y) ? 1 : 0) - (here.includes(x) ? 1 : 0)).forEach(x => {
+        const col = compColor(s, x.id); const at = here.includes(x);
+        h += `<div class="ed-row pos-row cmp-row ${selComp === x.id ? 'is-sel' : ''} ${at ? '' : 'is-off'}" data-row="${x.id}" style="border-left:3px solid ${col};cursor:pointer" title="${at ? 'at this section' : 'not at this frame'}">
+          <span class="ed-id" style="color:${col}">${x.name || x.id}</span><span>${compType(x.type).label}</span><span>${x.frFrom == null && x.frTo == null ? 'all' : (x.frFrom == null ? '…' : x.frFrom) + '–' + (x.frTo == null ? '…' : x.frTo)}</span><span>${fmt(x.y0)}–${fmt(x.y1)}</span><span>${fmt(x.z0)}–${fmt(x.z1)}</span></div>`;
       });
       h += `</div>`;
     }
     ec.innerHTML = h;
 
-    const mutC = fn => { const m = JSON.parse(JSON.stringify(S())); m.compartments = m.compartments || []; fn(m, m.compartments.find(x => x.id === selComp)); commitNames(m); };
-    ec.querySelectorAll('.cp-f').forEach(i => i.addEventListener('change', e => mutC((m, c) => {
-      if (!c) return; const k = e.target.dataset.k; let v = e.target.value;
-      if (['rho', 'airpipe_mm', 'testHead_m', 'cargoLoad'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = null; }
-      if (k === 'type') { const T = compType(v); c.rho = T.rho || null; if (!T.tank) { c.airpipe_mm = null; c.testHead_m = null; } if (v !== 'cargo') c.cargoLoad = null; }
-      c[k] = v;
-    })));
-    ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { selComp = r.dataset.row; compPick = false; renderSvg(); renderPanel(); }));
-    ec.querySelectorAll('.dl-type').forEach(el => el.addEventListener('change', e => mutC(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q) return; const T = DECK_LOAD_TYPES.find(t => t.code === e.target.value); q.deckLoad = e.target.value === 'none' ? null : { type: e.target.value, p: T && T.p != null ? T.p : (q.deckLoad && q.deckLoad.p) || null }; })));
-    ec.querySelectorAll('.dl-p').forEach(el => el.addEventListener('change', e => mutC(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q || !q.deckLoad) return; const v = parseFloat(e.target.value); q.deckLoad.p = isNaN(v) ? null : v; })));
-    ec.querySelectorAll('[data-cp-rm]').forEach(ch => ch.addEventListener('click', () => mutC((m, c) => { if (!c) return; c.nodes = (c.nodes || []).filter(id => id !== ch.dataset.cpRm); c.panels = circuitPanels(m, c); })));
+    const after = () => { pushLegacy(S()); renderSvg(); renderPanel(); };
+    const mutM = fn => { const m = JSON.parse(JSON.stringify(S())); fn(m); commitNames(m); };
+    ec.querySelectorAll('.cp-f').forEach(i => i.addEventListener('change', e => {
+      if (!c) return; const k = e.target.dataset.k; let v = e.target.value; const patch = {};
+      if (['rho', 'airpipe_mm', 'testHead_m', 'cargoLoad', 'frFrom', 'frTo', 'y0', 'y1', 'z0', 'z1'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = null; }
+      if (k === 'type') { const T = compType(v); patch.rho = T.rho || null; if (!T.tank) { patch.airpipe_mm = null; patch.testHead_m = null; } if (v !== 'cargo') patch.cargoLoad = null; }
+      patch[k] = v; CS().update(c.id, patch); after();
+    }));
+    ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { selComp = r.dataset.row; compPick = false; compPickA = null; renderSvg(); renderPanel(); }));
+    ec.querySelectorAll('.dl-type').forEach(el => el.addEventListener('change', e => mutM(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q) return; const T = DECK_LOAD_TYPES.find(t => t.code === e.target.value); q.deckLoad = { type: e.target.value, p: T && T.p != null ? T.p : (q.deckLoad ? q.deckLoad.p : null) }; })));
+    ec.querySelectorAll('.dl-p').forEach(el => el.addEventListener('change', e => mutM(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q || !q.deckLoad) return; const v = parseFloat(e.target.value); q.deckLoad.p = isNaN(v) ? null : v; })));
     ec.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', () => {
       const act = b.dataset.cp;
-      if (act === 'add') { mutC(m => { let k = 1; while (m.compartments.some(x => x.id === 'C' + k)) k++; const T = COMP_TYPES[0]; m.compartments.push({ id: 'C' + k, name: 'C' + k, type: T.code, rho: T.rho, airpipe_mm: null, testHead_m: null, cargoLoad: null, panels: [], nodes: [] }); selComp = 'C' + k; compPick = true; }); return; }
-      if (act === 'del') { mutC(m => { m.compartments = m.compartments.filter(x => x.id !== selComp); selComp = null; compPick = false; }); return; }
-      if (act === 'pick') { compPick = !compPick; renderPanel(); return; }
-      if (act === 'clear-b') { mutC((m, c) => { if (c) { c.panels = []; c.nodes = []; } }); return; }
-      if (act === 'seed') { seedCompsFromLegacy(); return; }
+      if (act === 'add') { const f = CS().frameOf(S()); const id = CS().add({ frFrom: f, frTo: f }); selComp = id; compPick = true; compPickA = null; renderSvg(); renderPanel(); toast('Click two opposite corners of the space.'); return; }
+      if (act === 'del') { if (selComp) CS().remove(selComp); selComp = null; compPick = false; compPickA = null; after(); return; }
+      if (act === 'pick') { compPick = !compPick; compPickA = null; renderSvg(); renderPanel(); return; }
     }));
   }
   function hasLegacyComps() { return !!(window.Draw && Array.isArray(window.Draw.COMPARTMENTS) && window.Draw.COMPARTMENTS.length); }
-  // Example project: rebuild each legacy compartment's boundary as the set of
-  // panels whose midpoint lies on its polygon / box edge.
-  function seedCompsFromLegacy() {
-    const m = JSON.parse(JSON.stringify(S()));
-    const added = seedCompsInto(m, window.Draw.COMPARTMENTS || []);
-    if (!added) { toast('No legacy compartment could be mapped onto the panels.'); return; }
-    commitNames(m); toast(added + ' compartments seeded.');
-  }
-  // Legacy compartments (box or old node indices) → node circuits on the model `m`.
-  // Returns how many were added. Also used when an older project file is opened.
-  function seedCompsInto(m, legacy) {
-    m.compartments = m.compartments || [];
-    const nodesL = (window.Draw.computeNodes && window.Draw.computeNodes()) || [];
-    let k = m.compartments.length; let added = 0;
-    legacy.forEach(lc => {
-      let poly = null;
-      if (Array.isArray(lc.nodes) && lc.nodes.length >= 3) poly = lc.nodes.map(i => nodesL.find(n => n.id === i)).filter(Boolean).map(n => ({ y: n.realY, z: n.realZ }));
-      else if (lc.yMin != null) poly = [{ y: lc.yMin, z: lc.zMin }, { y: lc.yMax, z: lc.zMin }, { y: lc.yMax, z: lc.zMax }, { y: lc.yMin, z: lc.zMax }];
-      if (!poly || poly.length < 3) return;
-      const onEdge = q => { for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; const t = M().paramOn({ a, b }, q); if (t != null) return true; } return false; };
-      const panels = m.panels.filter(p => { const ln = M().panelLine(p, m.nodes); if (ln.curve) { return onEdge(ln.a) && onEdge(ln.b) && poly.length > 4; } return onEdge(M().pointAt(ln, 0.5)); }).map(p => p.id);
-      if (panels.length < 3) return;
-      k++; const type = COMP_TYPES.some(t => t.code === lc.type) ? lc.type : (lc.type === 'void' ? 'void' : 'ballast');
-      // the circuit: every model node on the polygon edges, in order round the loop —
-      // only when each corner is a node; a box corner in open space (hold corner on
-      // the centreline at deck level) is left to the panel loop's virtual edge
-      const nodes = [];
-      const cornersOk = poly.every(q => m.nodes.some(x => Math.abs(x.y - q.y) <= 1 && Math.abs(x.z - q.z) <= 1));
-      if (cornersOk) poly.forEach((a, i) => {
-        const b = poly[(i + 1) % poly.length];
-        const on = m.nodes.map(n => ({ n, t: M().paramOn({ a, b }, { y: n.y, z: n.z }) })).filter(q => q.t != null && q.t < 1 - 1e-6).sort((p, q) => p.t - q.t);
-        on.forEach(q => { if (!nodes.includes(q.n.id)) nodes.push(q.n.id); });
-      });
-      m.compartments.push({ id: 'C' + k, name: lc.name || 'C' + k, type, rho: lc.rho || compType(type).rho, airpipe_mm: lc.airpipeZ_mm || null, testHead_m: lc.testHead_m || null, cargoLoad: lc.cargoLoad || null, panels, nodes: nodes.length >= 3 ? nodes : [] }); added++;
-    });
-    return added;
-  }
+  // Older files: the engine's compartments (boxes or node index lists) → ship boxes
+  function seedCompsInto(m, legacy) { const nodesL = (window.Draw.computeNodes && window.Draw.computeNodes()) || []; return CS() ? CS().fromLegacy(legacy, nodesL) : 0; }
 
   // ------------------------------------------------------------ positions panel (step 3)
   function renderPositionsPanel(ec, s) {
@@ -1237,10 +1144,12 @@
         });
       });
     } else if (inComps()) {
-      (s.compartments || []).forEach(c => {
-        if (!compLoop(s, c)) out.push({ level: 'bad', where: c.name || c.id, text: 'boundary is open — pick the nodes round the space', comp: c.id });
+      compsHere(s).forEach(c => {
+        if (!compLoop(s, c)) out.push({ level: 'bad', where: c.name || c.id, text: 'box has no size — pick the corners or enter Y / Z', comp: c.id });
+        else if (!compPanels(s, c).length) out.push({ level: 'warn', where: c.name || c.id, text: 'no panel lies on the box — check Y / Z against the section', comp: c.id });
         const T = compType(c.type); if (T.tank && !(c.airpipe_mm > 0)) out.push({ level: 'warn', where: c.name || c.id, text: 'no air pipe height — deep-tank head falls back to the tank top', comp: c.id });
       });
+      if (CS() && CS().frameOf(s) == null && CS().list().length) out.push({ level: 'warn', where: 'Section', text: 'no frame number — every compartment of the ship is applied here', gid: null });
     }
     return out;
   }
@@ -1366,13 +1275,13 @@
   function render() {
     const v = B().viewMode(); mode = CAD_MODES.includes(v) ? v : 'section';
     if (mode !== 'section') { tool = 'select'; pending = []; arcAsk = null; }
-    if (mode !== 'compartments') compPick = false;
+    if (mode !== 'compartments') { compPick = false; compPickA = null; }
     init(); show(true); ensureToolbar(); renderSvg(); renderInfoCard(); renderMsgPane();
     const hd = document.querySelector('.editor-header-title');
     if (hd) hd.textContent = ({ section: 'Geometry', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Geometry';
   }
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
-  function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; pending = []; hover = null; hoverSg = null; hoverComp = null; }
-  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, get tool() { return tool; }, get selection() { return sel; } };
+  function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; compPickA = null; pending = []; hover = null; hoverSg = null; hoverComp = null; }
+  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
 })();

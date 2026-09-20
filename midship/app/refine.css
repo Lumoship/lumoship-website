@@ -1506,7 +1506,7 @@ body.chrome-form .ea-page-actions{display:none}
 .pf-hp-list{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center}
 .pf-hp-list .ed-link-btn[disabled]{opacity:0.35;cursor:default}
 /* compartments overview */
-.mb-th.co-th,.mb-tr.co-th{grid-template-columns:1.2fr 1.4fr 0.8fr 0.9fr 0.9fr 0.7fr}
+.mb-th.co-th,.mb-tr.co-th{grid-template-columns:1.1fr 1.3fr 0.55fr 0.55fr 0.7fr 0.7fr 0.7fr 0.7fr 0.6fr 0.7fr 0.6fr 1fr 26px}
 .co-table .ed-input{height:20px;padding:1px 5px;font-size:0.62rem;width:100% !important}
 #compsOverview .mb{margin-bottom:10px}
 .ea-sub-step{white-space:nowrap}
@@ -1577,3 +1577,12 @@ select.ed-input,.sp-autow,.co-f[data-k="type"],.dl-type,.cp-f[data-k="type"]{app
 /* one motion for every control */
 button,.ea-input,.ea-select,.ed-input,.tree-node,.ea-sub-step,.cad-menu-item,.mb-tr,.pos-row{transition:color .16s ease,background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
 .ea-input:focus,.ea-select:focus,.ed-input:focus{outline:none;border-color:var(--accent,#3b82f6);box-shadow:0 0 0 2px rgba(59,130,246,0.18)}
+
+.co-table .co-secs{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary)}
+.co-table .co-secs em{font-style:normal;color:var(--text-muted)}
+#compsOverview .mb-tools{padding:0 8px 6px}
+.cmp-head,.cmp-row{display:grid !important;grid-template-columns:1.1fr 1.1fr 0.8fr 1fr 1fr;gap:6px;align-items:center}
+.cmp-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-val);color:var(--text-secondary)}
+.cmp-row.is-off span{opacity:0.5}
+.mb-title .mb-x{margin-left:auto;background:transparent;border:1px solid transparent;color:var(--text-muted);cursor:pointer;height:18px;width:18px;border-radius:4px;font-size:0.6rem}
+.mb-title .mb-x:hover{color:var(--danger,#ef4444);border-color:var(--border)}

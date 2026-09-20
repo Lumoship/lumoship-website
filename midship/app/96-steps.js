@@ -144,10 +144,10 @@
     6: function () {
       var items = []; var S = D().getSection ? D().getSection() : null;
       if (!S) { items.push({ ok: false, text: 'Section model not built yet' }); return items; }
-      var cs = S.compartments || [];
-      items.push({ ok: cs.length > 0, level: 'warn', text: cs.length ? cs.length + ' compartment' + (cs.length > 1 ? 's' : '') : 'No compartments yet', fix: 'Tanks and holds set the design heads — add at least the ballast tanks and the hold' });
-      var openB = cs.filter(function (c) { return !window.SectionCAD || !window.SectionCAD.isClosed(S, c); }).length;
-      items.push({ ok: !openB, level: 'error', text: openB ? openB + ' compartment' + (openB > 1 ? 's' : '') + ' with an open boundary' : 'All boundaries closed', fix: 'Pick the nodes round the space until it closes' });
+      var cs = window.ShipComps ? ShipComps.forSection(S) : [];
+      items.push({ ok: cs.length > 0, level: 'warn', text: cs.length ? cs.length + ' compartment' + (cs.length > 1 ? 's' : '') + ' at this section' : 'No compartments at this section', fix: 'Tanks and holds set the design heads — add at least the ballast tanks and the hold (frames × Y × Z)' });
+      var openB = cs.filter(function (c) { return !ShipComps.hasSize(c); }).length;
+      items.push({ ok: !openB, level: 'error', text: openB ? openB + ' compartment' + (openB > 1 ? 's' : '') + ' without a box' : 'Every compartment has a box', fix: 'Pick the two corners or enter Y / Z' });
       var tanksNoPipe = cs.filter(function (c) { return ['ballast', 'fuel', 'freshwater', 'liquidCargo'].indexOf(c.type) >= 0 && !(c.airpipe_mm > 0); }).length;
       items.push({ ok: !tanksNoPipe, level: 'error', text: tanksNoPipe ? tanksNoPipe + ' tank' + (tanksNoPipe > 1 ? 's' : '') + ' without an air pipe height' : 'Tank heads defined', fix: 'Enter the air pipe top (mm AB) for every tank' });
       return items;
