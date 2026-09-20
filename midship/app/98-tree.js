@@ -219,46 +219,55 @@
   }
 
   // ------------------------------------------------------------------ Frame table
-  // MARS arrangement: Frame positions (first frame, standard spacing, frame 0 at x) ·
-  // zones table (from → to frame at a spacing) on the left · every frame with its x on
-  // the right · a longitudinal view underneath. Saved as JSON in #frameTableJson:
-  // { f0, s0, x0, rows:[{from,to,s}] }. Frames outside the zones run at the standard
-  // spacing. x is measured from the aft perpendicular (m); frame f0 sits at x0.
+  // MARS arrangement: Frame positions (first frame, its x) · zones table (from → to
+  // frame at a spacing) on the left · every frame with its x on the right · a
+  // longitudinal view underneath. Saved as JSON in #frameTableJson:
+  // { f0, x0, rows:[{from,to,s}] }. Frames exist only where a zone defines them: the
+  // list runs from the first zone to the last contiguous one (a gap ends the table).
+  // x is measured from the aft perpendicular (m); frame f0 sits at x0.
   var FrameTable = {
     sel: null,
     read: function () {
       var t = null; try { t = JSON.parse(($('frameTableJson') || {}).value || 'null'); } catch (_) {}
       if (!t || !Array.isArray(t.rows)) t = { rows: [] };
-      if (t.f0 == null) t.f0 = 0; if (t.x0 == null) t.x0 = 0;
-      if (!(t.s0 > 0)) t.s0 = parseFloat(($('transFrameSpacing') || {}).value) || 700;
+      if (t.f0 == null) t.f0 = 0; if (t.x0 == null) t.x0 = 0; delete t.s0;
       t.rows = t.rows.filter(function (r) { return r && isFinite(r.from) && isFinite(r.to) && r.s > 0; }).sort(function (a, b) { return a.from - b.from; });
       return t;
     },
     write: function (t) { var el = $('frameTableJson'); if (el) { el.value = JSON.stringify(t); el.dispatchEvent(new Event('change', { bubbles: true })); } },
-    // x (mm) of a frame: walk from f0 through the zones, standard spacing in the gaps
+    // spacing of the bay that starts at frame k, or null where no zone defines it
+    spacingAt: function (k, t) { for (var i = 0; i < t.rows.length; i++) { var r = t.rows[i]; if (k >= r.from && k < r.to) return r.s; } return null; },
+    // x (mm) of a frame, walking from f0 through the zones; null when a bay on the way is undefined
     xOf: function (frame, t) {
-      t = t || FrameTable.read(); var f = parseFloat(frame); if (isNaN(f)) return null;
-      var spacingAt = function (k) { for (var i = 0; i < t.rows.length; i++) { var r = t.rows[i]; if (k >= r.from && k < r.to) return r.s; } return t.s0; };
-      var x = (parseFloat(t.x0) || 0) * 1000; var f0 = parseFloat(t.f0) || 0;
-      if (f >= f0) { for (var k = f0; k < f; k++) x += spacingAt(k); }
-      else { for (var k2 = f; k2 < f0; k2++) x -= spacingAt(k2); }
+      t = t || FrameTable.read(); var f = parseFloat(frame); if (isNaN(f) || !t.rows.length) return null;
+      var x = (parseFloat(t.x0) || 0) * 1000; var f0 = parseFloat(t.f0) || 0; var sp;
+      if (f >= f0) { for (var k = f0; k < f; k++) { sp = FrameTable.spacingAt(k, t); if (sp == null) return null; x += sp; } }
+      else { for (var k2 = f; k2 < f0; k2++) { sp = FrameTable.spacingAt(k2, t); if (sp == null) return null; x -= sp; } }
       return x;
     },
-    lastFrame: function (t) { var L = parseFloat(($('L') || {}).value) || 0; var f = parseFloat(t.f0) || 0; var end = t.rows.length ? t.rows[t.rows.length - 1].to : f; if (L > 0) { var guard = 0; while (FrameTable.xOf(end, t) < L * 1000 && guard++ < 2000) end++; } return end; },
+    // the frames the zones define: from the first zone to the end of the last
+    // contiguous zone (a gap ends the table)
+    range: function (t) {
+      if (!t.rows.length) return null; var a = t.rows[0].from, b = t.rows[0].to;
+      for (var i = 1; i < t.rows.length; i++) { if (t.rows[i].from > b) break; b = Math.max(b, t.rows[i].to); }
+      return { from: a, to: b };
+    },
     sectionFrames: function () { var out = {}; try { Sections.exportState().items.forEach(function (m) { if (m.frame != null && String(m.frame).trim() !== '') out[Math.round(parseFloat(m.frame))] = Sections.label(m).name; }); } catch (_) {} return out; },
     issues: function (t) {
       var out = []; var L = parseFloat(($('L') || {}).value) || 0;
-      t.rows.forEach(function (r, i) { if (r.to <= r.from) out.push('zone ' + (i + 1) + ': "to" must be after "from"'); var n = t.rows[i + 1]; if (n && n.from < r.to) out.push('zones ' + (i + 1) + ' and ' + (i + 2) + ' overlap (frames ' + n.from + '–' + r.to + ')'); if (n && n.from > r.to) out.push('frames ' + r.to + '–' + n.from + ' fall back to the standard spacing ' + t.s0 + ' mm'); });
-      var sf = FrameTable.sectionFrames(); Object.keys(sf).forEach(function (f) { var x = FrameTable.xOf(f, t); if (L > 0 && (x < 0 || x > L * 1000)) out.push(sf[f] + ' (Fr. ' + f + ') lies outside 0…L'); });
+      var f0 = parseFloat(t.f0) || 0;
+      if (t.rows.length && t.rows[0].from !== f0) out.push('the first zone starts at frame ' + t.rows[0].from + ' but the first frame is ' + f0);
+      t.rows.forEach(function (r, i) { if (r.to <= r.from) out.push('zone ' + (i + 1) + ': "to" must be after "from"'); var n = t.rows[i + 1]; if (n && n.from < r.to) out.push('zones ' + (i + 1) + ' and ' + (i + 2) + ' overlap (frames ' + n.from + '–' + r.to + ')'); if (n && n.from > r.to) out.push('frames ' + r.to + '–' + n.from + ' have no spacing — the table ends at frame ' + r.to); });
+      var sf = FrameTable.sectionFrames(); Object.keys(sf).forEach(function (f) { var x = FrameTable.xOf(f, t); if (x == null) { if (t.rows.length) out.push(sf[f] + ' (Fr. ' + f + ') is outside the zones'); } else if (L > 0 && (x < 0 || x > L * 1000)) out.push(sf[f] + ' (Fr. ' + f + ') lies outside 0…L'); });
       return out;
     },
     render: function () {
       var host = $('frameTableHost'); if (!host) return; var t = FrameTable.read();
-      var L = parseFloat(($('L') || {}).value) || 0; var sf = FrameTable.sectionFrames(); var last = FrameTable.lastFrame(t);
+      var L = parseFloat(($('L') || {}).value) || 0; var sf = FrameTable.sectionFrames(); var rg = FrameTable.range(t);
       var num = function (id, v, step, w, unit) { return '<label class="ft-f"><span>' + id[1] + '</span><input class="ed-input ft-p" data-k="' + id[0] + '" type="number" step="' + step + '" value="' + v + '" style="width:' + w + 'px"><em>' + unit + '</em></label>'; };
       var h = '<div class="ft-top">' +
-        '<div class="mb"><div class="mb-title">Frame positions</div><div class="ft-fields">' + num(['f0', 'First frame number'], t.f0, 1, 64, '') + num(['s0', 'Standard frame spacing'], t.s0, 10, 72, 'mm') + num(['x0', 'First frame at x'], t.x0, 0.01, 72, 'm from AP') + '</div></div>' +
-        '<div class="mb"><div class="mb-title">Ship</div><div class="ft-fields"><span class="ft-ro"><span>Rule length L</span><b>' + (L ? L.toFixed(2) + ' m' : '—') + '</b></span><span class="ft-ro"><span>Last frame ≈</span><b>' + last + '</b></span><span class="ft-ro"><span>Sections</span><b>' + (Object.keys(sf).length ? Object.keys(sf).map(function (f) { return 'Fr. ' + f; }).join(', ') : 'none with a frame yet') + '</b></span></div></div></div>';
+        '<div class="mb"><div class="mb-title">Frame positions</div><div class="ft-fields">' + num(['f0', 'First frame number'], t.f0, 1, 64, '') + num(['x0', 'First frame at x'], t.x0, 0.01, 72, 'm from AP') + '</div></div>' +
+        '<div class="mb"><div class="mb-title">Ship</div><div class="ft-fields"><span class="ft-ro"><span>Rule length L</span><b>' + (L ? L.toFixed(2) + ' m' : '—') + '</b></span><span class="ft-ro"><span>Frames defined</span><b>' + (rg ? rg.from + ' – ' + rg.to : 'none') + '</b></span><span class="ft-ro"><span>Sections</span><b>' + (Object.keys(sf).length ? Object.keys(sf).map(function (f) { return 'Fr. ' + f; }).join(', ') : 'none with a frame yet') + '</b></span></div></div></div>';
       // zones (left) · frames (right)
       h += '<div class="ft-split"><div class="mb"><div class="mb-title">Frame spacing zones <em class="mb-em">' + t.rows.length + '</em></div>' +
         '<div class="mb-tools"><button class="mb-tool" data-ft="add" title="Add a zone after the last">＋</button><button class="mb-tool" data-ft="del" title="Remove the selected zone" ' + (FrameTable.sel == null ? 'disabled' : '') + '>✕</button></div>' +
@@ -267,18 +276,19 @@
         var xe = FrameTable.xOf(r.to, t);
         h += '<div class="mb-tr ft-th ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span class="ft-x">' + (xe != null ? (xe / 1000).toFixed(3) : '—') + '</span></div>';
       });
-      if (!t.rows.length) h += '<div class="mb-empty-row">no zones — every frame at the standard spacing; ＋ adds a zone</div>';
+      if (!t.rows.length) h += '<div class="mb-empty-row">no zones yet — ＋ adds one (e.g. frames 0 → 25 at 726 mm)</div>';
       h += '</div>';
       var iss = FrameTable.issues(t); iss.forEach(function (m) { h += '<div class="mb-sum warn" style="padding-top:0">' + m + '</div>'; });
       h += '</div>';
-      h += '<div class="mb"><div class="mb-title">Frames <em class="mb-em">' + (last - (parseFloat(t.f0) || 0) + 1) + '</em></div><div class="mb-table ft-frames"><div class="mb-th ft-fr"><span>Frame</span><span>x / Fr.' + t.f0 + ' (m)</span><span>x / AP (m)</span><span>x / L</span><span></span></div>';
-      var f0 = parseFloat(t.f0) || 0; var xf0 = FrameTable.xOf(f0, t);
-      for (var f = f0; f <= last; f++) { var x = FrameTable.xOf(f, t); var used = sf[f]; h += '<div class="mb-tr ft-fr ' + (used ? 'is-sel' : '') + '"><span>' + f + '</span><span>' + ((x - xf0) / 1000).toFixed(3) + '</span><span>' + (x / 1000).toFixed(3) + '</span><span>' + (L ? (x / 1000 / L).toFixed(3) : '—') + '</span><span class="ft-used">' + (used || '') + '</span></div>'; }
+      h += '<div class="mb"><div class="mb-title">Frames <em class="mb-em">' + (rg ? (rg.to - rg.from + 1) : 0) + '</em></div><div class="mb-table ft-frames"><div class="mb-th ft-fr"><span>Frame</span><span>x / Fr.' + t.f0 + ' (m)</span><span>x / AP (m)</span><span>x / L</span><span></span></div>';
+      var xf0 = (parseFloat(t.x0) || 0) * 1000;
+      if (rg) for (var f = rg.from; f <= rg.to; f++) { var x = FrameTable.xOf(f, t); if (x == null) continue; var used = sf[f]; h += '<div class="mb-tr ft-fr ' + (used ? 'is-sel' : '') + '"><span>' + f + '</span><span>' + ((x - xf0) / 1000).toFixed(3) + '</span><span>' + (x / 1000).toFixed(3) + '</span><span>' + (L ? (x / 1000 / L).toFixed(3) : '—') + '</span><span class="ft-used">' + (used || '') + '</span></div>'; }
+      else h += '<div class="mb-empty-row">the frames appear here as the zones are entered</div>';
       h += '</div></div></div>';
       // longitudinal view
-      h += '<div class="mb"><div class="mb-title">Longitudinal view</div><div class="ft-longi">' + FrameTable.longiSvg(t, L, sf, last) + '</div></div>';
+      h += '<div class="mb"><div class="mb-title">Longitudinal view</div><div class="ft-longi">' + FrameTable.longiSvg(t, L, sf, rg) + '</div></div>';
       host.innerHTML = h;
-      host.querySelectorAll('.ft-p').forEach(function (inp) { inp.addEventListener('change', function () { var tt = FrameTable.read(); var v = parseFloat(inp.value); if (isNaN(v)) return; tt[inp.dataset.k] = inp.dataset.k === 's0' ? Math.max(1, v) : v; FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); }); });
+      host.querySelectorAll('.ft-p').forEach(function (inp) { inp.addEventListener('change', function () { var tt = FrameTable.read(); var v = parseFloat(inp.value); if (isNaN(v)) return; tt[inp.dataset.k] = inp.dataset.k === 'f0' ? Math.round(v) : v; FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); }); });
       host.querySelectorAll('.ft-in').forEach(function (inp) { inp.addEventListener('change', function () { var i = +inp.closest('.mb-tr').dataset.i; var tt = FrameTable.read(); var v = parseFloat(inp.value); if (!isNaN(v)) tt.rows[i][inp.dataset.k] = inp.dataset.k === 's' ? Math.max(1, v) : Math.round(v); FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); }); inp.addEventListener('focus', function () { FrameTable.sel = +inp.closest('.mb-tr').dataset.i; host.querySelectorAll('.ft-table .mb-tr').forEach(function (r) { r.classList.toggle('is-sel', +r.dataset.i === FrameTable.sel); }); var d = host.querySelector('[data-ft="del"]'); if (d) d.disabled = false; }); });
       host.querySelectorAll('.ft-table .mb-tr').forEach(function (r) { r.addEventListener('click', function () { FrameTable.sel = +r.dataset.i; host.querySelectorAll('.ft-table .mb-tr').forEach(function (q) { q.classList.toggle('is-sel', q === r); }); var d = host.querySelector('[data-ft="del"]'); if (d) d.disabled = false; }); });
       var add = host.querySelector('[data-ft="add"]'); if (add) add.addEventListener('click', FrameTable.add);
@@ -286,12 +296,14 @@
     },
     add: function () {
       var t = FrameTable.read(); var lastRow = t.rows[t.rows.length - 1];
-      t.rows.push(lastRow ? { from: lastRow.to, to: lastRow.to + 20, s: lastRow.s } : { from: parseFloat(t.f0) || 0, to: (parseFloat(t.f0) || 0) + 20, s: t.s0 });
+      var sDef = parseFloat(($('transFrameSpacing') || {}).value) || 700;
+      t.rows.push(lastRow ? { from: lastRow.to, to: lastRow.to + 25, s: lastRow.s } : { from: parseFloat(t.f0) || 0, to: (parseFloat(t.f0) || 0) + 25, s: sDef });
       FrameTable.sel = t.rows.length - 1; FrameTable.write(t); FrameTable.render(); FrameTable.syncSection();
     },
-    longiSvg: function (t, L, sf, last) {
-      var W = 1000, H = 120, pad = 36; var f0 = parseFloat(t.f0) || 0;
-      var xMax = Math.max(L * 1000 || 0, FrameTable.xOf(last, t) || 0, 1); var xMin = Math.min(0, FrameTable.xOf(f0, t) || 0);
+    longiSvg: function (t, L, sf, rg) {
+      var W = 1000, H = 120, pad = 36;
+      var xEnd = rg ? FrameTable.xOf(rg.to, t) : null, xStart = rg ? FrameTable.xOf(rg.from, t) : null;
+      var xMax = Math.max(L * 1000 || 0, xEnd || 0, 1); var xMin = Math.min(0, xStart || 0);
       var X = function (mm) { return pad + (mm - xMin) / (xMax - xMin) * (W - 2 * pad); };
       var yBase = 74; var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ft-svg" preserveAspectRatio="xMidYMid meet">';
       // hull line: keel + deck as a plain band, AP / FP
@@ -299,11 +311,11 @@
       h += '<text x="' + X(0) + '" y="' + (yBase + 26) + '" class="ft-lbl" text-anchor="middle">AP</text>';
       if (L) h += '<text x="' + X(L * 1000) + '" y="' + (yBase + 26) + '" class="ft-lbl" text-anchor="middle">FP · L ' + L.toFixed(1) + ' m</text>';
       // zones as bands with the spacing written in
-      t.rows.forEach(function (r, i) { var a = X(FrameTable.xOf(r.from, t)), b = X(FrameTable.xOf(r.to, t)); h += '<rect x="' + a + '" y="' + (yBase - 34) + '" width="' + Math.max(0, b - a) + '" height="34" fill="rgba(34,197,94,' + (i % 2 ? 0.10 : 0.16) + ')"/><text x="' + ((a + b) / 2) + '" y="' + (yBase - 40) + '" class="ft-lbl" text-anchor="middle">' + r.s + ' mm</text>'; });
+      t.rows.forEach(function (r, i) { var xa = FrameTable.xOf(r.from, t), xb = FrameTable.xOf(r.to, t); if (xa == null || xb == null) return; var a = X(xa), b = X(xb); h += '<rect x="' + a + '" y="' + (yBase - 34) + '" width="' + Math.max(0, b - a) + '" height="34" fill="rgba(34,197,94,' + (i % 2 ? 0.10 : 0.16) + ')"/><text x="' + ((a + b) / 2) + '" y="' + (yBase - 40) + '" class="ft-lbl" text-anchor="middle">' + r.s + ' mm</text>'; });
       // frame ticks (every frame; every 10th taller with its number)
-      for (var f = f0; f <= last; f++) { var x = X(FrameTable.xOf(f, t)); var big = f % 10 === 0; h += '<line x1="' + x + '" y1="' + yBase + '" x2="' + x + '" y2="' + (yBase - (big ? 12 : 6)) + '" stroke="' + (big ? '#94a3b8' : '#475569') + '" stroke-width="1"/>'; if (big) h += '<text x="' + x + '" y="' + (yBase + 12) + '" class="ft-lbl" text-anchor="middle">' + f + '</text>'; }
+      if (rg) for (var f = rg.from; f <= rg.to; f++) { var xm = FrameTable.xOf(f, t); if (xm == null) continue; var x = X(xm); var big = f % 10 === 0; h += '<line x1="' + x + '" y1="' + yBase + '" x2="' + x + '" y2="' + (yBase - (big ? 12 : 6)) + '" stroke="' + (big ? '#94a3b8' : '#475569') + '" stroke-width="1"/>'; if (big) h += '<text x="' + x + '" y="' + (yBase + 12) + '" class="ft-lbl" text-anchor="middle">' + f + '</text>'; }
       // sections
-      Object.keys(sf).forEach(function (f) { var x = X(FrameTable.xOf(f, t)); h += '<line x1="' + x + '" y1="' + (yBase - 34) + '" x2="' + x + '" y2="' + yBase + '" stroke="#3b82f6" stroke-width="2"/><text x="' + x + '" y="' + (yBase - 40) + '" class="ft-lbl sec" text-anchor="middle">' + sf[f] + '</text>'; });
+      Object.keys(sf).forEach(function (f) { var xm = FrameTable.xOf(f, t); if (xm == null) return; var x = X(xm); h += '<line x1="' + x + '" y1="' + (yBase - 34) + '" x2="' + x + '" y2="' + yBase + '" stroke="#3b82f6" stroke-width="2"/><text x="' + x + '" y="' + (yBase - 40) + '" class="ft-lbl sec" text-anchor="middle">' + sf[f] + '</text>'; });
       h += '<line x1="' + X(xMin) + '" y1="' + yBase + '" x2="' + X(xMax) + '" y2="' + yBase + '" stroke="#64748b" stroke-width="1"/>';
       return h + '</svg>';
     },
