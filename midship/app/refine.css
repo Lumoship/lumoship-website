@@ -1527,3 +1527,53 @@ body.chrome-form .ea-page-actions{display:none}
 body.with-rail .lumoship-nav{padding:0 20px !important;position:static}
 body.with-rail .lumoship-nav-inner{max-width:none;height:44px;padding:0 !important}
 body.with-rail .lumoship-nav-logo-text{font-size:0.9rem}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Consistency layer — one type scale and one control scale for the whole tool.
+   Type (all JetBrains Mono):
+     titles    0.6rem  600 uppercase 0.06em   (panel titles, section titles, block titles, results summaries)
+     labels    0.58rem 500 uppercase 0.06em   (form labels, table heads, row labels)
+     controls  0.66rem on form pages · 0.62rem in the side panels / bars
+     values    0.62rem
+   Controls: 4 px radius everywhere; form inputs 28 px, panel inputs 20 px, small buttons 22 px.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root{--ctl-radius:4px;--t-title:0.6rem;--t-label:0.58rem;--t-ctl:0.66rem;--t-ctl-sm:0.62rem;--t-val:0.62rem}
+
+/* titles */
+.ea-panel-title,.ea-section-title,.mb-title,.mb-box-title,.ed-group-header span,.editor-header-title,.cad-info summary,.ci-root > summary,.rail-title,.cad-msgs-head{font-family:var(--font-mono) !important;font-size:var(--t-title) !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.06em !important}
+.ea-section-title{margin-bottom:var(--spacing-sm)}
+.mb-title .mb-em,.cad-info summary em{font-weight:400;text-transform:none;letter-spacing:0}
+
+/* labels */
+.ea-label,.mb-row > span:first-child,.ed-id,.ci-row > span:first-child,.ft-f > span,.ft-ro > span:first-child,.mb-th span,.st-head span,.pf-add > span:first-child,.mb-auto > span:first-child{font-family:var(--font-mono) !important;font-size:var(--t-label) !important;font-weight:500 !important;letter-spacing:0.06em !important;text-transform:uppercase !important;color:var(--text-muted)}
+.mb-row > span:first-child,.ed-id,.ci-row > span:first-child,.ft-f > span,.ft-ro > span:first-child,.pf-add > span:first-child,.mb-auto > span:first-child{text-transform:none !important;letter-spacing:0.02em !important}
+.ea-label sub,.ea-label sup{text-transform:none}
+
+/* form-page controls */
+.ea-input,.ea-select{height:28px;padding:3px 10px;font-family:var(--font-mono);font-size:var(--t-ctl);border-radius:var(--ctl-radius) !important;line-height:1.2}
+textarea.ea-input{height:auto;min-height:56px}
+.ea-select{padding-right:26px;background-size:10px;background-position:right 9px center}
+.ea-btn{font-family:var(--font-mono);font-size:var(--t-ctl);font-weight:500;letter-spacing:0.02em;padding:5px 12px;min-height:28px;border-radius:var(--ctl-radius) !important}
+.ea-header-btn{font-family:var(--font-mono);border-radius:var(--ctl-radius) !important}
+
+/* panel / bar controls */
+.ed-input,select.ed-input,.sp-autow,.sp-autoc,.ft-in,.ft-p,.pf-dim,.pf-q,.co-f,.dl-type,.dl-p,.cp-f,.sp-s,.sp-g,.sp-h,.rail-rename{height:20px;padding:1px 6px;font-family:var(--font-mono);font-size:var(--t-ctl-sm);border-radius:var(--ctl-radius) !important;line-height:1.2}
+.mb-panelbar .sp-pick{border-radius:var(--ctl-radius) !important}
+select.ed-input,.sp-autow,.co-f[data-k="type"],.dl-type,.cp-f[data-k="type"]{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;background-size:9px;padding-right:20px}
+.ed-link-btn,.mb-tools button,.mb-tool,.zoom-btn,.cad-toolbar button,.sb-nav-btn,.cad-seg button,.ea-sub-step,.pf-hp{font-family:var(--font-mono) !important;font-size:var(--t-ctl-sm) !important;font-weight:500;height:22px;padding:0 8px;border-radius:var(--ctl-radius) !important;line-height:1}
+.mb-tools button,.mb-tool{width:22px;padding:0}
+.cad-toolbar button{padding:0 9px}
+.ea-sub-step{padding:0 10px;height:24px}
+
+/* the rail: buttons do not inherit fonts by default */
+#sideRail,#sideRail button,#sideRail input{font-family:var(--font-mono)}
+.tree-node{font-size:0.64rem !important;font-weight:500 !important}
+.tree-node.group,.tree-node.top{font-weight:600 !important}
+.tree-node.leaf{font-size:0.62rem !important}
+
+/* values */
+.mb-tr span,.ci-row > span:last-child,.ft-x,.pf-where,.ft-ro b{font-family:var(--font-mono);font-size:var(--t-val)}
+
+/* one motion for every control */
+button,.ea-input,.ea-select,.ed-input,.tree-node,.ea-sub-step,.cad-menu-item,.mb-tr,.pos-row{transition:color .16s ease,background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
+.ea-input:focus,.ea-select:focus,.ed-input:focus{outline:none;border-color:var(--accent,#3b82f6);box-shadow:0 0 0 2px rgba(59,130,246,0.18)}
