@@ -1492,16 +1492,19 @@ body[data-ship-view] #page-1 .sp-view > .ea-section-title:first-child{margin-top
 .ft-svg .ft-lbl.sec{fill:#60a5fa;font-weight:700}
 body.chrome-form .ea-page-actions{display:none}
 /* profiles page */
-.pf-tools{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);margin-bottom:8px}
-.pf-tools .pf-q{width:160px;height:22px;padding:1px 8px;font-size:0.62rem}
-.mb-th.pf-th,.mb-tr.pf-th{grid-template-columns:minmax(150px,1.4fr) 1fr 1fr 1fr 1fr 30px}
-.pf-table{max-height:52vh;overflow:auto}
-.pf-table .is-custom{color:var(--accent,#60a5fa)}
-.pf-table em{font-style:normal;font-size:0.56rem;opacity:0.7;margin-left:6px}
-.pf-add{display:flex;align-items:center;gap:10px;margin-top:10px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
+#profilesCatalog .mb{margin-bottom:10px}
+.mb-th.pf-th,.mb-tr.pf-th{grid-template-columns:minmax(130px,1.2fr) 0.7fr 0.8fr 0.6fr 0.6fr minmax(160px,1.6fr) 26px}
+.pf-table{max-height:46vh;overflow:auto}
+.pf-table .is-lib{color:var(--text-muted)}
+.pf-table em{font-style:normal;font-size:0.56rem;opacity:0.7}
+.pf-table em.bad{color:var(--danger,#ef4444);opacity:1}
+.pf-where{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-add{display:flex;align-items:center;gap:10px;padding:6px 10px 8px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);flex-wrap:wrap}
 .pf-add label{display:inline-flex;align-items:center;gap:4px}
 .pf-add .pf-dim{width:58px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
-.pf-note{margin-top:10px;font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted)}
+.pf-add .pf-q{width:170px;height:20px;padding:1px 8px;font-size:0.62rem}
+.pf-hp-list{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center}
+.pf-hp-list .ed-link-btn[disabled]{opacity:0.35;cursor:default}
 /* compartments overview */
 .mb-th.co-th,.mb-tr.co-th{grid-template-columns:1.2fr 1.4fr 0.8fr 0.9fr 0.9fr 0.7fr}
 .co-table .ed-input{height:20px;padding:1px 5px;font-size:0.62rem;width:100% !important}

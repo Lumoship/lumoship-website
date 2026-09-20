@@ -341,11 +341,37 @@
   };
 
   // ------------------------------------------------------------------ Profiles page
+  // The project's profiles only: what the sections' stiffener groups use, plus what
+  // was added here (the library, #customProfilesJson). No full catalogue listing.
+  // L / T / FB are added by their dimensions; HP is picked from EN 10067.
   var Profiles = {
-    fam: 'HP', q: '',
+    fam: 'HP', hpQ: '',
     custom: function () { try { var j = JSON.parse(($('customProfilesJson') || {}).value || '[]'); return Array.isArray(j) ? j : []; } catch (_) { return []; } },
     saveCustom: function (list) { var el = $('customProfilesJson'); if (el) { el.value = JSON.stringify(list); el.dispatchEvent(new Event('change', { bubbles: true })); } Profiles.applyCustom(); },
-    // custom sizes join the catalogs (once each) so every profile dropdown offers them
+    // "FB 190x14" / "L 200x90x10" / "T 300x10/150x15" / "HP 200x10" → profile data (null if unreadable)
+    parse: function (type, size) {
+      var P = window.Profile; if (!P) return null; var s = String(size || '').replace(/^(hp|l|t|fb)\s*/i, '').replace(/\s+/g, '').replace(/,/g, '.'); var m;
+      try {
+        if (type === 'FB' && (m = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s))) return P._calcFB(+m[1], +m[2]);
+        if (type === 'L' && (m = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s))) return P._calcL(+m[1], +m[2], +m[3]);
+        if (type === 'T' && (m = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)[\/x](\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s))) return P._calcT(+m[1], +m[2], +m[3], +m[4]);
+        if (type === 'HP') { var hp = P.HP_CATALOG.find(function (h) { return h.name.replace(/^HP\s*/i, '') === s; }); return hp ? P._calcHP(hp) : null; }
+      } catch (_) {}
+      return null;
+    },
+    nameOf: function (type, size) { return type + ' ' + String(size || '').replace(/^(hp|l|t|fb)\s*/i, '').trim(); },
+    // profiles the sections use: name → [{section, group}]
+    used: function () {
+      var out = {}; if (!window.Sections || !window.SectionModel) return out;
+      try {
+        Sections.exportState().items.forEach(function (m) {
+          var lb = Sections.label(m); var pd = m.panelData || {};
+          Object.keys(pd).forEach(function (gid) { (pd[gid].stiffGroups || []).forEach(function (g) { if (!g.profile) return; var nm = Profiles.nameOf(g.type || 'HP', g.profile); (out[nm] = out[nm] || []).push({ section: lb.name, group: g.id, panel: (m.groups || {})[gid] || gid }); }); });
+        });
+      } catch (_) {}
+      return out;
+    },
+    // custom sizes join the catalogues (once each) so the optimizer / best-fit see them
     applyCustom: function () {
       var P = window.Profile; if (!P) return;
       Profiles.custom().forEach(function (c) {
@@ -354,31 +380,47 @@
         if (c.type === 'T' && !P.T_CATALOG_SIZES.some(function (s) { return s.h === c.h && s.tw === c.tw && s.bf === c.bf && s.tf === c.tf; })) P.T_CATALOG_SIZES.push({ h: c.h, tw: c.tw, bf: c.bf, tf: c.tf, custom: true });
       });
     },
+    customName: function (c) { var P = window.Profile; try { return c.type === 'L' ? P._calcL(c.a, c.b, c.t).name : c.type === 'FB' ? P._calcFB(c.h, c.t).name : c.type === 'T' ? P._calcT(c.h, c.tw, c.bf, c.tf).name : c.type === 'HP' ? c.name : null; } catch (_) { return null; } },
     render: function () {
       var host = $('profilesCatalog'); if (!host || !window.Profile) return;
-      var P = window.Profile; var list = P.allProfiles([Profiles.fam]); var q = Profiles.q.toLowerCase();
-      if (q) list = list.filter(function (p) { return p.name.toLowerCase().indexOf(q) >= 0; });
-      var custom = Profiles.custom();
-      var isCustom = function (p) { return custom.some(function (c) { return c.type === p.type && P['_calc' + c.type] && (c.type === 'L' ? P._calcL(c.a, c.b, c.t) : c.type === 'FB' ? P._calcFB(c.h, c.t) : P._calcT(c.h, c.tw, c.bf, c.tf)).name === p.name; }); };
-      var h = '<div class="pf-tools"><span class="cad-seg">' + ['HP', 'L', 'T', 'FB'].map(function (f) { return '<button class="' + (Profiles.fam === f ? 'on' : '') + '" data-fam="' + f + '">' + f + '</button>'; }).join('') + '</span><input class="ed-input pf-q" type="text" placeholder="filter…" value="' + Profiles.q.replace(/"/g, '&quot;') + '"><em>' + list.length + ' profiles</em></div>';
-      h += '<div class="mb-table pf-table"><div class="mb-th pf-th"><span>Profile</span><span>A cm²</span><span>I<sub>xx</sub> cm⁴</span><span>e cm</span><span>h cm</span><span></span></div>';
-      list.forEach(function (p) { var cu = isCustom(p); h += '<div class="mb-tr pf-th ' + (cu ? 'is-custom' : '') + '"><span>' + p.name + (cu ? ' <em>custom</em>' : '') + '</span><span>' + p.area.toFixed(2) + '</span><span>' + p.Ixx.toFixed(1) + '</span><span>' + p.centroidY.toFixed(2) + '</span><span>' + p.height.toFixed(1) + '</span><span>' + (cu ? '<button class="ed-link-btn pf-del" data-name="' + p.name + '" title="Remove">✕</button>' : '') + '</span></div>'; });
-      h += '</div>';
-      // custom profile form
+      var used = Profiles.used(); var lib = Profiles.custom();
+      // rows: union, by type
+      var rows = {}; var add = function (nm, src) { if (!rows[nm]) rows[nm] = { name: nm, type: nm.split(' ')[0], size: nm.replace(/^\w+\s+/, ''), used: used[nm] || [], lib: false }; if (src === 'lib') rows[nm].lib = true; };
+      Object.keys(used).forEach(function (nm) { add(nm, 'used'); }); lib.forEach(function (c) { var nm = Profiles.customName(c); if (nm) add(nm, 'lib'); });
+      var order = ['HP', 'L', 'T', 'FB']; var list = Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) { var d = order.indexOf(a.type) - order.indexOf(b.type); if (d) return d; var pa = Profiles.parse(a.type, a.size), pb = Profiles.parse(b.type, b.size); return (pa ? pa.height : 0) - (pb ? pb.height : 0); });
+      var h = '<div class="mb"><div class="mb-title">Project profiles <em class="mb-em">' + list.length + '</em></div>';
+      h += '<div class="mb-table pf-table"><div class="mb-th pf-th"><span>Profile</span><span>A cm²</span><span>I<sub>xx</sub> cm⁴</span><span>e cm</span><span>h cm</span><span>Used by</span><span></span></div>';
+      if (!list.length) h += '<div class="mb-empty-row">nothing yet — the sections’ stiffeners appear here as they are given a profile; add sizes below</div>';
+      list.forEach(function (r) {
+        var p = Profiles.parse(r.type, r.size); var u = r.used;
+        // where it is used: "Midship · Inner bottom (G2), Fr. 112 · Shell (G5)"; library entries are not used yet
+        var seen = {}; var places = []; u.forEach(function (x) { var k = x.section + ' · ' + x.panel; if (!seen[k]) { seen[k] = []; places.push(k); } seen[k].push(x.group); });
+        var where = u.length ? places.slice(0, 2).map(function (k) { return k + ' (' + seen[k].join(', ') + ')'; }).join(', ') + (places.length > 2 ? ' +' + (places.length - 2) + ' more' : '') : '<em>not used yet</em>';
+        h += '<div class="mb-tr pf-th ' + (u.length ? '' : 'is-lib') + '" title="' + (u.length ? u.map(function (x) { return x.section + ' · ' + x.panel + ' · ' + x.group; }).join('\n') : 'added on this page, not used yet') + '"><span>' + r.name + (p ? '' : ' <em class="bad">?</em>') + '</span><span>' + (p ? p.area.toFixed(2) : '—') + '</span><span>' + (p ? p.Ixx.toFixed(1) : '—') + '</span><span>' + (p ? p.centroidY.toFixed(2) : '—') + '</span><span>' + (p ? p.height.toFixed(1) : '—') + '</span><span class="pf-where">' + where + '</span><span>' + (u.length ? '' : '<button class="ed-link-btn pf-del" data-name="' + r.name + '" title="Remove from the library">✕</button>') + '</span></div>';
+      });
+      h += '</div></div>';
+      // add
       var F = Profiles.fam;
-      var fields = F === 'L' ? [['a', 'a'], ['b', 'b'], ['t', 't']] : F === 'FB' ? [['h', 'h'], ['t', 't']] : F === 'T' ? [['h', 'h'], ['tw', 't<sub>w</sub>'], ['bf', 'b<sub>f</sub>'], ['tf', 't<sub>f</sub>']] : null;
-      if (fields) h += '<div class="pf-add"><span>Custom ' + F + '</span>' + fields.map(function (f) { return '<label>' + f[1] + '<input class="ed-input pf-dim" data-k="' + f[0] + '" type="number" step="0.5" min="1"></label>'; }).join('') + '<em>mm</em><button class="ed-link-btn on pf-addbtn">Add</button></div>';
-      else h += '<div class="pf-note">HP bulb flats follow EN 10067 — no custom sizes.</div>';
+      h += '<div class="mb"><div class="mb-title">Add a profile</div><div class="pf-add"><span class="cad-seg">' + order.map(function (f) { return '<button class="' + (F === f ? 'on' : '') + '" data-fam="' + f + '">' + f + '</button>'; }).join('') + '</span>';
+      if (F === 'HP') {
+        var q = Profiles.hpQ.toLowerCase(); var hps = window.Profile.HP_CATALOG.filter(function (x) { return !q || x.name.toLowerCase().indexOf(q) >= 0; });
+        h += '<input class="ed-input pf-q" type="text" placeholder="EN 10067 · e.g. 200x10" value="' + Profiles.hpQ.replace(/"/g, '&quot;') + '"><span class="pf-hp-list">' + hps.slice(0, 12).map(function (x) { return '<button class="ed-link-btn pf-hp" data-name="' + x.name + '" ' + (rows[x.name] ? 'disabled title="already in the project"' : '') + '>' + x.name.replace(/^HP\s*/, '') + '</button>'; }).join('') + (hps.length > 12 ? '<em>+' + (hps.length - 12) + ' more — type to narrow</em>' : '') + '</span>';
+      } else {
+        var fields = F === 'L' ? [['a', 'a'], ['b', 'b'], ['t', 't']] : F === 'FB' ? [['h', 'h'], ['t', 't']] : [['h', 'h'], ['tw', 't<sub>w</sub>'], ['bf', 'b<sub>f</sub>'], ['tf', 't<sub>f</sub>']];
+        h += fields.map(function (f) { return '<label>' + f[1] + '<input class="ed-input pf-dim" data-k="' + f[0] + '" type="number" step="0.5" min="1"></label>'; }).join('') + '<em>mm</em><button class="ed-link-btn on pf-addbtn">Add</button>';
+      }
+      h += '</div></div>';
       host.innerHTML = h;
       host.querySelectorAll('[data-fam]').forEach(function (b) { b.addEventListener('click', function () { Profiles.fam = b.dataset.fam; Profiles.render(); }); });
-      var qi = host.querySelector('.pf-q'); if (qi) { qi.addEventListener('input', function () { Profiles.q = qi.value; var pos = qi.selectionStart; Profiles.render(); var q2 = host.querySelector('.pf-q'); if (q2) { q2.focus(); q2.setSelectionRange(pos, pos); } }); }
+      var qi = host.querySelector('.pf-q'); if (qi) qi.addEventListener('input', function () { Profiles.hpQ = qi.value; var pos = qi.selectionStart; Profiles.render(); var q2 = host.querySelector('.pf-q'); if (q2) { q2.focus(); q2.setSelectionRange(pos, pos); } });
+      host.querySelectorAll('.pf-hp').forEach(function (b) { b.addEventListener('click', function () { var l2 = Profiles.custom(); if (!l2.some(function (c) { return c.type === 'HP' && c.name === b.dataset.name; })) l2.push({ type: 'HP', name: b.dataset.name }); Profiles.saveCustom(l2); Profiles.render(); }); });
       var ab = host.querySelector('.pf-addbtn'); if (ab) ab.addEventListener('click', function () {
         var c = { type: F }; var ok = true; host.querySelectorAll('.pf-dim').forEach(function (i) { var v = parseFloat(i.value); if (!(v > 0)) ok = false; c[i.dataset.k] = v; });
-        if (!ok) return; var list2 = Profiles.custom(); list2.push(c); Profiles.saveCustom(list2); Profiles.render();
+        if (!ok) return; var nm = Profiles.customName(c); var l2 = Profiles.custom(); if (nm && !l2.some(function (x) { return Profiles.customName(x) === nm; })) l2.push(c); Profiles.saveCustom(l2); Profiles.render();
       });
       host.querySelectorAll('.pf-del').forEach(function (b) { b.addEventListener('click', function () {
         var name = b.dataset.name; var P2 = window.Profile;
-        var keep = Profiles.custom().filter(function (c) { var nm = c.type === 'L' ? P2._calcL(c.a, c.b, c.t).name : c.type === 'FB' ? P2._calcFB(c.h, c.t).name : P2._calcT(c.h, c.tw, c.bf, c.tf).name; return nm !== name; });
+        var keep = Profiles.custom().filter(function (c) { return Profiles.customName(c) !== name; });
         ['L_CATALOG_SIZES', 'FB_CATALOG_SIZES', 'T_CATALOG_SIZES'].forEach(function (k) { var arr = P2[k]; for (var i = arr.length - 1; i >= 0; i--) { var s = arr[i]; if (!s.custom) continue; var nm = k[0] === 'L' ? P2._calcL(s.a, s.b, s.t).name : k[0] === 'F' ? P2._calcFB(s.h, s.t).name : P2._calcT(s.h, s.tw, s.bf, s.tf).name; if (nm === name) arr.splice(i, 1); } });
         Profiles.saveCustom(keep); Profiles.render();
       }); });
