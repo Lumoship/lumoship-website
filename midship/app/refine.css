@@ -1469,15 +1469,28 @@ body[data-ship-view] #page-1 .ea-panel[data-views] > .ea-panel-header .ea-panel-
 body[data-ship-view] #page-1 .sp-view > .ea-section-title:first-child{margin-top:0 !important}
 #page-1 .ea-panel[data-views]{margin-top:0 !important}
 #page-1 .ea-panel[data-views] + .ea-panel[data-views]{margin-top:var(--spacing-md) !important}
-/* frame table */
-.ft-head{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:0.64rem;color:var(--text-muted);margin-bottom:8px}
-.ft-head .ft-x0{width:90px;height:26px;padding:2px 8px;font-size:0.68rem}
-.ft-head .ft-spacer{flex:1}
-.ft-head .ft-add{padding:4px 10px;font-size:0.66rem}
-.mb-th.ft-th,.mb-tr.ft-th{grid-template-columns:90px 90px 120px 1fr 30px}
-.ft-table .ft-in{width:70px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
-.ft-table em{font-style:normal;color:var(--text-muted);margin-left:4px;font-size:0.58rem}
+/* frame table (MARS arrangement) */
+#frameTableHost .mb{margin-bottom:10px}
+.ft-top{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ft-fields{display:flex;flex-wrap:wrap;gap:6px 18px;padding:6px 10px 8px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
+.ft-f{display:inline-flex;align-items:center;gap:6px}
+.ft-f .ft-p{height:20px;padding:1px 6px;font-size:0.62rem;text-align:right}
+.ft-f em,.ft-table em{font-style:normal;color:var(--text-muted);font-size:0.58rem}
+.ft-ro{display:inline-flex;align-items:center;gap:6px}
+.ft-ro b{font-weight:600;color:var(--text-secondary)}
+.ft-split{display:grid;grid-template-columns:minmax(360px,1fr) minmax(300px,0.9fr);gap:10px;align-items:start}
+.mb-th.ft-th,.mb-tr.ft-th{grid-template-columns:22px 82px 82px 110px 1fr}
+.ft-table .ft-in{width:64px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
 .ft-table .ft-x{color:var(--text-secondary)}
+.ft-table .mb-tr{cursor:pointer}
+.mb-th.ft-fr,.mb-tr.ft-fr{grid-template-columns:52px 1fr 1fr 1fr 1.2fr}
+.ft-frames{max-height:280px;overflow:auto}
+.ft-frames .ft-used{color:var(--accent,#60a5fa);font-weight:600}
+.ft-longi{padding:4px 8px 6px}
+.ft-svg{width:100%;height:auto;display:block}
+.ft-svg .ft-lbl{font-family:var(--font-mono);font-size:9px;fill:#94a3b8}
+.ft-svg .ft-lbl.sec{fill:#60a5fa;font-weight:700}
+body.chrome-form .ea-page-actions{display:none}
 /* profiles page */
 .pf-tools{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);margin-bottom:8px}
 .pf-tools .pf-q{width:160px;height:22px;padding:1px 8px;font-size:0.62rem}
