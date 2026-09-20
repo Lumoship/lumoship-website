@@ -107,14 +107,18 @@
     h += '</div>';
     rail.innerHTML = h;
   }
+  // Delegated on the document: the rail is created later by 96-steps (after the
+  // project restore), so it may not exist yet when this runs.
   function wireRail() {
-    var rail = $('sideRail'); if (!rail || rail.__treeWired) return; rail.__treeWired = true;
-    rail.addEventListener('click', function (e) {
+    if (document.__treeWired) return; document.__treeWired = true;
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest || !e.target.closest('#sideRail')) return;
       var g = e.target.closest('.tree-node.group'); if (g) { var k = g.dataset.group; groups[k] = groups[k] === false ? true : false; saveGroups(); renderRail(); return; }
       var sec = e.target.closest('.tree-node.sec'); if (sec) { if (sec.querySelector('input')) return; if (window.Sections) Sections.activate(sec.dataset.sec); window.goToSections(); paint(); return; }
       var leaf = e.target.closest('.tree-node[data-step]'); if (leaf) { goTo(parseInt(leaf.dataset.step), leaf.dataset.view || null); }
     });
-    rail.addEventListener('contextmenu', function (e) {
+    document.addEventListener('contextmenu', function (e) {
+      if (!e.target.closest || !e.target.closest('#sideRail')) return;
       var sec = e.target.closest('.tree-node.sec'); var grp = e.target.closest('.tree-node.group[data-group="sections"]');
       if (!sec && !grp) return; e.preventDefault();
       if (sec) {
