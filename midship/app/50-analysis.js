@@ -464,7 +464,7 @@ function showElemInspect(elemType, opts) {
           // We compute τ_A later inside isPlate (where t_mm is known). For longs
           // τ_A is unused by checkLong, so we keep tau_A_initial here as default.
           let tau_A = tau_A_initial;
-          const Qwo_kN = ls.Qwo || (ls.F && ls.F.Qwo) || null;
+          const Qwo_kN = (ls.Q_design != null ? ls.Q_design : null) || ls.Qwo || (ls.F && ls.F.Qwo) || null;   // Q_s + Q_w at the section (LR Pt 3 Ch 4 Sec 6.7)
           const computeTauReal = (t_plate_mm) => {
             try {
               if (Qwo_kN != null && typeof window.computeShearFirstMoment === 'function') {
@@ -1437,7 +1437,7 @@ function _computeElemInspect(elemType, opts) {
     let tau_A;
     try {
       // Wave shear force (Qwo from LongStrength.analyze) — kN
-      const Qwo_kN = ls.Qwo || ls.F?.Qwo || null;
+      const Qwo_kN = (ls.Q_design != null ? ls.Q_design : null) || ls.Qwo || ls.F?.Qwo || null;   // Q_s + Q_w at the section (LR Pt 3 Ch 4 Sec 6.7)
       const Q_m3 = (typeof window.computeShearFirstMoment === 'function')
         ? window.computeShearFirstMoment(z_m)
         : null;

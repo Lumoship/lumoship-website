@@ -300,6 +300,13 @@ function getParams() {
     // expose Ms_design = Ms_hog (the historical name that meant "the one
     // Ms value" before the split). New code should prefer Ms_hog/Ms_sag and
     // pick the one matching the analysis condition (hogging vs sagging).
+    // LR Pt 3 Ch 4: service restriction (f1 on M_w and Z_min, K2 on Q_w), still water
+    // shear force at the section, and the section's position along L
+    serviceRestriction: (document.getElementById('serviceRestriction') || {}).value || 'unrestricted',
+    f1: (function () { var sr = (document.getElementById('serviceRestriction') || {}).value; var v = parseFloat((document.getElementById('f1') || {}).value); if (sr !== 'restricted') return 1.0; return isNaN(v) ? 1.0 : Math.max(0.5, Math.min(1, v)); })(),
+    Qs_pos:    Math.abs(parseFloat((document.getElementById('QsPos') || {}).value) || 0),
+    Qs_neg:   -Math.abs(parseFloat((document.getElementById('QsNeg') || {}).value) || 0),
+    x_over_L:  (function () { var v = parseFloat((document.getElementById('sectionXL') || {}).value); return isNaN(v) ? 0.5 : Math.max(0, Math.min(1, v)); })(),
     Ms_hog:    parseFloat(document.getElementById('MsDesign')?.value || 0),
     Ms_sag:    parseFloat(document.getElementById('MsSag')?.value    || 0),
     Ms_design: parseFloat(document.getElementById('MsDesign')?.value || 0),

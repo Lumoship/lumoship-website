@@ -318,7 +318,10 @@
                 <option value="2A">Variant 2A (L=216 m · 0.96·Lwl)</option>
               </select>
             </div>
-            <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
+            <div class="ea-field"><label class="ea-label">Builder</label><input type="text" class="ea-input" id="builder" placeholder="shipyard"></div>
+              <div class="ea-field"><label class="ea-label">Hull number</label><input type="text" class="ea-input" id="hullNumber" placeholder="yard no."></div>
+              <div class="ea-field"><label class="ea-label">Class register number</label><input type="text" class="ea-input" id="classRegisterNo" placeholder="LR / IMO no."></div>
+              <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
           </div>
           <div class="ea-form-row">
             <div class="ea-field"><label class="ea-label">Analysis Date</label><input type="date" class="ea-input" id="analysisDate"></div>
@@ -330,6 +333,12 @@
                 <option value="ABS">ABS</option>
               </select>
             </div>
+              <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 4 Sec 5.2: ship service factor f1 = 1,0 for unrestricted service; short voyages / sheltered water reduce the wave moment (5.2.3) and the wave shear (K2, 6.3.1); a restricted service is specially considered, f1 ≥ 0,5.">Service restriction</label>
+                <select class="ea-select" id="serviceRestriction" onchange="recalcAll()"><option value="unrestricted" selected>Unrestricted sea-going · f1 = 1,0</option><option value="short_voyage">Short voyages · M_w × 0,8 · K2 = 0,8</option><option value="sheltered">Sheltered water · M_w × 0,5 · K2 = 0,5</option><option value="restricted">Restricted service · f1 by agreement</option></select></div>
+              <div class="ea-field"><label class="ea-label" title="Ship service factor f1 (Pt 3 Ch 4 Sec 5.2.1). Editable for a restricted service; never less than 0,5.">f<sub>1</sub> service factor</label><input type="number" step="0.01" min="0.5" max="1" class="ea-input" id="f1" value="1.00" onchange="recalcAll()"></div>
+              <div class="ea-field bv-only" title="BV NR467 additional service features — not used by the LR rules"><label class="ea-label">Additional features <span class="bv-tag">BV</span></label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvGrabLoading" disabled> GRABLOADING</label><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
+              <div class="ea-field bv-only" title="BV NR467 — not used by the LR rules"><label class="ea-label">Bilge keel <span class="bv-tag">BV</span></label><select class="ea-select" id="bvBilgeKeel" disabled><option>Yes</option><option>No</option></select></div>
+              <div class="ea-field bv-only" title="BV NR467 — not used by the LR rules"><label class="ea-label">Freeboard type <span class="bv-tag">BV</span></label><select class="ea-select" id="bvFreeboardType" disabled><option>A</option><option>B</option></select></div>
           </div>
           <!-- Ship-type + material-grade context — used by Assign Material Grades button
                (LR Pt 3 Ch 2 Table 2.2.1 / 2.2.2 / 2.2.3). These don't drive the
@@ -392,10 +401,28 @@
           <div class="ea-field"><label class="ea-label">T (m)</label><input type="number" step="0.01" class="ea-input" id="T" value="10.50" onchange="recalcAll()"></div>
           <div class="ea-field"><label class="ea-label" title="Block coefficient (LR Pt 3 Ch 4 Sec 5.2.1). Minimum used is 0.60.">C_b</label><input type="number" step="0.01" class="ea-input" id="Cb" value="0.881" onchange="recalcAll()"></div>
         </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Length overall, for identification (LR Pt 3 Ch 1 Sec 6 uses the Rule length L for scantlings).">L<sub>OA</sub> (m)</label><input type="number" step="0.01" class="ea-input" id="LOA" placeholder="—"></div>
+          <div class="ea-field"><label class="ea-label" title="Length between perpendiculars (LR Pt 3 Ch 1 Sec 6.1.7): F.P. at the stem, A.P. at the rudder post / stock.">L<sub>pp</sub> (m)</label><input type="number" step="0.01" class="ea-input" id="Lpp" placeholder="—"></div>
+          <div class="ea-field"><label class="ea-label" title="Maximum ahead service speed (LR Pt 3 Ch 1 Sec 6.1.10). Used by the fore-end slamming and bow impact rules; informative for the midship.">V (knots)</label><input type="number" step="0.1" class="ea-input" id="serviceSpeed" placeholder="—"></div>
+          <div class="ea-field"><label class="ea-label" title="Longitudinal position of the active section as a fraction of L, from the Frame table when the section has a frame; 0,5 = amidships.">Section x/L</label><input type="number" step="0.005" min="0" max="1" class="ea-input" id="sectionXL_view" readonly title="set from the Frame table"></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Depth to freeboard deck <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDepthFreeboard" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Depth to bulkhead deck <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDepthBulkhead" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">A<sub>dk</sub> uppermost deck area [0,8L fore] <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAdk" disabled placeholder="—"><span class="ea-unit">m²</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">A<sub>wl</sub> waterplane area [0,8L fore] <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAwl" disabled placeholder="—"><span class="ea-unit">m²</span></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">After peak bulkhead <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAftPeakBhd" disabled placeholder="—"><span class="ea-unit">Fr.</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Aftmost cargo bulkhead <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAftCargoBhd" disabled placeholder="—"><span class="ea-unit">Fr.</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Collision bulkhead <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvCollisionBhd" disabled placeholder="—"><span class="ea-unit">Fr.</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Load-line length L<sub>L</sub> <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvLoadLineLength" disabled placeholder="—"><span class="ea-unit">m</span></div></div>
+        </div>
         <div class="ea-section-title" style="margin-top:var(--spacing-md)">Still-Water Bending Moment</div>
         <div class="ea-form-row-4">
           <div class="ea-field"><label class="ea-label" title="Hogging still-water bending moment (kN·m, POSITIVE). LR Pt 3 Ch 4 Sec 5.3.1: hogging Ms is positive. Used in hogging condition: M_hog_total = Ms_hog + Mw_hog. Drives bottom-side compression checks (Z_B, bottom buckling).">M_s hog (kN·m)</label><input type="number" step="1000" class="ea-input" id="MsDesign" value="900000" onchange="recalcAll()"></div>
           <div class="ea-field"><label class="ea-label" title="Sagging still-water bending moment (kN·m, NEGATIVE). LR Pt 3 Ch 4 Sec 5.3.1: sagging Ms is negative. Used in sagging condition: M_sag_total = Ms_sag + Mw_sag. Drives deck-side compression checks (Z_D, deck/coaming buckling). Often around -|Ms_hog| for typical cargo ships.">M_s sag (kN·m)</label><input type="number" step="1000" class="ea-input" id="MsSag" value="-900000" onchange="recalcAll()"></div>
+        </div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Still-Water Shear Force</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Design still water shear force at the section, positive (LR Pt 3 Ch 4 Sec 6.4): the maximum from the loading conditions. Combined with the wave shear Q_w at x/L in the shear stress check (6.7). Blank = 0.">Q<sub>s</sub> positive (kN)</label><input type="number" step="100" min="0" class="ea-input" id="QsPos" placeholder="0" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" title="Design still water shear force at the section, negative (LR Pt 3 Ch 4 Sec 6.4). Enter as a negative value. Blank = 0.">Q<sub>s</sub> negative (kN)</label><input type="number" step="100" max="0" class="ea-input" id="QsNeg" placeholder="0" onchange="recalcAll()"></div>
+          <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Harbour M<sub>s</sub> hog <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvMsHarbHog" disabled placeholder="—"><span class="ea-unit">kN·m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Harbour M<sub>s</sub> sag <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvMsHarbSag" disabled placeholder="—"><span class="ea-unit">kN·m</span></div></div>
         </div>
         <details class="ea-advanced" id="setupAdvanced">
           <summary>Advanced — rule settings &amp; optimizer preferences <span class="ea-advanced-hint">hull girder factors, zone k, profile filter</span></summary>
@@ -529,7 +556,12 @@
     </div>
     <div class="ea-panel" data-views="draughts" id="draughtsPanel">
       <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Draughts</span></div>
-      <div class="ea-panel-body"><div class="ea-form-row-4"></div></div>
+      <div class="ea-panel-body"><div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Ballast draught T<sub>bal</sub> <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvTbal" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Displacement Δ at T <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDisp" disabled placeholder="—"><span class="ea-unit">t</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Waterplane coefficient C<sub>w</sub> <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvCw" disabled placeholder="—"></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">GM full load <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvGMfull" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Roll radius of gyration K<sub>r</sub> <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvKr" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">GM ballast <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvGMbal" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">K<sub>r</sub> ballast <span class="bv-tag">BV</span></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvKrBal" disabled placeholder="—"><span class="ea-unit">m</span></div></div>
+        </div></div>
     </div>
     <div class="ea-panel" style="margin-top:var(--spacing-xl)" id="iceClassPanel">
       <div class="ea-panel-header" style="cursor:pointer" onclick="toggleIcePanelBody()">

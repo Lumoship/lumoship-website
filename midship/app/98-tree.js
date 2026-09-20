@@ -188,7 +188,7 @@
 
   // ------------------------------------------------------------------ page 1 carved into views
   var VIEW_OF_TITLE = [
-    [/^Main Dimensions/i, 'main'], [/^Still-Water Bending/i, 'stillwater'], [/^Hull girder factors/i, 'stillwater'],
+    [/^Main Dimensions/i, 'main'], [/^Still-Water Bending/i, 'stillwater'], [/^Still-Water Shear/i, 'stillwater'], [/^Hull girder factors/i, 'stillwater'],
     [/^Material/i, 'materials'], [/^Zone k-value/i, 'materials'], [/^Profile Filter/i, 'profiles'], [/^Geometry \(fixed/i, 'main']
   ];
   function carveShipViews() {
@@ -216,6 +216,18 @@
     var dr = $('draughtsPanel'); if (tField && dr) { var host = dr.querySelector('.ea-form-row-4'); if (host) host.insertBefore(tField, host.firstChild); }
     // the profile filter preference moves to the Profiles page
     var pf = body.querySelector('.sp-view[data-view="profiles"]'); var ph = $('profilesPrefHost'); if (pf && ph) ph.appendChild(pf);
+    // materials reference (LR Pt 3 Ch 2 Table 2.1.1: k = 235 / σo, E = 206 000 N/mm²)
+    var mv = body.querySelector('.sp-view[data-view="materials"]');
+    if (mv) {
+      var rows = [['A / B / D / E', 235, 400, 1.00], ['AH32 / DH32 / EH32', 315, 440, 0.78], ['AH36 / DH36 / EH36', 355, 490, 0.72], ['AH40 / DH40 / EH40', 390, 510, 0.66]];
+      var tbl = document.createElement('div'); tbl.className = 'sp-view'; tbl.setAttribute('data-view', 'materials');
+      tbl.innerHTML = '<div class="ea-section-title" style="margin-top:var(--spacing-md)">Hull steel grades (LR Pt 3 Ch 2)</div><div class="mb-table mat-table"><div class="mb-th mat-th"><span>Grades</span><span>σ<sub>o</sub> N/mm²</span><span>Tensile N/mm²</span><span>E N/mm²</span><span>k</span></div>' + rows.map(function (r) { return '<div class="mb-tr mat-th"><span>' + r[0] + '</span><span>' + r[1] + '</span><span>' + r[2] + '</span><span>206 000</span><span>' + r[3].toFixed(2) + '</span></div>'; }).join('') + '</div>';
+      mv.parentElement.insertBefore(tbl, mv.nextSibling);
+      var views = big.getAttribute('data-views'); if (views.indexOf('materials') < 0) big.setAttribute('data-views', views + ' materials');
+    }
+    // the section x/L mirror (read only) follows the real input
+    var xl = $('sectionXL'), xv = $('sectionXL_view');
+    if (xl && xv) { var sync = function () { xv.value = xl.value; }; sync(); xl.addEventListener('change', sync); xl.addEventListener('input', sync); xl.closest('.ea-field') && xl.closest('.ea-field').classList.add('is-hidden-field'); }
   }
 
   // ------------------------------------------------------------------ Frame table

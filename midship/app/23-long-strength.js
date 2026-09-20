@@ -320,6 +320,8 @@ const LongStrength = (function() {
     const Qw_pos = calcQw(C1, ship.L, ship.B, ship.Cb, x_over_L, 'positive', ship.service_type);
     const Qw_neg = calcQw(C1, ship.L, ship.B, ship.Cb, x_over_L, 'negative', ship.service_type);
     const Qw_design = Math.max(Qw_pos, Qw_neg);
+    // design hull shear force at the section: still water + wave of the same sign (Sec 6.7)
+    const Q_design = Math.max(Math.abs((ship.Qs_pos || 0) + Qw_pos), Math.abs((ship.Qs_neg || 0) - Qw_neg));
     
     // Compliance
     const compliance = {
@@ -358,7 +360,7 @@ const LongStrength = (function() {
       Z_min, I_min, sigma_amid, sigma_perm, tau,
       Ms_design,
       ...F,
-      Qwo, Qw_pos, Qw_neg, Qw_design,
+      Qwo, Qw_pos, Qw_neg, Qw_design, Q_design, Qs_pos: ship.Qs_pos || 0, Qs_neg: ship.Qs_neg || 0,
       x_over_L,
       compliance
     };
@@ -406,8 +408,10 @@ function runLongStrengthAnalysis(arg) {
     L: p.L, B: p.B, D: p.D, T: p.T,
     Cb: p.Cb || 0.85,
     kL: p.kL,
-    f1: 1.0,
-    service_type: 'unrestricted'
+    f1: p.f1 != null ? p.f1 : 1.0,
+    service_type: p.serviceRestriction === 'short_voyage' || p.serviceRestriction === 'sheltered' ? p.serviceRestriction : 'unrestricted',
+    x_over_L: p.x_over_L != null ? p.x_over_L : 0.5,
+    Qs_pos: p.Qs_pos || 0, Qs_neg: p.Qs_neg || 0
   };
   // Resolve Ms pair from argument or form
   let Ms_hog, Ms_sag;

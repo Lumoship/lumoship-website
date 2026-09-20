@@ -1508,3 +1508,15 @@ body.chrome-form .ea-page-actions{display:none}
 #compsOverview .mb{margin-bottom:10px}
 .ea-sub-step{white-space:nowrap}
 .ea-subwizard{flex-wrap:nowrap}
+
+/* BV-only inputs: present, disabled, tagged */
+.ea-field.bv-only .ea-input,.ea-field.bv-only .ea-select{opacity:0.45;cursor:not-allowed;border-style:dashed}
+.ea-field.bv-only .ea-label{color:var(--text-muted)}
+.bv-tag{display:inline-block;margin-left:4px;padding:0 4px;border-radius:3px;font-size:0.5rem;font-weight:700;letter-spacing:0.06em;background:rgba(148,163,184,0.15);color:var(--text-muted);vertical-align:middle}
+.ea-input-unit{display:flex;align-items:center;gap:6px}
+.ea-input-unit .ea-input{flex:1;min-width:0}
+.ea-unit{font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted);white-space:nowrap}
+.ea-check-row{display:flex;gap:14px;align-items:center;min-height:34px}
+.ea-check{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
+.ea-field.is-hidden-field{display:none}
+.mb-th.mat-th,.mb-tr.mat-th{grid-template-columns:1.6fr 1fr 1fr 1fr 0.6fr}
