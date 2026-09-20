@@ -776,7 +776,7 @@ body.geometry-active .step-strip-hint{display:-webkit-box;-webkit-line-clamp:2;-
 body.geometry-active .ea-footer{display:none}
 /* site bar stays as the single top row on the Geometry page (LumoStruct style) */
 body.geometry-active .lumoship-nav{display:block}
-body.geometry-active .lumoship-nav-inner{height:46px;padding:0 18px}
+body.geometry-active .lumoship-nav-inner{height:44px;padding:0}
 body.geometry-active .ea-header{display:none}
 body.geometry-active .ea-header-inner{padding:4px var(--spacing-md)}
 body.geometry-active .ea-header-top{margin-bottom:2px;gap:var(--spacing-md)}
@@ -1523,3 +1523,7 @@ body.chrome-form .ea-page-actions{display:none}
 .ea-check{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
 .ea-field.is-hidden-field{display:none}
 .mb-th.mat-th,.mb-tr.mat-th{grid-template-columns:1.6fr 1fr 1fr 1fr 0.6fr}
+/* one top bar everywhere */
+body.with-rail .lumoship-nav{padding:0 20px !important;position:static}
+body.with-rail .lumoship-nav-inner{max-width:none;height:44px;padding:0 !important}
+body.with-rail .lumoship-nav-logo-text{font-size:0.9rem}
