@@ -463,6 +463,13 @@ function recalcAll() {
       // Ice computed but did not govern — show subdued for transparency
       zReqDisp = `${l.Z_req.toFixed(1)} <span style="color:var(--text-muted);font-size:0.65rem">[ice ${l.Z_ice.toFixed(1)}]</span>`;
     }
+    // FSICR 4.4.3 shear area (Eq 4.10) and 4.4.4.2 web thickness of the fitted profile
+    if (l.Z_ice != null && (l.iceShearOK != null || l.iceWebOK != null)) {
+      const parts = [];
+      if (l.iceShearOK != null) parts.push(`<span style="color:${l.iceShearOK ? 'var(--success)' : 'var(--danger,#ef4444)'}" title="FSICR Eq 4.10 shear area: web ${l.A_web.toFixed(1)} cm² vs ${l.A_ice.toFixed(1)} cm² required">A ${l.iceShearOK ? '✓' : '✗ ' + l.A_ice.toFixed(1)}</span>`);
+      if (l.iceWebOK != null) parts.push(`<span style="color:${l.iceWebOK ? 'var(--success)' : 'var(--danger,#ef4444)'}" title="FSICR 4.4.4.2 web thickness: ${l.tw_act} mm vs ${l.tw_min_ice.toFixed(1)} mm minimum">t_w ${l.iceWebOK ? '✓' : '✗ ' + l.tw_min_ice.toFixed(1)}</span>`);
+      zReqDisp += ` <span style="font-size:0.62rem">${parts.join(' ')}</span>`;
+    }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>#${l.n}</td>

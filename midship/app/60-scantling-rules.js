@@ -2385,14 +2385,23 @@ function calcSideLong() {
     // Note: in this scope `s` is already in millimetres (carried from L.s
     // which is computed from fence-sorted z gaps in mm). Pass directly.
     // _iceCtxLong + _leMm_long are hoisted out of forEach (same for every iter).
-    let Z_ice = null;
+    let Z_ice = null, A_ice = null, A_web = null, tw_min_ice = null, tw_act = null, iceShearOK = null, iceWebOK = null;
     let iceGoverns = false;
     if (_iceCtxLong && FSICR.inFrameStrengthening(L.z, _iceCtxLong)) {
       try {
-        Z_ice = _iceCtxLong.sm_req(s, _leMm_long).Z_req;  // s already in mm
+        const smr = _iceCtxLong.sm_req(s, _leMm_long);  // s already in mm
+        Z_ice = smr.Z_req; A_ice = smr.A_req;
         if (Z_ice > Z_req) {
           Z_req = Z_ice;
           iceGoverns = true;
+        }
+        // shear area (Eq 4.10) and web thickness (4.4.4.2) of the fitted profile
+        const pd = _iceProfileDims(L);
+        if (pd) {
+          A_web = pd.hw * pd.tw / 100;                       // cm²
+          iceShearOK = A_ice == null ? null : A_web >= A_ice;
+          const wt = _iceCtxLong.web_t_min(pd.hw, pd.type === 'FB', s);
+          tw_min_ice = wt.t_min; tw_act = pd.tw; iceWebOK = pd.tw >= wt.t_min - 1e-9;
         }
       } catch (_) { /* keep LR-only */ }
     }
@@ -2416,11 +2425,29 @@ function calcSideLong() {
       n: L.n, z: L.z, z_m: z, s: s, strake: strake_n, region: L.note,
       loc: z < tank_top_m ? '(2)' : '(1)',
       hT1, c1, F1, Fs, Z_a, Z_b, Z_tank, Z_req, Z_ice, iceGoverns,
+      A_ice, A_web, iceShearOK, tw_min_ice, tw_act, iceWebOK,
       gov,
       group: grp
     });
   });
   return results;
+}
+
+// Web height (mm) and web thickness (mm) of the profile fitted at a side longitudinal,
+// from the drawing's profile name ("FB 160x11", "L 200x90x10", "HP 200x10", "T 300x10/150x15").
+function _iceProfileDims(L) {
+  try {
+    const arr = (window.Draw && window.Draw.profiles && window.Draw.profiles.sideShell) || [];
+    const hit = arr.find(p => Math.abs((+p.z) - (+L.z)) < 1) || null;
+    const name = hit && hit.profileName; if (!name) return null;
+    const m = /^(HP|L|T|FB)\s*([\d.]+)x([\d.]+)(?:[x\/]([\d.]+))?(?:x([\d.]+))?/i.exec(name); if (!m) return null;
+    const type = m[1].toUpperCase();
+    if (type === 'FB') return { type, hw: +m[2], tw: +m[3] };
+    if (type === 'HP') return { type, hw: +m[2], tw: +m[3] };
+    if (type === 'L')  return { type, hw: +m[2], tw: +m[4] };
+    if (type === 'T')  return { type, hw: +m[2], tw: +m[3] };
+  } catch (_) {}
+  return null;
 }
 
 // ==================== SIDE LONG GROUPS ====================

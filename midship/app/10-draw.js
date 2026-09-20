@@ -105,23 +105,29 @@ function Y(z) { return BASELINE_Y - z * SCALE; }
 //   - SM, inertia, slenderness etc. all see ice intermediates automatically
 //     because they live in profiles.sideShell.
 //
-// FSICR rule tables (PDF references kept verbatim):
-//   Reg. 4.2.1 — load patch h0/h
-//   Reg. 4.2.2 — pressure: p = cd·c1·ca·po, po=5.6 MPa constant
-//   Reg. 4.3.1 — plate ice belt vertical extent (midbody)
-//   Reg. 4.3.2 — plate thickness formula
-//   Reg. 4.4.1 — frame strengthening vertical extent (midship)
-//   Reg. 4.4.2.1 / 4.4.3 — frame Z and shear A
+// FSICR 2021 (Traficom Ice Class Regulations, 1 July 2021 — ClauseFinder fsicr-2021):
+//   4.2.1 Table 4-1 — h_i / h
+//   4.2.2 Eq 4.1–4.4 — p = c_d·c_p·c_a·p_0, p_0 = 5.6 MPa; c_d = (a·k + b)/1000 ≤ 1,
+//         k = √(Δ·P)/1000; c_p Table 4-3 (midbody); c_a = √(l_0/l_a), l_0 = 0.6 m,
+//         0.35 ≤ c_a ≤ 1; l_a Table 4-4 (shell long. 1.7 s, frames long. span)
+//   4.3.1 Table 4-5 — ice belt extent (midbody)
+//   4.3.2 Eq 4.5 / 4.6 — plate thickness (transverse with p_PL = 0.75 p and f_1;
+//         longitudinal with p and f_2, as printed in the 2021 text)
+//   4.4.1 Table 4-6 — framing extent (midbody)
+//   4.4.2.1 Eq 4.7 / 4.8 — transverse frame Z and A (f_3 = 1.2, m_t Table 4-7)
+//   4.4.3 Eq 4.9 / 4.10 — longitudinal frame Z (f_4 = 1 − 0.2 h/s, m = 13.3) and A (f_5 = 2.16)
+//   4.4.4.2 — web thickness ≥ max(h_w√σ_y/C, (t − t_c)/2, 9 mm)
 // =========================================================================
 const FSICR = (function () {
+  // Table 4-5 (plating) and Table 4-6 (framing), midbody: above UIWL / below LIWL, m
   const ICE_BELT_EXTENT_MIDBODY = {
-    '1AS': { up: 0.60, dn: 0.75 },
-    '1A':  { up: 0.50, dn: 0.60 },
-    '1B':  { up: 0.40, dn: 0.50 },
-    '1C':  { up: 0.40, dn: 0.50 }
+    '1AS': { up: 0.60, dn: 1.20 },
+    '1A':  { up: 0.50, dn: 0.75 },
+    '1B':  { up: 0.40, dn: 0.60 },
+    '1C':  { up: 0.40, dn: 0.60 }
   };
   const FRAME_EXTENT_MIDBODY = {
-    '1AS': { up: 1.20, dn: 1.60 },
+    '1AS': { up: 1.20, dn: 2.00 },
     '1A':  { up: 1.00, dn: 1.30 },
     '1B':  { up: 1.00, dn: 1.30 },
     '1C':  { up: 1.00, dn: 1.30 }
@@ -132,15 +138,16 @@ const FSICR = (function () {
     '1B':  { h0: 0.60, h: 0.25 },
     '1C':  { h0: 0.40, h: 0.22 }
   };
-  // c1 midship column from FSICR Reg. 4.2.2 table
+  // c_p, midbody column of Table 4-3
   const C1_MIDSHIP = {
     '1AS': 1.00, '1A': 0.85, '1B': 0.70, '1C': 0.50
   };
-  const PO_NOMINAL = 5.6; // MPa, constant per Reg. 4.2.2
+  const PO_NOMINAL = 5.6; // MPa, p_0 (4.2.2)
 
-  // ca per Reg. 4.2.2: ca = (47 − 5·la)/44 capped [0.6, 1.0]
+  // Eq 4.4: c_a = √(l_0 / l_a), l_0 = 0.6 m, not more than 1.0 nor less than 0.35
   function ca_from_la(la_m) {
-    return Math.max(0.6, Math.min(1.0, (47 - 5 * la_m) / 44));
+    if (!(la_m > 0)) return 1.0;
+    return Math.max(0.35, Math.min(1.0, Math.sqrt(0.6 / la_m)));
   }
 
   // Returns the full FSICR computation for current inputs, or null if disabled.
@@ -194,11 +201,11 @@ const FSICR = (function () {
     const h0 = ice.h0;
     const h  = ice.h;
 
-    // Pressure: cd, c1, p (before ca)
+    // Pressure: c_d (Eq 4.2 / 4.3, Table 4-2 midbody, not more than 1), c_p, p before c_a
     const k_v = Math.sqrt(Disp * P0) / 1000;
     let cd_a, cd_b;
     if (k_v <= 12) { cd_a = 8; cd_b = 214; } else { cd_a = 2; cd_b = 286; }
-    const cd = (cd_a * k_v + cd_b) / 1000;
+    const cd = Math.min(1.0, (cd_a * k_v + cd_b) / 1000);
     const c1 = C1_MIDSHIP[iceClass];
     const p_unfactored = cd * c1 * PO_NOMINAL;
 
@@ -208,21 +215,24 @@ const FSICR = (function () {
     if (P0 < P0_absoluteMin) P0_status = `BELOW ABS MIN (${P0_absoluteMin} kW)`;
     else if (P0 < P0_req)    P0_status = `BELOW CALC MIN (${P0_req} kW)`;
 
-    // Plate thickness (mm) for a given spacing (mm)
+    // Plate thickness (mm) for a given spacing (mm) — 4.3.2
+    //   transverse   Eq 4.5: t = 667 s √(f_1 p_PL / σ_y) + t_c,  p_PL = 0.75 p
+    //   longitudinal Eq 4.6: t = 667 s √(p / (f_2 σ_y)) + t_c      (p as printed in the 2021 text)
+    //   l_a for the shell (Table 4-4): frame spacing (transverse) / 1.7 × frame spacing (longitudinal)
     function plate_t(s_mm, useFloor) {
       const s = s_mm / 1000;
       const ratio = h / s;
-      const la_plate = (framing === 'LONG') ? 2 * s : s;
+      const la_plate = (framing === 'LONG') ? 1.7 * s : s;
       const ca = ca_from_la(la_plate);
-      const pPL = 0.75 * p_unfactored * ca;
+      const p = p_unfactored * ca;          // design ice pressure at this l_a
+      const pPL = 0.75 * p;
       let f_factor, t_net;
       if (framing === 'LONG') {
         let f2;
         if (ratio <= 1.0) f2 = 0.6 + 0.4 / Math.max(ratio, 1e-6);
-        else if (ratio < 1.8) f2 = 1.4 - 0.4 * ratio;
-        else f2 = 0.68;
+        else f2 = Math.max(0.68, 1.4 - 0.4 * ratio);   // defined up to h/s = 1.8; held there beyond
         f_factor = f2;
-        t_net = 667 * s * Math.sqrt(pPL / (f2 * sy));
+        t_net = 667 * s * Math.sqrt(p / (f2 * sy));
       } else {
         let f1 = 1.3 - 4.2 / Math.pow(ratio + 1.8, 2);
         f1 = Math.min(1.0, f1);
@@ -231,30 +241,41 @@ const FSICR = (function () {
       }
       const t_total = t_net + tc;
       const t_final = useFloor ? Math.max(t_total, t_floor) : t_total;
-      return { s_mm, t_net, t_total, t_final, ca, pPL, f: f_factor };
+      return { s_mm, t_net, t_total, t_final, ca, p, pPL, f: f_factor };
+    }
+    // Minimum web thickness of an ice frame (4.4.4.2): the greatest of h_w√σ_y / C
+    // (C = 805 profiles, 282 flat bars), half the net shell thickness, 9 mm
+    function web_t_min(hw_mm, isFlatBar, s_mm) {
+      const tNet = plate_t(s_mm, false).t_net;
+      return { t_min: Math.max(hw_mm * Math.sqrt(sy) / (isFlatBar ? 282 : 805), tNet / 2, 9), t_web_rule: hw_mm * Math.sqrt(sy) / (isFlatBar ? 282 : 805), t_half_plate: tNet / 2 };
     }
 
-    // Section modulus (cm³) for a given spacing (mm) and span (mm)
+    // Section modulus (cm³) and shear area (cm²) for a spacing (mm) and span (mm)
+    //   longitudinal frames 4.4.3: Z = f_4 p h l² / (m σ_y) · 10⁶, f_4 = 1 − 0.2 h/s, m = 13.3 (brackets)
+    //                              A = √3 f_4 f_5 p h l / (2 σ_y) · 10⁴, f_5 = 2.16;   l_a = span
+    //   transverse frames 4.4.2.1: Z = p s h l / (m_t σ_y) · 10⁶, m_t = 7 m_0 / (7 − 5 h/l)
+    //                              A = √3 f_3 p h s / (2 σ_y) · 10⁴, f_3 = 1.2;         l_a = frame spacing
     function sm_req(s_mm, l_mm) {
       const s = s_mm / 1000;
       const l = l_mm / 1000;
-      let Z_req, A_req, ca, p_st;
+      let Z_req, A_req, ca, p_st, f4 = null;
       if (framing === 'LONG') {
         ca = ca_from_la(l);
         p_st = p_unfactored * ca;
-        const f3 = 1 - 0.2 * (h / s);
-        const f4 = 0.6;
+        f4 = 1 - 0.2 * (h / s);
+        const f5 = 2.16;
         const m = 13.3;
-        Z_req = (f3 * f4 * p_st * h * l * l) / (m * sy) * 1e6;
-        A_req = (Math.sqrt(3) * f3 * p_st * h * l) / (2 * sy) * 1e4;
+        Z_req = (f4 * p_st * h * l * l) / (m * sy) * 1e6;
+        A_req = (Math.sqrt(3) * f4 * f5 * p_st * h * l) / (2 * sy) * 1e4;
       } else {
         ca = ca_from_la(s);
         p_st = p_unfactored * ca;
         const m_t = (7 * mo) / (7 - 5 * (h / l));
+        const f3 = 1.2;
         Z_req = (p_st * s * h * l) / (m_t * sy) * 1e6;
-        A_req = null;
+        A_req = (Math.sqrt(3) * f3 * p_st * h * s) / (2 * sy) * 1e4;
       }
-      return { s_mm, l_mm, Z_req, A_req, ca, p_st };
+      return { s_mm, l_mm, Z_req, A_req, ca, p_st, f4 };
     }
 
     const result = {
@@ -262,7 +283,7 @@ const FSICR = (function () {
       p_unfactored, P0, P0_status,
       z_top_plate, z_bot_plate,
       z_top_frame, z_bot_frame,
-      plate_t, sm_req,
+      plate_t, sm_req, web_t_min,
     };
     _cache = result;
     _cacheKey = key;

@@ -596,10 +596,10 @@
               <option value="1C">1C FS</option>
             </select>
           </div>
-          <div class="ea-field"><label class="ea-label" title="FSICR Reg. 4.3.2 abrasion margin (mm) — added to net plate thickness in the ice belt.">t_c abrasion (mm)</label><input type="number" step="0.1" class="ea-input" id="ice_tc" value="2.0" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR 2021 4.3.2 abrasion and corrosion increment t_c (normally 2 mm) (mm) — added to net plate thickness in the ice belt.">t_c abrasion (mm)</label><input type="number" step="0.1" class="ea-input" id="ice_tc" value="2.0" onchange="onIceInputChange()"></div>
         </div>
 
-        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Ice Waterlines (FSICR Reg. 4.2 / 4.3 / 4.4)</div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Ice Waterlines (FSICR 2021 · 4.2 – 4.4)</div>
         <div class="ea-form-row-4">
           <div class="ea-field"><label class="ea-label" title="Upper Ice Waterline — FW summer load line (m, above baseline).">T_UIWL (m)</label><input type="number" step="0.0001" class="ea-input" id="ice_T_uiwl" value="10.7425" onchange="onIceInputChange()"></div>
           <div class="ea-field"><label class="ea-label" title="Lower Ice Waterline — chosen ballast condition (m, above baseline).">T_LIWL (m)</label><input type="number" step="0.01" class="ea-input" id="ice_T_liwl" value="5.50" onchange="onIceInputChange()"></div>
@@ -609,7 +609,7 @@
 
         <div class="ea-section-title" style="margin-top:var(--spacing-md)">Engine &amp; Framing</div>
         <div class="ea-form-row-4">
-          <div class="ea-field"><label class="ea-label" title="Engine power (kW) — used in FSICR Reg. 4.2.2 to compute size parameter k = √(Δ·P)/1000.">Engine P (kW)</label><input type="number" step="10" class="ea-input" id="ice_P0" value="5220" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="Engine power (kW) — used in FSICR 2021 Eq 4.3 for the size parameter k = √(Δ·P)/1000.">Engine P (kW)</label><input type="number" step="10" class="ea-input" id="ice_P0" value="5220" onchange="onIceInputChange()"></div>
           <div class="ea-field"><label class="ea-label" title="Framing system at side shell. LONG = longitudinal stiffeners (Reg. 4.4.3). TRANS = transverse frames (Reg. 4.4.2.1).">Framing system</label>
             <select class="ea-select" id="ice_framing" onchange="onIceInputChange()">
               <option value="LONG" selected>Longitudinal</option>
@@ -624,7 +624,7 @@
               <option value="5">5 — frames between two decks only</option>
             </select>
           </div>
-          <div class="ea-field"><label class="ea-label" title="FSICR Reg. 3.2 minimum required engine power for the chosen ice class. Status auto-validates.">FSICR P_min req (kW)</label><input type="number" step="1" class="ea-input" id="ice_P0_required" value="4910" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR 2021 Sec 3 minimum required engine power for the chosen ice class. Status auto-validates.">FSICR P_min req (kW)</label><input type="number" step="1" class="ea-input" id="ice_P0_required" value="4910" onchange="onIceInputChange()"></div>
         </div>
 
         <!-- COMPUTED EXTENTS DISPLAY -->
