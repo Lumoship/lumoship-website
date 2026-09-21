@@ -10918,6 +10918,7 @@ function scaleLabels() {
   const pxPerUnit = svgEl.clientHeight / (view.h || 1);
   if (!pxPerUnit || !isFinite(pxPerUnit)) return;
   svgEl.querySelectorAll('text').forEach(t => {
+    if (/(^|\s)cad-/.test(t.getAttribute('class') || '')) return;   // the section CAD sizes its own labels
     let base = t.dataset.fs;
     if (base == null) {
       const inline = (t.style && t.style.fontSize) || t.getAttribute('font-size') || '';
