@@ -132,9 +132,16 @@ function retrieveTerms(terms, k) {
   const bySec = new Map();
 
   for (const t of clean) {
-    const q = parseQuery('"' + t + '"', false);
-    if (q.empty) continue;
-    for (const r of scoreAll(q).slice(0, 60)) {
+    // the exact phrase first; then the same words in any order and with words between
+    // ("one side continuous weld" must also find "one side continuous fillet welding"),
+    // scored a little lower so a verbatim hit still wins
+    const strict = parseQuery('"' + t + '"', false);
+    const loose = parseQuery(t, false);
+    loose.words = loose.words.filter(w => w.length > 2 && !STOP.has(w)); loose.terms = loose.words; loose.empty = !loose.words.length;
+    const runs = [];
+    if (!strict.empty) runs.push(scoreAll(strict).slice(0, 60));
+    if (!loose.empty && loose.words.length > 1) runs.push(scoreAll(loose).slice(0, 40).map(r => ({ c: r.c, sc: Math.round(r.sc * 0.8), hits: r.hits })));
+    for (const r of [].concat(...runs)) {
       const key = r.c.b + '|' + r.c.s;
       let g = bySec.get(key);
       if (!g) {
