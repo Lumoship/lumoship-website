@@ -153,8 +153,8 @@ function retrieveTerms(terms, k) {
       g.cov.add(t);
       g.best = Math.max(g.best, r.sc);
       const prev = g.cands.get(r.c.a);
-      if (prev) { prev.sc = Math.max(prev.sc, r.sc); prev.cov++; }
-      else g.cands.set(r.c.a, { c: r.c, sc: r.sc, hits: r.hits.slice(), cov: 1 });
+      if (prev) { prev.sc = Math.max(prev.sc, r.sc); prev.cov++; prev.terms.add(t); }
+      else g.cands.set(r.c.a, { c: r.c, sc: r.sc, hits: r.hits.slice(), cov: 1, terms: new Set([t]) });
     }
   }
 
@@ -166,15 +166,20 @@ function retrieveTerms(terms, k) {
   // best with at most six from one section. A round robin over sections (one clause
   // each, first round) starved subjects that live in a single section — welding is
   // one section of Pt 3 Ch 13, and its 2.3.3 never surfaced behind thirty one-off hits.
-  const want = k || 14, out = []; const perSec = new Map();
+  // …and at most two clauses per (section, search term), so one strong term
+  // ("partial penetration weld") cannot fill a section's quota and push out the
+  // clauses the other terms found ("one side continuous weld" → 2.3.3).
+  const want = k || 14, out = []; const perSec = new Map(), perSecTerm = new Map();
   const flat = [];
   for (const g of groups) for (const r of g.cands.values()) { r.sec = g.sec; r.book = g.meta; r.gs = g.score; r.rank = g.score * 0.6 + r.sc + (r.cov > 1 ? 40 : 0); flat.push(r); }
   flat.sort((a, b) => b.rank - a.rank);
-  for (const r of flat) {
-    const key = r.c.b + '|' + r.c.s; const n = (perSec.get(key) || 0) + 1;
-    if (n > 6) continue; perSec.set(key, n);
-    out.push(r); if (out.length >= want) break;
-  }
+  const pick = (r, strictTerm) => {
+    const key = r.c.b + '|' + r.c.s; const n = (perSec.get(key) || 0) + 1; if (n > 6) return false;
+    if (strictTerm) { const tk = key + '|' + [...r.terms][0]; const m = (perSecTerm.get(tk) || 0) + 1; if (r.cov < 2 && m > 2) return false; perSecTerm.set(tk, m); }
+    perSec.set(key, n); out.push(r); return true;
+  };
+  for (const r of flat) { if (out.length >= want) break; pick(r, true); }
+  for (const r of flat) { if (out.length >= want) break; if (!out.includes(r)) pick(r, false); }
   return out;
 }
 
