@@ -638,7 +638,7 @@
     if (e.key === 'F8' && mode === 'section') { ortho = !ortho; ensureToolbar(); renderSvg(); e.preventDefault(); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
     const k = e.key.toLowerCase();
-    if (e.key === 'Escape') { pending = []; arcAsk = null; setTool('select'); return; }
+    if (e.key === 'Escape') { pending = []; arcAsk = null; if (compPick) { compPick = false; compPickA = null; renderSvg(); renderPanel(); return; } setTool('select'); return; }
     if (mode !== 'section') return;
     const t = TOOLS.find(x => x.k.toLowerCase() === k); if (t) { setTool(t.key); e.preventDefault(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel.panel) { const s = JSON.parse(JSON.stringify(S())); M().removePanel(s, sel.panel); sel.panel = null; commit(s); }
