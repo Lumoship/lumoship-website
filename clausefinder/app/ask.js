@@ -66,10 +66,29 @@ function finish(list, k, perSecCap) {
   return keep;
 }
 
+/* ── which books a question is about ─────────────────────────────────────
+   "DNV kurallarına göre …" while an LR book is open: the question names the
+   society, so the society decides. Set per question by ask(), read by every
+   retriever here in place of scopedBooks(). */
+let ASK_BOOKS = null;      // array of books when the question overrides the scope
+let ASK_SOC = null;        // the society it named
+const SOC_WORDS = [
+  [/\b(dnv|dnvgl|dnv[- ]gl|det norske)\b/i, 'DNV'],
+  [/\b(lr|lloyd'?s?|lloyds register|lloyd)\b/i, 'LR'],
+  [/\b(bv|bureau veritas|nr ?467|nr ?615)\b/i, 'BV'],
+  [/\b(fsicr|traficom|finnish[- ]swedish|ice class regulation|buz klas)/i, 'FSICR']
+];
+function societyNamed(question) {
+  for (const [re, soc] of SOC_WORDS) if (re.test(question)) return soc;
+  return null;
+}
+function askBooks() { return ASK_BOOKS || scopedBooks(); }
+function askSections() { return ASK_BOOKS ? null : scopedSections(); }
+
 function scoreAll(q) {
   const out = [];
-  const secOnly = scopedSections();
-  for (const b of scopedBooks()) {
+  const secOnly = askSections();
+  for (const b of askBooks()) {
     const e = S.lib.get(b.id);
     if (!e || !e.clauses) continue;
     for (const c of e.clauses) {
@@ -176,8 +195,8 @@ let SEMANTIC = null;   // null = unknown, false = no index available
 // same shape, so only the call differs - see lib/semantic-web.js for why the
 // online build does the scan in the browser instead of in a function.
 async function semanticRaw(question, k) {
-  const books = scopedBooks().map(b => b.id);
-  const secs = scopedSections() ? [...scopedSections()] : null;
+  const books = askBooks().map(b => b.id);
+  const secs = askSections() ? [...askSections()] : null;
 
   if (CFG.semantic === 'browser') {
     if (typeof swSearch !== 'function') throw new Error('semantic-web.js not loaded');
@@ -234,7 +253,7 @@ async function englishTerms(question) {
   try {
     const r = await fetch(apiUrl('keywords'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, book: scopedBooks().map(b => b.title).join('; ') })
+      body: JSON.stringify({ question, book: askBooks().map(b => b.title).join('; ') })
     });
     if (!r.ok) return [];
     const j = await r.json();
@@ -350,6 +369,17 @@ async function askSubmit(question) {
   for (let i = 0; i < 2 && !allIndexed(); i++)
     await Promise.all(missingBooks().map(b => ensureIndex(b.id).catch(() => {})));
 
+  /* ── which books: the society the question names wins over the open book ── */
+  ASK_BOOKS = null; ASK_SOC = null;
+  {
+    const soc = societyNamed(question);
+    if (soc) {
+      const inScope = scopedBooks().some(b => societyOf(b) === soc);
+      const owned = booksOf(soc);
+      if (!inScope && owned.length) { ASK_BOOKS = owned; ASK_SOC = soc; think('Question names ' + soc + ' — searching its books'); }
+    }
+  }
+
   /* ── retrieval, with an English pass when the plain question is weak ── */
   const K = 18;
   let lex = retrieve(question, K * 2);
@@ -370,7 +400,12 @@ async function askSubmit(question) {
     }
   }
 
-  const sem = await semP;
+  let sem = await semP;
+  // the embedding model reads English: a Turkish question embeds poorly, so the
+  // English terms get their own semantic pass and the two are fused
+  if (foreign && terms.length) {
+    try { const sem2 = await semanticHits(terms.join('. '), K * 2); if (sem2.length) sem = sem.length ? finish(fuse([{ list: sem, w: 0.6 }, { list: sem2, w: 1 }], K * 2), K * 2, 4) : sem2; } catch (_) {}
+  }
   if (sem.length) think('Matching on meaning…');
   let hits = sem.length
     ? finish(fuse([{ list: lex, w: 1 }, { list: sem, w: 1 }], K * 2), K, 3)
@@ -464,6 +499,7 @@ async function askSubmit(question) {
   const box = document.createElement('div');
   box.className = 'srcs';
   box.innerHTML =
+    (ASK_SOC ? '<div class="terms">Question named <b>' + esc(ASK_SOC) + '</b> — answered from its books, not the open one</div>' : '') +
     (terms.length ? '<div class="terms">Searched in English for <b>' + esc(terms.join(', ')) +
        '</b> <button class="tsearch" data-terms="' + esc(terms.join(' ')) + '">open in search</button></div>' : '') +
     '<h6>Clauses given to the assistant</h6>' + sources.map((s, i) =>

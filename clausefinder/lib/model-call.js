@@ -42,7 +42,9 @@ function normalise(cfg) {
     fallbackModel: cfg.fallbackModel !== undefined ? cfg.fallbackModel : d.fallbackModel,
     endpoint: cfg.endpoint || ENDPOINTS[kind],
     temperature: cfg.temperature != null ? Number(cfg.temperature) : 0.15,
-    maxTokens: Number(cfg.maxTokens || 2400)
+    maxTokens: Number(cfg.maxTokens || 2400),
+    // Anthropic: a key made at organisation level must name the workspace it bills to
+    workspaceId: cfg.workspaceId || null
   };
 }
 
@@ -126,11 +128,11 @@ async function callModel(rawCfg, messages, opts) {
     if (cfg.kind === 'anthropic') {
       const r = await fetch(cfg.endpoint, {
         method: 'POST',
-        headers: {
+        headers: Object.assign({
           'Content-Type': 'application/json',
           'x-api-key': cfg.apiKey,
           'anthropic-version': '2023-06-01'
-        },
+        }, cfg.workspaceId ? { 'anthropic-workspace-id': cfg.workspaceId } : {}),
         body: JSON.stringify(toAnthropicBody(model, messages, opts, cfg)),
         signal
       });

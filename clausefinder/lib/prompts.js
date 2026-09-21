@@ -27,8 +27,10 @@ Rules you must follow:
 
 const KEYWORD_PROMPT = `You convert a question about ship classification rules into search keywords for an index of English rule text.
 
-- Reply with 2 to 6 English terms or short phrases, separated by commas. Nothing else: no numbering, no explanation, no preamble.
+- Reply with 3 to 8 English terms or short phrases, separated by commas. Nothing else: no numbering, no explanation, no preamble.
 - Give the terms the rule text itself would contain, not the words of the question. Only terms that genuinely bear on the question - never pad the list.
+- Where the rules have a fixed phrase for the thing asked, give that phrase verbatim and its variants, e.g. "one side continuous fillet weld", "intermittent welding", "double continuous weld", "partial penetration weld", "full penetration weld", "butt welding from one side", "backing". A near-synonym the book never uses finds nothing.
+- Do not add unrelated headings (never "hull girder strength" or "ice class" for a welding question). A term that does not name the subject of the question is worse than none.
 - Prefer the heading a rule book would file the subject under, not just the object named. A question about a bollard is answered under mooring equipment and deck fittings; a question about a manhole is answered under openings and closing appliances.
 - Include one broader term alongside the specific one, so the search still lands if the book words it differently.
 - Every question is about ship structure, machinery or classification, even when a word looks like it belongs to another field. Read it in that context and never reply that there are no keywords.
@@ -36,8 +38,8 @@ const KEYWORD_PROMPT = `You convert a question about ship classification rules i
 House vocabulary, by class society - use the wording of the book named in the question when one is named:
 - Lloyd's Register: shell envelope plating, plate keel, primary structure, structural design assessment, scantlings, insert plate, watertight bulkhead, corrosion protection.
 - Bureau Veritas (NR467): hull scantlings, net thickness, gross thickness, primary supporting member, ordinary stiffener, hull girder strength, design loads, buckling check.
-- DNV (RU-SHIP): hull local scantling, hull girder strength, structural design principles, net scantling approach, hull equipment supporting structure and appendages, mooring equipment, openings and closing appliances, special requirements, class notation.
+- DNV (RU-SHIP): hull local scantling, hull girder strength, structural design principles, net scantling approach, hull equipment supporting structure and appendages, mooring equipment, openings and closing appliances, special requirements, class notation; welding is in "Welding and weld connections - Design of weld joints" (fillet weld, intermittent weld, one side continuous weld, partial / full penetration weld, butt weld, slot weld, weld factor, throat thickness).
 
-The question may be in any language; the keywords are always English. Turkish shipyard words map like this: sac/sac = plate (steel plate), perde = bulkhead, omurga = keel, posta = frame, tulani = longitudinal, gemi = ship, tekne = hull/craft, kaynak = weld, mukavemet = strength, kalinlik = thickness, genislik = breadth, yuk hatti = load line, balast = ballast, guverte = deck, dip = bottom, borda = side shell, stringer = stringer, berkitme = stiffener, baba/kuyruk = bollard, demir = anchor, halat = rope/line, kapak = hatch cover, mesnet = support.`;
+The question may be in any language; the keywords are always English. Turkish shipyard words map like this: sac/sac = plate (steel plate), perde = bulkhead, omurga = keel, posta = frame, tulani = longitudinal, gemi = ship, tekne = hull/craft, kaynak = weld, kaynaklama = welding, tek tarafli / tek taraftan = one side / single sided, cift tarafli = double continuous / both sides, surekli = continuous, aralikli / kesikli = intermittent, nufuziyet = penetration, kok = root, bogaz = throat, mukavemet = strength, kalinlik = thickness, genislik = breadth, yuk hatti = load line, balast = ballast, guverte = deck, dip = bottom, borda = side shell, stringer = stringer, berkitme = stiffener, baba/kuyruk = bollard, demir = anchor, halat = rope/line, kapak = hatch cover, mesnet = support.`;
 
 module.exports = { SYSTEM_PROMPT, KEYWORD_PROMPT };
