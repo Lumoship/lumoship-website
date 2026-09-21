@@ -1586,3 +1586,8 @@ button,.ea-input,.ea-select,.ed-input,.tree-node,.ea-sub-step,.cad-menu-item,.mb
 .cmp-row.is-off span{opacity:0.5}
 .mb-title .mb-x{margin-left:auto;background:transparent;border:1px solid transparent;color:var(--text-muted);cursor:pointer;height:18px;width:18px;border-radius:4px;font-size:0.6rem}
 .mb-title .mb-x:hover{color:var(--danger,#ef4444);border-color:var(--border)}
+
+/* dimension labels: HTML over the drawing, fixed 9 px */
+.cad-dims{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.cad-dims-l{position:absolute;font-family:var(--font-mono);font-size:9px;line-height:1;white-space:nowrap;color:#93c5fd}
+.cad-dims-l.axis{font-size:8.5px;color:#64748b}

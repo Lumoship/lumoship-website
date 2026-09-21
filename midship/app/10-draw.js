@@ -10936,6 +10936,7 @@ function applyView() {
   if (!svgEl) return;
   svgEl.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
   scaleLabels();
+  if (document.body.classList.contains('cad-mode') && window.SectionCAD && SectionCAD.placeLabels) SectionCAD.placeLabels();
   const pct = Math.round((currentViewInitial().w / view.w) * 100);
   zoomInfoEl.textContent = pct + '%';
 }

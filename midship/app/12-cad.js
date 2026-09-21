@@ -233,6 +233,25 @@
       t.style.fontSize = (px / ppu).toFixed(2) + 'px';
     });
   }
+  // ---------------------------------------------------------------- dimension overlay
+  // HTML labels over the drawing, placed through the SVG's screen matrix. Their size is
+  // plain CSS; only their position follows the view. Re-placed on every render and on
+  // zoom / pan (10-draw.js applyView → SectionCAD.placeLabels).
+  let dimLabels = [];
+  function placeLabels() {
+    const host = document.getElementById('svgContainer'); const svg = B() && B().svg(); if (!host || !svg) return;
+    let ov = document.getElementById('cadDims');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'cadDims'; ov.className = 'cad-dims'; host.appendChild(ov); }
+    if (!active() || !dimLabels.length) { ov.innerHTML = ''; return; }
+    const ctm = svg.getScreenCTM(); if (!ctm) return;
+    const hr = host.getBoundingClientRect(); const X = B().X, Y = B().Y; const pt = svg.createSVGPoint();
+    ov.innerHTML = dimLabels.map(l => {
+      pt.x = X(l.y); pt.y = Y(l.z); const p = pt.matrixTransform(ctm);
+      const left = p.x - hr.left, top = p.y - hr.top;
+      const tx = l.anchor === 'end' ? '-100%' : l.anchor === 'middle' ? '-50%' : '0';
+      return `<span class="cad-dims-l ${l.cls}" style="left:${left.toFixed(1)}px;top:${top.toFixed(1)}px;transform:translate(${tx},-50%)">${l.text}</span>`;
+    }).join('');
+  }
   function renderSvg() {
     const s = S(); const X = B().X, Y = B().Y;
     const svg = B().svg(); if (!svg || !s) return;
@@ -241,8 +260,6 @@
     // Reference lines: baseline and centreline
     h += `<line x1="${X(-300)}" y1="${Y(0)}" x2="${X(ex.yMax + 1200)}" y2="${Y(0)}" stroke="#334155" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
     h += `<line x1="${X(0)}" y1="${Y(-300)}" x2="${X(0)}" y2="${Y(ex.zMax + 600)}" stroke="#334155" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
-    h += `<text x="${X(-160)}" y="${Y(-40)}" class="cad-axis" text-anchor="end">BL 0</text>`;
-    h += `<text x="${X(60)}" y="${Y(ex.zMax + 480)}" class="cad-axis">CL</text>`;
 
     const pathOf = pl => {
       const ln = M().panelLine(pl, s.nodes);
@@ -385,16 +402,16 @@
       const isSel = sel.node === n.id, isHov = hover && hover.nodeId === n.id;
       h += `<circle cx="${X(n.y)}" cy="${Y(n.z)}" r="${isSel || isHov ? 5 : 3.2}" fill="${isSel ? '#3b82f6' : '#0f172a'}" stroke="${isSel || isHov ? '#3b82f6' : '#cbd5e1'}" stroke-width="1.6" vector-effect="non-scaling-stroke" data-node="${n.id}" style="cursor:pointer"/>`;
     });
-    // Dimension labels: distinct Z levels at the right edge, distinct Y at the bottom
+    // Dimension labels live in the HTML overlay (placeLabels), not in the SVG
+    dimLabels = [{ y: -160, z: -40, text: 'BL 0', anchor: 'end', cls: 'axis' }, { y: 60, z: ex.zMax + 480, text: 'CL', anchor: 'start', cls: 'axis' }];
     const zs = [...new Set(s.nodes.map(n => n.z))].filter(z => z > 0 && (s.nodes.filter(n => n.z === z).length >= 2 || z === ex.zMax));
-    zs.forEach(z => { h += `<text x="${X(ex.yMax + 260)}" y="${Y(z) + 4}" class="cad-dim">${fmt(z)} AB</text>`; });
+    zs.forEach(z => dimLabels.push({ y: ex.yMax + 260, z, text: fmt(z) + ' AB', anchor: 'start', cls: 'dim' }));
     const ys = [...new Set(s.nodes.map(n => n.y))].filter(y => y > 0 && (s.nodes.filter(n => n.y === y).length >= 2 || y === ex.yMax)).sort((a, b) => a - b);
     // one row; neighbours closer than a label width lean away from each other instead of stacking
     ys.forEach((y, i) => {
       const prevClose = i > 0 && y - ys[i - 1] < 2400, nextClose = i < ys.length - 1 && ys[i + 1] - y < 2400;
       const anchor = prevClose && !nextClose ? 'start' : nextClose && !prevClose ? 'end' : 'middle';
-      const dx = anchor === 'start' ? 3 : anchor === 'end' ? -3 : 0;
-      h += `<text x="${X(y) + dx}" y="${Y(-720)}" class="cad-dim" text-anchor="${anchor}">${fmt(y)} CL</text>`;
+      dimLabels.push({ y, z: -720, text: fmt(y) + ' CL', anchor, cls: 'dim' });
     });
     // Positions view: code chip at every panel midpoint (amber "?" when unnamed)
     if (inPositions()) {
@@ -433,6 +450,7 @@
     }
     svg.innerHTML = h;
     scaleLabels(svg);
+    placeLabels();
     // Coordinates readout in the drawing header (reuse zoom info neighbour)
     const ro = document.getElementById('cadReadout');
     if (ro) ro.textContent = hover ? `Y ${fmt(hover.y)} · Z ${fmt(hover.z)}${hover.kind === 'node' ? ' · ' + hover.nodeId : hover.kind === 'panel' ? ' · ' + hover.panelId : ''}` : '';
@@ -1296,8 +1314,8 @@
     const hd = document.querySelector('.editor-header-title');
     if (hd) hd.textContent = ({ section: 'Geometry', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Geometry';
   }
-  function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); document.body.classList.remove('has-info-card'); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
+  function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); document.body.classList.remove('has-info-card'); const dv = document.getElementById('cadDims'); if (dv) dv.innerHTML = ''; const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
   function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; compPickA = null; pending = []; hover = null; hoverSg = null; hoverComp = null; }
-  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, scaleLabels, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
+  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, scaleLabels, placeLabels, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
 })();
