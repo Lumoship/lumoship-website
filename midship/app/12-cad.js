@@ -221,17 +221,24 @@
   // Labels keep a constant screen size whatever the zoom: authored sizes are
   // screen pixels, converted to SVG units from the current viewBox. Also called by
   // 10-draw.js applyView() on zoom / pan in the drawing modes.
-  const LABEL_PX = { 'cad-dim': 9, 'cad-axis': 8.5, 'cad-pos': 8, 'cad-sel': 9, 'cad-cursor': 8, 'cad-comp-sub': 7.5 };
+  // One number does it: --cad-u = SVG units per screen pixel (preserveAspectRatio meet →
+  // the smaller of the two ratios). refine.css sizes every label class as
+  // calc(N px × var(--cad-u)). No label carries an inline font-size.
   function scaleLabels(svg) {
     svg = svg || (B() && B().svg()); if (!svg) return;
-    const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number); const vh = vb[3] || 720;
-    const ppu = svg.clientHeight / vh; if (!(ppu > 0)) return;
-    svg.querySelectorAll('text').forEach(t => {
-      const cls = (t.getAttribute('class') || '').split(/\s+/).find(c => LABEL_PX[c] != null || c === 'cad-comp');
-      let px = cls === 'cad-comp' ? (parseFloat(t.getAttribute('font-size')) || 9) : (cls ? LABEL_PX[cls] : null);
-      if (px == null) px = parseFloat(t.getAttribute('font-size')) || 9;
-      t.style.fontSize = (px / ppu).toFixed(2) + 'px';
-    });
+    const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number); const vw = vb[2] || 700, vh = vb[3] || 720;
+    const ppu = Math.min(svg.clientWidth / vw, svg.clientHeight / vh); if (!(ppu > 0)) return;
+    svg.style.setProperty('--cad-u', (1 / ppu).toFixed(5));
+    guardLabels(svg);
+  }
+  // Anything else that writes an inline font-size on a cad-* label is undone before the
+  // frame paints (MutationObserver callbacks run before rendering).
+  let guardOn = null;
+  function guardLabels(svg) {
+    if (guardOn === svg) return; guardOn = svg;
+    const strip = t => { if (t.tagName === 'text' && /(^|\s)cad-/.test(t.getAttribute('class') || '') && t.style && t.style.fontSize) t.style.removeProperty('font-size'); };
+    new MutationObserver(ms => { ms.forEach(m => { if (m.type === 'attributes') strip(m.target); else m.addedNodes.forEach(n => { if (n.nodeType === 1) { strip(n); if (n.querySelectorAll) n.querySelectorAll('text').forEach(strip); } }); }); })
+      .observe(svg, { attributes: true, attributeFilter: ['style'], subtree: true, childList: true });
   }
   // ---------------------------------------------------------------- dimension overlay
   // HTML labels over the drawing, placed through the SVG's screen matrix. Their size is
@@ -311,7 +318,7 @@
         else if (vert && fs >= 8) { const subW = sub.length * CH * 7; showSub = subW <= roomH && fs * 1.1 + 9 <= roomW; }
         const lx = X(m.y), ly = Y(m.z); const tr = vert ? ` transform="rotate(-90 ${lx} ${ly})"` : '';
         const dy0 = showSub ? -3 : 3;
-        h += `<text x="${lx}" y="${ly + dy0}" class="cad-comp" fill="${col}" font-size="${fs}" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer"${tr}>${name}</text>`;
+        h += `<text x="${lx}" y="${ly + dy0}" class="cad-comp" fill="${col}" style="--fs:${fs}px" text-anchor="middle" data-comp="${c.id}" style="cursor:pointer"${tr}>${name}</text>`;
         if (showSub) h += `<text x="${lx}" y="${ly + 8}" class="cad-comp-sub" fill="${col}" text-anchor="middle" pointer-events="none"${tr}>${sub}</text>`;
       });
       // picking the corners: first corner marked, rubber box to the pointer

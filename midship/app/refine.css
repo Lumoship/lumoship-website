@@ -1591,3 +1591,10 @@ button,.ea-input,.ea-select,.ed-input,.tree-node,.ea-sub-step,.cad-menu-item,.mb
 .cad-dims{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
 .cad-dims-l{position:absolute;font-family:var(--font-mono);font-size:9px;line-height:1;white-space:nowrap;color:#93c5fd}
 .cad-dims-l.axis{font-size:8.5px;color:#64748b}
+
+/* ── Drawing labels: size = screen px × --cad-u (set per render / zoom on the <svg>) ── */
+#midshipSVG text.cad-dim,#midshipSVG text.cad-sel{font-size:calc(9px * var(--cad-u,1)) !important}
+#midshipSVG text.cad-axis{font-size:calc(8.5px * var(--cad-u,1)) !important}
+#midshipSVG text.cad-pos,#midshipSVG text.cad-cursor{font-size:calc(8px * var(--cad-u,1)) !important}
+#midshipSVG text.cad-comp{font-size:calc(var(--fs,9px) * var(--cad-u,1)) !important}
+#midshipSVG text.cad-comp-sub{font-size:calc(7.5px * var(--cad-u,1)) !important}
