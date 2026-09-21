@@ -218,6 +218,21 @@
   }
 
   // ------------------------------------------------------------ SVG render
+  // Labels keep a constant screen size whatever the zoom: authored sizes are
+  // screen pixels, converted to SVG units from the current viewBox. Also called by
+  // 10-draw.js applyView() on zoom / pan in the drawing modes.
+  const LABEL_PX = { 'cad-dim': 9, 'cad-axis': 8.5, 'cad-pos': 8, 'cad-sel': 9, 'cad-cursor': 8, 'cad-comp-sub': 7.5 };
+  function scaleLabels(svg) {
+    svg = svg || (B() && B().svg()); if (!svg) return;
+    const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number); const vh = vb[3] || 720;
+    const ppu = svg.clientHeight / vh; if (!(ppu > 0)) return;
+    svg.querySelectorAll('text').forEach(t => {
+      const cls = (t.getAttribute('class') || '').split(/\s+/).find(c => LABEL_PX[c] != null || c === 'cad-comp');
+      let px = cls === 'cad-comp' ? (parseFloat(t.getAttribute('font-size')) || 9) : (cls ? LABEL_PX[cls] : null);
+      if (px == null) px = parseFloat(t.getAttribute('font-size')) || 9;
+      t.style.fontSize = (px / ppu).toFixed(2) + 'px';
+    });
+  }
   function renderSvg() {
     const s = S(); const X = B().X, Y = B().Y;
     const svg = B().svg(); if (!svg || !s) return;
@@ -417,6 +432,7 @@
       h += `<text x="${X(hover.y) + 9}" y="${Y(hover.z) + 14}" class="cad-cursor" fill="${c}" pointer-events="none">${fmt(hover.y)}, ${fmt(hover.z)}${hover.kind === 'node' ? ' · ' + hover.nodeId : ''}</text>`;
     }
     svg.innerHTML = h;
+    scaleLabels(svg);
     B().scaleLabels();
     // Coordinates readout in the drawing header (reuse zoom info neighbour)
     const ro = document.getElementById('cadReadout');
@@ -1284,5 +1300,5 @@
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); document.body.classList.remove('has-info-card'); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
   function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; compPickA = null; pending = []; hover = null; hoverSg = null; hoverComp = null; }
-  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
+  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, scaleLabels, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
 })();

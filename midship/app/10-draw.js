@@ -10913,6 +10913,8 @@ let view = { ...currentViewInitial() };
 const LABEL_MIN_PX = 10;
 function scaleLabels() {
   if (!svgEl) return;
+  // the section CAD sizes its own labels (constant screen size)
+  if (document.body.classList.contains('cad-mode') && window.SectionCAD && SectionCAD.scaleLabels) { SectionCAD.scaleLabels(svgEl); return; }
   const pxPerUnit = svgEl.clientHeight / (view.h || 1);
   if (!pxPerUnit || !isFinite(pxPerUnit)) return;
   svgEl.querySelectorAll('text').forEach(t => {
