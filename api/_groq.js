@@ -24,6 +24,7 @@ function config() {
     model: process.env.AI_MODEL,
     fallbackModel: process.env.AI_FALLBACK_MODEL,
     endpoint: process.env.AI_ENDPOINT,
+    workspaceId: process.env.AI_WORKSPACE_ID,
     temperature: process.env.AI_TEMPERATURE,
     maxTokens: process.env.AI_MAX_TOKENS
   });
