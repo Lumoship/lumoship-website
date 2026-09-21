@@ -162,19 +162,18 @@ function retrieveTerms(terms, k) {
   for (const g of groups) g.score = g.cov.size * 200 + titleBoost(g.sec, clean) + g.best;
   groups.sort((a, b) => b.score - a.score);
 
-  // round robin over the sections, best clause of each first, so the evidence spans the books
-  const ranked = groups.map(g => ({ g, list: [...g.cands.values()].sort((a, b) => b.sc - a.sc) }));
-  const want = k || 14, out = [];
-  // a subject that lives in one section (welding: Pt 3 Ch 13 Sec 1) needs more than
-  // three of its clauses; six rounds, the spread over sections still comes first
-  for (let round = 0; round < 6 && out.length < want; round++) {
-    for (const { g, list } of ranked) {
-      const r = list[round];
-      if (!r) continue;
-      r.sec = g.sec; r.book = g.meta; r.gs = g.score;
-      out.push(r);
-      if (out.length >= want) break;
-    }
+  // Rank every candidate by its section's standing plus its own score, then take the
+  // best with at most six from one section. A round robin over sections (one clause
+  // each, first round) starved subjects that live in a single section — welding is
+  // one section of Pt 3 Ch 13, and its 2.3.3 never surfaced behind thirty one-off hits.
+  const want = k || 14, out = []; const perSec = new Map();
+  const flat = [];
+  for (const g of groups) for (const r of g.cands.values()) { r.sec = g.sec; r.book = g.meta; r.gs = g.score; r.rank = g.score * 0.6 + r.sc + (r.cov > 1 ? 40 : 0); flat.push(r); }
+  flat.sort((a, b) => b.rank - a.rank);
+  for (const r of flat) {
+    const key = r.c.b + '|' + r.c.s; const n = (perSec.get(key) || 0) + 1;
+    if (n > 6) continue; perSec.set(key, n);
+    out.push(r); if (out.length >= want) break;
   }
   return out;
 }
