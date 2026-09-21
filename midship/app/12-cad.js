@@ -433,7 +433,6 @@
     }
     svg.innerHTML = h;
     scaleLabels(svg);
-    B().scaleLabels();
     // Coordinates readout in the drawing header (reuse zoom info neighbour)
     const ro = document.getElementById('cadReadout');
     if (ro) ro.textContent = hover ? `Y ${fmt(hover.y)} · Z ${fmt(hover.z)}${hover.kind === 'node' ? ' · ' + hover.nodeId : hover.kind === 'panel' ? ' · ' + hover.panelId : ''}` : '';
