@@ -372,6 +372,22 @@
         window.assignMaterialGrades({ silent: true });
       }
     });
+    // The panel steps (Strakes / Stiffeners) start from the engine's automatic
+    // layout instead of empty: fill the section model from the regenerated
+    // STRAKES / profiles, then push it back so both agree.
+    step('fillPanelsFromEngine', function () {
+      var D = window.Draw; var m = D && D.getSection && D.getSection();
+      if (!m || !window.SectionAdapter || !SectionAdapter.legacyToPanelData) return;
+      // let the parametric engine lay the section out once (a hand-edited model
+      // would otherwise feed its empty panel data back), then take that layout
+      m.manual = false; D.setSection(m);
+      if (D.computeProfiles) D.computeProfiles();
+      if (D.computeStrakes) D.computeStrakes();
+      if (typeof window.assignMaterialGrades === 'function') window.assignMaterialGrades({ silent: true });
+      Object.keys(m.panelData || {}).forEach(function (g) { m.panelData[g].strakes = []; m.panelData[g].stiffGroups = []; });
+      SectionAdapter.legacyToPanelData(m, D.STRAKES, D.profiles, D.GEOMETRY, D.PLATE_THICKNESS);
+      m.manual = true; D.setSection(m); SectionAdapter.apply(m); D.render();
+    });
     syncHeaderSubtitle();
     return true;
   }

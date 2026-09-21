@@ -12305,6 +12305,11 @@ window.importFullState = function(data) {
 
     // Form values — fire events so listeners update. May regenerate strakes,
     // but we'll re-apply them below.
+    // Project-level tables live in hidden inputs; a file without them (a new project,
+    // an older file) must not inherit the previous project's tables.
+    ['compartmentsJson', 'frameTableJson', 'customProfilesJson'].forEach(id => {
+      const el = document.getElementById(id); if (el && !(data.formValues && id in data.formValues)) el.value = '';
+    });
     if (data.formValues && typeof data.formValues === 'object') {
       // Suspend recalculation for the whole burst, then run it once. The last
       // of the old per-event recalcs fired at exactly this point in the

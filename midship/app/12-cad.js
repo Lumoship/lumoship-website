@@ -1196,6 +1196,7 @@
     const host = document.getElementById('svgContainer'); if (!host) return;
     let card = document.getElementById('cadInfoCard');
     const want = inStrakes() || inStiffs();
+    document.body.classList.toggle('has-info-card', !!want);   // the drawing keeps clear of the card
     if (!want) { if (card) card.style.display = 'none'; return; }
     if (!card) {
       card = document.createElement('div'); card.id = 'cadInfoCard'; card.className = 'cad-info'; host.appendChild(card);
@@ -1280,7 +1281,7 @@
     const hd = document.querySelector('.editor-header-title');
     if (hd) hd.textContent = ({ section: 'Geometry', positions: 'Positions', supports: 'Supports', strakes: 'Strakes', stiffeners: 'Stiffeners', compartments: 'Compartments' })[mode] || 'Geometry';
   }
-  function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
+  function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); document.body.classList.remove('has-info-card'); const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
   function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; compPickA = null; pending = []; hover = null; hoverSg = null; hoverComp = null; }
   window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
