@@ -166,20 +166,21 @@ function retrieveTerms(terms, k) {
   // best with at most six from one section. A round robin over sections (one clause
   // each, first round) starved subjects that live in a single section — welding is
   // one section of Pt 3 Ch 13, and its 2.3.3 never surfaced behind thirty one-off hits.
-  // …and at most two clauses per (section, search term), so one strong term
-  // ("partial penetration weld") cannot fill a section's quota and push out the
-  // clauses the other terms found ("one side continuous weld" → 2.3.3).
-  const want = k || 14, out = []; const perSec = new Map(), perSecTerm = new Map();
+  // Every search term gets its share first: the best clauses that matched it, up to
+  // want / terms each (at most six per section), then the rest by overall rank. One
+  // strong term ("partial penetration weld") can no longer fill the evidence and push
+  // out what the others found ("one side continuous weld" → 2.3.3, "backing" → 3.1.2).
+  const want = k || 14, out = []; const perSec = new Map(); const used = new Set();
   const flat = [];
   for (const g of groups) for (const r of g.cands.values()) { r.sec = g.sec; r.book = g.meta; r.gs = g.score; r.rank = g.score * 0.6 + r.sc + (r.cov > 1 ? 40 : 0); flat.push(r); }
+  const take = r => { const key = r.c.b + '|' + r.c.s; const n = (perSec.get(key) || 0) + 1; if (n > 6 || used.has(r)) return false; perSec.set(key, n); used.add(r); out.push(r); return true; };
+  const share = Math.max(2, Math.ceil(want / Math.max(1, clean.length)));
+  for (const t of clean) {
+    const mine = flat.filter(r => r.terms.has(t)).sort((a, b) => (b.sc + b.gs * 0.3) - (a.sc + a.gs * 0.3));
+    let got = 0; for (const r of mine) { if (got >= share || out.length >= want) break; if (take(r)) got++; }
+  }
   flat.sort((a, b) => b.rank - a.rank);
-  const pick = (r, strictTerm) => {
-    const key = r.c.b + '|' + r.c.s; const n = (perSec.get(key) || 0) + 1; if (n > 6) return false;
-    if (strictTerm) { const tk = key + '|' + [...r.terms][0]; const m = (perSecTerm.get(tk) || 0) + 1; if (r.cov < 2 && m > 2) return false; perSecTerm.set(tk, m); }
-    perSec.set(key, n); out.push(r); return true;
-  };
-  for (const r of flat) { if (out.length >= want) break; pick(r, true); }
-  for (const r of flat) { if (out.length >= want) break; if (!out.includes(r)) pick(r, false); }
+  for (const r of flat) { if (out.length >= want) break; take(r); }
   return out;
 }
 
