@@ -165,7 +165,9 @@ function retrieveTerms(terms, k) {
   // round robin over the sections, best clause of each first, so the evidence spans the books
   const ranked = groups.map(g => ({ g, list: [...g.cands.values()].sort((a, b) => b.sc - a.sc) }));
   const want = k || 14, out = [];
-  for (let round = 0; round < 3 && out.length < want; round++) {
+  // a subject that lives in one section (welding: Pt 3 Ch 13 Sec 1) needs more than
+  // three of its clauses; six rounds, the spread over sections still comes first
+  for (let round = 0; round < 6 && out.length < want; round++) {
     for (const { g, list } of ranked) {
       const r = list[round];
       if (!r) continue;
@@ -415,7 +417,7 @@ async function askSubmit(question) {
   }
   if (sem.length) think('Matching on meaning…');
   let hits = sem.length
-    ? finish(fuse([{ list: lex, w: 1 }, { list: sem, w: 1 }], K * 2), K, 3)
+    ? finish(fuse([{ list: lex, w: 1 }, { list: sem, w: 1 }], K * 2), K, 6)
     : lex.slice(0, K);
 
   if (!hits.length) {
