@@ -1189,7 +1189,8 @@ body.cad-mode .cad-status{flex-wrap:wrap}
 .mb-sum.ok{color:var(--success)}.mb-sum.warn{color:var(--warning)}.mb-sum.bad{color:var(--error)}
 .mb-tr.muted{color:var(--text-muted);cursor:default}
 .mb-th.sp-st-th,.mb-tr.sp-st-th{grid-template-columns:24px 46px 70px 1fr}
-.mb-th.sp-sg-th,.mb-tr.sp-sg-th{grid-template-columns:30px 48px 52px 28px 1fr 40px}
+.mb-th.sp-sg-th,.mb-tr.sp-sg-th{grid-template-columns:24px 40px 44px 20px 1fr 22px}
+.mb-tr .sp-prof{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mb-th.sp-exc-th,.mb-tr.sp-exc-th{grid-template-columns:18px 52px 52px 46px 1fr}
 .mb-th.sp-list-th,.mb-tr.sp-list-th{grid-template-columns:22px 52px 48px 48px 1fr;cursor:default}
 .mb-tr.sp-list-th .ed-input{width:100% !important;padding:1px 4px;font-size:0.58rem}

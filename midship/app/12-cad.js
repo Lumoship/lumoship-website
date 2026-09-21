@@ -181,6 +181,47 @@
     return { y: p.x / B().SCALE, z: (B().BASELINE_Y - p.y) / B().SCALE };
   }
   // px → mm at current zoom
+  // Nearest panel to a point (mm): { panel, dist } — lines by projection, arcs sampled
+  function nearestPanel(s, p) {
+    let best = null;
+    s.panels.forEach(pl => {
+      const ln = M().panelLine(pl, s.nodes); let d;
+      if (ln.curve) { d = Infinity; for (let i = 0; i <= 24; i++) { const q = M().pointAt(ln, i / 24); d = Math.min(d, Math.hypot(q.y - p.y, q.z - p.z)); } }
+      else { const vy = ln.b.y - ln.a.y, vz = ln.b.z - ln.a.z; const L2 = vy * vy + vz * vz || 1; const t = Math.max(0, Math.min(1, ((p.y - ln.a.y) * vy + (p.z - ln.a.z) * vz) / L2)); d = Math.hypot(p.y - ln.a.y - t * vy, p.z - ln.a.z - t * vz); }
+      if (!best || d < best.dist) best = { panel: pl, dist: d };
+    });
+    return best;
+  }
+  // What a click at p (mm) means in the scantling steps: the stiffener group whose tick
+  // is nearest, the strake under the point, or just the panel. Pure geometry.
+  function pickScantling(s, p) {
+    const tol = 12 * mmPerPx();
+    if (inStiffs()) {
+      let best = null;
+      Object.keys(s.groups || {}).forEach(gid => {
+        const d = M().panelData(s, gid); let prev = null;
+        d.stiffGroups.forEach(g => {
+          const r = M().groupPositions(s, gid, g, prev); if (r.placed.length) prev = Math.max(...r.placed);
+          r.placed.forEach(x => {
+            const at = M().chainPointAt(s, gid, x); if (!at) return;
+            const sgn = (g.side === 'out' ? -1 : 1) * interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1);
+            const a = { y: at.y, z: at.z }, b = g.dir === 'trans' ? { y: at.y + at.ty * 120, z: at.z + at.tz * 120 } : { y: at.y - at.tz * sgn * 260, z: at.z + at.ty * sgn * 260 };
+            const vy = b.y - a.y, vz = b.z - a.z; const L2 = vy * vy + vz * vz || 1; const t = Math.max(0, Math.min(1, ((p.y - a.y) * vy + (p.z - a.z) * vz) / L2));
+            const dist = Math.hypot(p.y - a.y - t * vy, p.z - a.z - t * vz);
+            if (dist <= tol && (!best || dist < best.dist)) best = { gid, group: g.id, panel: at.seg.id, dist };
+          });
+        });
+      });
+      if (best) return best;
+    }
+    const np = nearestPanel(s, p); if (!np || np.dist > tol * 1.5) return null;
+    const out = { gid: np.panel.group, panel: np.panel.id, dist: np.dist };
+    if (inStrakes()) {
+      const x = M().chainDistanceOf(s, np.panel.group, (() => { const ln = M().panelLine(np.panel, s.nodes); if (ln.curve) { let bq = null, bd = Infinity; for (let i = 0; i <= 24; i++) { const q = M().pointAt(ln, i / 24); const d = Math.hypot(q.y - p.y, q.z - p.z); if (d < bd) { bd = d; bq = q; } } return bq; } const vy = ln.b.y - ln.a.y, vz = ln.b.z - ln.a.z; const L2 = vy * vy + vz * vz || 1; const t = Math.max(0, Math.min(1, ((p.y - ln.a.y) * vy + (p.z - ln.a.z) * vz) / L2)); return { y: ln.a.y + t * vy, z: ln.a.z + t * vz }; })());
+      if (x != null) { const d = M().panelData(s, np.panel.group); let acc = 0; for (let i = 0; i < d.strakes.length; i++) { acc += d.strakes[i].len || 0; if (x <= acc + 0.5) { out.strake = i; break; } } }
+    }
+    return out;
+  }
   function mmPerPx() {
     const svg = B().svg(); const v = B().view();
     return (v.w / svg.getBoundingClientRect().width) / B().SCALE;
@@ -608,13 +649,14 @@
       return;
     }
     if (inStiffs() || inStrakes() || inSupports()) {
-      const pid = lbl || (hp.kind === 'panel' ? hp.panelId : null);
+      // geometry first (a click near a tick / run / plate), the DOM target only as a fallback
+      const pk = pickScantling(s, p);
+      const pid = pk ? pk.panel : (lbl || (hp.kind === 'panel' ? hp.panelId : null));
       const q = pid ? s.panels.find(x => x.id === pid) : null;
       const st = SP() ? SP().state : null;
       if (q && st) { if (st.gid !== q.group) { st.gid = q.group; st.strake = null; st.group = null; st.exc = null; }
-        let tgt = e.target; if (!(tgt && tgt.getAttribute && tgt.getAttribute('data-strake'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-strake')) tgt = under; }
-        const si = tgt && tgt.getAttribute && tgt.getAttribute('data-strake'); if (inStrakes()) st.strake = si != null ? parseInt(si) : null;
-        if (inStiffs()) { let tg = e.target; if (!(tg && tg.getAttribute && tg.getAttribute('data-sg'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-sg')) tg = under; } const sg = tg && tg.getAttribute && tg.getAttribute('data-sg'); st.group = sg || null; } }
+        if (inStrakes()) { if (pk && pk.strake != null) st.strake = pk.strake; else { let tgt = e.target; if (!(tgt && tgt.getAttribute && tgt.getAttribute('data-strake'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-strake')) tgt = under; } const si = tgt && tgt.getAttribute && tgt.getAttribute('data-strake'); st.strake = si != null ? parseInt(si) : null; } }
+        if (inStiffs()) { if (pk && pk.group) st.group = pk.group; else { let tg = e.target; if (!(tg && tg.getAttribute && tg.getAttribute('data-sg'))) { const under = document.elementFromPoint(e.clientX, e.clientY); if (under && under.getAttribute && under.getAttribute('data-sg')) tg = under; } const sg = tg && tg.getAttribute && tg.getAttribute('data-sg'); st.group = sg || null; } } }
       sel = q ? { panel: q.id, node: null, group: q.group } : { panel: null, node: null, group: st ? st.gid : null };
       renderSvg(); renderPanel();
       if (st && st.strake != null) { const row = document.querySelector(`.mb-tr[data-st="${st.strake}"]`); if (row) row.scrollIntoView({ block: 'nearest' }); }

@@ -208,8 +208,8 @@
     let h = header(s, ctx, gid, 'Stiffeners');
     h += `<div class="mb"><div class="mb-title">Group definition <em class="mb-em">${groups.length} grp · ${total} stiff${dropped ? ' · ' + dropped + ' ✕' : ''}</em></div>
       ${tools([{ k: 'sg-add', i: '＋', t: 'New group' }, { k: 'sg-copy', i: '⧉', t: 'Duplicate the selected group', off: !g }, { k: 'sg-del', i: '✕', t: 'Delete the selected group', off: !g }, { k: 'sg-fill', i: '⤓', t: 'Fill this panel with one group at the engine spacing', off: groups.length > 0 }])}
-      <div class="mb-table"><div class="mb-th sp-sg-th"><span>ID</span><span>Start</span><span>Spacing</span><span>N</span><span>Type</span><span>Fit</span></div>`;
-    groups.forEach(x => { const r = placedBy[x.id]; h += `<div class="mb-tr sp-sg-th ${state.group === x.id ? 'is-sel' : ''}" data-sg="${x.id}"><span>${x.id}</span><span>${fmt(x.start || 0)}${x.fromEnd === 'end' ? '↤' : ''}</span><span>${x.spacing || '—'}</span><span>${x.count || 0}</span><span>${x.type}${x.dir === 'trans' ? ' ⟂' : ''}</span><span style="color:${r.dropped.length ? 'var(--warning)' : 'var(--success)'}">${r.dropped.length ? r.dropped.length + ' ✕' : '✓'}</span></div>`; });
+      <div class="mb-table"><div class="mb-th sp-sg-th"><span>ID</span><span>Start</span><span>Spacing</span><span>N</span><span>Profile</span><span>Fit</span></div>`;
+    groups.forEach(x => { const r = placedBy[x.id]; h += `<div class="mb-tr sp-sg-th ${state.group === x.id ? 'is-sel' : ''}" data-sg="${x.id}"><span>${x.id}</span><span>${fmt(x.start || 0)}${x.fromEnd === 'end' ? '↤' : ''}</span><span>${x.spacing || '—'}</span><span>${x.count || 0}</span><span class="sp-prof" title="${x.type} ${x.profile || ''}">${x.type}${x.profile ? ' ' + x.profile : ''}${x.dir === 'trans' ? ' ⟂' : ''}</span><span style="color:${r.dropped.length ? 'var(--warning)' : 'var(--success)'}">${r.dropped.length ? r.dropped.length + ' ✕' : '✓'}</span></div>`; });
     if (!groups.length) h += `<div class="mb-empty-row">no groups yet — ＋ adds one, ⤓ fills the panel at the engine spacing</div>`;
     h += `</div></div>`;
     if (g) {
@@ -227,7 +227,7 @@
         <div class="mb-row"><span>Span</span><span class="pc-inline"><input class="ed-input sp-g" data-k="span" type="number" step="10" value="${g.span != null ? g.span : ''}" placeholder="${M().spanAt(s, gid, r.placed[0] || 0) || defSpan || ''}"><em>mm · blank = supports</em></span></div>
         <div class="mb-box" style="margin:6px 8px 2px"><div class="mb-box-title">Scantling</div>
           <div class="mb-row"><span>Profile</span><span class="pc-inline"><input class="ed-input sp-g" data-k="profile" list="spProfList" type="text" value="${g.profile || ''}" placeholder="${names[0] || 'size'}" style="flex:1"><datalist id="spProfList">${names.map(n => `<option value="${n}">`).join('')}</datalist></span></div>
-          <div class="mb-row"><span>Material</span><select class="ed-input sp-g" data-k="grade">${GRADES.map(x => `<option value="${x}" ${g.grade === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+          <div class="mb-row"><span>Material</span><select class="ed-input sp-g" data-k="grade"><option value="" ${!g.grade ? 'selected' : ''}>auto · ${ctx.defaultGrade(s, gid)}</option>${GRADES.map(x => `<option value="${x}" ${g.grade === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
           <div class="mb-row"><span>Type</span><span class="cad-seg sp-types">${STIFF_TYPES.map(([k, l]) => `<button class="${g.type === k ? 'on' : ''}" data-sp="type-${k}" title="${l}">${k}</button>`).join('')}</span></div>
         </div>
         <div class="mb-table" style="margin-top:6px"><div class="mb-th sp-list-th"><span>#</span><span>at (mm)</span><span>Y</span><span>Z</span><span>span</span></div>
@@ -242,6 +242,7 @@
     ec.querySelectorAll('.sp-g').forEach(i => i.addEventListener('change', e => mut(dd => { const x = cur(dd); if (!x) return; const k = e.target.dataset.k; let v = e.target.value;
       if (['start', 'spacing', 'count', 'span'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = k === 'span' ? null : 0; if (k === 'count') v = Math.max(0, Math.round(v)); }
       if (k === 'id') { v = v.trim() || x.id; if (dd.stiffGroups.some(o => o !== x && o.id === v)) return; state.group = v; }
+      if (k === 'grade') v = v || null;
       x[k] = v; })));
     ec.querySelectorAll('.sp-ov').forEach(i => i.addEventListener('change', e => mut(dd => { const x = cur(dd); if (!x) return; x.spanOverrides = x.spanOverrides || {}; const v = parseFloat(e.target.value); if (v > 0) x.spanOverrides[e.target.dataset.i] = v; else delete x.spanOverrides[e.target.dataset.i]; })));
     ec.querySelectorAll('[data-sp]').forEach(b => b.addEventListener('click', () => {
