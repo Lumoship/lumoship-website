@@ -697,6 +697,7 @@
             background: rgba(180, 83, 9, 0.08);
         }
         
+        a.tool-card, a.tool-card:hover { text-decoration: none; color: inherit; }   /* linked cards: no underline */
         .tool-card.soon { cursor: default; opacity: 0.85; }
         .tool-card.soon:hover { transform: none; box-shadow: none; border-color: var(--border); }
         .tool-card-status.planned {
@@ -1100,7 +1101,7 @@
                 <h2 class="discipline-title">Rule-Based Design</h2>
                 <p class="discipline-tagline">Class society compliance and scantling calculations.</p>
                 <p class="discipline-description">
-                    Midship section design tools, scantling check modules, and rule-based calculations for DNV, LR, BV, and RINA. Plus a library of supporting utilities for everyday engineering work.
+                    ClauseFinder reads the DNV, LR, BV and FSICR rule books; LoadPoint gives the design loads at a point; Midship Scantling designs the section to LR rules. BV NR467 and NR615 modules are next.
                 </p>
                 <div class="discipline-divider"></div>
                 
