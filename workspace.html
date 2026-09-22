@@ -1195,8 +1195,33 @@
         </div>
     </footer>
     
+
+    <!-- Bekci: oturum betigi (esm.sh uzerinden gelen Supabase modulu) yuklenemez
+         ya da yanit vermezse sayfa "Loading workspace..." ekraninda asili
+         kaliyordu - olculdu: dinamik import "Failed to fetch dynamically imported
+         module" veriyor, modul hic calismadigi icin icindeki try/catch'e de
+         girilmiyor. Bu betik modul degildir; her halukarda calisir ve 4 saniye
+         sonra giris ekranini acar (butun araclar girissiz de kullanilabiliyor). -->
+    <script>
+    (function () {
+        window.__lumoshipAuthHazir = false;
+        setTimeout(function () {
+            if (window.__lumoshipAuthHazir) return;
+            var y = document.getElementById('loadingView'),
+                g = document.getElementById('loginView');
+            if (!y || !g || y.style.display === 'none') return;
+            y.style.display = 'none';
+            g.style.display = 'block';
+            var m = document.getElementById('message');
+            if (m) {
+                m.textContent = 'Sign-in is unavailable right now (the auth service could not be reached). Every tool works without signing in - use the links below.';
+                m.className = 'message show error';
+            }
+        }, 4000);
+    }());
+    </script>
     <script type="module">
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
         
         const SUPABASE_URL = 'https://mmjdgxvxtjippjktajdd.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tamRneHZ4dGppcHBqa3RhamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxODczMzQsImV4cCI6MjEwNDc2MzMzNH0.yJwV6pjt5fBCR_bweiBXCi3etL0z4bQ0zXsz_Tmzen4';
@@ -1306,10 +1331,23 @@
         }
         
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
-            
+            // Oturum sorgusu yanit vermezse sayfa yuklenme ekraninda kalmasin:
+            // 6 saniye sinir, hata halinde giris ekrani. (Bekci betigi 4. saniyede
+            // zaten aciyor; burasi hatayi da yutmasin diye konsola yaziyor.)
+            let session = null;
+            try {
+                const cevap = await Promise.race([
+                    supabase.auth.getSession(),
+                    new Promise((_, ret) => setTimeout(() => ret(new Error('auth timeout')), 6000))
+                ]);
+                session = cevap && cevap.data ? cevap.data.session : null;
+            } catch (err) {
+                console.warn('Auth check failed:', err);
+            }
+            window.__lumoshipAuthHazir = true;
+
             loadingView.style.display = 'none';
-            
+
             if (session) {
                 renderDashboard(session.user);
                 dashboardView.style.display = 'block';
