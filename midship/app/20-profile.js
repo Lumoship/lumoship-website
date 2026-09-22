@@ -15,18 +15,21 @@
 window.Profile = (function(){
   // HP catalog — EN 10067 bulb flat profiles (extended)
   const HP_CATALOG = [
-    // EN 10067 bulb flats — values from LumoStruct js/core/data.js (2026-09-14 revision; mass/0.785 area, dx, Ixx in cm units)
-    { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.58, dx:3.48, Ixx:13.2 },
-    { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:4.18, dx:3.41, Ixx:15.12 },
+// >>> HP_KATALOG - TEK KAYNAK: Apps/_standart/hp-katalog.json (hp-yay.py yazar, elle duzenleme)
+    { name:"HP 60x4", b:60, t:4, c:13, r:3.5, A:3.58, dx:3.82, Ixx:12.2 },   // dx/Ixx 22 Eyl 2026'da duzeltildi, bkz. HP60 notu
+    { name:"HP 60x5", b:60, t:5, c:13, r:3.5, A:4.18, dx:3.7, Ixx:14.4 },
+    { name:"HP 60x6", b:60, t:6, c:13, r:3.5, A:4.78, dx:3.61, Ixx:16.46 },   // MARS DIN 4,78/3,62/16,4 ile %0,3 icinde; satir komsusundan artis yasasiyla
     { name:"HP 80x5", b:80, t:5, c:14, r:4, A:5.41, dx:4.96, Ixx:33.36 },
     { name:"HP 80x6", b:80, t:6, c:14, r:4, A:6.21, dx:4.84, Ixx:38.27 },
-    { name:"HP 80x7", b:80, t:7, c:14, r:4, A:7.01, dx:4.74, Ixx:43.04 },
+    { name:"HP 80x7", b:80, t:7, c:14, r:4, A:7.01, dx:4.74, Ixx:43.04 },   // EN 10067'de yok; EN'li HP80x6'dan artis yasasiyla (bagimsiz tablo: 7.00 / 4.69 / 43.3)
+    { name:"HP 80x8", b:80, t:8, c:14, r:4, A:7.81, dx:4.66, Ixx:47.7 },   // MARS/EN tablolarinda yok; HP80x7 satirindan artis yasasiyla (Midship cizim listesinde vardi)
     { name:"HP 100x6", b:100, t:6, c:15.5, r:4.5, A:7.74, dx:6.03, Ixx:75.87 },
     { name:"HP 100x7", b:100, t:7, c:15.5, r:4.5, A:8.74, dx:5.91, Ixx:85.14 },
     { name:"HP 100x8", b:100, t:8, c:15.5, r:4.5, A:9.74, dx:5.82, Ixx:94.22 },
     { name:"HP 120x6", b:120, t:6, c:17, r:5, A:9.32, dx:7.25, Ixx:132.9 },
     { name:"HP 120x7", b:120, t:7, c:17, r:5, A:10.52, dx:7.11, Ixx:149 },
     { name:"HP 120x8", b:120, t:8, c:17, r:5, A:11.72, dx:6.99, Ixx:164.7 },
+    { name:"HP 140x6.5", b:140, t:6.5, c:19, r:5.5, A:11.73, dx:8.43, Ixx:228 },   // MARS BS 11,70/8,37/228
     { name:"HP 140x7", b:140, t:7, c:19, r:5.5, A:12.43, dx:8.35, Ixx:241.2 },
     { name:"HP 140x8", b:140, t:8, c:19, r:5.5, A:13.83, dx:8.21, Ixx:266.3 },
     { name:"HP 140x9", b:140, t:9, c:19, r:5.5, A:15.2, dx:8.09, Ixx:290.3 },
@@ -70,12 +73,14 @@ window.Profile = (function(){
     { name:"HP 300x11", b:300, t:11, c:43, r:13, A:46.75, dx:18.91, Ixx:4175 },
     { name:"HP 300x12", b:300, t:12, c:43, r:13, A:49.79, dx:18.67, Ixx:4443 },
     { name:"HP 300x13", b:300, t:13, c:43, r:13, A:52.79, dx:18.46, Ixx:4707 },
+    { name:"HP 300x14", b:300, t:14, c:43, r:13, A:55.79, dx:18.27, Ixx:4966 },   // MARS DIN 55,8/18,3/4980
     { name:"HP 320x11.5", b:320, t:11.5, c:46, r:14, A:52.59, dx:20.25, Ixx:5342 },
     { name:"HP 320x12", b:320, t:12, c:46, r:14, A:54.25, dx:20.13, Ixx:5507 },
     { name:"HP 320x12.5", b:320, t:12.5, c:46, r:14, A:55.79, dx:20.01, Ixx:5670 },
     { name:"HP 320x13", b:320, t:13, c:46, r:14, A:57.45, dx:19.9, Ixx:5831 },
     { name:"HP 320x13.5", b:320, t:13.5, c:46, r:14, A:58.94, dx:19.8, Ixx:5978 },
     { name:"HP 320x14", b:320, t:14, c:46, r:14, A:60.64, dx:19.7, Ixx:6137 },
+    { name:"HP 320x15", b:320, t:15, c:46, r:14, A:63.84, dx:19.51, Ixx:6452 },   // MARS DIN 63,9/19,5/6480
     { name:"HP 340x12", b:340, t:12, c:49, r:15, A:58.84, dx:21.6, Ixx:6736 },
     { name:"HP 340x12.5", b:340, t:12.5, c:49, r:15, A:60.48, dx:21.47, Ixx:6935 },
     { name:"HP 340x13", b:340, t:13, c:49, r:15, A:62.24, dx:21.35, Ixx:7132 },
@@ -90,12 +95,15 @@ window.Profile = (function(){
     { name:"HP 400x14", b:400, t:14, c:58, r:18, A:81.48, dx:25.51, Ixx:12873 },
     { name:"HP 400x15", b:400, t:15, c:58, r:18, A:85.48, dx:25.25, Ixx:13522 },
     { name:"HP 400x16", b:400, t:16, c:58, r:18, A:89.43, dx:25.02, Ixx:14161 },
+    { name:"HP 400x17", b:400, t:17, c:58, r:18, A:93.43, dx:24.81, Ixx:14791 },   // MARS DIN 93,4/24,7/14850
     { name:"HP 430x14", b:430, t:14, c:62.5, r:19.5, A:89.94, dx:27.75, Ixx:16367 },
     { name:"HP 430x15", b:430, t:15, c:62.5, r:19.5, A:94.14, dx:27.46, Ixx:17189 },
     { name:"HP 430x17", b:430, t:17, c:62.5, r:19.5, A:102.79, dx:26.96, Ixx:18794 },
     { name:"HP 430x18", b:430, t:18, c:62.5, r:19.5, A:106.98, dx:26.74, Ixx:19580 },
     { name:"HP 430x19", b:430, t:19, c:62.5, r:19.5, A:111.34, dx:26.54, Ixx:20356 },
     { name:"HP 430x20", b:430, t:20, c:62.5, r:19.5, A:115.67, dx:26.35, Ixx:21124 },
+    { name:"HP 430x21", b:430, t:21, c:62.5, r:19.5, A:119.97, dx:26.18, Ixx:21884 },   // MARS DIN 120/26,1/21950
+// <<< HP_KATALOG
   ];
 
   // L-profile catalog — unequal/equal angles (common shipbuilding sizes)
