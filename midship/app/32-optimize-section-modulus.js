@@ -988,6 +988,9 @@ const Bridge = {
   // Read current scantling inputs and push to drawing
   syncFromScantling(showToast) {
     if (!window.Draw) return;
+    // the empty project: no section to describe, and the hidden legacy inputs
+    // still carry their built-in defaults - pushing them would draw the old ship
+    if (window.MidshipSteps && MidshipSteps.noSection && MidshipSteps.noSection()) return;
     try {
       const p = getParams();
       const B_mm = p.B * 1000;
@@ -1041,6 +1044,7 @@ const Bridge = {
       // Geometry page threw away girders the user had added or moved.
       // The scantling page has no girder-position inputs, so it pushes none.
 
+      Object.keys(geom).forEach(k => { if (!Number.isFinite(geom[k])) delete geom[k]; });   // a blank input keeps the drawing's value
       window.Draw.sync({
         GEOMETRY: geom,
         PLATE_THICKNESS: plateT

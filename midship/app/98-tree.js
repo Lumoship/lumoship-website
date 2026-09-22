@@ -97,6 +97,7 @@
             var lb = Sections.label(models[it.id] || it);
             h += '<button class="tree-node leaf sec ' + (it.active && inSections ? 'active' : it.active ? 'current' : '') + '" data-sec="' + it.id + '" title="' + lb.name + (lb.sub ? ' · ' + lb.sub : '') + ' — right-click for more"><i></i><span class="tl">' + lb.name + '</span><span class="ts">' + lb.sub + '</span></button>';
           });
+          if (!items.length) h += '<button class="tree-node leaf sec-new" data-newsec="1" title="Create the first cross section from the Main particulars (B, D)"><i></i><span class="tl">＋ New section</span></button>';
         }
         h += '</div></div>';
       } else {
@@ -114,6 +115,7 @@
     document.addEventListener('click', function (e) {
       if (!e.target.closest || !e.target.closest('#sideRail')) return;
       var g = e.target.closest('.tree-node.group'); if (g) { var k = g.dataset.group; groups[k] = groups[k] === false ? true : false; saveGroups(); renderRail(); return; }
+      var nw = e.target.closest('.tree-node.sec-new'); if (nw) { if (window.Sections && Sections.create()) { groups.sections = true; saveGroups(); goTo(2); } else renderRail(); return; }
       var sec = e.target.closest('.tree-node.sec'); if (sec) { if (sec.querySelector('input')) return; if (window.Sections) Sections.activate(sec.dataset.sec); window.goToSections(); paint(); return; }
       var leaf = e.target.closest('.tree-node[data-step]'); if (leaf) { goTo(parseInt(leaf.dataset.step), leaf.dataset.view || null); }
     });

@@ -16,6 +16,7 @@
   // make sure the active model is registered and carries an id
   function adopt() {
     const cur = D() && D().getSection ? D().getSection() : null; if (!cur) return null;
+    if (!cur.panels || !cur.panels.length) return null;   // the empty project's placeholder is not a section
     if (!cur.id) cur.id = store.active || nextId();   // a regenerated model replaces the active one
     const i = store.items.findIndex(m => m.id === cur.id);
     if (i < 0) store.items.push(cur); else store.items[i] = cur;
@@ -31,6 +32,8 @@
     if (window.ScantlingPanels) { const st = ScantlingPanels.state; st.gid = null; st.strake = null; st.group = null; st.exc = null; }
     if (window.SectionCAD && SectionCAD.resetSelection) SectionCAD.resetSelection();
     try { D().render(); } catch (_) {}
+    try { if (window.SectionCAD && SectionCAD.renderPanel) SectionCAD.renderPanel(); } catch (_) {}
+    try { D().fitView && D().fitView(); } catch (_) {}
     try { window.Project && window.Project.saveLocal && window.Project.saveLocal(); } catch (_) {}
     try { window.dispatchEvent(new CustomEvent('midship:section-switched', { detail: { id: store.active } })); } catch (_) {}
   }
@@ -41,9 +44,18 @@
   // A new section: the parametric section of the Main particulars (fresh layout).
   function create() {
     adopt();
+    const G = D().__cad.GEOMETRY(); const $ = id => document.getElementById(id);
+    if (!(G.B_half > 0) || !(G.UD > 0)) {
+      // blank project: seed the parametric geometry from the main particulars
+      const B = parseFloat(($('B') || {}).value), Dd = parseFloat(($('D') || {}).value);
+      if (!(B > 0) || !(Dd > 0)) { if (window.eaToast) eaToast('Enter B and D on Main particulars first — the section starts from them.'); return null; }
+      G.B_half = Math.round(B * 500); G.UD = Math.round(Dd * 1000); G.HC = G.UD + 1000;
+      G.IB = Math.max(1000, Math.round(B * 1000 / 15 / 10) * 10); G.R_B = Math.round(B * 60 / 10) * 10;
+      G.keel_half = 900; G.duct_half = 0; G.IS = Math.round(G.B_half - 1850); G.TT = 0;
+    }
     const m = window.SectionModel ? SectionModel.generate({ GEOMETRY: D().__cad.GEOMETRY(), PARAMS: D().__cad.PARAMS(), SIDE_GIRDERS: D().SIDE_GIRDERS || [], stringerZs: [], tweenZs: [] }) : null;
     if (!m) return null;
-    m.id = nextId(); m.manual = true; m.frame = null; m.isMidship = false;
+    m.id = nextId(); m.manual = true; m.frame = null; m.isMidship = store.items.length === 0;   // the first section is the midship one
     store.items.push(m); store.active = m.id; D().setSection(m); afterSwitch(); return m.id;
   }
   function duplicate(id) {
@@ -65,7 +77,7 @@
   function importState(S) {
     store.items = []; store.active = null; store.seq = 1;
     if (S && Array.isArray(S.items) && S.items.length) {
-      S.items.forEach(m => { if (m && Array.isArray(m.panels)) { if (!m.id) m.id = nextId(); store.items.push(m); } });
+      S.items.forEach(m => { if (m && Array.isArray(m.panels) && m.panels.length) { if (!m.id) m.id = nextId(); store.items.push(m); } });
       const act = store.items.find(m => m.id === S.active) || store.items[0];
       if (act) { store.active = act.id; D().setSection(clone(act)); const n = parseInt(String(act.id).slice(1)); if (n >= store.seq) store.seq = n + 1; store.items.forEach(m => { const k = parseInt(String(m.id).slice(1)); if (k >= store.seq) store.seq = k + 1; }); return true; }
     }

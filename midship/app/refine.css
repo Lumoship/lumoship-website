@@ -1599,3 +1599,15 @@ button,.ea-input,.ea-select,.ed-input,.tree-node,.ea-sub-step,.cad-menu-item,.mb
 #midshipSVG text.cad-pos,#midshipSVG text.cad-cursor{font-size:calc(8px * var(--cad-u,1)) !important}
 #midshipSVG text.cad-comp{font-size:calc(var(--fs,9px) * var(--cad-u,1)) !important}
 #midshipSVG text.cad-comp-sub{font-size:calc(7.5px * var(--cad-u,1)) !important}
+
+/* ── empty project: no cross section yet ─────────────────────────────── */
+.no-section-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.45rem;text-align:center;padding:2rem;pointer-events:none;z-index:5}
+.no-section-ph .nsp-title{font-size:var(--t-title);letter-spacing:0.12em;text-transform:uppercase;color:var(--ea-text-dim,#8b96ad)}
+.no-section-ph .nsp-sub{font-size:var(--t-ctl-sm);color:var(--ea-text-dim,#8b96ad);max-width:34ch;line-height:1.5;opacity:0.8}
+.no-section-ph .nsp-btn{pointer-events:auto;margin-top:0.35rem;font-size:var(--t-ctl-sm);padding:0.3rem 0.7rem;border-radius:var(--ctl-radius);border:1px solid var(--ea-accent,#3b82f6);background:var(--ea-accent,#3b82f6);color:#fff;cursor:pointer;font-family:inherit}
+.no-section-ph .nsp-btn:hover{filter:brightness(1.1)}
+body.no-section #midshipSVG{opacity:0.25}
+body.no-section #infoOverlay,body.no-section #cadDims{display:none !important}
+/* Results: only the missing-input list; nothing computed from an absent section */
+body.no-section #page-4 .ea-main > :not(#checkBlocked):not(.step-strip-host){display:none !important}
+.tree-node.sec-new .tl{color:var(--ea-accent,#3b82f6);opacity:0.85}

@@ -338,6 +338,36 @@
   //  APPLY / PERSIST
   // =====================================================================
 
+  // The empty project: every text / number input of the Main particulars blank, the
+  // engine's geometry zeroed, no section model, no compartments, empty tables.
+  // Selects, checkboxes and radios keep their built-in defaults (class society,
+  // ship type, materials).
+  function blankState() {
+    var fv = {};
+    document.querySelectorAll('#page-1 input[id], #page-1 textarea[id]').forEach(function (el) {
+      if (!el.id || el.type === 'file' || el.type === 'button' || el.type === 'checkbox' || el.type === 'radio') return;
+      if (isTransient(el.id)) return;
+      fv[el.id] = '';
+    });
+    fv.analysisDate = new Date().toISOString().slice(0, 10);
+    fv.revision = 'A';
+    fv.f1 = '1.00';
+    fv.sectionXL = '0.5';
+    fv.compartmentsJson = ''; fv.frameTableJson = ''; fv.customProfilesJson = '';
+    return {
+      format: 'MidshipFullState', version: 2, blank: true,
+      GEOMETRY: { B_half: 0, IB: 0, TT: 0, UD: 0, HC: 0, R_B: 0, keel_half: 0, duct_half: 0, IS: 0 },
+      PARAMS: { dbSpacing: 700, sideSpacing: 700, tweenZs: [], stringerZs: [], sideZ0: 0, coamingTop: 0, coamingEdgeH: 0, coamingEdgeT: 0,
+                profTypeBottom: 'L', profTypeIB: 'L', profTypeStringer: 'L', profTypeTween: 'L', profTypeCoaming: 'FB', profTypeSide: 'L', profTypeIS: 'L', profTypeDeck: 'L' },
+      SIDE_GIRDERS: [],
+      STRAKES: { shell: [], innerBottom: [], innerSide: [], upperDeck: [], stringer: [], tween: [], coamingTop: [] },
+      profiles: { bottomShell: [], innerBottom: [], stringerStiff: [], tweenStiff: [], coamingStiff: [], sideShell: [], innerSide: [], stringer: [], tweenDeck: [], upperDeck: [] },
+      COMPARTMENTS: [],
+      SECTIONS: { active: null, items: [] },
+      formValues: fv
+    };
+  }
+
   function applyState(state) {
     if (!window.importFullState) {
       notify('<strong>The drawing engine is not ready yet.</strong><br>' +
@@ -346,6 +376,17 @@
     }
     var ok = window.importFullState(state);
     if (!ok) { notify('<strong>Could not apply the project state.</strong>'); return false; }
+
+    // No cross section (the empty project, or one saved before a section was made):
+    // nothing to lay out - the legacy layout from a zero geometry only yields NaN.
+    var noSection = !!state.blank || (state.SECTIONS && !((state.SECTIONS.items || []).length)
+                     && (!state.SECTION || !((state.SECTION.panels || []).length)));
+    if (noSection) {
+      try { if (window.Draw && window.Draw.render) window.Draw.render(); } catch (e) {}
+      try { if (typeof recalcAll === 'function') recalcAll(); } catch (e) {}
+      try { if (window.SectionCAD && SectionCAD.renderPanel) SectionCAD.renderPanel(); } catch (e) {}
+      return true;
+    }
 
     // A generated section has no strakes or profiles yet — regenerate both
     // now so the user lands on a drawn section rather than an empty canvas.
@@ -666,10 +707,24 @@
 
   // The original Baltic Laker data still lives in the code defaults, so
   // "load the example" is just: forget the autosave and start over.
+  var EXAMPLE_FLAG = LS_KEY + ':example';
   function loadExample() {
-    if (!confirm('Discard the current project and reload the built-in example (Wagenborg Baltic Laker GC)?\n\nAnything not saved to a .json file will be lost.')) return;
+    if (!confirm('Discard the current project and load the built-in example (Wagenborg Baltic Laker GC)?\n\nAnything not saved to a .json file will be lost.')) return;
     clearLocal();
+    try { localStorage.setItem(EXAMPLE_FLAG, '1'); } catch (e) {}   // one launch with the code defaults
     location.reload();
+  }
+
+  // The empty project (no autosave, fresh start, failed restore): applied once the
+  // drawing engine is live, then autosaved so the next launch is the same.
+  function blankStart() {
+    if (typeof goToPage === 'function') goToPage(3);
+    setTimeout(function () {
+      try { if (window.importFullState) window.importFullState(blankState()); } catch (e) { console.error('[Project] blank start failed:', e); }
+      try { saveLocal(); } catch (e) {}
+      try { window.dispatchEvent(new Event('midship:restored')); } catch (e) {}
+    }, 600);
+    installAutosave();
   }
 
   function newProject() {
@@ -826,6 +881,15 @@
       dropSaved();
       try { localStorage.removeItem(BOOT_FLAG); } catch (e) {}
       console.log('[Project] fresh start requested - stored project dropped');
+      blankStart();
+      return;
+    }
+
+    // the Example button: one launch with the built-in ship (the code defaults)
+    var example = false;
+    try { example = localStorage.getItem(EXAMPLE_FLAG) === '1'; localStorage.removeItem(EXAMPLE_FLAG); } catch (e) {}
+    if (example) {
+      setTimeout(function () { try { saveLocal(); } catch (e) {} try { window.dispatchEvent(new Event('midship:restored')); } catch (e) {} }, 600);
       installAutosave();
       return;
     }
@@ -835,11 +899,11 @@
     if (crashed) {
       try { localStorage.removeItem(BOOT_FLAG); } catch (e) {}
       dropSaved();
-      installAutosave();
+      blankStart();
       console.warn('[Project] previous restore did not finish - autosave dropped');
       setTimeout(function () {
         notify('<strong>The last saved project could not be reopened.</strong><br>' +
-               'It has been discarded and the built-in example loaded instead. ' +
+               'It has been discarded and an empty project opened instead. ' +
                'If you exported that project to a .json file you can bring it back ' +
                'with the Load button.');
       }, 1200);
@@ -847,6 +911,7 @@
     }
 
     var saved = loadLocal();
+    if (!saved) { blankStart(); return; }   // nothing saved: the empty project, not the built-in example
     if (saved) {
       try { localStorage.setItem(BOOT_FLAG, '1'); } catch (e) {}
       // Restore on the geometry page so the drawing engine is live.
@@ -878,6 +943,7 @@
     clearLocal: clearLocal,
     buildStateFromSpec: buildStateFromSpec,
     applyState: applyState,
+    blankState: blankState,
     syncPrefill: syncPrefill,
     syncHeaderSubtitle: syncHeaderSubtitle,
     markMissing: markMissing,

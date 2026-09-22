@@ -1047,6 +1047,13 @@ window.addEventListener('keydown', (e) => {
 window.updateStatusBar = function() {
   try {
     // M_max from the Loading panel (already computed by Bridge)
+    if (window.MidshipSteps && MidshipSteps.noSection && MidshipSteps.noSection()) {
+      // the empty project: nothing computed is worth a number
+      ['sbMmax', 'sbRule', 'sbStrakes', 'sbStiffs'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = '—'; el.className = 'sb-value'; } });
+      ['sbRuleWrap', 'sbRuleSep', 'sbStrakesWrap', 'sbStiffsWrap'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+      const modeEl = document.getElementById('sbMode'); if (modeEl) { modeEl.textContent = 'Draw'; modeEl.className = 'sb-value'; }
+      return;
+    }
     const Ms_input = parseFloat(document.getElementById('MsDesign')?.value || 0);
     if (typeof window.runLongStrengthAnalysis === 'function' && Ms_input) {
       const ls = window.runLongStrengthAnalysis();
@@ -1061,6 +1068,9 @@ window.updateStatusBar = function() {
         const mEl = document.getElementById('sbMmax');
         if (mEl) mEl.textContent = M_str + ' ' + dir;
       }
+    } else {
+      // no still-water moment entered: no number to show (never the boot render's)
+      const mEl = document.getElementById('sbMmax'); if (mEl) mEl.textContent = '—';
     }
     // Mode
     const modeEl = document.getElementById('sbMode');

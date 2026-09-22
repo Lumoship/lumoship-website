@@ -216,7 +216,9 @@
     }
   }
   window.showChecklist = showChecklist; window.blockingErrors = blockingErrors; window.allStepChecks = allChecks;
-  window.MidshipSteps = { current: function () { return current; }, openCount: function (s) { return openCount(s); }, stepByN: stepByN };
+  window.addEventListener('midship:section-switched', function () { try { paintEmpty(); } catch (_) {} });
+  window.MidshipSteps = {
+    noSection: noSection, current: function () { return current; }, openCount: function (s) { return openCount(s); }, stepByN: stepByN };
 
   // ------------------------------------------------------------------ strip
   function stripHtml(step) {
@@ -262,8 +264,24 @@
     el.innerHTML = errs ? '✕ ' + errs + (warns ? ' · ! ' + warns : '') : warns ? '! ' + warns : '&#10003; all clear';
     el.title = 'Click for the checklist';
   }
+  // The project has no cross section yet (the empty project): body.no-section drives
+  // the placeholders — canvas, Results page, status bar.
+  function noSection() { try { return !!(window.Sections && Sections.list().length === 0); } catch (_) { return false; } }
+  function paintEmpty() {
+    var empty = noSection();
+    document.body.classList.toggle('no-section', empty);
+    var host = $('svgContainer'); if (!host) return;
+    var ph = $('noSectionPh');
+    if (empty && !ph) {
+      ph = document.createElement('div'); ph.id = 'noSectionPh'; ph.className = 'no-section-ph';
+      ph.innerHTML = '<div class="nsp-title">No cross section yet</div><div class="nsp-sub">Enter B and D on Main particulars, then create the first section — it starts from those particulars and is edited here.</div><button type="button" class="ea-btn nsp-btn" id="noSectionNew">＋ New section</button>';
+      host.appendChild(ph);
+      ph.querySelector('#noSectionNew').addEventListener('click', function () { if (window.Sections && Sections.create()) { if (window.ProjectTree) ProjectTree.goTo(2); paintEmpty(); } });
+    } else if (!empty && ph) ph.remove();
+  }
   function mountStrip(step) {
     paintBadge(step);
+    paintEmpty();
     try { document.body.classList.toggle('example-project', !!(D().isExampleGeometry && D().isExampleGeometry())); } catch (_) {}
     document.querySelectorAll('.step-strip-host').forEach(function (el) { el.innerHTML = ''; });
     var page = $('page-' + step.page); if (!page) return;
@@ -280,6 +298,7 @@
   function refreshStrip() {
     var step = stepByN(current);
     paintNav(current);
+    paintEmpty();
     // Laker-only controls (Variant) show only while the example geometry is loaded.
     try { document.body.classList.toggle('example-project', !!(D().isExampleGeometry && D().isExampleGeometry())); } catch (_) {}
     var host = $('page-' + step.page) && $('page-' + step.page).querySelector('.step-strip-host');
@@ -522,8 +541,9 @@
     // 95-project.js restores an autosaved project by visiting the Geometry
     // page and coming back to Setup (~600 ms). Land on the remembered step
     // only after that dance is over, otherwise it is overwritten.
-    var hasProject = false;
-    try { hasProject = !!localStorage.getItem('midship_project_v1'); } catch (_) {}
+    // 95-project.js either restores the autosave or applies the blank project;
+    // both end with midship:restored — always wait for it.
+    var hasProject = true;
     if (hasProject) {
       // Hide the page dance of the restore (Geometry page → back) and land on
       // the remembered step once 95-project.js says it is done.

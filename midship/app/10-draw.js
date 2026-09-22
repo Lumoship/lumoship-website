@@ -12246,7 +12246,13 @@ window.importFullState = function(data) {
     // Section model (05-model.js): a hand-edited model is the source of truth and is
     // pushed into the legacy state after STRAKES / profiles below; a file without one
     // (older projects) gets its model built and filled from STRAKES / profiles.
-    if (window.Sections && data.SECTIONS && Sections.importState(data.SECTIONS)) { window.__legacyFill = false; }   // sets SECTION through setSection
+    if (data.blank) {
+      // the empty project: a model with no nodes, nothing to derive
+      if (window.Sections) Sections.importState(null);
+      SECTION = { id: 'S1', manual: true, nodes: [], panels: [], groups: {}, panelData: {}, frame: null, isMidship: true };
+      window.__legacyFill = false;
+    }
+    else if (window.Sections && data.SECTIONS && Sections.importState(data.SECTIONS)) { window.__legacyFill = false; }   // sets SECTION through setSection
     else {
       if (window.Sections) Sections.importState(null);
       if (data.SECTION && data.SECTION.manual && Array.isArray(data.SECTION.panels)) { SECTION = data.SECTION; window.__legacyFill = false; }
