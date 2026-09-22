@@ -190,6 +190,44 @@
                 const bl = duzenH3Blogu(S, ad);
                 if (bl) duzenTasi(tercihGovde, bl);
             });
+            // ---- Bulb profil ailesi secici (Preferences)
+            // Ayni "HP 200x10" her tabloda ayni kesit degil: AFNOR ailesi EN'e
+            // gore alanda %4-6,5 buyuk (BV MARS2000 tablolariyla olculdu).
+            // Cizim hangi standartsa o secilir; secim raporda da yazilir.
+            if (typeof HP_AILELERI !== 'undefined' && typeof hpAilesiSec === 'function') {
+                const aileBlok = document.createElement('div');
+                aileBlok.className = 'form-group';
+                aileBlok.style.marginTop = '10px';
+                const etiket = document.createElement('label');
+                etiket.textContent = 'Bulb profile standard';
+                const sec = document.createElement('select');
+                sec.id = 'hpAileSec';
+                sec.className = 'form-control';
+                hpAilesiListesi().forEach(a => {
+                    const o = document.createElement('option');
+                    o.value = a.kod;
+                    o.textContent = a.ad + '  (' + a.olcu + ' sizes)';
+                    sec.appendChild(o);
+                });
+                sec.value = hpAktifAile().kod;
+                const not = document.createElement('small');
+                not.style.cssText = 'display:block; color:var(--text-3, #64748b); font-size:var(--fs-xs, 0.72rem); margin-top:4px;';
+                const notYaz = () => {
+                    const a = HP_AILELERI[sec.value] || {};
+                    not.textContent = a.kaynak || '';
+                };
+                notYaz();
+                sec.onchange = () => {
+                    if (!hpAilesiSec(sec.value)) return;
+                    notYaz();
+                    if (typeof showToast === 'function') showToast('Bulb standard: ' + hpAktifAile().ad, 'info');
+                    // Kesit ozellikleri degisti: sonuclar bayatladi
+                    if (typeof sonuclariTazele === 'function') { try { sonuclariTazele(); } catch (e) { } }
+                };
+                aileBlok.appendChild(etiket); aileBlok.appendChild(sec); aileBlok.appendChild(not);
+                tercihGovde.appendChild(aileBlok);
+            }
+
             // Izgara sonsuz (kamerayi izler): boyut alanlari anlamsiz, gizlenir
             ['gridSizeX', 'gridSizeY'].forEach(id => { const el = document.getElementById(id); const fg = el && el.closest('.form-group'); if (fg) duzenGizle(fg, 'izgara boyutu (sonsuz izgara)'); });
             // Proje bilgisi modeli tanimlar (ad, no, revizyon; raporun basligi) -> Model karti sonu

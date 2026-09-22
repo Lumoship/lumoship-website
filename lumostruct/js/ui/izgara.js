@@ -12,6 +12,12 @@
         //   L, W           : panel boyu (X) ve genisligi (Y)
         //   sS             : boyuna takviye araligi (Y yonunde), kenarlar dahil mi
         //   sG             : enine tasiyici araligi (X yonunde), kenarlar dahil mi
+        //   bolgeS, bolgeG : ARALIK BOLGELERI - [{ sayi, aralik }] (mm). Verilirse
+        //                    sS / sG yerine kullanilir. Gemide aralik boy boyunca
+        //                    degisir (kic pikte 600, ambarda 700+); tek aralikla
+        //                    kurulan izgara gercek cerceve yerlerini tutturamaz.
+        //                    Bicim BV MARS'in FramesGroup'u ve LoadPoint'in frame
+        //                    tablosu ile ayni: kac aralik x kac mm.
         //   kesitS, kesitG : profil adlari ('' = takviye/tasiyici yok)
         //   kenarMesnet    : { x0, xL, y0, yW } her kenar icin 'pin' | 'fix' | ''
         //   basinc, basincDurum
@@ -32,6 +38,60 @@
             return out.sort((a, b) => a - b);
         }
 
+        // Bolgelerden konum listesi: bas noktasindan baslayip her bolgeyi
+        // "sayi kadar aralik" olarak yurur. Panel boyunu ASARSA kirpar ve
+        // uyari dondurur - sessizce panel disina kiris koymaz.
+        function izgaraBolgeKonumlari(bas, bolgeler, boy, kenarlar) {
+            const out = [bas];
+            let x = bas, tasma = 0;
+            (bolgeler || []).forEach(b => {
+                const sayi = Math.max(0, Math.round(b.sayi || 0));
+                const ar = (b.aralik || 0) / 1000;
+                if (!(ar > 0)) return;
+                for (let i = 0; i < sayi; i++) {
+                    x += ar;
+                    if (x > bas + boy + 1e-9) { tasma++; continue; }
+                    out.push(+x.toFixed(6));
+                }
+            });
+            const son = bas + boy;
+            if (kenarlar && !out.some(v => Math.abs(v - son) < 1e-9)) out.push(son);
+            if (!kenarlar) {
+                for (let i = out.length - 1; i >= 0; i--) {
+                    if (Math.abs(out[i] - bas) < 1e-9 || Math.abs(out[i] - son) < 1e-9) out.splice(i, 1);
+                }
+            }
+            const benzersiz = [...new Set(out.map(v => +v.toFixed(6)))].sort((a, b) => a - b);
+            return { konumlar: benzersiz, tasma: tasma, bitis: x };
+        }
+
+        // "20x600, 120x700" -> [{sayi:20, aralik:600}, {sayi:120, aralik:700}]
+        // Ayrica "600" (tek aralik, panel boyunca) ve "20*600" kabul edilir.
+        function izgaraBolgeCoz(metin) {
+            const s = String(metin || '').trim();
+            if (!s) return [];
+            const out = [];
+            s.split(',').forEach(parca => {
+                const p = parca.trim();
+                if (!p) return;
+                const m = /^(\d+(?:\.\d+)?)\s*[x*]\s*(\d+(?:\.\d+)?)$/i.exec(p);
+                if (m) { out.push({ sayi: parseFloat(m[1]), aralik: parseFloat(m[2]) }); return; }
+                const tek = parseFloat(p);
+                if (isFinite(tek) && tek > 0) out.push({ sayi: null, aralik: tek });   // sayi yok: panel boyunca
+            });
+            return out;
+        }
+        // Bolge metnini okunur ozete cevirir: "20 x 600 + 120 x 700 = 96.0 m"
+        function izgaraBolgeOzet(bolgeler) {
+            if (!bolgeler || !bolgeler.length) return '';
+            let toplam = 0;
+            const p = bolgeler.map(b => {
+                if (b.sayi) { toplam += b.sayi * b.aralik; return b.sayi + ' x ' + b.aralik; }
+                return b.aralik + ' (uniform)';
+            });
+            return p.join(' + ') + (toplam ? '  =  ' + (toplam / 1000).toFixed(2) + ' m' : '');
+        }
+
         // Modele YAZMADAN uretir (onizleme ve test icin)
         function izgaraUret(g) {
             const m = v => (v || 0) / 1000;
@@ -41,8 +101,26 @@
             // Takviyeler X boyunca: takviye cizgileri Y'de (aralik sS, genislik W),
             // tasiyicilar X'te (sG, L). Takviyeler Y boyunca: tersi.
             let ys, xs;
-            if (g.yon === 'Y') { xs = izgaraKonumlari(x0, L, m(g.sS), !!g.kenarS); ys = izgaraKonumlari(y0, W, m(g.sG), !!g.kenarG); }
-            else { ys = izgaraKonumlari(y0, W, m(g.sS), !!g.kenarS); xs = izgaraKonumlari(x0, L, m(g.sG), !!g.kenarG); }
+            const uyarilar = [];
+            // Bolge verildiyse o yonde bolgeler, yoksa tek aralik kullanilir.
+            const konum = (bas, boy, bolgeler, aralik, kenarlar, ad) => {
+                const b = (bolgeler || []).filter(z => z && z.aralik > 0);
+                if (!b.length) return izgaraKonumlari(bas, boy, aralik, kenarlar);
+                // "sayi" verilmemis bolge: panel boyunca duzgun aralik
+                if (b.length === 1 && !b[0].sayi) return izgaraKonumlari(bas, boy, b[0].aralik / 1000, kenarlar);
+                const r = izgaraBolgeKonumlari(bas, b, boy, kenarlar);
+                if (r.tasma) uyarilar.push(ad + ': ' + r.tasma + ' line(s) fell outside the panel and were dropped');
+                const eksik = (bas + boy) - r.bitis;
+                if (eksik > 0.01) uyarilar.push(ad + ': zones cover ' + (r.bitis - bas).toFixed(3) + ' m of ' + boy.toFixed(3) + ' m');
+                return r.konumlar;
+            };
+            if (g.yon === 'Y') {
+                xs = konum(x0, L, g.bolgeS, m(g.sS), !!g.kenarS, 'Stiffeners');
+                ys = konum(y0, W, g.bolgeG, m(g.sG), !!g.kenarG, 'Girders');
+            } else {
+                ys = konum(y0, W, g.bolgeS, m(g.sS), !!g.kenarS, 'Stiffeners');
+                xs = konum(x0, L, g.bolgeG, m(g.sG), !!g.kenarG, 'Girders');
+            }
             // dugum izgarasi: kiris cizgilerinin kesisimleri + panel koseleri/kenar uclari
             const xAll = [...new Set([x0, x0 + L, ...xs].map(v => +v.toFixed(6)))].sort((a, b) => a - b);
             const yAll = [...new Set([y0, y0 + W, ...ys].map(v => +v.toFixed(6)))].sort((a, b) => a - b);
@@ -78,7 +156,7 @@
             });
             const pressure = [];
             if (g.basinc && Math.abs(g.basinc) > 0) pressure.push({ ad: 'P1', x1: x0, y1: y0, x2: x0 + L, y2: y0 + W, z: z, value: +g.basinc, case: g.basincDurum || 'L', tasima: 'auto' });
-            return { nodes, elements, constraints, pressure, ozet: { dugum: Object.keys(nodes).length, kiris: Object.keys(elements).length, mesnet: Object.keys(constraints).length, takviye: g.kesitS ? (takviyeYon === 'X' ? ys : xs).length : 0, tasiyici: g.kesitG ? (takviyeYon === 'X' ? xs : ys).length : 0 } };
+            return { nodes, elements, constraints, pressure, uyarilar: uyarilar, ozet: { dugum: Object.keys(nodes).length, kiris: Object.keys(elements).length, mesnet: Object.keys(constraints).length, takviye: g.kesitS ? (takviyeYon === 'X' ? ys : xs).length : 0, tasiyici: g.kesitG ? (takviyeYon === 'X' ? xs : ys).length : 0 } };
         }
 
         // Uretileni modele ekler (ekle / degistir). Mevcut dugumlerle cakisan
@@ -133,6 +211,7 @@
             const sec = (id, varsayilan) => '<select id="' + id + '" onchange="izgaraOnizle()" style="width:100%; padding:5px; font-size:var(--fs-sm);">' +
                 '<option value="">— none —</option><option value="' + RIGID_KESIT_ADI + '">RIGID (no profile)</option>' +
                 kesitler.map(k => '<option value="' + k + '"' + (k === varsayilan ? ' selected' : '') + '>' + k + '</option>').join('') + '</select>';
+            const txt = (id, v, ipucu) => '<input type="text" id="' + id + '" value="' + v + '" placeholder="' + (ipucu || '') + '" oninput="izgaraOnizle()" style="width:100%; padding:5px; font-size:var(--fs-sm);">';
             const inp = (id, v, ek) => '<input type="number" id="' + id + '" value="' + v + '" ' + (ek || '') + ' oninput="izgaraOnizle()" style="width:100%; padding:5px; font-size:var(--fs-sm);">';
             const kenar = (id, v) => '<select id="' + id + '" onchange="izgaraOnizle()" style="width:100%; padding:5px; font-size:var(--fs-sm);"><option value=""' + (v === '' ? ' selected' : '') + '>free</option><option value="pin"' + (v === 'pin' ? ' selected' : '') + '>pinned</option><option value="fix"' + (v === 'fix' ? ' selected' : '') + '>fixed</option></select>';
             const lab = t => '<small style="color:var(--text-3); font-size:var(--fs-xs); display:block;">' + t + '</small>';
@@ -148,6 +227,9 @@
                 '<div>' + lab('Origin X (mm)') + inp('izgX0', 0) + '</div><div>' + lab('Origin Y (mm)') + inp('izgY0', 0) + '</div><div>' + lab('Level Z (mm)') + inp('izgZ', 0) + '</div><div>' + lab('Stiffeners along') + '<select id="izgYon" onchange="izgaraOnizle()" style="width:100%; padding:5px; font-size:var(--fs-sm);"><option value="X">X</option><option value="Y">Y</option></select></div>' +
                 '<div>' + lab('Panel length L (mm, X)') + inp('izgL', 12000, 'step="100"') + '</div><div>' + lab('Panel width W (mm, Y)') + inp('izgW', 6000, 'step="100"') + '</div>' +
                 '<div>' + lab('Stiffener spacing (mm)') + inp('izgSS', 600, 'step="50"') + '</div><div>' + lab('Girder spacing (mm)') + inp('izgSG', 3000, 'step="100"') + '</div>' +
+                '<div style="grid-column:span 2;">' + lab('Stiffener spacing zones (optional)') + txt('izgBolgeS', '', '20x600, 120x700') + '</div>' +
+                '<div style="grid-column:span 2;">' + lab('Girder spacing zones (optional)') + txt('izgBolgeG', '', '4x2400, 6x3000') + '</div>' +
+                '<div style="grid-column:span 4; font-size:var(--fs-xs); color:var(--text-3); margin-top:-4px;">Zones override the single spacing: "count x spacing", comma separated - the same shape as a frame table (BV MARS FramesGroup, LoadPoint frame zones).</div>' +
                 '<div style="grid-column:span 2;">' + lab('Stiffener profile') + sec('izgKesitS', kesitler[0] || '') + '</div><div style="grid-column:span 2;">' + lab('Girder profile') + sec('izgKesitG', kesitler[1] || kesitler[0] || '') + '</div>' +
                 '<div style="grid-column:span 2;"><label style="display:flex; gap:6px; align-items:center; font-size:var(--fs-sm); cursor:pointer;"><input type="checkbox" id="izgKenarS" onchange="izgaraOnizle()"> stiffeners on the panel edges (y = 0, W)</label></div>' +
                 '<div style="grid-column:span 2;"><label style="display:flex; gap:6px; align-items:center; font-size:var(--fs-sm); cursor:pointer;"><input type="checkbox" id="izgKenarG" checked onchange="izgaraOnizle()"> girders on the panel edges (x = 0, L)</label></div>' +
@@ -169,6 +251,7 @@
         function izgaraFormOku() {
             const v = id => document.getElementById(id) ? document.getElementById(id).value : '';
             return { x0: +v('izgX0'), y0: +v('izgY0'), z: +v('izgZ'), L: +v('izgL'), W: +v('izgW'), sS: +v('izgSS'), sG: +v('izgSG'),
+                     bolgeS: izgaraBolgeCoz(v('izgBolgeS')), bolgeG: izgaraBolgeCoz(v('izgBolgeG')),
                      kesitS: v('izgKesitS'), kesitG: v('izgKesitG'), kenarS: !!document.getElementById('izgKenarS')?.checked, kenarG: !!document.getElementById('izgKenarG')?.checked,
                      kenarMesnet: { x0: v('izgMx0'), xL: v('izgMxL'), y0: v('izgMy0'), yW: v('izgMyW') },
                      basinc: +v('izgBasinc'), basincDurum: v('izgBasincDurum') || 'L', yon: v('izgYon') || 'X' };
@@ -178,6 +261,14 @@
             const u = izgaraUret(izgaraFormOku());
             if (u.hata) { o.textContent = u.hata; return; }
             o.textContent = u.ozet.takviye + ' stiffeners, ' + u.ozet.tasiyici + ' girders → ' + u.ozet.dugum + ' nodes, ' + u.ozet.kiris + ' beams, ' + u.ozet.mesnet + ' supported nodes' + (u.pressure.length ? ', pressure patch ' + u.pressure[0].value + ' kN/m²' : '');
+            // Bolge ozeti ve uyarilari: "20 x 600 + 120 x 700 = 96.00 m" ve
+            // panel disina tasan satirlar sessiz kalmasin.
+            const g = izgaraFormOku();
+            const ek = [];
+            if (g.bolgeS && g.bolgeS.length) ek.push('Stiffener zones: ' + izgaraBolgeOzet(g.bolgeS));
+            if (g.bolgeG && g.bolgeG.length) ek.push('Girder zones: ' + izgaraBolgeOzet(g.bolgeG));
+            (u.uyarilar || []).forEach(x => ek.push('! ' + x));
+            if (ek.length) o.textContent += String.fromCharCode(10) + ek.join(String.fromCharCode(10));
         }
         function izgaraOnayla() {
             const g = izgaraFormOku();

@@ -137,6 +137,8 @@ ${(typeof raporGorunumBolumu === 'function') ? raporGorunumBolumu() : ''}
 ${(typeof raporYuklerBolumu === 'function') ? raporYuklerBolumu(esc, num) : ''}
 
 <h2>Sections used</h2>
+${(typeof hpAktifAile === 'function' && hpAktifAile().kod !== 'EN')
+    ? '<p style="font-size:11px; color:#666;">Bulb profile standard: ' + esc(hpAktifAile().ad) + '</p>' : ''}
 <table><thead><tr><th>Profile</th><th>Beams</th><th>Length (m)</th><th>A (cm&sup2;)</th>
   <th>I<sub>y</sub> (cm&#8308;)</th><th>W<sub>y</sub> (cm&sup3;)</th>
   <th>I<sub>z</sub> (cm&#8308;)</th><th>W<sub>z</sub> (cm&sup3;)</th><th>Note</th></tr></thead>

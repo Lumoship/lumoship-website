@@ -106,6 +106,88 @@ window.Profile = (function(){
 // <<< HP_KATALOG
   ];
 
+  // ---- BULB PROFIL AILESI ------------------------------------------------
+  // Ayni "HP 200x10" her ulkenin tablosunda ayni kesit degil: BV MARS2000
+  // tablolariyla olculdu (22 Eylul 2026) - AFNOR ailesi ayni olcude alanda
+  // %4-6,5, atalette %3,6-6,5 BUYUK. Cizim AFNOR diyorsa EN tablosuyla
+  // hesaplamak kesidi sistematik olarak kucuk gosterir.
+  //
+  // Aileler AYRI listelerde durur; HP_CATALOG "aktif aile"dir ve icerigi
+  // degistirilir (dizi NESNESI ayni kalir), boylece 22-variants-materials.js
+  // uzerinden bu diziye baglanan butun dosyalar - kural motoru, optimizer,
+  // profil secici, Excel disa aktarimi - tek satir degismeden yeni aileyi
+  // gorur. Tek listede birlestirmek aramanin hangi satiri once buldugunu
+  // belirleyici yapardi: sessiz hata.
+  // >>> HP_AILELERI - TEK KAYNAK: Apps/_standart/hp-katalog.json (hp-yay.py yazar)
+  var HP_AILELERI = {
+    'EN': { ad: 'EN 10067 / DIN / BS', kaynak: 'Bu dosyanin rows listesi - varsayilan aile', rows: null },      // EN ailesi HP_CATALOG listesidir
+    'AFNOR': { ad: 'AFNOR (plats a boudin)', kaynak: 'BV MARS2000 Bulafn.dat (38 olcu). A/dx/Ixx tablodan; c ve r cizim icin EN yakin olcusunden.', rows: [
+      { name: "HP80x5", b: 80, t: 5, c: 14, r: 4, A: 5.71, dx: 5.02, Ixx: 35.5 },
+      { name: "HP80x7", b: 80, t: 7, c: 14, r: 4, A: 7.31, dx: 4.8, Ixx: 45.3 },
+      { name: "HP100x6", b: 100, t: 6, c: 15.5, r: 4.5, A: 8.17, dx: 6.15, Ixx: 80.2 },
+      { name: "HP100x7", b: 100, t: 7, c: 15.5, r: 4.5, A: 9.17, dx: 6.02, Ixx: 89.8 },
+      { name: "HP120x6", b: 120, t: 6, c: 17, r: 5, A: 9.98, dx: 7.46, Ixx: 142 },
+      { name: "HP120x8", b: 120, t: 8, c: 17, r: 5, A: 12.4, dx: 7.18, Ixx: 175 },
+      { name: "HP140x7", b: 140, t: 7, c: 19, r: 5.5, A: 13.3, dx: 8.61, Ixx: 258 },
+      { name: "HP140x8", b: 140, t: 8, c: 19, r: 5.5, A: 14.7, dx: 8.45, Ixx: 284 },
+      { name: "HP160x7", b: 160, t: 7, c: 22, r: 6, A: 15.5, dx: 9.97, Ixx: 397 },
+      { name: "HP160x8", b: 160, t: 8, c: 22, r: 6, A: 17.1, dx: 9.79, Ixx: 437 },
+      { name: "HP160x9", b: 160, t: 9, c: 22, r: 6, A: 18.7, dx: 9.64, Ixx: 475 },
+      { name: "HP180x8", b: 180, t: 8, c: 25, r: 7, A: 19.9, dx: 11.2, Ixx: 643 },
+      { name: "HP180x10", b: 180, t: 10, c: 25, r: 7, A: 23.5, dx: 10.9, Ixx: 755 },
+      { name: "HP200x9", b: 200, t: 9, c: 28, r: 8, A: 24.9, dx: 12.4, Ixx: 989 },
+      { name: "HP200x11", b: 200, t: 11, c: 28, r: 8, A: 28.9, dx: 12.1, Ixx: 1140 },
+      { name: "HP200x12", b: 200, t: 12, c: 28, r: 8, A: 30.9, dx: 12, Ixx: 1220 },
+      { name: "HP220x9", b: 220, t: 9, c: 31, r: 9, A: 28.3, dx: 13.9, Ixx: 1360 },
+      { name: "HP220x11", b: 220, t: 11, c: 31, r: 9, A: 32.7, dx: 13.5, Ixx: 1570 },
+      { name: "HP220x12", b: 220, t: 12, c: 31, r: 9, A: 34.9, dx: 13.4, Ixx: 1670 },
+      { name: "HP240x10", b: 240, t: 10, c: 34, r: 10, A: 34.1, dx: 15.1, Ixx: 1950 },
+      { name: "HP240x12", b: 240, t: 12, c: 34, r: 10, A: 38.9, dx: 14.7, Ixx: 2220 },
+      { name: "HP260x10", b: 260, t: 10, c: 37, r: 11, A: 37.9, dx: 16.6, Ixx: 2540 },
+      { name: "HP260x12", b: 260, t: 12, c: 37, r: 11, A: 43.1, dx: 16.2, Ixx: 2890 },
+      { name: "HP280x11", b: 280, t: 11, c: 40, r: 12, A: 44.6, dx: 17.8, Ixx: 3470 },
+      { name: "HP280x12", b: 280, t: 12, c: 40, r: 12, A: 47.4, dx: 17.6, Ixx: 3690 },
+      { name: "HP300x11", b: 300, t: 11, c: 43, r: 13, A: 49.1, dx: 19.3, Ixx: 4360 },
+      { name: "HP300x12", b: 300, t: 12, c: 43, r: 13, A: 52.1, dx: 19.1, Ixx: 4640 },
+      { name: "HP300x13", b: 300, t: 13, c: 43, r: 13, A: 55.1, dx: 18.8, Ixx: 4910 },
+      { name: "HP320x12", b: 320, t: 12, c: 46, r: 14, A: 56.8, dx: 20.5, Ixx: 5740 },
+      { name: "HP320x13", b: 320, t: 13, c: 46, r: 14, A: 60, dx: 20.3, Ixx: 6070 },
+      { name: "HP340x12", b: 340, t: 12, c: 49, r: 15, A: 61.8, dx: 22, Ixx: 7030 },
+      { name: "HP340x13", b: 340, t: 13, c: 49, r: 15, A: 65.2, dx: 21.8, Ixx: 7440 },
+      { name: "HP370x13", b: 370, t: 13, c: 53.5, r: 16.5, A: 72.9, dx: 24, Ixx: 9810 },
+      { name: "HP370x15", b: 370, t: 15, c: 53.5, r: 16.5, A: 80.3, dx: 23.5, Ixx: 10860 },
+      { name: "HP400x14", b: 400, t: 14, c: 58, r: 18, A: 85.3, dx: 26, Ixx: 13400 },
+      { name: "HP400x16", b: 400, t: 16, c: 58, r: 18, A: 93.3, dx: 25.5, Ixx: 14730 },
+      { name: "HP430x15", b: 430, t: 15, c: 62.5, r: 19.5, A: 98.3, dx: 27.9, Ixx: 17830 },
+      { name: "HP430x17", b: 430, t: 17, c: 62.5, r: 19.5, A: 107, dx: 27.4, Ixx: 19490 },
+    ] },
+    'JIS': { ad: 'JIS', kaynak: 'BV MARS2000 Buljis.dat (4 olcu). A/dx/Ixx tablodan; c ve r cizim icin EN yakin olcusunden.', rows: [
+      { name: "HP180x9.5", b: 180, t: 9.5, c: 25, r: 7, A: 21.06, dx: 10.51, Ixx: 671 },
+      { name: "HP200x10", b: 200, t: 10, c: 28, r: 8, A: 25.23, dx: 11.84, Ixx: 997 },
+      { name: "HP230x11", b: 230, t: 11, c: 31, r: 9, A: 31.98, dx: 13.64, Ixx: 1680 },   // c/r en yakin EN olcusunden (HP220)
+      { name: "HP250x12", b: 250, t: 12, c: 34, r: 10, A: 38.13, dx: 14.9, Ixx: 2360 },   // c/r en yakin EN olcusunden (HP240)
+    ] },
+  };
+  // <<< HP_AILELERI
+
+  const HP_EN_YEDEK = HP_CATALOG.slice();
+  let HP_AKTIF_AILE = 'EN';
+  function hpAilesiListesi() {
+    return Object.keys(HP_AILELERI).map(k => ({ kod: k, ad: HP_AILELERI[k].ad, olcu: (HP_AILELERI[k].rows || HP_EN_YEDEK).length }));
+  }
+  function hpAilesiSec(kod) {
+    const a = HP_AILELERI[kod];
+    if (!a) return false;
+    const yeni = a.rows || HP_EN_YEDEK;
+    HP_CATALOG.length = 0;
+    yeni.forEach(r => HP_CATALOG.push(r));
+    HP_AKTIF_AILE = kod;
+    try { localStorage.setItem('midship_bulb_family', kod); } catch (e) { }
+    return true;
+  }
+  function hpAktifAile() { return { kod: HP_AKTIF_AILE, ad: HP_AILELERI[HP_AKTIF_AILE] ? HP_AILELERI[HP_AKTIF_AILE].ad : HP_AKTIF_AILE }; }
+
+
   // L-profile catalog — unequal/equal angles (common shipbuilding sizes)
   // a = web height, b = flange width, t = thickness (mm)
   const L_CATALOG_SIZES = [
@@ -488,7 +570,7 @@ window.Profile = (function(){
   }
 
   return {
-    HP_CATALOG,
+    HP_CATALOG, HP_AILELERI, hpAilesiListesi, hpAilesiSec, hpAktifAile,
     L_CATALOG_SIZES,
     FB_CATALOG_SIZES,
     T_CATALOG_SIZES,

@@ -25,7 +25,8 @@
                     
                     if (dxfData.lines.length === 0) {
                         hideLoading();
-                        showToast('No LINE entities found in DXF', 'warning');
+                        const neden = dxfOzetMetni(dxfData.rapor);
+                        showToast('No usable geometry in DXF' + (neden ? ' - ' + neden : ''), 'warning');
                         return;
                     }
                     
@@ -54,6 +55,8 @@
                     saveState(); // Save for undo
                     hideLoading();
                     showToast(`${structName} imported: ${Object.keys(model.nodes).length} nodes, ${Object.keys(model.elements).length} elements (${sizeX}×${sizeY}mm) [${posInfo}]`, 'success');
+                    const ozet = dxfOzetMetni(dxfData.rapor);
+                    if (ozet) { debugLog('DXF ozeti:', ozet); setTimeout(() => showToast('DXF: ' + ozet, 'info'), 2600); }
                     
                     // Update section table and dropdowns with imported sections
                     updateProfilesTable();
@@ -173,90 +176,67 @@
             clearSelection();
         }
         
+        // ---------------------------------------------------------------
+        // DXF OKUMA - paylasilan okuyucu (js/core/dxf-oku.js, tek kaynak:
+        // Apps/_standart/dxf). Eskiden burada YALNIZCA LINE okuyan 50 satirlik
+        // bir ayristirici vardi. Ayni ornek cizimde olculdu (22 Eylul 2026):
+        //     eski parseDXF ->  7 cizgi,  5 katman
+        //     dxfOku        -> 27 oge,   12 katman
+        // Dusenler: LWPOLYLINE (kapali kontur + bulge yayi), ARC, CIRCLE,
+        // POINT ve INSERT ile yerlestirilmis blok geometrisi - hepsi SESSIZCE.
+        // Gemi cizimlerinde guverte boyunalari polyline, braketler blok oldugu
+        // icin model yarim geliyordu ve kullanici sebebini goremiyordu.
+        //
+        // Donen bicim eskisiyle AYNI ({ lines, layers }) - model kurma yolu
+        // degismedi; ustune 'rapor' eklendi (ne okundu, ne okunmadi).
         function parseDXF(content) {
-            const lines = content.split(/\r?\n/);
-            const result = { lines: [], layers: new Set() };
-            
-            debugLog('Parsing DXF, total lines:', lines.length);
-            
-            let i = 0;
-            let inEntities = false;
-            
-            // Find ENTITIES section
-            while (i < lines.length) {
-                if (lines[i].trim() === 'ENTITIES') {
-                    inEntities = true;
-                    debugLog('Found ENTITIES at line', i);
-                    i++;
-                    break;
-                }
-                i++;
-            }
-            
-            if (!inEntities) {
-                debugLog('ENTITIES section not found!');
+            const result = { lines: [], layers: new Set(), rapor: null };
+            if (typeof dxfOku !== 'function') {
+                debugError('dxf-oku.js yuklenmemis - DXF okunamiyor');
                 return result;
             }
-            
-            // Parse entities
-            while (i < lines.length) {
-                const code = lines[i].trim();
-                const value = lines[i + 1] ? lines[i + 1].trim() : '';
-                
-                if (code === '0' && value === 'ENDSEC') break;
-                
-                if (code === '0' && value === 'LINE') {
-                    const lineEntity = parseLineEntity(lines, i + 2);
-                    if (lineEntity) {
-                        result.lines.push(lineEntity);
-                        result.layers.add(lineEntity.layer);
-                        debugLog('Found LINE:', lineEntity.layer, '(', lineEntity.x1.toFixed(1), lineEntity.y1.toFixed(1), '->', lineEntity.x2.toFixed(1), lineEntity.y2.toFixed(1), ')');
-                    }
-                    i = lineEntity ? lineEntity.endIndex : i + 2;
-                } else {
-                    i++;
-                }
-            }
-            
+            const okuma = dxfOku(content, {
+                line: true, poly: true, circle: true, arc: true, point: true,
+                insert: true,          // blok referanslari acilir (olcek + donme)
+                yaySegman: 24,         // bulge yaylari bu sikliktta parcalanir
+                dedup: false           // kopya paralel cizgi atma: modelci karari, burada kapali
+            });
+
+            // Kiris olabilecekler: duz parcalar (LINE + polyline kenarlari).
+            // Daire ve yay bir KIRIS degildir - iceri alinmaz, raporda sayilir.
+            let egri = 0, nokta = 0;
+            Object.keys(okuma.layers).forEach(ad => {
+                okuma.layers[ad].forEach(e => {
+                    if (e.type === 'CIRCLE' || e.type === 'ARC') { egri++; return; }
+                    if (e.type === 'POINT') { nokta++; return; }
+                    result.lines.push({ x1: e.x1, y1: e.y1, z1: e.z1, x2: e.x2, y2: e.y2, z2: e.z2, layer: ad, color: 7 });
+                    result.layers.add(ad);
+                });
+            });
+
+            result.rapor = {
+                parca: result.lines.length, katman: result.layers.size,
+                egri: egri, nokta: nokta,
+                blokOgesi: okuma.stats.acilan || 0, blokSayisi: okuma.stats.insertler || 0,
+                birim: (typeof birimAdi === 'function') ? birimAdi(okuma.header.birim) : null,
+                ucs: okuma.header.ucs, uyarilar: okuma.warnings || []
+            };
+            debugLog('DXF okundu:', JSON.stringify(result.rapor));
             return result;
         }
-        
-        function parseLineEntity(lines, startIdx) {
-            const entity = {
-                x1: 0, y1: 0, z1: 0,
-                x2: 0, y2: 0, z2: 0,
-                layer: '0',
-                color: 7
-            };
-            
-            let i = startIdx;
-            while (i < lines.length) {
-                const code = parseInt(lines[i].trim());
-                const value = lines[i + 1] ? lines[i + 1].trim() : '';
-                
-                if (code === 0) {
-                    entity.endIndex = i;
-                    break;
-                }
-                
-                switch (code) {
-                    case 8: entity.layer = value; break;
-                    case 62: entity.color = parseInt(value); break;
-                    case 10: entity.x1 = parseFloat(value); break;
-                    case 20: entity.y1 = parseFloat(value); break;
-                    case 30: entity.z1 = parseFloat(value); break;
-                    case 11: entity.x2 = parseFloat(value); break;
-                    case 21: entity.y2 = parseFloat(value); break;
-                    case 31: entity.z2 = parseFloat(value); break;
-                }
-                
-                i += 2;
-            }
-            
-            entity.endIndex = i;
-            return entity;
+
+        // Import ozeti: ne okundu, ne okunmadi. Sessiz dusen hicbir sey kalmasin.
+        function dxfOzetMetni(rapor) {
+            if (!rapor) return '';
+            const p = [];
+            p.push(rapor.parca + ' segment in ' + rapor.katman + ' layers');
+            if (rapor.blokOgesi) p.push(rapor.blokOgesi + ' from ' + rapor.blokSayisi + ' block reference(s)');
+            if (rapor.egri) p.push(rapor.egri + ' arc/circle not imported (a beam is straight)');
+            if (rapor.nokta) p.push(rapor.nokta + ' POINT entity not imported');
+            (rapor.uyarilar || []).forEach(u => p.push(u));
+            return p.join(' | ');
         }
-        
+
         function convertDXFToModel(dxfData) {
             model = { nodes: {}, elements: {}, constraints: {}, loads: [], pressure: [] };
             
