@@ -46,7 +46,9 @@ const S = {
 /* ══════════════════════════════ boot ══════════════════════════════ */
 
 async function boot() {
-  applyTheme(LS.get('theme', 'light'));   // first visit opens light; the toggle is remembered
+  // Light unless the reader was switched by hand. The old build stored its dark default
+  // for every visitor, so only a value saved by the toggle (themeChosen) is honoured.
+  applyTheme(LS.get('themeChosen', false) ? LS.get('theme', 'light') : 'light', true);
   S.scope = LS.get('scope', 'book');
   bindGlobal();
   progress(20);
@@ -1081,7 +1083,7 @@ function activate(i) {
 
 /* ══════════════════════════════ misc ══════════════════════════════ */
 
-function applyTheme(t) { document.documentElement.dataset.theme = t; LS.set('theme', t); }
+function applyTheme(t, silent) { document.documentElement.dataset.theme = t; LS.set('theme', t); if (!silent) LS.set('themeChosen', true); }
 let toastT;
 function toast(msg) {
   const el = $('#toast'); el.textContent = msg; el.hidden = false;
