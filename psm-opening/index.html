@@ -1,6 +1,6 @@
 <!--
 ================================================================================
-    PSM OPENING CHECKER  v2.4  —  Lumoship / EA Engineering Tools
+    PSM OPENING CHECKER  v2.5  —  Lumoship / EA Engineering Tools
 ================================================================================
     Openings (manholes, lightening holes) in primary supporting member webs.
     Rule basis, DNV-RU-SHIP July 2026 edition:
@@ -195,7 +195,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
         <button class="ea-header-btn" onclick="saveJSON()">Save</button>
         <label class="ea-header-btn">Load<input type="file" accept=".json" class="hidden-input" onchange="loadJSON(event)"></label>
         <button class="ea-header-btn primary" onclick="exportPDF()">PDF</button>
-        <span class="ea-header-badge">v2.4</span>
+        <span class="ea-header-badge">v2.5</span>
       </div>
     </div>
     <nav class="ea-wizard">
@@ -476,6 +476,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
           <span><span style="display:inline-block;width:18px;height:3px;background:#dc2626;vertical-align:middle"></span> UC &gt; 1.0</span>
           <span><span style="display:inline-block;width:18px;height:3px;background:#2563eb;vertical-align:middle"></span> selected</span>
           <span><span style="display:inline-block;width:18px;border-top:3px dotted #b45309;vertical-align:middle"></span> opening needs reinforcement</span>
+          <span><svg width="14" height="12" style="vertical-align:middle"><polygon points="7,1 2,10 12,10" fill="#475569"/></svg> support point</span>
         </div>
       </div>
     </div>
@@ -539,6 +540,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
               <select class="ea-select" id="layoutEndMode" onchange="renderLayout()" style="margin-top:6px">
                 <option value="both" selected>at both ends</option>
                 <option value="connected">only where other members meet</option>
+                <option value="supported">only at supported ends (from the model)</option>
                 <option value="none">nowhere &mdash; I place it myself</option>
               </select>
               <p class="ea-info-text">[7.2.1]: no openings at bracket toes and span ends of floors and girders. Default is one web depth, which is the usual yard practice; 200 mm is the figure [7.1.2] uses for stiffener openings.</p>
@@ -589,7 +591,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
         </span>
       </div>
       <div class="ea-panel-body">
-        <p class="ea-info-text" style="margin-bottom:10px">Each beam with its own length from the model and its own shear at each position; the opening size is the one entered on the input page. <b>Ends</b> is how many other beams meet at each end of that beam &mdash; an end where several members meet is an intersection or a support, an end where none do is either a boundary condition or a free end, and only you can tell which. Click a row to open that beam above.</p>
+        <p class="ea-info-text" style="margin-bottom:10px">Each beam with its own length from the model and its own shear at each position; the opening size is the one entered on the input page. <b>Ends</b> is how many other beams meet at each end of that beam, with <b>S</b> when the model has a support point there &mdash; an end where several members meet is an intersection or a support, an end where none do is either a boundary condition or a free end, and only you can tell which. Click a row to open that beam above.</p>
         <div class="scroll-x">
           <table class="ea-table">
             <thead><tr><th>Beam</th><th>L (m)</th><th>Ends</th><th>Openings</th><th>Pitch</th><th>Positions x (mm)</th><th>max UC</th><th>h_o max</th><th>Elevation</th><th>Status</th></tr></thead>
@@ -757,7 +759,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
 </div>
 
 <footer class="ea-footer">
-  <div>PSM Opening Checker v2.4 &mdash; Lumoship</div>
+  <div>PSM Opening Checker v2.5 &mdash; Lumoship</div>
   <div class="rule-ref">DNV-RU-SHIP Pt.3 Ch.3 Sec.6 [7.2]/[7.3] &middot; Sec.7 [1.4.6]&ndash;[1.4.7] &middot; Ch.6 Sec.6 [2.1.2]/[2.2.2] &middot; Ch.8 Sec.2 [5.1.1]/[7.1] &middot; CG-0128 Sec.3 [3.4]</div>
 </footer>
 
@@ -957,6 +959,19 @@ function loadModelXML(e) {
         }
       });
 
+      // support points, when the model carries them: a beam end sitting on one
+      // is a real span end, which is what [7.2.1] cares about
+      model.supports = [];
+      xml.querySelectorAll('support_point').forEach(sp => {
+        const pos = sp.querySelector('position');
+        if (!pos) return;
+        const f = a => parseFloat(pos.getAttribute(a)) || 0;
+        const dofs = {};
+        sp.querySelectorAll('boundary_condition').forEach(b => { dofs[b.getAttribute('dof')] = b.getAttribute('constraint'); });
+        const fixed = Object.keys(dofs).filter(k => dofs[k] === 'fixed');
+        model.supports.push({ name: sp.getAttribute('name') || '', x: f('x'), y: f('y'), z: f('z'), fixed: fixed });
+      });
+
       // which beams meet at each end - the only honest way to say what is at a
       // beam end without guessing; rounded to 5 mm to absorb modelling noise
       model.nodes = {};
@@ -1095,7 +1110,11 @@ function endInfo(name) {
   if (!c || !model.nodes) return null;
   const key = (x, y, z) => [x, y, z || 0].map(v => Math.round(v * 200) / 200).join('|');
   const at = k => (model.nodes[k] || []).filter(n => n !== name).length;
-  return { a: at(key(c.x1, c.y1, c.z1)), b: at(key(c.x2, c.y2, c.z2)) };
+  const near = (x, y, z) => (model.supports || []).some(p =>
+    Math.abs(p.x - x) < 0.006 && Math.abs(p.y - y) < 0.006 && Math.abs(p.z - (z || 0)) < 0.006);
+  return { a: at(key(c.x1, c.y1, c.z1)), b: at(key(c.x2, c.y2, c.z2)),
+           supA: near(c.x1, c.y1, c.z1), supB: near(c.x2, c.y2, c.z2),
+           hasSup: !!(model.supports && model.supports.length) };
 }
 
 function beamLength(name) {
@@ -1382,6 +1401,12 @@ function drawPlan() {
     g += '<line x1="' + ox + '" y1="' + Y(v) + '" x2="' + (W - ox) + '" y2="' + Y(v) + '" stroke="#eef2f7"/>';
     g += '<text x="' + (ox - 8) + '" y="' + (Y(v) + 3) + '" text-anchor="end" fill="#94a3b8">' + v + '</text>';
   }
+  (model.supports || []).forEach(p => {
+    if (p.x < x0 - 0.5 || p.x > x1 + 0.5 || p.y < y0 - 0.5 || p.y > y1 + 0.5) return;
+    const cx = X(p.x), cy = Y(p.y);
+    g += '<polygon points="' + cx + ',' + (cy + 3) + ' ' + (cx - 5) + ',' + (cy + 11) + ' ' + (cx + 5) + ',' + (cy + 11) + '" fill="#475569" opacity="0.85"><title>' +
+         esc(p.name + ' - fixed: ' + (p.fixed || []).join(' ')) + '</title></polygon>';
+  });
   g += '<text x="' + (W / 2) + '" y="' + (H - 8) + '" text-anchor="middle" fill="#64748b">X (m)</text>';
   g += '<text x="14" y="' + (H / 2) + '" text-anchor="middle" fill="#64748b" transform="rotate(-90 14 ' + (H / 2) + ')">Y (m)</text>';
 
@@ -1471,8 +1496,10 @@ function computeLayout(r, L, wo, hoMode) {
   // where the end clearance of [7.2.1] applies - a model fact, not a guess
   const mode = $('layoutEndMode') ? $('layoutEndMode').value : 'both';
   const inf = endInfo(r.name);
-  const useA = mode === 'both' || (mode === 'connected' && (!inf || inf.a > 0));
-  const useB = mode === 'both' || (mode === 'connected' && (!inf || inf.b > 0));
+  const useA = mode === 'both' || (mode === 'connected' && (!inf || inf.a > 0))
+             || (mode === 'supported' && (!inf || !inf.hasSup || inf.supA));
+  const useB = mode === 'both' || (mode === 'connected' && (!inf || inf.b > 0))
+             || (mode === 'supported' && (!inf || !inf.hasSup || inf.supB));
   const bandA = useA ? clear : 0, bandB = L - (useB ? clear : 0);
   const band = Math.max(0, bandB - bandA);
 
@@ -1605,7 +1632,8 @@ function renderAllLayout() {
     rows.push('<tr data-beam="' + esc(r.name) + '" style="cursor:pointer' + (r.name === sel ? ';background:rgba(37,99,235,0.07)' : '') + '">' +
       '<td class="name">' + esc(r.name) + '</td>' +
       '<td>' + (L / 1000).toFixed(2) + '</td>' +
-      '<td>' + (res.ends.info ? res.ends.info.a + ' / ' + res.ends.info.b : '?') + '</td>' +
+      '<td title="members meeting at each end; S = support point in the model">' +
+        (res.ends.info ? (res.ends.info.a + (res.ends.info.supA ? 'S' : '') + ' / ' + res.ends.info.b + (res.ends.info.supB ? 'S' : '')) : '?') + '</td>' +
       '<td>' + n + '</td>' +
       '<td>' + (n > 1 ? fmt(res.pitch, 0) : '&mdash;') + '</td>' +
       '<td>' + (n ? res.items.map(i => Math.round(i.x)).join(' , ') : '&mdash;') + '</td>' +
@@ -1695,14 +1723,17 @@ function renderLayout() {
   a += '<div class="ea-calc-row"><span class="lbl">Pitch used</span><span class="val">' + (res.pitch ? fmt(res.pitch, 0) + ' mm' : 'single opening') + '</span></div>';
   a += '<div class="ea-calc-row"><span class="lbl">Clear distance: used / required</span><span class="val">' + (res.pitch ? fmt(res.pitch - wo, 0) : '&mdash;') + ' / ' + fmt(wo, 0) + ' mm</span></div>';
   a += '<div class="ea-calc-row"><span class="lbl">w_o length limit</span><span class="val">' + (isFinite(lenLim) ? fmt(lenLim, 0) + ' mm' : 'spacing only') + '</span></div>';
-  a += '<div class="ea-calc-row"><span class="lbl">Ends: members meeting there</span><span class="val">' + (res.ends.info ? (res.ends.info.a + ' / ' + res.ends.info.b) : 'unknown') +
+  a += '<div class="ea-calc-row"><span class="lbl">Ends: members / support</span><span class="val">' +
+       (res.ends.info ? (res.ends.info.a + (res.ends.info.supA ? ' + support' : '') + ' / ' + res.ends.info.b + (res.ends.info.supB ? ' + support' : '')) : 'unknown') +
        ' &middot; clearance ' + (res.ends.a ? 'on' : 'off') + '/' + (res.ends.b ? 'on' : 'off') + '</span></div>';
   a += '</div><div class="ea-notes" style="margin-top:var(--sp-md)"><div class="ea-notes-title">How it comes out</div><ul>';
   a += '<li>The count is the largest that fits at the tightest pitch [7.2.3] allows &mdash; clear distance &ge; w_o = <b>' + fmt(wo, 0) + ' mm</b> at mid-span, so pitch &ge; <b>' + fmt(2 * wo, 0) + ' mm</b> &mdash; and those openings are then spread evenly and symmetrically about mid-span, which is why the pitch actually used (<b>' + (res.pitch ? fmt(res.pitch, 0) + ' mm' : 'n/a') + '</b>) is the same for every gap and at least the minimum.</li>';
   a += '<li>Inside the end region (' + (endFrac * 100).toFixed(0) + '% of &#8467; each side) the same rule allows only 25% of the clear distance, so an opening reaching in there would need <b>' + fmt(4 * wo, 0) + ' mm</b> clear &mdash; which is why the group stops before the ends rather than spreading into them.</li>';
   a += '<li>' + (isFinite(lenLim) ? 'Single skin: w_o &le; max(h_w ' + fmt(r.dim.hw, 0) + ', 0.6&middot;s ' + fmt(0.6 * sStf, 0) + ') = <b>' + fmt(lenLim, 0) + ' mm</b>.' : 'Double skin: no explicit length limit against the web depth in [7.2.3]; the spacing rule and the stiffener cut-outs govern.') + '</li>';
   a += '<li>Each position is checked with its own &tau;: openings near the ends come out smaller or drop out, which is also what note 3 of Ch.6 Sec.6 Table 1 implies through f_shr.</li>';
-  a += '<li>What sits at a beam end is taken from the model, not assumed: <b>' + (res.ends.info ? res.ends.info.a + ' member(s) meet at x = 0 and ' + res.ends.info.b + ' at the far end' : 'no coordinates for this beam') + '</b>. The end clearance is applied where you tell it to &mdash; a free end in the model may still be a bracketed connection to structure that was not modelled, and that call is yours ([7.2.1]).</li>';
+  a += '<li>What sits at a beam end is taken from the model, not assumed: <b>' + (res.ends.info ?
+       res.ends.info.a + ' member(s) meet at x = 0' + (res.ends.info.supA ? ' and a support point sits there' : '') +
+       ', ' + res.ends.info.b + ' at the far end' + (res.ends.info.supB ? ' with a support point' : '') : 'no coordinates for this beam') + '</b>. The end clearance is applied where you tell it to &mdash; a free end in the model may still be a bracketed connection to structure that was not modelled, and that call is yours ([7.2.1]).</li>';
   a += '<li><b>What set the number:</b> ' + (res.reason || (items.length ? 'the shear check' : 'nothing fits in the usable length')) +
        '. The clear distance and the length limit come from [7.2.3]; the end region and the end clearance are yours to set, and on short members they are usually what decides.</li>';
   a += '<li>"Reinforce" is not a refusal &mdash; it means edge stiffening per [7.2.4], sized on the detail page.</li>';
@@ -1904,7 +1935,7 @@ function offerFile(filename, data, mime) {
 }
 
 function saveJSON() {
-  const data = { tool: 'PSM Opening Checker', version: '2.4', saved: new Date().toISOString(), fields: {} };
+  const data = { tool: 'PSM Opening Checker', version: '2.5', saved: new Date().toISOString(), fields: {} };
   FIELDS.forEach(id => { const el = $(id); if (el) data.fields[id] = el.type === 'checkbox' ? el.checked : el.value; });
   offerFile(($('projectNumber').value || 'PSM') + '_opening_check.json',
             JSON.stringify(data, null, 2), 'application/json');
