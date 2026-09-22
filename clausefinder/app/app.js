@@ -757,7 +757,6 @@ function buildWelcome() {
   const t = document.createElement('div');
   t.className = 'welcome';
   t.innerHTML = `
-    <div class="w-badge">Offline rule reader</div>
     <h2>Search the rules, or press <kbd>Ctrl</kbd><kbd>K</kbd></h2>
     <p id="welcomeSub"></p>
     <div class="w-cards" id="welcomeCards"></div>
@@ -770,7 +769,7 @@ function renderWelcome() {
   const m = S.book; if (!m || !$('#welcomeCards')) return;
   const tot = S.books.reduce((a, b) => ({ s: a.s + b.sections, c: a.c + b.clauses, i: a.i + b.images }), { s: 0, c: 0, i: 0 });
   $('#welcomeSub').textContent =
-    `${S.books.length} rule book${S.books.length > 1 ? 's' : ''} indexed offline — full text, figures and formulae, every internal cross-reference wired up.`;
+    `${S.books.length} rule book${S.books.length > 1 ? 's' : ''} indexed — full text, figures and formulae, every internal cross-reference wired up.`;
   $('#welcomeCards').innerHTML = [
     [tot.s.toLocaleString('en'), 'sections'], [tot.c.toLocaleString('en'), 'clauses'],
     [tot.i.toLocaleString('en'), 'figures &amp; formulae'], ['0', 'broken links']

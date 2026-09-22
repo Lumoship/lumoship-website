@@ -9,6 +9,213 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app/app.css">
+    <style>
+/* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
+        .lumoship-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid #1e2536;
+            z-index: 10000;
+            padding: 0.875rem 1.5rem;
+        }
+        .lumoship-nav-inner {
+            /* Altindaki uygulamanin icerik genisligi ile ayni, yoksa cubuk
+               uygulamadan dar/genis kalip hizasiz gorunuyor. */
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lumoship-nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            gap: 0.6rem;
+            transition: opacity 200ms;
+        }
+        .lumoship-nav-logo:hover { opacity: 0.85; }
+        .lumoship-nav-logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .lumoship-nav-logo-text {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+            letter-spacing: 0.06em;
+        }
+        .lumoship-nav-links {
+            display: none;
+        }
+        
+        /* NEW MINIMAL NAVBAR */
+        .nav-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-context {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
+            color: #64748b;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding-left: clamp(0.75rem, 1.5vw, 1rem);
+            margin-left: clamp(0.75rem, 1.5vw, 1rem);
+            border-left: 1px solid #1e2536;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.75rem, 1.5vw, 1.25rem);
+        }
+        
+        .nav-back {
+            color: #94a3b8;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 200ms;
+        }
+        
+        .nav-back:hover { color: #f8fafc; }
+        .nav-back-arrow { font-size: 1em; }
+        
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 999px;
+            text-decoration: none;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.825rem;
+            font-weight: 500;
+            transition: all 200ms;
+        }
+        
+        .user-badge:hover {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        
+        .user-badge-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: white;
+            letter-spacing: -0.02em;
+            overflow: hidden;
+        }
+        
+        .user-badge-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-badge-name {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .user-badge-login {
+            padding: 0.45rem 0.95rem;
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        
+        .user-badge-login:hover {
+            background: #60a5fa;
+            border-color: #60a5fa;
+        }
+        
+        @media (max-width: 640px) {
+            .nav-back-text { display: none; }
+            .user-badge-name { display: none; }
+            .nav-context { display: none; }
+        }
+        
+        .lumoship-nav-link {
+            display: none;
+        }
+        .lumoship-nav-link:hover { color: #f8fafc; }
+        .lumoship-breadcrumb {
+            background: #0f141f;
+            border-bottom: 1px solid #1e2536;
+            padding: 0.75rem 1.5rem;
+        }
+        .lumoship-breadcrumb-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .breadcrumb-link {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 200ms;
+        }
+        .breadcrumb-link:hover { color: #60a5fa; }
+        .breadcrumb-separator { color: #475569; }
+        .breadcrumb-current {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .lumoship-breadcrumb { display: none; }
+        }
+
+    
+        
+    </style>
+<style>
+  /* the Lumoship bar sits above the reader's own bar: 44 px come off every full-height box */
+  :root{--site-h:44px}
+  .lumoship-nav{padding:0 1.25rem}
+  .lumoship-nav-inner{max-width:none;height:var(--site-h)}
+  .lumoship-nav-logo-text{font-size:0.9rem}
+  .nav-context{cursor:pointer}
+  .shell{height:calc(100vh - var(--bar-h) - var(--site-h)) !important}
+  .ask{top:calc(var(--bar-h) + var(--site-h)) !important}
+  .appbar .brand{display:none}
+  [data-theme="light"] .lumoship-nav{border-bottom-color:#1e2536}
+</style>
 <style>
   /* Safety net: overlays default to display:grid/flex, so the plain [hidden]
      attribute is not strong enough on its own. Kept inline so it applies even
@@ -21,6 +228,32 @@
 <div class="grid-bg" aria-hidden="true"></div>
 <div class="progress" id="progress" aria-hidden="true"></div>
 
+<!-- ─────────────  LUMOSHIP BAR  ───────────── -->
+<nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <div class="nav-left">
+                <a href="https://lumoship.org" class="lumoship-nav-logo">
+                    <div class="lumoship-nav-logo-mark">L</div>
+                    <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+                </a>
+                <span class="nav-context" id="goHome" role="button" tabindex="0" title="Home">Clause Finder</span>
+            </div>
+            <div class="nav-right">
+                <a href="https://lumoship.org/workspace.html" class="nav-back">
+                    <span class="nav-back-arrow">←</span>
+                    <span class="nav-back-text">Workspace</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="userBadge" class="user-badge" style="display: none;">
+                    <span id="userBadgeAvatar" class="user-badge-avatar">L</span>
+                    <span id="userBadgeName" class="user-badge-name">Account</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="loginBadge" class="user-badge user-badge-login" style="display: none;">
+                    <span>Sign in</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
 <!-- ─────────────  APP BAR  ───────────── -->
 <header class="appbar">
   <!-- Yalnizca telefonda gorunur: gezinti cekmecesini acar. Masaustunde
@@ -28,13 +261,7 @@
   <button class="navbtn iconbtn" id="navBtn" title="Contents" aria-label="Open contents" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
-  <div class="brand" id="goHome" role="button" tabindex="0" title="Home">
-    <div class="logo">L</div>
-    <div class="brand-txt">
-      <h1>ClauseFinder</h1>
-      <p id="brandSub">Engineering rule reader</p>
-    </div>
-  </div>
+  <div class="brand" hidden><p id="brandSub"></p></div>
 
   <div class="pickers">
     <div class="pick-wrap">
@@ -74,7 +301,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
       Ask
     </button>
-    <span class="chip live" id="chipStatus">Offline</span>
     <span class="chip" id="chipStats">—</span>
     <button class="iconbtn" id="themeBtn" title="Toggle theme (T)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -113,7 +339,6 @@
     <div class="crumb" id="crumb"></div>
     <article class="doc" id="doc">
       <div class="welcome" id="welcome">
-        <div class="w-badge">Offline rule reader</div>
         <h2>Open a section, or press <kbd>Ctrl</kbd><kbd>K</kbd></h2>
         <p id="welcomeSub">Full text, figures and formulae — with every internal cross-reference wired up.</p>
         <div class="w-cards" id="welcomeCards"></div>
@@ -267,5 +492,53 @@
 <script src="lib/semantic-web.js"></script>
 <script src="app/app.js"></script>
 <script src="app/ask.js"></script>
+<script type="module">
+
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    const SUPABASE_URL = 'https://mmjdgxvxtjippjktajdd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tamRneHZ4dGppcHBqa3RhamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxODczMzQsImV4cCI6MjEwNDc2MzMzNH0.yJwV6pjt5fBCR_bweiBXCi3etL0z4bQ0zXsz_Tmzen4';
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    (async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const userBadge = document.getElementById('userBadge');
+            const loginBadge = document.getElementById('loginBadge');
+            
+            if (session && session.user) {
+                const user = session.user;
+                const meta = user.user_metadata || {};
+                const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+                const firstName = displayName.split(' ')[0];
+                
+                const avatarEl = document.getElementById('userBadgeAvatar');
+                const initial = (firstName[0] || 'U').toUpperCase();
+                if (meta.avatar_url || meta.picture) {
+                    // the picture, and the initial only if it fails to load — never both
+                    avatarEl.textContent = '';
+                    const img = document.createElement('img'); img.alt = ''; img.referrerPolicy = 'no-referrer';
+                    img.onerror = () => { avatarEl.textContent = initial; };
+                    img.src = meta.avatar_url || meta.picture; avatarEl.appendChild(img);
+                } else {
+                    avatarEl.textContent = initial;
+                }
+                
+                document.getElementById('userBadgeName').textContent = firstName;
+                userBadge.style.display = 'inline-flex';
+                loginBadge.style.display = 'none';
+            } else {
+                userBadge.style.display = 'none';
+                loginBadge.style.display = 'inline-flex';
+            }
+        } catch (err) {
+            console.warn('Auth check failed:', err);
+            document.getElementById('loginBadge').style.display = 'inline-flex';
+        }
+    })();
+
+    </script>
 </body>
 </html>
