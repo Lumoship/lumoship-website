@@ -1101,7 +1101,7 @@
                 <h2 class="discipline-title">Rule-Based Design</h2>
                 <p class="discipline-tagline">Class society compliance and scantling calculations.</p>
                 <p class="discipline-description">
-                    ClauseFinder reads the DNV, LR, BV and FSICR rule books; LoadPoint gives the design loads at a point; Midship Scantling designs the section to LR rules; PSM Opening Checker settles what may be cut out of a primary member web. BV NR467 and NR615 modules are next.
+                    LoadPoint gives the design loads at a point; Midship Scantling designs the section to LR rules; PSM Opening Checker settles what may be cut out of a primary member web. BV NR467 and NR615 modules are next.
                 </p>
                 <div class="discipline-divider"></div>
                 
@@ -1121,19 +1121,6 @@
                         </div>
                     </div>
                     
-                    <div class="tool-card" onclick="openModal('clausefinder-modal')">
-                        <div class="tool-card-header">
-                            <h3 class="tool-card-name">ClauseFinder</h3>
-                            <span class="tool-card-status beta">Beta</span>
-                        </div>
-                        <p class="tool-card-tagline">Rule-book reader with clause search and grounded answers.</p>
-                        <div class="tool-card-footer">
-                            <span class="tool-card-meta">DNV &middot; LR &middot; BV &middot; FSICR</span>
-                            <svg class="tool-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M5 12h14M12 5l7 7-7 7"/>
-                            </svg>
-                        </div>
-                    </div>
                     
                     <a href="/psm-opening/" class="tool-card">
                         <div class="tool-card-header">
@@ -1306,7 +1293,6 @@
                 <a href="/beam/" class="footer-link">BeamCore</a>
                 <a href="/sectionpro/" class="footer-link">SectionPro</a>
                 <a href="/lumostruct/" class="footer-link">LumoStruct</a>
-                <a href="/clausefinder/" class="footer-link">ClauseFinder</a>
                 <a href="/loadpoint/" class="footer-link">LoadPoint</a>
                 <a href="/midship/" class="footer-link">Midship Scantling</a>
                 <a href="/psm-opening/" class="footer-link">PSM Opening Checker</a>
@@ -1394,63 +1380,6 @@
         </div>
     </div>
     
-    <!-- CLAUSEFINDER MODAL -->
-    <div class="modal-overlay" id="clausefinder-modal" onclick="closeModal(event)">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-header-content">
-                    <span class="modal-status beta">&#9679; Beta</span>
-                    <h2 class="modal-title">ClauseFinder</h2>
-                    <p class="modal-tagline">Rule-book reader with clause search and grounded answers.</p>
-                </div>
-                <button class="modal-close" onclick="closeModalById('clausefinder-modal')" aria-label="Close">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-section">
-                    <p class="modal-section-label">Overview</p>
-                    <p class="modal-section-text">
-                        ClauseFinder holds nine rule books &mdash; DNV RU-SHIP and class guidelines, Lloyd&rsquo;s Register Ships, Special Service Craft, Lifting Appliances and Materials, Bureau Veritas NR467 Steel Ships (Parts A to F) and NR615 Buckling, and the Finnish-Swedish Ice Class Rules (Traficom 2021) &mdash; as a single searchable library. Search finds clauses by word, phrase or clause number; semantic search finds them by meaning, so a question about a bollard surfaces the mooring-equipment clauses even when neither shares a word. Ask writes an answer only from the clauses it retrieved, and cites every one.
-                    </p>
-                </div>
-                <div class="modal-section">
-                    <p class="modal-section-label">Features</p>
-                    <div class="modal-feature-list">
-                        <div class="modal-feature-item">DNV, LR, BV and FSICR rule books</div>
-                        <div class="modal-feature-item">99 000+ clauses, 2 400+ sections</div>
-                        <div class="modal-feature-item">Word, phrase and clause-number search</div>
-                        <div class="modal-feature-item">Semantic search, runs in your browser</div>
-                        <div class="modal-feature-item">Grounded answers with citations</div>
-                        <div class="modal-feature-item">Scope to a book, part or chapter</div>
-                        <div class="modal-feature-item">Figures and formula images</div>
-                        <div class="modal-feature-item">Turkish questions understood</div>
-                    </div>
-                </div>
-                <div class="modal-section">
-                    <p class="modal-section-label">Technology</p>
-                    <div class="modal-tech-stack">
-                        <span class="modal-tech-badge">DNV RU-SHIP</span>
-                        <span class="modal-tech-badge">LR Rules</span>
-                        <span class="modal-tech-badge">BV NR467</span>
-                        <span class="modal-tech-badge">MiniLM embeddings</span>
-                    </div>
-                </div>
-                <div class="modal-cta-row">
-                    <a href="/clausefinder/" class="modal-btn modal-btn-primary" target="_blank" rel="noopener">
-                        Open ClauseFinder
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M5 12h14M12 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                    <a href="/contact.html" class="modal-btn modal-btn-secondary">Contact us</a>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <!-- BEAMCORE MODAL -->
     <div class="modal-overlay" id="beamcore-modal" onclick="closeModal(event)">
