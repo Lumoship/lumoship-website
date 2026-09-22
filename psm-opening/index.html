@@ -1,6 +1,6 @@
 <!--
 ================================================================================
-    PSM OPENING CHECKER  v2.6  —  Lumoship / EA Engineering Tools
+    PSM OPENING CHECKER  v2.7  —  Lumoship / EA Engineering Tools
 ================================================================================
     Openings (manholes, lightening holes) in primary supporting member webs.
     Rule basis, DNV-RU-SHIP July 2026 edition:
@@ -195,7 +195,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
         <button class="ea-header-btn" onclick="saveJSON()">Save</button>
         <label class="ea-header-btn">Load<input type="file" accept=".json" class="hidden-input" onchange="loadJSON(event)"></label>
         <button class="ea-header-btn primary" onclick="exportPDF()">PDF</button>
-        <span class="ea-header-badge">v2.6</span>
+        <span class="ea-header-badge">v2.7</span>
       </div>
     </div>
     <nav class="ea-wizard">
@@ -530,9 +530,20 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
           </div>
           <div class="ea-form-row">
             <div class="ea-field">
-              <label class="ea-label">End region (fraction of &#8467;)</label>
-              <input type="number" class="ea-input" id="layoutEndZone" value="0.2" step="0.05" min="0" max="0.45" onchange="renderLayout()">
-              <p class="ea-info-text">[7.2.3] separates "mid-span" from "ends of the span"; 0.2&#8467; is the support region of Ch.6 Sec.6 Table 1 notes 1 and 2.</p>
+              <label class="ea-label">"Ends of the span" taken as</label>
+              <select class="ea-select" id="layoutZoneMode" onchange="renderLayout()">
+                <option value="geom" selected>a fixed share of the span</option>
+                <option value="shear">where &tau; exceeds a share of &tau;_allow</option>
+                <option value="none">nothing &mdash; no end region</option>
+              </select>
+              <div id="zoneGeomBox">
+                <input type="number" class="ea-input" id="layoutEndZone" value="0.2" step="0.05" min="0" max="0.45" onchange="renderLayout()" style="margin-top:6px">
+                <p class="ea-info-text">[7.2.3] separates "mid-span" from "ends of the span" without giving a number; 0.2&#8467; is the support region of Ch.6 Sec.6 Table 1 notes 1 and 2.</p>
+              </div>
+              <div id="zoneShearBox" style="display:none">
+                <input type="number" class="ea-input" id="layoutZoneTau" value="60" step="5" min="10" max="100" onchange="renderLayout()" style="margin-top:6px">
+                <p class="ea-info-text">Per cent of &tau;_allow. The band at each end where the shear is above this counts as a span end. The clause restricts openings at span ends because the shear peaks there; DNV accepts alternative arrangements below 60% of the permissible shear for the openings of Sec.6 [7.1] &mdash; for manholes [7.2.3] gives no such relief, so state this choice in the report.</p>
+              </div>
             </div>
             <div class="ea-field">
               <label class="ea-label">Keep clear of each end (mm)</label>
@@ -759,7 +770,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
 </div>
 
 <footer class="ea-footer">
-  <div>PSM Opening Checker v2.6 &mdash; Lumoship</div>
+  <div>PSM Opening Checker v2.7 &mdash; Lumoship</div>
   <div class="rule-ref">DNV-RU-SHIP Pt.3 Ch.3 Sec.6 [7.2]/[7.3] &middot; Sec.7 [1.4.6]&ndash;[1.4.7] &middot; Ch.6 Sec.6 [2.1.2]/[2.2.2] &middot; Ch.8 Sec.2 [5.1.1]/[7.1] &middot; CG-0128 Sec.3 [3.4]</div>
 </footer>
 
@@ -823,6 +834,11 @@ function updateCoefficients() {
   $('holeCustomField').style.display = $('holeVertical').value === 'custom' ? '' : 'none';
   $('deckDistField').style.display = $('memberType').value === 'longitudinal' ? '' : 'none';
   $('bracketFields').style.display = $('inBracket').checked ? '' : 'none';
+  if ($('layoutZoneMode')) {
+    const zm = $('layoutZoneMode').value;
+    $('zoneGeomBox').style.display = zm === 'geom' ? '' : 'none';
+    $('zoneShearBox').style.display = zm === 'shear' ? '' : 'none';
+  }
   $('prescFields').style.display = $('prescEnable').checked ? '' : 'none';
   $('dispBeta').textContent = a.beta.toFixed(2);
   $('dispAlpha').textContent = String(a.alpha);
@@ -1503,8 +1519,26 @@ function computeLayout(r, L, wo, hoMode) {
   const bandA = useA ? clear : 0, bandB = L - (useB ? clear : 0);
   const band = Math.max(0, bandB - bandA);
 
+  /* where "the ends of the span" are: a fixed share, or the band in which the
+     shear is above a chosen part of the permissible value, or nothing */
+  const zoneMode = $('layoutZoneMode') ? $('layoutZoneMode').value : 'geom';
+  const tauOf = x => {
+    if (r.name === 'Manual beam') return r.tau;
+    const v = tauAtPar(r.name, x / L);
+    return v == null ? r.tau : v;
+  };
+  let zA = endFrac * L, zB = (1 - endFrac) * L;
+  if (zoneMode === 'none') { zA = 0; zB = L; }
+  else if (zoneMode === 'shear') {
+    const thr = Math.max(0.05, num('layoutZoneTau', 60) / 100) * r.allow.tau;
+    const NS = 100;
+    zA = 0; zB = L;
+    for (let i = 0; i <= NS; i++) { const x = L * i / NS; if (tauOf(x) <= thr) { zA = x; break; } zA = Math.min(0.45 * L, x); }
+    for (let i = NS; i >= 0; i--) { const x = L * i / NS; if (tauOf(x) <= thr) { zB = x; break; } zB = Math.max(0.55 * L, x); }
+    if (zB < zA) { zB = zA; }
+  }
   // an opening belongs to the end region as soon as any part of it reaches into it
-  const zoneOf = x => ((x - wo / 2) < endFrac * L || (x + wo / 2) > (1 - endFrac) * L) ? 'end' : 'mid';
+  const zoneOf = x => ((x - wo / 2) < zA || (x + wo / 2) > zB) ? 'end' : 'mid';
   const clearReq = z => (z === 'end' ? 4 * wo : wo);      // [7.2.3]
   const pg = sectionProps(r.dim, 0, cHole, 'gross', 0, 0);
   const gLim = geomLimits(r.dim, hoDesign, wo, cHole, single, sStf);
@@ -1527,8 +1561,8 @@ function computeLayout(r, L, wo, hoMode) {
      middle is also where the shear is lowest, so it is not only tidier. */
   // the strip the openings may occupy: the usable length, and outside the end
   // regions unless nothing fits there
-  const lo0 = Math.max(bandA, endFrac * L) + wo / 2;
-  const hi0 = Math.min(bandB, (1 - endFrac) * L) - wo / 2;
+  const lo0 = Math.max(bandA, zA) + wo / 2;
+  const hi0 = Math.min(bandB, zB) - wo / 2;
   const okAt = xs => xs.every((x, i) => {
     if (i < xs.length - 1) {
       const need = Math.max(clearReq(zoneOf(x)), clearReq(zoneOf(xs[i + 1])));
@@ -1554,12 +1588,12 @@ function computeLayout(r, L, wo, hoMode) {
     }
     if (xs.length && xs.length === N0) {
       // the strip ran out - which of the two limits set the strip?
-      const byRegion = (endFrac * L) > bandA + 1e-6;
+      const byRegion = zA > bandA + 1e-6;
       const have = hi0 - lo0, need = xs.length * 2 * wo;
       reason = 'room. ' + (xs.length + 1) + ' openings would need ' + fmt(need, 0) +
                ' mm between the first and the last centre at the minimum pitch of ' + fmt(2 * wo, 0) +
                ' mm; the strip the centres may use is ' + fmt(have, 0) + ' mm (from ' + fmt(lo0, 0) + ' to ' + fmt(hi0, 0) +
-               ' mm), set by the ' + (byRegion ? 'end region, ' + fmt(endFrac * L, 0) + ' mm each side' : 'end clearance, ' + fmt(clear, 0) + ' mm each side');
+               ' mm), set by the ' + (byRegion ? 'end region (' + (zoneMode === 'shear' ? 'shear above ' + fmt(num('layoutZoneTau', 60), 0) + '% of tau_allow' : fmt(zA, 0) + ' mm, ' + (endFrac * 100).toFixed(0) + '% of L') + ') at each end' : 'end clearance, ' + fmt(clear, 0) + ' mm each side');
     } else if (xs.length) {
       reason = 'the shear check: ' + (N0) + ' openings would fit geometrically but the one nearest the end exceeds tau_allow';
     }
@@ -1585,7 +1619,7 @@ function computeLayout(r, L, wo, hoMode) {
              gap: next == null ? null : (next - x - wo), gapReq: next == null ? null : Math.max(clearReq(z), clearReq(zoneOf(next))) };
   });
   return { items: items, band: band, bandA: bandA, bandB: bandB, lenLim: lenLim,
-           endFrac: endFrac, cHole: cHole, clear: clear, reason: reason, nGeom: N0,
+           endFrac: endFrac, zA: zA, zB: zB, zoneMode: zoneMode, cHole: cHole, clear: clear, reason: reason, nGeom: N0,
            midLo: lo0, midHi: hi0,
            pitch: xs.length > 1 ? (xs[1] - xs[0]) : null, pitchMin: 2 * wo,
            ends: { a: useA, b: useB, info: inf } };
@@ -1731,7 +1765,9 @@ function renderLayout() {
        ' &middot; clearance ' + (res.ends.a ? 'on' : 'off') + '/' + (res.ends.b ? 'on' : 'off') + '</span></div>';
   a += '</div><div class="ea-notes" style="margin-top:var(--sp-md)"><div class="ea-notes-title">How it comes out</div><ul>';
   a += '<li>The count is the largest that fits at the tightest pitch [7.2.3] allows &mdash; clear distance &ge; w_o = <b>' + fmt(wo, 0) + ' mm</b> at mid-span, so pitch &ge; <b>' + fmt(2 * wo, 0) + ' mm</b> &mdash; and those openings are then spread evenly and symmetrically about mid-span, which is why the pitch actually used (<b>' + (res.pitch ? fmt(res.pitch, 0) + ' mm' : 'n/a') + '</b>) is the same for every gap and at least the minimum.</li>';
-  a += '<li>The shaded band is the 0.2&#8467; zone this tool treats as "ends of the span" for [7.2.3] &mdash; it is not a claim that a support sits there; the drawing writes what the model actually has at each end. Inside it the same rule allows only 25% of the clear distance, so an opening reaching in there would need <b>' + fmt(4 * wo, 0) + ' mm</b> clear &mdash; which is why the group stops before the ends rather than spreading into them.</li>';
+  a += '<li>The shaded band is what this run treats as "ends of the span" for [7.2.3] &mdash; ' +
+       (res.zoneMode === 'shear' ? 'the band where &tau; is above ' + fmt(num('layoutZoneTau', 60), 0) + '% of &tau;_allow' : res.zoneMode === 'none' ? 'nothing, you place them' : 'a fixed ' + (res.endFrac * 100).toFixed(0) + '% of the span') +
+       '. A span, per Ch.3 Sec.7 [1.1.8], is the length of the member between its supports, and in a grillage the crossing members are those supports &mdash; so an end with no support point in the model is still a span end &mdash; it is not a claim that a support sits there; the drawing writes what the model actually has at each end. Inside it the same rule allows only 25% of the clear distance, so an opening reaching in there would need <b>' + fmt(4 * wo, 0) + ' mm</b> clear &mdash; which is why the group stops before the ends rather than spreading into them.</li>';
   a += '<li>' + (isFinite(lenLim) ? 'Single skin: w_o &le; max(h_w ' + fmt(r.dim.hw, 0) + ', 0.6&middot;s ' + fmt(0.6 * sStf, 0) + ') = <b>' + fmt(lenLim, 0) + ' mm</b>.' : 'Double skin: no explicit length limit against the web depth in [7.2.3]; the spacing rule and the stiffener cut-outs govern.') + '</li>';
   a += '<li>Each position is checked with its own &tau;: openings near the ends come out smaller or drop out, which is also what note 3 of Ch.6 Sec.6 Table 1 implies through f_shr.</li>';
   a += '<li>What sits at a beam end is taken from the model, not assumed: <b>' + (res.ends.info ?
@@ -1786,10 +1822,12 @@ function drawLayout(r, L, res, cHole) {
     if (n == null) return 'end';
     return n + (n === 1 ? ' member' : ' members') + ' meet';
   };
-  [[0, endFrac * L, true], [(1 - endFrac) * L, L, false]].forEach(b => {
+  [[0, res.zA, true], [res.zB, L, false]].forEach(b => {
+    if (b[1] - b[0] < 1) return;
     s += '<rect x="' + X(b[0]) + '" y="' + webTop + '" width="' + ((b[1] - b[0]) * sx) + '" height="' + webH + '" fill="rgba(180,83,9,0.08)"/>';
     const cx = X((b[0] + b[1]) / 2);
-    s += '<text x="' + cx + '" y="' + (webTop + webH / 2 - 3) + '" text-anchor="middle" fill="#b45309">0.2L zone</text>';
+    s += '<text x="' + cx + '" y="' + (webTop + webH / 2 - 3) + '" text-anchor="middle" fill="#b45309">' +
+         (res.zoneMode === 'shear' ? 'tau > ' + fmt(num('layoutZoneTau', 60), 0) + '%' : 'span end ' + fmt(b[1] - b[0], 0)) + '</text>';
     s += '<text x="' + cx + '" y="' + (webTop + webH / 2 + 9) + '" text-anchor="middle" fill="#b45309">' + bandLabel(b[2]) + '</text>';
   });
 
@@ -1969,7 +2007,7 @@ function renderDetails() {
 /* --------------------------------------------------------------------------
    Save / load / PDF
    -------------------------------------------------------------------------- */
-const FIELDS = ['vesselName','projectNumber','revision','analysisDate','preparedBy','reportNotes','acceptanceClass','hullGirderLoads','sigHg','yieldStrength','scantlingBasis','corrAdd','shearComponent','openingHeight','openingWidth','skinType','holeVertical','holeCentre','stiffSpacing','cutoutDeduct','holePosition','manualEnable','mHw','mTw','mBf','mTf','mBeff','mTp','mTau','mSig','mLen','layoutLength','layoutLenOverride','layoutWidth','layoutEndZone','layoutClearEnd','layoutEndMode','layoutHoMode','memberType','deckDist','inBracket','bracketHoleD','bracketEdge','prescEnable','prescP','prescS','prescL','prescF','tripLoc','tripFlange','tripActual'];
+const FIELDS = ['vesselName','projectNumber','revision','analysisDate','preparedBy','reportNotes','acceptanceClass','hullGirderLoads','sigHg','yieldStrength','scantlingBasis','corrAdd','shearComponent','openingHeight','openingWidth','skinType','holeVertical','holeCentre','stiffSpacing','cutoutDeduct','holePosition','manualEnable','mHw','mTw','mBf','mTf','mBeff','mTp','mTau','mSig','mLen','layoutLength','layoutLenOverride','layoutWidth','layoutEndZone','layoutZoneMode','layoutZoneTau','layoutClearEnd','layoutEndMode','layoutHoMode','memberType','deckDist','inBracket','bracketHoleD','bracketEdge','prescEnable','prescP','prescS','prescL','prescF','tripLoc','tripFlange','tripActual'];
 
 /* Saving a file: a normal browser download when the page runs from disk, and
    the viewer-confirmed save when it runs inside the claude.ai artifact viewer,
@@ -1993,7 +2031,7 @@ function offerFile(filename, data, mime) {
 }
 
 function saveJSON() {
-  const data = { tool: 'PSM Opening Checker', version: '2.6', saved: new Date().toISOString(), fields: {} };
+  const data = { tool: 'PSM Opening Checker', version: '2.7', saved: new Date().toISOString(), fields: {} };
   FIELDS.forEach(id => { const el = $(id); if (el) data.fields[id] = el.type === 'checkbox' ? el.checked : el.value; });
   offerFile(($('projectNumber').value || 'PSM') + '_opening_check.json',
             JSON.stringify(data, null, 2), 'application/json');
