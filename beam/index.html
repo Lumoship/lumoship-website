@@ -1,5 +1,5 @@
 <!--
-    Lumoship — BeamCore v1.0.0
+    Lumoship — BeamCore v1.1.0
     Created by Ebubekir Akarsu — Structural Engineer
     Beam Structural Analysis Calculator
     3-Page Layout: Setup → Input → Results
@@ -15,13 +15,14 @@
     <title>Free Online Marine Beam Calculator | BeamCore by Lumoship</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="lumoship-nav.css">
     <style>
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
         :root{
-            --bg-primary:#0a0e17;--bg-secondary:#111827;--bg-tertiary:#1a2236;--bg-input:#0d1321;
-            --accent:#3b82f6;--accent-hover:#2563eb;--accent-glow:rgba(59,130,246,0.15);--accent-subtle:rgba(59,130,246,0.08);
-            --text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#64748b;
-            --success:#22c55e;--warning:#f59e0b;--error:#ef4444;--border:#1e293b;
+            --bg-primary:#ffffff;--bg-secondary:#f6f8fb;--bg-tertiary:#eef2f7;--bg-input:#ffffff;
+            --accent:#3b82f6;--accent-hover:#2563eb;--accent-glow:rgba(37,99,235,0.12);--accent-subtle:rgba(37,99,235,0.06);
+            --text-primary:#0f172a;--text-secondary:#475569;--text-muted:#64748b;
+            --success:#16a34a;--warning:#d97706;--error:#dc2626;--border:#e2e8f0;
             --font-display:'JetBrains Mono',monospace;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
             --fs-xs:0.75rem;--fs-sm:0.8125rem;--fs-base:0.875rem;--fs-md:1rem;--fs-lg:1.25rem;--fs-xl:1.5rem;
             --spacing-xs:0.25rem;--spacing-sm:0.5rem;--spacing-md:1rem;--spacing-lg:1.5rem;--spacing-xl:2rem;
@@ -32,10 +33,14 @@
         body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 
         /* HEADER */
-        .ea-header{position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(17,24,39,0.98),rgba(10,14,23,0.98));backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+        .ea-header{position:sticky;top:var(--lumoship-nav-h);z-index:100;background:linear-gradient(180deg,rgba(246,248,251,0.98),rgba(255,255,255,0.98));backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
         .ea-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.5}
-        .ea-header-inner{max-width:min(1700px,94vw);margin:0 auto;padding:var(--spacing-md) var(--spacing-xl)}
-        .ea-header-top{display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-lg);margin-bottom:var(--spacing-md)}
+        .ea-header-inner{max-width:min(1700px,94vw);margin:0 auto;padding:6px var(--spacing-xl)}
+        /* one row: wizard dead centre, actions right. The 1fr / auto / 1fr grid
+           keeps the wizard centred without guessing the width of the buttons. */
+        .ea-header-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:var(--spacing-lg);margin-bottom:0}
+        .ea-header-actions{justify-self:end}
+        .ea-header-pad{min-width:0}
         .ea-header-left{display:flex;align-items:center;gap:var(--spacing-lg)}
         .ea-brand{display:flex;align-items:center;gap:var(--spacing-md)}
         .ea-logo{width:40px;height:40px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--accent),#1d4ed8);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:var(--fs-md);color:white;box-shadow:0 0 20px rgba(59,130,246,0.2)}
@@ -151,7 +156,7 @@
         .ea-combo-btn:hover{border-color:var(--accent)}
         .ea-combo-btn svg{flex-shrink:0;color:var(--text-muted);transition:transform 0.15s}
         .ea-combo.open .ea-combo-btn svg{transform:rotate(180deg)}
-        .ea-combo-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+        .ea-combo-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(15,23,42,0.08)}
         .ea-combo.open .ea-combo-list{display:block}
         .ea-combo-opt{padding:9px 14px;font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--text-secondary);cursor:pointer;white-space:nowrap}
         .ea-combo-opt:hover{background:var(--accent-subtle);color:var(--text-primary)}
@@ -234,9 +239,9 @@
         .ea-zoom-btn:hover{border-color:var(--accent);color:var(--accent)}
         .ea-zoom-level{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted);min-width:38px;text-align:center}
         /* FULLSCREEN MODAL */
-        .ea-modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(5,8,15,0.9);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:var(--spacing-xl)}
+        .ea-modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.45);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:var(--spacing-xl)}
         .ea-modal-overlay.active{display:flex}
-        .ea-modal-box{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);width:min(1200px,95vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+        .ea-modal-box{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);width:min(1200px,95vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,23,42,0.12)}
         .ea-modal-head{display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border)}
         .ea-modal-head .ea-panel-title{font-family:var(--font-display);font-size:var(--fs-sm);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px}
         .ea-modal-close{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:22px;line-height:1;padding:4px 8px;border-radius:var(--radius-sm)}
@@ -275,169 +280,13 @@
         @media(max-width:1200px){.ea-summary-grid{grid-template-columns:repeat(2,1fr)}.ea-input-3col{grid-template-columns:1fr 1fr}.ea-input-3col .ea-col.center{grid-column:1 / -1;order:-1}}
         @media(max-width:900px){.ea-main{padding:var(--spacing-md)}.ea-setup-grid,.ea-form-row,.ea-form-row.three,.ea-input-row,.ea-input-3col{grid-template-columns:1fr}.ea-summary-grid{grid-template-columns:repeat(2,1fr)}.ea-header-top{flex-wrap:wrap}.ea-project-bar{display:none}.ea-wizard-line{width:30px}}
     
-        /* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
-        .lumoship-nav {
-            position: sticky;
-            top: 0;
-            background: rgba(10, 14, 23, 0.95);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid #1e2536;
-            z-index: 10000;
-            padding: 0.875rem 1.5rem;
-        }
-        .lumoship-nav-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .lumoship-nav-logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            gap: 0.6rem;
-            transition: opacity 200ms;
-        }
-        .lumoship-nav-logo:hover { opacity: 0.85; }
-        .lumoship-nav-logo-mark {
-            width: 28px;
-            height: 28px;
-            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
-            border-radius: 7px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: white;
-        }
-        .lumoship-nav-logo-text {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #f8fafc;
-            letter-spacing: 0.06em;
-        }
-        .lumoship-nav-links {
-            display: none;
-        }
-        
-        /* NEW MINIMAL NAVBAR */
-        .nav-left {
-            display: flex;
-            align-items: center;
-        }
-        
-        .nav-context {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
-            color: #64748b;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            padding-left: clamp(0.75rem, 1.5vw, 1rem);
-            margin-left: clamp(0.75rem, 1.5vw, 1rem);
-            border-left: 1px solid #1e2536;
-        }
-        
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: clamp(0.75rem, 1.5vw, 1.25rem);
-        }
-        
-        .nav-back {
-            color: #94a3b8;
-            text-decoration: none;
-            font-family: 'Inter', sans-serif;
-            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: color 200ms;
-        }
-        
-        .nav-back:hover { color: #f8fafc; }
-        .nav-back-arrow { font-size: 1em; }
-        
-        .user-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
-            background: rgba(59, 130, 246, 0.06);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            border-radius: 999px;
-            text-decoration: none;
-            color: #f8fafc;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.825rem;
-            font-weight: 500;
-            transition: all 200ms;
-        }
-        
-        .user-badge:hover {
-            background: rgba(59, 130, 246, 0.12);
-            border-color: rgba(59, 130, 246, 0.4);
-        }
-        
-        .user-badge-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 0.75rem;
-            color: white;
-            letter-spacing: -0.02em;
-            overflow: hidden;
-        }
-        
-        .user-badge-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .user-badge-name {
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .user-badge-login {
-            padding: 0.45rem 0.95rem;
-            background: #3b82f6;
-            border-color: #3b82f6;
-            color: white;
-        }
-        
-        .user-badge-login:hover {
-            background: #60a5fa;
-            border-color: #60a5fa;
-        }
-        
-        @media (max-width: 640px) {
-            .nav-back-text { display: none; }
-            .user-badge-name { display: none; }
-            .nav-context { display: none; }
-        }
-        
-        .lumoship-nav-link {
-            display: none;
-        }
-        .lumoship-nav-link:hover { color: #f8fafc; }
+        /* Lumoship ust bari: Apps/_standart/lumoship-nav.css (yandaki
+           lumoship-nav.css bu dosyanin kopyasi). Sayfa ici kopya 2026-09-22'de
+           kaldirildi - iki yerde durunca biri koyu kaliyordu. */
+
         .lumoship-breadcrumb {
-            background: #0f141f;
-            border-bottom: 1px solid #1e2536;
+            background: #f6f8fb;
+            border-bottom: 1px solid #e2e8f0;
             padding: 0.75rem 1.5rem;
         }
         .lumoship-breadcrumb-inner {
@@ -454,7 +303,7 @@
             text-decoration: none;
             transition: color 200ms;
         }
-        .breadcrumb-link:hover { color: #60a5fa; }
+        .breadcrumb-link:hover { color: #2563eb; }
         .breadcrumb-separator { color: #475569; }
         .breadcrumb-current {
             color: #3b82f6;
@@ -467,9 +316,9 @@
     
         /* ============ SEO CONTENT STYLES ============ */
         .seo-hero {
-            background: linear-gradient(180deg, #0f141f 0%, #0a0e17 100%);
+            background: linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
             padding: 4rem 1.5rem 3rem;
-            border-bottom: 1px solid #1e2536;
+            border-bottom: 1px solid #e2e8f0;
         }
         .seo-hero-inner {
             max-width: 900px;
@@ -480,7 +329,7 @@
             font-family: 'Inter', system-ui, sans-serif;
             font-size: clamp(1.75rem, 4vw, 2.75rem);
             font-weight: 700;
-            color: #f8fafc;
+            color: #0f172a;
             margin: 0 0 1rem;
             letter-spacing: -0.02em;
             line-height: 1.15;
@@ -488,7 +337,7 @@
         .seo-hero-subtitle {
             font-family: 'Inter', sans-serif;
             font-size: clamp(0.95rem, 1.3vw, 1.125rem);
-            color: #94a3b8;
+            color: #475569;
             max-width: 700px;
             margin: 0 auto 2rem;
             line-height: 1.6;
@@ -503,7 +352,7 @@
         .seo-feature-pill {
             background: rgba(59, 130, 246, 0.1);
             border: 1px solid rgba(59, 130, 246, 0.3);
-            color: #60a5fa;
+            color: #2563eb;
             padding: 0.5rem 1rem;
             border-radius: 100px;
             font-size: 0.825rem;
@@ -528,9 +377,9 @@
         }
         
         .seo-content {
-            background: #0a0e17;
+            background: #ffffff;
             padding: 4rem 1.5rem;
-            border-top: 1px solid #1e2536;
+            border-top: 1px solid #e2e8f0;
         }
         .seo-content-inner {
             max-width: 900px;
@@ -539,11 +388,12 @@
         .seo-article {
             margin-bottom: 3rem;
         }
+        .seo-article h1,
         .seo-article h2 {
             font-family: 'Inter', sans-serif;
             font-size: 1.75rem;
             font-weight: 700;
-            color: #f8fafc;
+            color: #0f172a;
             margin: 0 0 1.25rem;
             letter-spacing: -0.01em;
         }
@@ -551,24 +401,24 @@
             font-family: 'Inter', sans-serif;
             font-size: 1.125rem;
             font-weight: 600;
-            color: #f8fafc;
+            color: #0f172a;
             margin: 0 0 0.5rem;
         }
         .seo-article p {
-            color: #cbd5e1;
+            color: #475569;
             font-size: 1rem;
             line-height: 1.7;
             margin: 0 0 1rem;
         }
         .seo-article ul {
-            color: #cbd5e1;
+            color: #475569;
             font-size: 1rem;
             line-height: 1.8;
             padding-left: 1.25rem;
             margin: 0 0 1rem;
         }
         .seo-article strong {
-            color: #f8fafc;
+            color: #0f172a;
         }
         
         .seo-steps {
@@ -581,8 +431,8 @@
             display: flex;
             gap: 1.25rem;
             padding: 1.25rem;
-            background: #0f141f;
-            border: 1px solid #1e2536;
+            background: #f6f8fb;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
         }
         .seo-step-number {
@@ -610,13 +460,13 @@
             margin-top: 1.5rem;
         }
         .seo-scenario {
-            background: #0f141f;
-            border: 1px solid #1e2536;
+            background: #f6f8fb;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 1.25rem;
         }
         .seo-scenario h3 {
-            color: #60a5fa;
+            color: #2563eb;
             font-size: 1rem;
             margin-bottom: 0.5rem;
         }
@@ -632,13 +482,13 @@
             margin-top: 1.5rem;
         }
         .seo-comparison-item {
-            background: #0f141f;
-            border: 1px solid #1e2536;
+            background: #f6f8fb;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 1.25rem;
         }
         .seo-comparison-item h3 {
-            color: #f8fafc;
+            color: #0f172a;
             font-size: 1rem;
             margin-bottom: 0.5rem;
         }
@@ -654,20 +504,20 @@
             margin-top: 1.5rem;
         }
         .seo-faq-item {
-            background: #0f141f;
-            border: 1px solid #1e2536;
+            background: #f6f8fb;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 1rem 1.25rem;
             transition: background 200ms;
         }
         .seo-faq-item[open] {
-            background: #131a2a;
+            background: #eef2f7;
         }
         .seo-faq-item summary {
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             font-weight: 600;
-            color: #f8fafc;
+            color: #0f172a;
             font-size: 1rem;
             list-style: none;
             position: relative;
@@ -679,7 +529,7 @@
             right: 0;
             top: 50%;
             transform: translateY(-50%);
-            color: #60a5fa;
+            color: #2563eb;
             font-size: 1.5rem;
             font-weight: 300;
             transition: transform 200ms;
@@ -688,7 +538,7 @@
             transform: translateY(-50%) rotate(45deg);
         }
         .seo-faq-item p {
-            color: #94a3b8;
+            color: #475569;
             font-size: 0.95rem;
             line-height: 1.6;
             margin: 1rem 0 0;
@@ -699,10 +549,31 @@
             margin-top: 4rem;
             padding: 3rem 1.5rem;
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(14, 165, 233, 0.05));
-            border: 1px solid #1e2536;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
         }
 
+    
+        /* ---- how-to panel ---- */
+        .ea-help-box{width:min(760px,95vw)}
+        .ea-help-body{padding:var(--spacing-lg);overflow-y:auto;display:block}
+        .ea-help-body h4{font-family:var(--font-display);font-size:var(--fs-xs);font-weight:600;
+            color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;
+            margin:var(--spacing-lg) 0 var(--spacing-sm)}
+        .ea-help-body h4:first-child{margin-top:0}
+        .ea-help-steps{list-style:none;counter-reset:hstep;display:flex;flex-direction:column;gap:10px}
+        .ea-help-steps li{counter-increment:hstep;display:grid;grid-template-columns:22px 1fr;
+            gap:10px;font-size:var(--fs-sm);color:var(--text-secondary);line-height:1.55}
+        .ea-help-steps li::before{content:counter(hstep);display:flex;align-items:center;
+            justify-content:center;width:22px;height:22px;border-radius:50%;
+            background:var(--accent-subtle);border:1px solid var(--border);
+            font-family:var(--font-mono);font-size:0.68rem;color:var(--accent-hover);font-weight:600}
+        .ea-help-steps b{color:var(--text-primary);font-weight:600}
+        .ea-help-key{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px 18px}
+        .ea-help-key div{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);color:var(--text-secondary)}
+        .ea-help-sw{width:14px;height:4px;border-radius:2px;flex:0 0 auto}
+        .ea-help-note{font-size:var(--fs-xs);color:var(--text-muted);line-height:1.6;margin-top:var(--spacing-sm)}
+        .ea-help-note b{color:var(--text-secondary);font-weight:600}
     </style>
 </head>
 <body>
@@ -751,30 +622,23 @@
 <header class="ea-header">
     <div class="ea-header-inner">
         <div class="ea-header-top">
-            <div class="ea-header-left">
-                <div class="ea-brand">
-                    <div class="ea-logo">B</div>
-                    <div class="ea-title-group">
-                        <h1>BeamCore</h1>
-                        <p>Beam Structural Analysis — Direct Stiffness Method</p>
-                    </div>
-                </div>
-            </div>
+            <div class="ea-header-pad"></div>
+            <nav class="ea-wizard">
+                <button class="ea-wizard-step active" id="wizStep1" onclick="goToPage(1)"><span class="ea-wizard-num">1</span>Setup</button>
+                <div class="ea-wizard-line" id="wizardLine1"></div>
+                <button class="ea-wizard-step" id="wizStep2" onclick="goToPage(2)"><span class="ea-wizard-num">2</span>Input</button>
+                <div class="ea-wizard-line" id="wizardLine2"></div>
+                <button class="ea-wizard-step" id="wizStep3" onclick="goToPage(3)"><span class="ea-wizard-num">3</span>Results</button>
+            </nav>
             <div class="ea-header-actions">
+                <button class="ea-header-btn" onclick="openHelp()" title="How to use BeamCore">?</button>
                 <button class="ea-header-btn" onclick="saveJSON()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
                 <button class="ea-header-btn" onclick="document.getElementById('jsonInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Load</button>
                 <input type="file" id="jsonInput" class="hidden-input" accept=".json" onchange="loadJSON(event)">
                 <button class="ea-header-btn primary" onclick="exportPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</button>
-                <div class="ea-header-badge">v1.0</div>
+                <div class="ea-header-badge">v1.1</div>
             </div>
         </div>
-        <nav class="ea-wizard">
-            <button class="ea-wizard-step active" id="wizStep1" onclick="goToPage(1)"><span class="ea-wizard-num">1</span>Setup</button>
-            <div class="ea-wizard-line" id="wizardLine1"></div>
-            <button class="ea-wizard-step" id="wizStep2" onclick="goToPage(2)"><span class="ea-wizard-num">2</span>Input</button>
-            <div class="ea-wizard-line" id="wizardLine2"></div>
-            <button class="ea-wizard-step" id="wizStep3" onclick="goToPage(3)"><span class="ea-wizard-num">3</span>Results</button>
-        </nav>
     </div>
 </header>
 
@@ -891,9 +755,9 @@
                             <div class="ea-prop-readout">
                                 <div class="ea-prop-row"><span class="lbl">Area A</span><span class="val" id="secA">—</span></div>
                                 <div class="ea-prop-row"><span class="lbl">Inertia I<sub>xx</sub></span><span class="val" id="secI">—</span></div>
-                                <div class="ea-prop-row"><span class="lbl">Neutral axis from bottom</span><span class="val" id="secNA">—</span></div>
-                                <div class="ea-prop-row"><span class="lbl">W top fibre</span><span class="val" id="secWtop">—</span></div>
-                                <div class="ea-prop-row"><span class="lbl">W bottom fibre</span><span class="val" id="secWbot">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">Neutral axis from plate face</span><span class="val" id="secNA">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">W at free edge</span><span class="val" id="secWtop">—</span></div>
+                                <div class="ea-prop-row"><span class="lbl">W at plate face</span><span class="val" id="secWbot">—</span></div>
                                 <div class="ea-prop-row gov"><span class="lbl">W used (extreme fibre)</span><span class="val" id="secW">—</span></div>
                             </div>
                             <!-- hidden computed values consumed by solver -->
@@ -1083,6 +947,64 @@
 </div>
 
 <!-- FULLSCREEN BEAM VIEWER MODAL -->
+
+<!-- HOW TO USE - in the tool, not under the marketing copy at the bottom -->
+<div class="ea-modal-overlay" id="helpModal" onclick="if(event.target===this)closeHelp()">
+    <div class="ea-modal-box ea-help-box">
+        <div class="ea-modal-head">
+            <span class="ea-panel-title">How to use BeamCore</span>
+            <button class="ea-modal-close" onclick="closeHelp()" title="Close">&times;</button>
+        </div>
+        <div class="ea-modal-body ea-help-body">
+            <h4>Six steps</h4>
+            <ol class="ea-help-steps">
+                <li><span><b>Setup.</b> Project title, number, designer and logo. All optional — they only
+                    appear on the exported PDF.</span></li>
+                <li><span><b>Span &amp; section.</b> Beam length, then the profile: L, T, flat bar or a bulb
+                    flat from the EN 10067 catalogue. In a T, <b>h is the web height</b>, flange excluded.
+                    Tick <b>Include Plate</b> when the stiffener works together with plating — the plate is
+                    welded to the web tip, the flange stays at the free edge. Width is taken as entered,
+                    not as an effective breadth.</span></li>
+                <li><span><b>Material.</b> The steel grade sets R<sub>eH</sub>. The safety factor is
+                    <b>your choice, not a rule value</b>: σ_all = R<sub>eH</sub> × factor, τ_all = σ_all / √3.
+                    The deflection limit L / n is a project criterion — leave it 0 to skip that check.</span></li>
+                <li><span><b>Supports.</b> Pinned and roller both restrain vertical movement; fixed also
+                    restrains rotation. The model needs <b>two supports at different positions, or one
+                    fixed</b> — anything less is a mechanism and the run stops with a message.</span></li>
+                <li><span><b>Loads.</b> Downward is positive. A UDL needs Start <i>and</i> End; a point load
+                    and a moment use Start as their location. A node is placed at every load and support,
+                    so positions are exact, not snapped.</span></li>
+                <li><span><b>Run Analysis.</b> Shear, moment and deflection diagrams, support reactions and
+                    three checks. Read <b>Analysis basis &amp; limits</b> underneath them — it says what the
+                    numbers rest on and what is not checked.</span></li>
+            </ol>
+
+            <h4>Reading the drawing</h4>
+            <div class="ea-help-key">
+                <div><span class="ea-help-sw" style="background:#475569"></span>Beam, supports, ground</div>
+                <div><span class="ea-help-sw" style="background:#b91c1c"></span>Applied point / distributed load</div>
+                <div><span class="ea-help-sw" style="background:#b45309"></span>Applied moment · moment diagram</div>
+                <div><span class="ea-help-sw" style="background:#2563eb"></span>Reaction · shear diagram</div>
+                <div><span class="ea-help-sw" style="background:#0e7490"></span>Deflection diagram</div>
+                <div><span class="ea-help-sw" style="background:#16a34a"></span>PASS · <span style="color:#dc2626">FAIL</span> status only</div>
+            </div>
+            <p class="ea-help-note">A triangle on hatched ground is a pinned support; the same triangle on two
+                open circles is a roller; a hatched wall line is a fixed end.</p>
+
+            <h4>What it does not check</h4>
+            <p class="ea-help-note">Member buckling, lateral–torsional buckling, web and plate buckling, local
+                flange stability, fatigue, dynamic effects and effective plate width are <b>not</b> evaluated.
+                The solver is linear elastic, small deflection, no shear deformation. Results support a
+                scantling estimate — they are not a class approval.</p>
+
+            <h4>Saving</h4>
+            <p class="ea-help-note"><b>Save</b> writes the whole model to a JSON file and <b>Load</b> reads it
+                back; <b>PDF</b> exports a calculation sheet with the diagrams. <b>Saved cases</b> on the Input
+                page keep several load cases side by side within the session.</p>
+        </div>
+    </div>
+</div>
+
 <div class="ea-modal-overlay" id="beamModal" onclick="if(event.target===this)closeBeamFullscreen()">
     <div class="ea-modal-box">
         <div class="ea-modal-head">
@@ -1108,11 +1030,11 @@
 
 
     <!-- ============ SEO CONTENT ============ -->
-    <section class="seo-content">
+    <section class="seo-content" id="seoContent">
         <div class="seo-content-inner">
             
             <article class="seo-article">
-                <h2>The Marine Beam Calculator Built for Naval Architects</h2>
+                <h1>The Marine Beam Calculator Built for Naval Architects</h1>
                 <p>
                     BeamCore is part of <strong>Lumoship</strong>, a modern marine structural engineering 
                     software suite designed for naval architects, ship designers, and marine structural 
@@ -1248,14 +1170,18 @@
                     
                     <div class="seo-comparison-item">
                         <h3>Class Society Awareness</h3>
-                        <p>The profile catalog and grade selections reflect classification society 
-                        requirements (DNV, Lloyd's Register, Bureau Veritas, RINA, Türk Loydu).</p>
+                        <p>The profile catalogue and the steel grades are the shipbuilding ones the
+                        societies work from — EN 10067 bulb flats, A / AH32 / AH36 to IACS and ASTM A131 —
+                        rather than the civil sections a general beam calculator ships with. BeamCore applies
+                        no society rule check of its own; the allowable stress comes from the factor you set.</p>
                     </div>
                     
                     <div class="seo-comparison-item">
                         <h3>Attached Plate Modeling</h3>
-                        <p>Quickly model stiffened panels by attaching an effective plate width to the 
-                        profile. Critical for ship deck and bottom structure analysis.</p>
+                        <p>Attach a plate to the profile and the section properties are recomputed for
+                        the combination — welded to the web tip, with the flange left at the free edge, the
+                        way a stiffener actually sits on plating. You choose the plate width; BeamCore does
+                        not derive an effective breadth for you.</p>
                     </div>
                     
                     <div class="seo-comparison-item">
@@ -1266,8 +1192,8 @@
                     
                     <div class="seo-comparison-item">
                         <h3>Modern, Browser-Based</h3>
-                        <p>Nothing to install. Works on any device with a browser. Results computed 
-                        server-side using Python/NumPy for accuracy and reliability.</p>
+                        <p>Nothing to install. Works on any device with a browser. The solver runs
+                        in the page itself — your model never leaves your machine.</p>
                     </div>
                 </div>
             </article>
@@ -1315,10 +1241,12 @@
                     
                     <details class="seo-faq-item">
                         <summary>What calculation method does BeamCore use?</summary>
-                        <p>BeamCore implements the <strong>Direct Stiffness Method</strong> based on 
-                        Euler-Bernoulli beam theory. Calculations are performed server-side using Python 
-                        and NumPy for numerical accuracy. Each beam is meshed into multiple elements 
-                        (typically L/40 maximum element length) for high-resolution results.</p>
+                        <p>BeamCore implements the <strong>Direct Stiffness Method</strong> based on
+                        Euler-Bernoulli beam theory, solved in your browser — nothing is sent to a server.
+                        A node is placed at every support and load, elements are no longer than L/40, and
+                        deflections come from the Hermite shape functions. Internal forces are taken by
+                        direct equilibrium at each station, so a continuous or otherwise statically
+                        indeterminate beam is handled exactly, not approximated.</p>
                     </details>
                     
                     <details class="seo-faq-item">
@@ -1360,9 +1288,10 @@
                     
                     <details class="seo-faq-item">
                         <summary>Does BeamCore work offline?</summary>
-                        <p>No. BeamCore is a browser-based tool that computes results server-side. 
-                        An internet connection is required. The server is hosted on Railway with 99.9% 
-                        uptime. Results are returned within seconds for typical beam problems.</p>
+                        <p>The calculation does — it runs in the page, so once BeamCore has loaded you
+                        can work without a connection and nothing you enter is transmitted anywhere. The
+                        page itself still fetches its webfonts and the PDF library from a CDN on first
+                        load, so that first load needs a connection.</p>
                     </details>
                     
                     <details class="seo-faq-item">
@@ -1427,6 +1356,9 @@ function goToPage(n){
     }
     document.getElementById('wizardLine1').classList.toggle('completed',n>1);
     document.getElementById('wizardLine2').classList.toggle('completed',n>2);
+    // the long-form copy belongs to the landing page, not to the working
+    // pages: it pushed the results and the diagrams far down the scroll.
+    { const seo=document.getElementById('seoContent'); if(seo) seo.style.display = n===1 ? '' : 'none'; }
     window.scrollTo({top:0,behavior:'smooth'});
     if(n===2) requestAnimationFrame(()=>requestAnimationFrame(drawPreview));
     // page is now visible & laid out — draw diagrams on next frame so clientWidth is correct
@@ -1448,7 +1380,10 @@ function _calcL(a,b,t){
     const Ixx=(tC*aC**3)/12+A1*(y1-cy)**2+((bC-tC)*tC**3)/12+A2*(y2-cy)**2;
     // shear: vertical leg (thickness tC) is the web; Q of area above NA
     const aboveH=aC-cy; const Qmax=tC*aboveH*(aboveH/2);
-    return {type:'L',area,Ixx,height:aC,centroidY:cy,tWeb:tC,Qmax};
+    // y = 0 is the horizontal leg (the free edge); the plating takes the tip of
+    // the vertical leg, so plateAt = 'yTop'. strips: bottom band is leg+leg.
+    const strips=[{y0:0,y1:tC,b:bC},{y0:tC,y1:aC,b:tC}];
+    return {type:'L',area,Ixx,height:aC,centroidY:cy,tWeb:tC,Qmax,plateAt:'yTop',strips};
 }
 // h is the WEB height (flange excluded), as the label says and as LumoStruct /
 // SectionPro define it. Until 2026-09-18 the formula treated h as the overall
@@ -1464,12 +1399,17 @@ function _calcT(h,tw,bf,tf){
     let Qmax,tWeb;
     if(cy>=tfC){ const aboveH=totalH-cy; Qmax=twC*aboveH*(aboveH/2); tWeb=twC; }
     else { const flAbove=bfC*(tfC-cy); Qmax=webA*(webCY-cy)+flAbove*((tfC-cy)/2); tWeb=bfC; }
-    return {type:'T',area,Ixx,height:totalH,centroidY:cy,tWeb,Qmax};
+    // y = 0 is the flange (the face plate, i.e. the FREE edge); the plating is
+    // welded to the tip of the web, so plateAt = 'yTop'.
+    const strips=[{y0:0,y1:tfC,b:bfC},{y0:tfC,y1:totalH,b:twC}];
+    return {type:'T',area,Ixx,height:totalH,centroidY:cy,tWeb,Qmax,plateAt:'yTop',strips};
 }
 function _calcFB(h,t){
     const hC=h/10,tC=t/10,area=hC*tC;
     // rectangle: Qmax = t*h^2/8 (gives tau_max = 1.5 V/A)
-    return {type:'FB',area,Ixx:(tC*hC**3)/12,height:hC,centroidY:hC/2,tWeb:tC,Qmax:tC*hC*hC/8};
+    // symmetric: either end may take the plating
+    return {type:'FB',area,Ixx:(tC*hC**3)/12,height:hC,centroidY:hC/2,tWeb:tC,Qmax:tC*hC*hC/8,
+            plateAt:'y0',strips:[{y0:0,y1:hC,b:tC}]};
 }
 // HP (Holland / bulb-flat) catalog per EN 10067.
 // A [cm2], Ixx [cm4], dx [cm] = neutral-axis distance from flat (back) face. height b in mm.
@@ -1575,7 +1515,10 @@ function _calcHP(){
     // HP web shear (conservative, ship practice): tau = V/(t_web * height).
     // Express as Qmax so tau = V*Qmax/(Ixx*tWeb) = V/(tWeb*hC)  ->  Qmax = Ixx/hC
     const Qmax=hp.Ixx/hC;
-    return {type:'HP',area:hp.A,Ixx:hp.Ixx,height:hC,centroidY:hp.dx,tWeb:tC,Qmax,_hp:hp};
+    // dx is measured from the flat back face - that face IS the plate face.
+    // No strip model: the bulb is not a stack of rectangles, so the shear rule
+    // below (tau = V / (t_w * h)) stays in charge for HP.
+    return {type:'HP',area:hp.A,Ixx:hp.Ixx,height:hC,centroidY:hp.dx,tWeb:tC,Qmax,plateAt:'y0',_hp:hp};
 }
 function getProfile(){
     switch(currentProfile){
@@ -1620,31 +1563,71 @@ function toggleHPDropdown(e){
 }
 function closeHPDropdown(){ const c=document.getElementById('hpCombo'); if(c) c.classList.remove('open'); }
 document.addEventListener('click',e=>{ const c=document.getElementById('hpCombo'); if(c&&!c.contains(e.target)) c.classList.remove('open'); });
-// Combine profile with optional MANUAL attached plate (parallel axis)
+// ---- shear helpers: a section given as a stack of rectangles ---------------
+// strips are {y0, y1, b} in cm, stacked along y. Q(y) is the first moment about
+// the neutral axis of everything above level y; b(y) is the width there (the
+// thinner side at a joint). tau = V*Q/(I*b) is maximum where Q/b is - usually
+// the NA, but a thin web next to a wide plate can govern at the joint instead.
+function _stripQ(strips,cy,y){
+    let Q=0;
+    strips.forEach(s=>{ const a0=Math.max(s.y0,y); if(s.y1>a0){ const A=s.b*(s.y1-a0); Q+=A*((a0+s.y1)/2-cy); } });
+    return Q;
+}
+function _stripB(strips,y){
+    let b=Infinity;
+    strips.forEach(s=>{ if(y>=s.y0-1e-9&&y<=s.y1+1e-9) b=Math.min(b,s.b); });
+    return isFinite(b)?b:null;
+}
+function _shearGoverning(strips,cy){
+    const cand=[cy]; strips.forEach(s=>{ cand.push(s.y0,s.y1); });
+    let best=null;
+    cand.forEach(y=>{
+        const b=_stripB(strips,y); if(!b) return;
+        const Q=Math.abs(_stripQ(strips,cy,y)); if(!(Q>0)) return;
+        if(!best||Q/b>best.Q/best.b) best={Q,b};
+    });
+    return best;
+}
+// Combine profile with optional MANUAL attached plate (parallel axis).
+//
+// PLATE SIDE. Every profile says which of its own faces the plating is welded
+// to. For HP the catalogue dx is measured from the flat back face, which is the
+// plate face, so y = 0 already is it. For T and L, y = 0 is the flange / the
+// horizontal leg - the FREE edge - and the plating takes the opposite face.
+// Until 2026-09-22 the plate was placed at y = 0 for every profile, i.e. welded
+// to the face plate of a T: I came out ~48% low on T 300x10 + 150x12 with a
+// 300x12 plate, ~64% low on an L. Midship uses the same convention it does now
+// (app/10-draw.js: cz = height - centroidY for L and T, cz = dx for HP).
+//
+// Everything below is measured from the PLATE FACE: y = 0 is the outer face of
+// the attached plate, or the profile's attachment face when there is no plate.
 function computeSectionProps(){
     const p=getProfile();
     const plateOn=document.getElementById('plate-enabled') && document.getElementById('plate-enabled').checked;
     const pw=pv('plate-width',300)/10, pt=pv('plate-thickness',12)/10; // cm
-    let A,Ixx,yTop,yBot,tWeb,Qmax;
+    const flip=(p.plateAt==='yTop');
+    const cz=flip?(p.height-p.centroidY):p.centroidY;   // attachment face -> profile centroid
+    const own=(p.strips||[]).map(st=>flip?{y0:p.height-st.y1,y1:p.height-st.y0,b:st.b}
+                                         :{y0:st.y0,y1:st.y1,b:st.b});
+    let A,Ixx,yTop,yBot,tWeb,Qmax,cy,strips;
     if(plateOn){
-        const pA=pw*pt;
-        const totalA=p.area+pA;
-        // plate sits at bottom: plate centroid at pt/2, profile shifted up by pt
-        const plateCY=pt/2;
-        const profCY=pt+p.centroidY;
-        const cy=(pA*plateCY+p.area*profCY)/totalA;
-        const totalH=pt+p.height;
-        const pIxx=(pw*pt**3)/12;
-        Ixx=p.Ixx+p.area*(profCY-cy)**2+pIxx+pA*(plateCY-cy)**2;
-        A=totalA; yTop=totalH-cy; yBot=cy;
-        // shear at combined NA: take the web of the profile carrying shear.
-        // Q of all material above NA = profile area*(profCY-cy) approx, conservative use profile tWeb
-        tWeb=p.tWeb||(p.area/p.height);
-        const aboveArm=profCY-cy; // distance profile centroid above NA
-        Qmax=Math.max(p.Qmax||0, p.area*Math.max(aboveArm,0));
+        const pA=pw*pt, totalA=p.area+pA;
+        const plateCY=pt/2, profCY=pt+cz;
+        cy=(pA*plateCY+p.area*profCY)/totalA;
+        Ixx=p.Ixx+p.area*(profCY-cy)**2+(pw*pt**3)/12+pA*(plateCY-cy)**2;
+        A=totalA; yBot=cy; yTop=pt+p.height-cy;
+        strips=own.length?[{y0:0,y1:pt,b:pw}].concat(own.map(st=>({y0:st.y0+pt,y1:st.y1+pt,b:st.b}))):[];
     } else {
-        A=p.area; Ixx=p.Ixx; yTop=p.height-p.centroidY; yBot=p.centroidY;
-        tWeb=p.tWeb||(p.area/p.height); Qmax=p.Qmax||(Ixx/p.height);
+        cy=cz; A=p.area; Ixx=p.Ixx; yBot=cz; yTop=p.height-cz;
+        strips=own;
+    }
+    const g=strips.length?_shearGoverning(strips,cy):null;
+    if(g){ Qmax=g.Q; tWeb=g.b; }
+    else {
+        // HP: ship practice keeps tau = V / (t_w * h) whether or not a plate is
+        // attached, so Q is expressed against the COMBINED I to cancel it out.
+        tWeb=p.tWeb||(p.area/p.height);
+        Qmax=Ixx/p.height;
     }
     const Wmin=Ixx/Math.max(yTop,yBot); // cm3 (extreme fibre)
     return {A,Ixx,W:Wmin,tWeb,Qmax,yTop,yBot,WTop:Ixx/yTop,WBot:Ixx/yBot,plateOn:!!plateOn,profile:p};
@@ -1660,8 +1643,8 @@ function updateSection(){
     set('secA', s.A.toFixed(2)+' cm²');
     set('secI', s.Ixx.toFixed(1)+' cm⁴');
     set('secNA', s.yBot.toFixed(2)+' cm');
-    set('secWtop', s.WTop.toFixed(1)+' cm³');
-    set('secWbot', s.WBot.toFixed(1)+' cm³');
+    set('secWtop', s.WTop.toFixed(1)+' cm³');   // free edge (flange / bulb tip)
+    set('secWbot', s.WBot.toFixed(1)+' cm³');   // plate face
     set('secW', s.W.toFixed(1)+' cm³');
     if(currentProfile==='HP'){
         const hp=_calcHP()._hp;
@@ -2130,9 +2113,12 @@ function basisLines(ck){
         ['Solver','Direct stiffness method, Euler–Bernoulli beam elements (2 DOF per node). Linear elastic; small deflections; no shear deformation, no P-δ, no plasticity.'],
         ['Mesh','A node at every support and load point, elements no longer than L/40. Internal forces by direct equilibrium at each station; deflection from the Hermite shape functions.'],
         ['Bending','σ = M_max / W with W taken at the extreme fibre (W = '+sp.W.toFixed(1)+' cm³, I = '+sp.Ixx.toFixed(1)+' cm⁴'+(sp.plateOn?', profile + plate':', profile only')+').'],
-        ['Shear', isHP ? 'τ = V_max / (t_w · h): the bulb flat is treated as a plain web, conservative ship practice.' : 'τ = V_max · Q / (I · t_w) at the neutral axis (Q of the material above the NA, web thickness t_w).'],
+        ['Shear', isHP ? 'τ = V_max / (t_w · h): the bulb flat is treated as a plain web, conservative ship practice.' : 'τ = V_max · Q / (I · b) at the governing level — the neutral axis, or a joint where a thin web meets a wider part (Q = '+sp.Qmax.toFixed(1)+' cm³, b = '+sp.tWeb.toFixed(2)+' cm).'],
         ['Allowables','σ_all = ReH × factor = '+ck.sigAll.toFixed(1)+' N/mm²; τ_all = σ_all / √3 = '+ck.tauAll.toFixed(1)+' N/mm² (von Mises). The factor is the user\u2019s choice, not a rule value.'],
         [ck.dAll>0?'Deflection':'Deflection', ck.dAll>0 ? 'δ_all = L / '+ck.deflN+' = '+ck.dAll.toFixed(1)+' mm — a project criterion set on the Input page.' : 'No limit set (L / n = 0); deflection is reported, not checked.'],
+        ['Attached plate', sp.plateOn
+            ? 'The plate is welded to the attachment face of the profile — the web tip on a T or an L, the flat back face on an HP; the flange stays at the free edge. Plate width is taken as entered, not as an effective breadth.'
+            : 'No plate attached: section properties are the bare profile.'],
         ['Loads','Downward loads positive. Point loads and moments go to the nearest node (exact, a node is placed there); UDL as consistent element loads.'],
         ['Not checked','Member buckling, lateral–torsional buckling, web/plate buckling, local flange stability, fatigue, dynamic effects, effective plate width — none of these are evaluated here.','no'],
         ['Scope','Results support a scantling estimate; they are not a class approval and are to be verified by a qualified engineer.']
@@ -2148,9 +2134,13 @@ function drawAllDiagrams(){
     if(!lastResults) return;
     const res=lastResults;
     drawModel(res);
-    drawDiagram('canvasShear',res.xs,res.Vs,'#3b82f6','shearStat','V');
-    drawDiagram('canvasMoment',res.xs,res.Ms,'#f59e0b','momentStat','M');
-    drawDiagram('canvasDefl',res.xs,res.Ds,'#22c55e','deflStat','δ');
+    // Result curves take the same tones as the geometry they belong to: shear
+    // matches the reaction arrows, moment matches an applied moment. Deflection
+    // used to be signal green, the same green as the PASS badge - it is teal now
+    // so that no colour in this tool means two things.
+    drawDiagram('canvasShear',res.xs,res.Vs,GEO.reaction,'shearStat','V');
+    drawDiagram('canvasMoment',res.xs,res.Ms,GEO.moment,'momentStat','M');
+    drawDiagram('canvasDefl',res.xs,res.Ds,'#0e7490','deflStat','δ');
 }
 function checkRow(name,actual,allow,uc){
     const pass=uc<=1.0;
@@ -2197,24 +2187,15 @@ function drawModel(res){
     ctx.beginPath(); ctx.moveTo(sx(0),y0); ctx.lineTo(sx(L),y0); ctx.stroke(); ctx.lineCap='butt';
     // supports + reactions
     res.reactions.forEach((r,i)=>{
-        const x=sx(r.pos); ctx.fillStyle='#22c55e'; ctx.strokeStyle='#22c55e'; ctx.lineWidth=2;
-        if(r.type==='fixed'){ ctx.fillRect(x-5,y0-20,10,40); ctx.strokeStyle='#16a34a'; for(let h=-18;h<=18;h+=6){ ctx.beginPath(); ctx.moveTo(x-5,y0+h); ctx.lineTo(x-12,y0+h-5); ctx.stroke(); } }
-        else if(r.type==='roller'){
-            // roller: triangle + wheels underneath (no ground hatching)
-            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-10,y0+15); ctx.lineTo(x+10,y0+15); ctx.closePath(); ctx.stroke();
-            ctx.beginPath(); ctx.arc(x-6,y0+19,3,0,7); ctx.arc(x+6,y0+19,3,0,7); ctx.fill();
-        }
-        else { // pinned: triangle + ground hatching
-            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-10,y0+16); ctx.lineTo(x+10,y0+16); ctx.closePath(); ctx.stroke();
-            for(let hx=-10;hx<=10;hx+=5){ ctx.beginPath(); ctx.moveTo(x+hx,y0+16); ctx.lineTo(x+hx-5,y0+22); ctx.stroke(); }
-        }
-        // reaction arrow (upward, below beam) + value
-        ctx.strokeStyle='#16a34a'; ctx.fillStyle='#16a34a'; ctx.lineWidth=2;
-        const arrTop=y0+30, arrBot=y0+30+Math.round(20*DIA_FS);
-        fbArrow(ctx, x, arrBot, x, arrTop, 6); // arrowhead pointing up at arrTop
+        const x=sx(r.pos);
+        const below=drawSupport(ctx,x,y0,r.type,DIA_FS,r.pos<=L/2?1:-1);
+        // reaction arrow (upward, below the symbol) + value
+        ctx.strokeStyle=GEO.reaction; ctx.fillStyle=GEO.reaction; ctx.lineWidth=Math.max(1,1.6*DIA_FS);
+        const arrTop=below+Math.round(4*DIA_FS), arrBot=arrTop+Math.round(20*DIA_FS);
+        fbArrow(ctx, x, arrBot, x, arrTop, 6*DIA_FS); // arrowhead pointing up at arrTop
         ctx.fillStyle=DIA_COL.textDim; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='top';
         ctx.fillText('S'+(i+1),x,arrBot+3);
-        ctx.fillStyle='#16a34a'; ctx.fillText('R = '+r.R.toFixed(1)+' kN',x,arrBot+3+Math.round(12*DIA_FS));
+        ctx.fillStyle=GEO.reaction; ctx.fillText('R = '+r.R.toFixed(1)+' kN',x,arrBot+3+Math.round(12*DIA_FS));
     });
     // loads with collision-aware labels
     const slots=[]; function lvl(px){ let l=0; while(slots.some(s=>Math.abs(s.x-px)<46&&s.l===l)) l++; slots.push({x:px,l}); return l; }
@@ -2223,22 +2204,73 @@ function drawModel(res){
         if(ld.type==='udl'){
             const a=Math.max(0,Math.min(ld.start,ld.end)), b=Math.min(L,Math.max(ld.start,ld.end));
             const xa=sx(a),xb=sx(b),top=y0-38;
-            ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444';
+            ctx.strokeStyle=GEO.load; ctx.fillStyle=GEO.load;
             ctx.beginPath(); ctx.moveTo(xa,top); ctx.lineTo(xb,top); ctx.stroke();
             const n=Math.max(2,Math.round((b-a)/L*12));
             for(let k=0;k<=n;k++){ const x=xa+(xb-xa)*k/n; fbArrow(ctx,x,top,x,y0-5,6); }
-            const lv=lvl((xa+xb)/2); ctx.fillStyle='#f87171'; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+            const lv=lvl((xa+xb)/2); ctx.fillStyle=GEO.loadText; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom';
             ctx.fillText(ld.mag+' kN/m',(xa+xb)/2,y0-52-lv*13);
         } else if(ld.type==='point'){
-            const x=sx(ld.start),top=y0-48; ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444'; fbArrow(ctx,x,top,x,y0-5,7);
-            const lv=lvl(x); ctx.fillStyle='#f87171'; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(ld.mag+' kN',x,top-4-lv*13);
+            const x=sx(ld.start),top=y0-48; ctx.strokeStyle=GEO.load; ctx.fillStyle=GEO.load; fbArrow(ctx,x,top,x,y0-5,7);
+            const lv=lvl(x); ctx.fillStyle=GEO.loadText; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(ld.mag+' kN',x,top-4-lv*13);
         } else {
-            const x=sx(ld.start); ctx.strokeStyle='#f59e0b'; ctx.fillStyle='#f59e0b'; const rr=14;
+            const x=sx(ld.start); ctx.strokeStyle=GEO.moment; ctx.fillStyle=GEO.moment; const rr=14;
             ctx.beginPath(); ctx.arc(x,y0-26,rr,0.3,5.2); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(x+rr-2,y0-22); ctx.lineTo(x+rr-7,y0-30); ctx.lineTo(x+rr+3,y0-31); ctx.closePath(); ctx.fill();
-            const lv=lvl(x); ctx.fillStyle='#fbbf24'; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(ld.mag+' kN·m',x,y0-52-lv*13);
+            const lv=lvl(x); ctx.fillStyle=GEO.momentText; ctx.font=Math.round(10*DIA_FS)+'px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(ld.mag+' kN·m',x,y0-52-lv*13);
         }
     });
+}
+// ---- drawing palette -------------------------------------------------------
+// Geometry is ink, not signal. Green / amber / red stay reserved for PASS,
+// warning and FAIL, so a drawing is never read as a status. Applied loads keep
+// the red every structural package uses, but a deep one - not the alarm red of
+// the FAIL badge. A reaction is a computed result, so it takes the accent blue.
+const GEO={
+    ink:'#475569',                 // support outlines, ground lines
+    hatch:'#94a3b8',               // ground hatching
+    fill:'rgba(37,99,235,0.10)',   // soft blue inside a support symbol
+    load:'#b91c1c',      loadText:'#991b1b',
+    moment:'#b45309',    momentText:'#92400e',
+    reaction:'#2563eb'
+};
+// A solid ground line with fine 45 degree hatching underneath.
+function groundLine(ctx,x,y,half,u){
+    ctx.lineWidth=Math.max(1,1.4*u); ctx.strokeStyle=GEO.ink;
+    ctx.beginPath(); ctx.moveTo(x-half,y); ctx.lineTo(x+half,y); ctx.stroke();
+    ctx.lineWidth=Math.max(1,0.9*u); ctx.strokeStyle=GEO.hatch;
+    for(let hx=-half+u;hx<=half;hx+=4*u){
+        ctx.beginPath(); ctx.moveTo(x+hx,y); ctx.lineTo(x+hx-4*u,y+4.5*u); ctx.stroke();
+    }
+}
+// One support symbol. u scales everything (1 on screen, DIA_FS for the PDF).
+// side = +1 hatches a fixed end on its left, -1 on its right, so the hatching
+// always falls outboard. Returns the y below which labels are clear.
+function drawSupport(ctx,x,y0,type,u,side){
+    u=u||1; side=side||1;
+    const w=11*u, h=18*u;
+    ctx.save(); ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.lineWidth=Math.max(1,1.6*u); ctx.strokeStyle=GEO.ink;
+    if(type==='fixed'){
+        const wh=22*u;
+        ctx.beginPath(); ctx.moveTo(x,y0-wh); ctx.lineTo(x,y0+wh); ctx.stroke();
+        ctx.lineWidth=Math.max(1,0.9*u); ctx.strokeStyle=GEO.hatch;
+        for(let t=-wh;t<wh;t+=5*u){
+            ctx.beginPath(); ctx.moveTo(x,t+5*u+y0); ctx.lineTo(x-side*6*u,y0+t); ctx.stroke();
+        }
+        ctx.restore(); return y0+wh+4*u;
+    }
+    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-w,y0+h); ctx.lineTo(x+w,y0+h); ctx.closePath();
+    ctx.fillStyle=GEO.fill; ctx.fill(); ctx.stroke();
+    if(type==='roller'){
+        const r=3*u, cy=y0+h+r+u;
+        ctx.lineWidth=Math.max(1,1.3*u); ctx.strokeStyle=GEO.ink;
+        [-6*u,6*u].forEach(dx=>{ ctx.beginPath(); ctx.arc(x+dx,cy,r,0,Math.PI*2); ctx.stroke(); });
+        groundLine(ctx,x,cy+r,w*1.3,u);
+        ctx.restore(); return cy+r+6*u;
+    }
+    groundLine(ctx,x,y0+h,w*1.3,u);
+    ctx.restore(); return y0+h+6*u;
 }
 function fbArrow(ctx,x1,y1,x2,y2,h){ h=h||6; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const a=Math.atan2(y2-y1,x2-x1); ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-h*Math.cos(a-0.4),y2-h*Math.sin(a-0.4)); ctx.lineTo(x2-h*Math.cos(a+0.4),y2-h*Math.sin(a+0.4)); ctx.closePath(); ctx.fill(); }
 // ---- Zoom state ----
@@ -2257,6 +2289,15 @@ function modalZoom(dir){
     document.getElementById('modalPanZoom').style.transform='scale('+modalScale+')';
     document.getElementById('modalZoomLevel').textContent=Math.round(modalScale*100)+'%';
 }
+
+// ---- how-to panel ----------------------------------------------------------
+// The steps used to live only in the marketing copy below the calculator, where
+// nobody working in the tool would ever scroll. This is the same guidance where
+// it is needed, plus the colour key for the drawings.
+function openHelp(){ document.getElementById('helpModal').classList.add('active'); }
+function closeHelp(){ document.getElementById('helpModal').classList.remove('active'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeHelp(); });
+
 function openBeamFullscreen(){
     document.getElementById('beamModal').classList.add('active');
     modalScale=1; document.getElementById('modalPanZoom').style.transform='scale(1)';
@@ -2284,7 +2325,7 @@ function renderBeam(canvasId,w,H){
     c.height=H*dpr; c.style.height=H+'px';
     const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,H);
-    if(!(L>0)){ ctx.fillStyle='#64748b'; ctx.font='13px JetBrains Mono'; ctx.textAlign='center'; ctx.fillText('Enter a beam length to preview',w/2,H/2); return; }
+    if(!(L>0)){ ctx.fillStyle=DIA_COL.textDim; ctx.font='13px JetBrains Mono'; ctx.textAlign='center'; ctx.fillText('Enter a beam length to preview',w/2,H/2); return; }
     const scaleF=H/260;                 // scale fonts/offsets for large canvas
     const fpx=n=>Math.round(n*scaleF);
     const mx=Math.max(48,w*0.06);
@@ -2294,36 +2335,26 @@ function renderBeam(canvasId,w,H){
 
     // dimension line (top) - above the highest load label row
     const dimY=y0-fpx(80+13*rows);
-    ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.strokeStyle=DIA_COL.axis; ctx.lineWidth=1; ctx.setLineDash([3,3]);
     ctx.beginPath(); ctx.moveTo(sx(0),dimY); ctx.lineTo(sx(L),dimY); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='#94a3b8'; ctx.font=fpx(11)+'px JetBrains Mono'; ctx.textAlign='center';
+    ctx.fillStyle=DIA_COL.text; ctx.font=fpx(11)+'px JetBrains Mono'; ctx.textAlign='center';
     ctx.fillText('L = '+L+' m',w/2,dimY-fpx(5));
-    [0,L].forEach(p=>{ ctx.strokeStyle='#334155'; ctx.beginPath(); ctx.moveTo(sx(p),dimY-fpx(4)); ctx.lineTo(sx(p),dimY+fpx(4)); ctx.stroke(); });
+    [0,L].forEach(p=>{ ctx.strokeStyle=DIA_COL.axis; ctx.beginPath(); ctx.moveTo(sx(p),dimY-fpx(4)); ctx.lineTo(sx(p),dimY+fpx(4)); ctx.stroke(); });
 
     // beam
-    ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=Math.max(4,fpx(5)); ctx.lineCap='round';
+    ctx.strokeStyle=DIA_COL.beam; ctx.lineWidth=Math.max(4,fpx(5)); ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(sx(0),y0); ctx.lineTo(sx(L),y0); ctx.stroke(); ctx.lineCap='butt';
 
     // supports
     supports.forEach((s,i)=>{
         if(s.pos<0||s.pos>L) return;
-        const x=sx(s.pos), sz=fpx(11);
-        ctx.fillStyle='#22c55e'; ctx.strokeStyle='#22c55e'; ctx.lineWidth=2;
-        if(s.type==='fixed'){
-            ctx.fillRect(x-fpx(5),y0-fpx(22),fpx(10),fpx(44));
-            ctx.strokeStyle='#16a34a';
-            for(let h=-fpx(20);h<=fpx(20);h+=fpx(6)){ ctx.beginPath(); ctx.moveTo(x-fpx(5),y0+h); ctx.lineTo(x-fpx(13),y0+h-fpx(5)); ctx.stroke(); }
-        } else if(s.type==='roller'){
-            // roller: triangle + wheels underneath (no ground hatching)
-            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-sz,y0+fpx(18)); ctx.lineTo(x+sz,y0+fpx(18)); ctx.closePath(); ctx.stroke();
-            ctx.beginPath(); ctx.arc(x-fpx(6),y0+fpx(22),fpx(3),0,7); ctx.arc(x+fpx(6),y0+fpx(22),fpx(3),0,7); ctx.fill();
-        } else {
-            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x-sz,y0+fpx(18)); ctx.lineTo(x+sz,y0+fpx(18)); ctx.closePath(); ctx.stroke();
-            for(let hx=-sz;hx<=sz;hx+=fpx(5)){ ctx.beginPath(); ctx.moveTo(x+hx,y0+fpx(18)); ctx.lineTo(x+hx-fpx(5),y0+fpx(24)); ctx.stroke(); }
-        }
-        ctx.fillStyle='#64748b'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
-        ctx.fillText('S'+(i+1),x,y0+fpx(38));
-        ctx.fillText(s.pos+'m',x,y0+fpx(50));
+        const x=sx(s.pos);
+        const below=drawSupport(ctx,x,y0,s.type,scaleF,s.pos<=L/2?1:-1);
+        ctx.fillStyle=DIA_COL.textDim; ctx.font=fpx(10)+'px JetBrains Mono';
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText('S'+(i+1),x,below);
+        ctx.fillText(s.pos+'m',x,below+fpx(12));
+        ctx.textBaseline='alphabetic';
     });
 
     // ---- LOADS with collision-free label stacking ----
@@ -2341,28 +2372,28 @@ function renderBeam(canvasId,w,H){
         if(ld.type==='udl'){
             const a=Math.max(0,Math.min(ld.start,ld.end)), b=Math.min(L,Math.max(ld.start,ld.end));
             const xa=sx(a),xb=sx(b), topY=y0-fpx(40);
-            ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444';
+            ctx.strokeStyle=GEO.load; ctx.fillStyle=GEO.load;
             ctx.beginPath(); ctx.moveTo(xa,topY); ctx.lineTo(xb,topY); ctx.stroke();
             const stepN=Math.max(2,Math.round((b-a)/L*12));
             for(let k=0;k<=stepN;k++){ const x=xa+(xb-xa)*k/stepN; arrow(ctx,x,topY,x,y0-fpx(6),fpx(6)); }
             const lvl=labelLevel((xa+xb)/2);
-            ctx.fillStyle='#f87171'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+            ctx.fillStyle=GEO.loadText; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
             ctx.fillText(ld.mag+' kN/m',(xa+xb)/2,y0-fpx(55)-lvl*fpx(13));
         } else if(ld.type==='point'){
             const x=sx(ld.start), topY=y0-fpx(50);
-            ctx.strokeStyle='#ef4444'; ctx.fillStyle='#ef4444';
+            ctx.strokeStyle=GEO.load; ctx.fillStyle=GEO.load;
             arrow(ctx,x,topY,x,y0-fpx(6),fpx(7));
             const lvl=labelLevel(x);
-            ctx.fillStyle='#f87171'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+            ctx.fillStyle=GEO.loadText; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
             ctx.fillText(ld.mag+' kN',x,topY-fpx(5)-lvl*fpx(13));
         } else { // moment
             const x=sx(ld.start);
-            ctx.strokeStyle='#f59e0b'; ctx.fillStyle='#f59e0b';
+            ctx.strokeStyle=GEO.moment; ctx.fillStyle=GEO.moment;
             const rr=fpx(15);
             ctx.beginPath(); ctx.arc(x,y0-fpx(28),rr,0.3,5.2); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(x+rr-2,y0-fpx(24)); ctx.lineTo(x+rr-fpx(7),y0-fpx(32)); ctx.lineTo(x+rr+fpx(3),y0-fpx(33)); ctx.closePath(); ctx.fill();
             const lvl=labelLevel(x);
-            ctx.fillStyle='#fbbf24'; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
+            ctx.fillStyle=GEO.momentText; ctx.font=fpx(10)+'px JetBrains Mono'; ctx.textAlign='center';
             ctx.fillText(ld.mag+' kN·m',x,y0-fpx(55)-lvl*fpx(13));
         }
     });
@@ -2389,8 +2420,9 @@ function arrow(ctx,x1,y1,x2,y2,head){
 // ============================================================
 //  Diagram renderer (rewritten from scratch)
 // ============================================================
-let DIA_COL={bg:'#0d1321',grid:'#1e293b',gridMinor:'#161f33',zero:'#64748b',axis:'#334155',text:'#94a3b8',textDim:'#64748b',beam:'#cbd5e1'};
+let DIA_COL={bg:'#ffffff',grid:'#dbe3ef',gridMinor:'#eef2f8',zero:'#475569',axis:'#94a3b8',text:'#334155',textDim:'#64748b',beam:'#475569'};
 let DIA_FS=1; // diagram font scale (1 on screen, larger for PDF export)
+// kept for reference: the dark palette the tool used until 2026-09-22
 const DIA_DARK={bg:'#0d1321',grid:'#1e293b',gridMinor:'#161f33',zero:'#64748b',axis:'#334155',text:'#94a3b8',textDim:'#64748b',beam:'#cbd5e1'};
 const DIA_LIGHT={bg:'#ffffff',grid:'#dbe3ef',gridMinor:'#eef2f8',zero:'#475569',axis:'#94a3b8',text:'#334155',textDim:'#64748b',beam:'#475569'};
 function diaNiceStep(range,target){
@@ -2607,8 +2639,8 @@ function renderDiagramsLight(){
             out[id]={url:c.toDataURL('image/png'),ratio:c.height/c.width};
         });
     } finally {
-        DIA_COL=DIA_DARK; DIA_FS=1;
-        drawAllDiagrams(); // restore on-screen dark diagrams
+        DIA_COL=DIA_LIGHT; DIA_FS=1;
+        drawAllDiagrams(); // restore the on-screen diagrams
     }
     return out;
 }
@@ -2652,7 +2684,7 @@ function exportPDF(){
     const plateTxt=document.getElementById('plate-enabled').checked?`with attached plate ${val('plate-width')} x ${val('plate-thickness')} mm`:'(no attached plate)';
     doc.text(`Span L = ${r.L} m     E = ${val('modE')} GPa`,15,y); y+=5;
     doc.text(`Section: ${pdfSectionDesc()}  ${plateTxt}`,15,y); y+=5;
-    { const sp=computeSectionProps(); doc.text(`A = ${sp.A.toFixed(2)} cm²     I = ${sp.Ixx.toFixed(1)} cm⁴     NA = ${sp.yBot.toFixed(2)} cm from bottom     W_top = ${sp.WTop.toFixed(1)} cm³     W_bot = ${sp.WBot.toFixed(1)} cm³`,15,y); y+=5; }
+    { const sp=computeSectionProps(); doc.text(`A = ${sp.A.toFixed(2)} cm²     I = ${sp.Ixx.toFixed(1)} cm⁴     NA = ${sp.yBot.toFixed(2)} cm from plate face     W_free = ${sp.WTop.toFixed(1)} cm³     W_plate = ${sp.WBot.toFixed(1)} cm³`,15,y); y+=5; }
     doc.text(`Material: Grade ${val('steelGrade')}  (ReH ${val('reH')} N/mm²)     Safety Factor = ${val('safetyFactorValue')}     σ_all = ${val('sigmaAll')} N/mm²`,15,y); y+=8;
 
     // supports & loads tables

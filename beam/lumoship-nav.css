@@ -1,0 +1,71 @@
+/* ============================================================================
+   LUMOSHIP TOP BAR — the standard for every tool (single source: Apps/_standart)
+   Light bar: logo · TOOL NAME · ← Workspace · account. Copy this file unchanged
+   into the tool (tool/lumoship-nav.css) and use the markup in lumoship-nav.html.
+   Fixed height 44 px (--lumoship-nav-h), so tools can offset full-height layouts.
+   ============================================================================ */
+:root { --lumoship-nav-h: 44px; }
+
+.lumoship-nav {
+  position: sticky; top: 0; z-index: 10000;
+  height: var(--lumoship-nav-h); box-sizing: border-box;
+  padding: 0 1.25rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+.lumoship-nav-inner {
+  height: 100%; max-width: none; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.nav-left, .nav-right { display: flex; align-items: center; }
+.nav-right { gap: clamp(0.75rem, 1.5vw, 1.25rem); }
+
+.lumoship-nav-logo { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; transition: opacity 200ms; }
+.lumoship-nav-logo:hover { opacity: 0.85; }
+.lumoship-nav-logo-mark {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace; font-weight: 700; font-size: 0.9rem; color: #fff;
+}
+.lumoship-nav-logo-text { font-family: 'Inter', system-ui, sans-serif; font-size: 0.95rem; font-weight: 600; color: #0f172a; letter-spacing: 0.06em; }
+
+/* the tool's name, next to the logo */
+.nav-context {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase;
+  color: #64748b; padding-left: clamp(0.75rem, 1.5vw, 1rem); margin-left: clamp(0.75rem, 1.5vw, 1rem); border-left: 1px solid #e2e8f0;
+}
+
+.nav-back {
+  color: #475569; text-decoration: none; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 0.4rem; transition: color 200ms;
+}
+.nav-back:hover { color: #0f172a; }
+.nav-back-arrow { font-size: 1em; }
+
+/* account: avatar or initial + name; Sign in when signed out */
+.user-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.25rem 0.7rem 0.25rem 0.25rem; border-radius: 999px;
+  background: rgba(37, 99, 235, 0.06); border: 1px solid rgba(37, 99, 235, 0.25);
+  color: #0f172a; text-decoration: none; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; transition: all 200ms;
+}
+.user-badge:hover { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.4); }
+.user-badge-avatar {
+  width: 22px; height: 22px; border-radius: 50%; overflow: hidden;
+  background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.7rem; color: #fff; letter-spacing: -0.02em;
+}
+.user-badge-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-badge-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-badge-login { padding: 0.35rem 0.9rem; background: #2563eb; border-color: #2563eb; color: #fff; }
+.user-badge-login:hover { background: #1d4ed8; border-color: #1d4ed8; }
+
+.lumoship-nav-links, .lumoship-nav-link, .lumoship-breadcrumb { display: none; }
+
+@media (max-width: 640px) {
+  .nav-back-text, .user-badge-name, .nav-context { display: none; }
+}
