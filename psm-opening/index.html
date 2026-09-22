@@ -1,6 +1,6 @@
 <!--
 ================================================================================
-    PSM OPENING CHECKER  v2.3  —  Lumoship / EA Engineering Tools
+    PSM OPENING CHECKER  v2.4  —  Lumoship / EA Engineering Tools
 ================================================================================
     Openings (manholes, lightening holes) in primary supporting member webs.
     Rule basis, DNV-RU-SHIP July 2026 edition:
@@ -195,7 +195,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
         <button class="ea-header-btn" onclick="saveJSON()">Save</button>
         <label class="ea-header-btn">Load<input type="file" accept=".json" class="hidden-input" onchange="loadJSON(event)"></label>
         <button class="ea-header-btn primary" onclick="exportPDF()">PDF</button>
-        <span class="ea-header-badge">v2.3</span>
+        <span class="ea-header-badge">v2.4</span>
       </div>
     </div>
     <nav class="ea-wizard">
@@ -482,13 +482,14 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
 
     <div class="ea-panel">
       <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Beam by beam</span><span class="rule-ref" style="margin-left:auto" id="beamTableRef"></span></div>
+      <div style="padding:6px var(--sp-lg) 0"><p class="ea-info-text" style="margin:0" id="beamHint">Click a column heading to sort, click a row to open that beam in the opening layout.</p></div>
       <div class="ea-panel-body scroll-x">
         <table class="ea-table">
           <thead><tr>
-            <th>Beam</th><th>Section</th><th>h_w</th><th>h_eff</th><th>R_eH</th>
-            <th>&tau;</th><th>&tau;_net</th><th>UC shear</th>
-            <th>&sigma;</th><th>&sigma;_net</th><th>UC bend</th>
-            <th>h_o max</th><th>[7.2.3]</th><th>Status</th>
+            <th data-k="name">Beam</th><th data-k="section">Section</th><th data-k="hw">h_w</th><th data-k="hEff">h_eff</th><th data-k="ReH">R_eH</th>
+            <th data-k="tau">&tau;</th><th data-k="tauNet">&tau;_net</th><th data-k="ucS">UC shear</th>
+            <th data-k="sig">&sigma;</th><th data-k="sigNet">&sigma;_net</th><th data-k="ucB">UC bend</th>
+            <th data-k="hoMax">h_o max</th><th data-k="geom">[7.2.3]</th><th data-k="status">Status</th>
           </tr></thead>
           <tbody id="beamBody"></tbody>
         </table>
@@ -756,7 +757,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
 </div>
 
 <footer class="ea-footer">
-  <div>PSM Opening Checker v2.3 &mdash; Lumoship</div>
+  <div>PSM Opening Checker v2.4 &mdash; Lumoship</div>
   <div class="rule-ref">DNV-RU-SHIP Pt.3 Ch.3 Sec.6 [7.2]/[7.3] &middot; Sec.7 [1.4.6]&ndash;[1.4.7] &middot; Ch.6 Sec.6 [2.1.2]/[2.2.2] &middot; Ch.8 Sec.2 [5.1.1]/[7.1] &middot; CG-0128 Sec.3 [3.4]</div>
 </footer>
 
@@ -1192,7 +1193,64 @@ function ucCell(uc) {
   return '<span class="tag ' + c + '">' + uc.toFixed(2) + '</span><div class="uc-bar"><span class="' + c + '" style="width:' + Math.min(100, uc * 100).toFixed(0) + '%"></span></div>';
 }
 
+/* table sorting: a display order of its own, the underlying results keep the
+   order the rest of the page relies on */
+let beamSort = { k: 'uc', dir: -1 };
+function sortedResults() {
+  const val = (r, k) => {
+    switch (k) {
+      case 'name': return r.name;
+      case 'section': return r.section || '';
+      case 'status': return r.status;
+      case 'hw': return r.dim.hw;
+      case 'hEff': return r.props.hEff;
+      case 'geom': return r.geom.ok ? 0 : r.geom.msgs.length;
+      case 'uc': return Math.max(r.ucS, r.ucB);
+      default: return r[k];
+    }
+  };
+  const k = beamSort.k, d = beamSort.dir;
+  return results.slice().sort((a, b) => {
+    const x = val(a, k), y = val(b, k);
+    if (typeof x === 'string' || typeof y === 'string') {
+      return String(x).localeCompare(String(y), undefined, { numeric: true }) * d;
+    }
+    return ((x || 0) - (y || 0)) * d;
+  });
+}
+
+function wireBeamTable() {
+  if (document.__beamTableWired) return;
+  document.__beamTableWired = true;
+  document.querySelectorAll('#page-3 thead th[data-k]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.title = 'Sort by this column';
+    th.addEventListener('click', function () {
+      const k = th.getAttribute('data-k');
+      if (beamSort.k === k) beamSort.dir = -beamSort.dir;
+      else beamSort = { k: k, dir: (k === 'name' || k === 'section' || k === 'status') ? 1 : -1 };
+      renderBeams();
+    });
+  });
+  $('beamBody').addEventListener('click', function (e) {
+    const tr = e.target.closest('tr[data-beam]');
+    if (!tr) return;
+    const name = tr.getAttribute('data-beam');
+    if (selectBeam(name)) { goToPage(4); return; }
+    const r = results.find(x => x.name === name);
+    flashHint(name + ' is ' + (r && r.L != null ? fmt(r.L, 2) + ' mm long' : 'shorter than 50 mm') +
+              ' - a sliver in the model, not a member an opening can be laid out in. Its stresses are still in this table.');
+  });
+}
+
 function renderBeams() {
+  wireBeamTable();
+  document.querySelectorAll('#page-3 thead th[data-k]').forEach(th => {
+    const k = th.getAttribute('data-k');
+    const base = th.textContent.replace(/\s*[\u25B2\u25BC]$/, '');
+    th.textContent = base + (beamSort.k === k ? (beamSort.dir > 0 ? ' \u25B2' : ' \u25BC') : '');
+    th.style.color = beamSort.k === k ? 'var(--accent)' : '';
+  });
   const tb = $('beamBody');
   if (!results.length) {
     tb.innerHTML = '<tr><td colspan="14" style="color:var(--text-muted)">Load the XML files, or tick the manual beam on the input page.</td></tr>';
@@ -1206,8 +1264,9 @@ function renderBeams() {
     '  |  C_s ' + coeff.Cs.toFixed(3) + '  |  ' + ($('scantlingBasis').value === 'n50' ? 'net n50' : 'gross') +
     (num('cutoutDeduct', 0) > 0 ? '  |  cut-out ' + fmt(num('cutoutDeduct', 0), 0) + ' mm' : '');
 
-  tb.innerHTML = results.map(r =>
-    '<tr id="row-' + rowId(r.name) + '">' +
+  const sel = $('layoutBeam') ? $('layoutBeam').value : null;
+  tb.innerHTML = sortedResults().map(r =>
+    '<tr id="row-' + rowId(r.name) + '" data-beam="' + esc(r.name) + '" style="cursor:pointer' + (r.name === sel ? ';background:rgba(37,99,235,0.07)' : '') + '" title="Open ' + esc(r.name) + ' in the opening layout">' +
     '<td class="name">' + esc(r.name) + (r.sliver ? ' <span class="tag info" title="beam shorter than 50 mm - a modelling sliver, not a real member">sliver</span>' : '') + '</td><td>' + esc(r.section || '-') + '</td>' +
     '<td>' + fmt(r.dim.hw, 0) + '</td><td>' + fmt(r.props.hEff, 0) + '</td><td>' + fmt(r.ReH, 0) + '</td>' +
     '<td>' + fmt(r.tau, 1) + '</td><td>' + fmt(r.tauNet, 1) + '</td><td>' + ucCell(r.ucS) + '</td>' +
@@ -1250,9 +1309,19 @@ function renderBeams() {
    -------------------------------------------------------------------------- */
 function rowId(name) { return String(name).replace(/[^A-Za-z0-9_-]/g, ''); }
 
+const BEAM_HINT = 'Click a column heading to sort, click a row to open that beam in the opening layout.';
+function flashHint(msg) {
+  const el = $('beamHint'); if (!el) return;
+  el.textContent = msg;
+  el.style.color = 'var(--warning)';
+  clearTimeout(window.__hintT);
+  window.__hintT = setTimeout(function () { el.textContent = BEAM_HINT; el.style.color = ''; }, 5000);
+}
+
 function selectBeam(name) {
   const sel = $('layoutBeam');
-  if (!sel || !name) return;
+  if (!sel || !name) return false;
+  if (!Array.prototype.some.call(sel.options, o => o.value === name)) return false;   // sliver: not in the layout list
   sel.value = name;
   fillLayoutBeams();          // length and end clearance belong to the new beam
   renderLayout(); renderDetails(); drawPlan();
@@ -1264,6 +1333,7 @@ function selectBeam(name) {
     row.style.backgroundColor = 'rgba(37,99,235,0.16)';
     setTimeout(function () { row.style.backgroundColor = ''; }, 1500);
   }
+  return true;
 }
 
 function drawPlan() {
@@ -1834,7 +1904,7 @@ function offerFile(filename, data, mime) {
 }
 
 function saveJSON() {
-  const data = { tool: 'PSM Opening Checker', version: '2.3', saved: new Date().toISOString(), fields: {} };
+  const data = { tool: 'PSM Opening Checker', version: '2.4', saved: new Date().toISOString(), fields: {} };
   FIELDS.forEach(id => { const el = $(id); if (el) data.fields[id] = el.type === 'checkbox' ? el.checked : el.value; });
   offerFile(($('projectNumber').value || 'PSM') + '_opening_check.json',
             JSON.stringify(data, null, 2), 'application/json');
