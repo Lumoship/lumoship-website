@@ -295,17 +295,8 @@ function closeAsk() {
 }
 
 function paintAskEmpty() {
-  const egs = [
-    'Hangi durumlarda insert plate gerekli?',
-    'What is the minimum plate keel breadth for a 24 m steel craft?',
-    'Balast tanklarinin korozyon korumasi hangi maddelerde duzenleniyor?'
-  ];
   document.querySelector('#askLog').innerHTML =
-    '<div class="ask-empty">Ask a question about the rule books in your library. ' +
-    'The answer is written only from clauses the search finds, and each one is cited. ' +
-    'Ask in any language — the search itself is always run in English.' +
-    egs.map(e => '<button class="eg" data-eg="' + esc(e) + '">' + esc(e) + '</button>').join('') +
-    '</div>';
+    '<div class="ask-empty">Ask in your own language — the answer comes back in it, built only from cited clauses.</div>';
 }
 
 /* ── very small markdown + citation renderer ── */

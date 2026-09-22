@@ -46,7 +46,7 @@ const S = {
 /* ══════════════════════════════ boot ══════════════════════════════ */
 
 async function boot() {
-  applyTheme(LS.get('theme', 'dark'));
+  applyTheme(LS.get('theme', 'light'));   // first visit opens light; the toggle is remembered
   S.scope = LS.get('scope', 'book');
   bindGlobal();
   progress(20);
