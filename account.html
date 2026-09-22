@@ -12,28 +12,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+        :root { color-scheme: light; }
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #0f141f;
-            --bg-tertiary: #161c2a;
-            --bg-card: #0d1220;
-            --bg-elevated: #131927;
-            --accent: #3b82f6;
-            --accent-hover: #60a5fa;
-            --accent-glow: rgba(59, 130, 246, 0.12);
-            --accent-subtle: rgba(59, 130, 246, 0.06);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fb;
+            --bg-tertiary: #eef2f7;
+            --bg-card: #ffffff;
+            --bg-elevated: #f9fafc;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-glow: rgba(37, 99, 235, 0.10);
+            --accent-subtle: rgba(37, 99, 235, 0.06);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
             --text-muted: #64748b;
-            --text-dim: #475569;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --text-dim: #94a3b8;
+            --success: #059669;
+            --warning: #b45309;
             --error: #ef4444;
-            --border: #1e2536;
-            --border-light: #252d40;
-            --border-accent: rgba(59, 130, 246, 0.25);
+            --border: #e2e8f0;
+            --border-light: #cbd5e1;
+            --border-accent: rgba(37, 99, 235, 0.30);
             --font-display: 'JetBrains Mono', 'Fira Code', monospace;
             --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
@@ -67,8 +68,8 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background-image: 
-                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+                linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
             background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
             mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
             -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
@@ -79,7 +80,7 @@
         .nav {
             position: sticky;
             top: 0;
-            background: rgba(10, 14, 23, 0.75);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: saturate(180%) blur(20px);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid var(--border);
@@ -330,14 +331,14 @@
         
         .btn-danger {
             background: transparent;
-            color: #fca5a5;
+            color: #b91c1c;
             border-color: rgba(239, 68, 68, 0.25);
         }
         
         .btn-danger:hover {
             background: rgba(239, 68, 68, 0.08);
             border-color: rgba(239, 68, 68, 0.4);
-            color: #fecaca;
+            color: #991b1b;
         }
         
         /* STATS GRID */
@@ -435,7 +436,7 @@
         .tool-card.clickable:hover {
             border-color: var(--border-accent);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
         }
         
         .tool-card.disabled {

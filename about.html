@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+        :root { color-scheme: light; }
 
         *, *::before, *::after {
             margin: 0;
@@ -21,29 +22,29 @@
         
         :root {
             /* Colors - more refined */
-            --bg-primary:    #0a0e17;
-            --bg-secondary:  #0f141f;
-            --bg-tertiary:   #161c2a;
-            --bg-card:       #0d1220;
-            --bg-elevated:   #131927;
+            --bg-primary:    #ffffff;
+            --bg-secondary:  #f6f8fb;
+            --bg-tertiary:   #eef2f7;
+            --bg-card:       #ffffff;
+            --bg-elevated:   #f9fafc;
             
-            --accent:        #3b82f6;
-            --accent-hover:  #60a5fa;
-            --accent-bright: #60a5fa;
-            --accent-glow:   rgba(59, 130, 246, 0.12);
-            --accent-subtle: rgba(59, 130, 246, 0.06);
+            --accent:        #2563eb;
+            --accent-hover:  #1d4ed8;
+            --accent-bright: #3b82f6;
+            --accent-glow:   rgba(37, 99, 235, 0.10);
+            --accent-subtle: rgba(37, 99, 235, 0.06);
             
-            --text-primary:  #f8fafc;
-            --text-secondary:#94a3b8;
+            --text-primary:  #0f172a;
+            --text-secondary:#475569;
             --text-muted:    #64748b;
-            --text-dim:      #475569;
+            --text-dim:      #94a3b8;
             
-            --success:       #10b981;
-            --warning:       #f59e0b;
+            --success:       #059669;
+            --warning:       #b45309;
             
-            --border:        #1e2536;
-            --border-light:  #252d40;
-            --border-accent: rgba(59, 130, 246, 0.25);
+            --border:        #e2e8f0;
+            --border-light:  #cbd5e1;
+            --border-accent: rgba(37, 99, 235, 0.30);
             
             --font-display:  'JetBrains Mono', 'Fira Code', monospace;
             --font-body:     'Inter', 'Segoe UI', system-ui, sans-serif;
@@ -101,8 +102,8 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background-image: 
-                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+                linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
             background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
             mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
             -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
@@ -114,7 +115,7 @@
         .nav {
             position: sticky;
             top: 0;
-            background: rgba(10, 14, 23, 0.75);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: saturate(180%) blur(20px);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid var(--border);
@@ -271,16 +272,13 @@
         
         .nav-mobile-menu {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 14, 23, 0.96);
+            position: absolute;   /* the nav's backdrop-filter makes it the containing block: fixed would be sized to the bar */
+            top: 100%; left: 0; right: 0; height: 100vh;
+            background: var(--bg-primary);
             backdrop-filter: saturate(180%) blur(20px);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             z-index: 99;
-            padding: 5rem 1.5rem 2rem;
+            padding: 1rem 1.5rem 2rem;
             flex-direction: column;
             gap: 0.5rem;
         }
@@ -818,7 +816,7 @@
                         <div class="pillar-content">
                             <h3 class="pillar-title">Structural Analysis</h3>
                             <p class="pillar-text">
-                                Beam-based analysis for ship structures. Grillage solver for hatch covers, decks, bulkheads, and stiffened panels — built on classical Timoshenko beam theory.
+                                Beam and grillage analysis for ship structures — BeamCore for single members, LumoStruct for hatch covers, decks, bulkheads and stiffened panels, SectionPro for the section properties behind them.
                             </p>
                         </div>
                     </div>
@@ -828,7 +826,7 @@
                         <div class="pillar-content">
                             <h3 class="pillar-title">Rule-Based Design</h3>
                             <p class="pillar-text">
-                                Class society compliance and scantling calculations. Midship section design tools, scantling check modules, and rule-based calculations for DNV, LR, BV, and RINA.
+                                Class rules, applied. ClauseFinder reads the DNV, LR, BV and FSICR rule books; LoadPoint gives the design loads at a point; Midship Scantling designs the section to LR. BV NR467 and NR615 modules are next.
                             </p>
                         </div>
                     </div>
@@ -959,10 +957,14 @@
             </div>
             
             <div>
-                <div class="footer-column-title">What we build</div>
-                <a href="/products.html#structural-analysis" class="footer-link">Structural Analysis</a>
-                <a href="/products.html#rule-based-design" class="footer-link">Rule-Based Design</a>
-                <a href="/products.html#parametric-modeling" class="footer-link">Parametric Modeling</a>
+                <div class="footer-column-title">Tools</div>
+                <a href="/beam/" class="footer-link">BeamCore</a>
+                <a href="/sectionpro/" class="footer-link">SectionPro</a>
+                <a href="/lumostruct/" class="footer-link">LumoStruct</a>
+                <a href="/clausefinder/" class="footer-link">ClauseFinder</a>
+                <a href="/loadpoint/" class="footer-link">LoadPoint</a>
+                <a href="/midship/" class="footer-link">Midship Scantling</a>
+                <a href="/products.html" class="footer-link">All products</a>
             </div>
             
             <div>

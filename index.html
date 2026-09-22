@@ -83,6 +83,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+        :root { color-scheme: light; }
 
         *, *::before, *::after {
             margin: 0;
@@ -92,29 +93,29 @@
         
         :root {
             /* Colors - more refined */
-            --bg-primary:    #0a0e17;
-            --bg-secondary:  #0f141f;
-            --bg-tertiary:   #161c2a;
-            --bg-card:       #0d1220;
-            --bg-elevated:   #131927;
+            --bg-primary:    #ffffff;
+            --bg-secondary:  #f6f8fb;
+            --bg-tertiary:   #eef2f7;
+            --bg-card:       #ffffff;
+            --bg-elevated:   #f9fafc;
             
-            --accent:        #3b82f6;
-            --accent-hover:  #60a5fa;
-            --accent-bright: #60a5fa;
-            --accent-glow:   rgba(59, 130, 246, 0.12);
-            --accent-subtle: rgba(59, 130, 246, 0.06);
+            --accent:        #2563eb;
+            --accent-hover:  #1d4ed8;
+            --accent-bright: #3b82f6;
+            --accent-glow:   rgba(37, 99, 235, 0.10);
+            --accent-subtle: rgba(37, 99, 235, 0.06);
             
-            --text-primary:  #f8fafc;
-            --text-secondary:#94a3b8;
+            --text-primary:  #0f172a;
+            --text-secondary:#475569;
             --text-muted:    #64748b;
-            --text-dim:      #475569;
+            --text-dim:      #94a3b8;
             
-            --success:       #10b981;
-            --warning:       #f59e0b;
+            --success:       #059669;
+            --warning:       #b45309;
             
-            --border:        #1e2536;
-            --border-light:  #252d40;
-            --border-accent: rgba(59, 130, 246, 0.25);
+            --border:        #e2e8f0;
+            --border-light:  #cbd5e1;
+            --border-accent: rgba(37, 99, 235, 0.30);
             
             --font-display:  'JetBrains Mono', 'Fira Code', monospace;
             --font-body:     'Inter', 'Segoe UI', system-ui, sans-serif;
@@ -172,8 +173,8 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background-image: 
-                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+                linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
             background-size: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px);
             mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
             -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 25%, black 30%, transparent 80%);
@@ -185,7 +186,7 @@
         .nav {
             position: sticky;
             top: 0;
-            background: rgba(10, 14, 23, 0.75);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: saturate(180%) blur(20px);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid var(--border);
@@ -343,16 +344,13 @@
         
         .nav-mobile-menu {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 14, 23, 0.96);
+            position: absolute;   /* the nav's backdrop-filter makes it the containing block: fixed would be sized to the bar */
+            top: 100%; left: 0; right: 0; height: 100vh;
+            background: var(--bg-primary);
             backdrop-filter: saturate(180%) blur(20px);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             z-index: 99;
-            padding: 5rem 1.5rem 2rem;
+            padding: 1rem 1.5rem 2rem;
             flex-direction: column;
             gap: 0.5rem;
         }
@@ -594,7 +592,7 @@
             opacity: 0.35;
             pointer-events: none;
             z-index: 0;
-            filter: invert(1) brightness(1.2);
+            filter: none;
         }
         
         .hero > * {
@@ -682,6 +680,30 @@
             margin: 0 auto;
         }
         
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+            gap: clamp(1rem, 1.5vw, 1.25rem);
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .tool-card {
+            display: flex; flex-direction: column; gap: 0.75rem;
+            padding: clamp(1.25rem, 2vw, 1.6rem);
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+            text-decoration: none; color: inherit; transition: all var(--transition);
+        }
+        .tool-card:hover { border-color: var(--border-accent); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06); transform: translateY(-2px); }
+        .tool-card-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+        .tool-card-name { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+        .tool-card-status { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; white-space: nowrap; }
+        .tool-card-status.live { color: var(--success); border: 1px solid rgba(5, 150, 105, 0.30); background: rgba(5, 150, 105, 0.08); }
+        .tool-card-status.beta { color: var(--warning); border: 1px solid rgba(180, 83, 9, 0.30); background: rgba(180, 83, 9, 0.08); }
+        .tool-card-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.55; flex: 1; }
+        .tool-card-cta { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--accent); }
+        .tool-card-cta span { transition: transform var(--transition); display: inline-block; }
+        .tool-card:hover .tool-card-cta span { transform: translateX(3px); }
+
         .category-card {
             padding: clamp(1.5rem, 2.5vw, 2rem);
             background: var(--bg-card);
@@ -793,7 +815,7 @@
         
         .view-all-link:hover {
             gap: 0.75rem;
-            color: #93c5fd;
+            color: var(--accent);
         }
         
         /* TRUST */
@@ -942,94 +964,87 @@
                 <span class="accent">built for modern teams.</span>
             </h1>
             <p class="hero-subtitle">
-                A comprehensive software suite for marine structural engineering — from concept design to class-compliant analysis.
+                Browser tools for marine structural engineering &mdash; beam and grillage analysis, section properties,
+                rule-book search and rule-based scantlings for DNV, LR and BV.
             </p>
         </section>
         
-        <section class="categories">
-            <p class="section-label">What we're building</p>
-            <h2 class="section-title">Four pillars of structural engineering software</h2>
+        <section class="categories" id="tools">
+            <p class="section-label">In the workspace</p>
+            <h2 class="section-title">Six tools, one browser tab away</h2>
             <p class="section-subtitle">
-                Some tools are live today, others are in active development. We're building toward a complete workflow, one capability at a time.
+                Beam and grillage analysis, section properties, rule-book search, local loads and midship scantlings.
+                No install, no licence server &mdash; sign in only to keep your projects.
             </p>
-            
-            <div class="categories-grid">
-                
-                <div class="category-card">
-                    <div class="category-card-header">
-                        <h3 class="category-title">Structural Analysis</h3>
-                    </div>
-                    <p class="category-tagline">Beam analysis and grillage solvers for ship structures.</p>
-                    <p class="category-description">
-                        From single-span beam analysis (BeamCore) to multi-element grillage solvers (LumoStruct). Built on classical beam theory with marine-grade materials and multi-load case support.
-                    </p>
-                    <div class="category-status">
-                        <span class="category-status-dot active"></span>
-                        <span>BeamCore live · LumoStruct beta</span>
-                    </div>
-                </div>
-                
-                <div class="category-card">
-                    <div class="category-card-header">
-                        <h3 class="category-title">Rule-Based Design</h3>
-                    </div>
-                    <p class="category-tagline">Class society compliance and scantling calculations.</p>
-                    <p class="category-description">
-                        Midship section design tools, scantling check modules, and rule-based calculations for DNV, LR, BV, and RINA. Plus a library of supporting utilities for everyday engineering work.
-                    </p>
-                    <div class="category-status">
-                        <span class="category-status-dot active"></span>
-                        <span>First tools live · Suite expanding through 2026</span>
-                    </div>
-                </div>
-                
-                <div class="category-card">
-                    <div class="category-card-header">
-                        <h3 class="category-title">Drafting</h3>
-                    </div>
-                    <p class="category-tagline">2D drawing in the browser, no install.</p>
-                    <p class="category-description">
-                        A drafting board that opens in a tab (LumoCAD). Draw, dimension and annotate, then take the drawing out as DXF or PDF &mdash; the same file your yard and class surveyor already read.
-                    </p>
-                    <div class="category-status">
-                        <span class="category-status-dot active"></span>
-                        <span>LumoCAD beta</span>
-                    </div>
-                </div>
 
-                <div class="category-card">
-                    <div class="category-card-header">
-                        <h3 class="category-title">Parametric Modeling</h3>
+            <div class="tools-grid">
+                <a href="/beam/" class="tool-card">
+                    <div class="tool-card-header">
+                        <h3 class="tool-card-name">BeamCore</h3>
+                        <span class="tool-card-status live">Live</span>
                     </div>
-                    <p class="category-tagline">Rapid structural modeling, integrated with CAD.</p>
-                    <p class="category-description">
-                        A Rhino-integrated plugin for parametric hull and structural modeling — generate analysis-ready models in minutes, not days. The bridge between geometry and analysis.
-                    </p>
-                    <div class="category-status">
-                        <span class="category-status-dot planned"></span>
-                        <span>Planned · 2026 roadmap</span>
+                    <p class="tool-card-desc">Beam analysis with a direct-stiffness solver. EN 10067 sections, marine load presets, PDF report.</p>
+                    <div class="tool-card-cta">Open <span>&rarr;</span></div>
+                </a>
+                <a href="/sectionpro/" class="tool-card">
+                    <div class="tool-card-header">
+                        <h3 class="tool-card-name">SectionPro</h3>
+                        <span class="tool-card-status live">Live</span>
                     </div>
-                </div>
-                
+                    <p class="tool-card-desc">Section properties of built-up marine sections. HP, L, T and FB profiles from one catalogue.</p>
+                    <div class="tool-card-cta">Open <span>&rarr;</span></div>
+                </a>
+                <a href="/lumostruct/" class="tool-card">
+                    <div class="tool-card-header">
+                        <h3 class="tool-card-name">LumoStruct</h3>
+                        <span class="tool-card-status beta">Beta</span>
+                    </div>
+                    <p class="tool-card-desc">Grillage and frame analysis. 3D FEM solver, Timoshenko beams, EN 10067 sections.</p>
+                    <div class="tool-card-cta">Open <span>&rarr;</span></div>
+                </a>
+                <a href="/clausefinder/" class="tool-card">
+                    <div class="tool-card-header">
+                        <h3 class="tool-card-name">ClauseFinder</h3>
+                        <span class="tool-card-status beta">Beta</span>
+                    </div>
+                    <p class="tool-card-desc">Rule-book reader for DNV, LR, BV and FSICR. Full-text and semantic clause search, answers grounded in the clauses.</p>
+                    <div class="tool-card-cta">Open <span>&rarr;</span></div>
+                </a>
+                <a href="/loadpoint/" class="tool-card">
+                    <div class="tool-card-header">
+                        <h3 class="tool-card-name">LoadPoint</h3>
+                        <span class="tool-card-status beta">Beta</span>
+                    </div>
+                    <p class="tool-card-desc">Design pressures, accelerations and plate / stiffener checks at a point. DNV, BV NR467, LR SSC, LR Ships.</p>
+                    <div class="tool-card-cta">Open <span>&rarr;</span></div>
+                </a>
+                <a href="/midship/" class="tool-card">
+                    <div class="tool-card-header">
+                        <h3 class="tool-card-name">Midship Scantling</h3>
+                        <span class="tool-card-status beta">Beta</span>
+                    </div>
+                    <p class="tool-card-desc">Midship section design to LR rules: ship data, frame table, cross sections, strakes, stiffeners, compartments, rule check.</p>
+                    <div class="tool-card-cta">Open <span>&rarr;</span></div>
+                </a>
             </div>
-            
+
             <p class="feedback-note">
-                Driven by feedback from naval architects, design offices, and shipyards.<br>
-                Tool priorities reflect real industry demand.
+                Coming next: LumoCAD &middot; NR467 Scantlings &middot; NR615 Buckling &middot; ShipStruct Modeler.<br>
+                Priorities follow feedback from naval architects, design offices and shipyards.
             </p>
-            
+
             <div class="view-all-wrapper">
-                <a href="/products.html" class="view-all-link">
-                    Explore our products
+                <a href="/workspace.html" class="view-all-link">
+                    Open the workspace
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
                 </a>
             </div>
         </section>
-        
+
         <section class="trust">
-            <p class="trust-label">Built with multi-class experience</p>
+            <p class="trust-label">Rules covered</p>
             <div class="trust-items">
                 <span>DNV</span>
                 <span class="trust-divider">·</span>
@@ -1037,7 +1052,7 @@
                 <span class="trust-divider">·</span>
                 <span>Bureau Veritas</span>
                 <span class="trust-divider">·</span>
-                <span>RINA</span>
+                <span>FSICR</span>
             </div>
         </section>
         
@@ -1067,10 +1082,14 @@
             </div>
             
             <div>
-                <div class="footer-column-title">What we build</div>
-                <a href="/products.html#structural-analysis" class="footer-link">Structural Analysis</a>
-                <a href="/products.html#rule-based-design" class="footer-link">Rule-Based Design</a>
-                <a href="/products.html#parametric-modeling" class="footer-link">Parametric Modeling</a>
+                <div class="footer-column-title">Tools</div>
+                <a href="/beam/" class="footer-link">BeamCore</a>
+                <a href="/sectionpro/" class="footer-link">SectionPro</a>
+                <a href="/lumostruct/" class="footer-link">LumoStruct</a>
+                <a href="/clausefinder/" class="footer-link">ClauseFinder</a>
+                <a href="/loadpoint/" class="footer-link">LoadPoint</a>
+                <a href="/midship/" class="footer-link">Midship Scantling</a>
+                <a href="/products.html" class="footer-link">All products</a>
             </div>
             
             <div>
