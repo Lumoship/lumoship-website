@@ -1103,7 +1103,7 @@ function divideSegment(start, end, targetSpacing) {
 let spacingWarnings = [];  // Populated by computeProfiles, displayed in the editor
 
   // ════════════════════════════════════════════════════════════════════════
-  // EXCEL DEFAULT VALUES (Wagenborg Baltic Laker GC midship 2026-04-29)
+  // EXCEL DEFAULT VALUES (example general cargo midship, 2026-04-29)
   // -----------------------------------------------------------------------
   // Imported from final optimized state. Applied AFTER algorithmic seed so
   // the profile lists / strake widths reflect the as-built design rather
@@ -1141,7 +1141,7 @@ let spacingWarnings = [];  // Populated by computeProfiles, displayed in the edi
       { y: 11260, profileName: 'FB 185x13' },
     ],
     sideShell: [
-      // Synced from Excel export (Wagenborg Baltic Laker GC, 2026-05-15).
+      // Synced from Excel export (example general cargo midship, 2026-05-15).
       // Variant 1B reference (43 raw rows in Excel; dedup'd to 31 unique z's
       // — the Excel duplicates were an export quirk where each ice
       // intermediate row appeared twice with the same z).
@@ -1184,7 +1184,7 @@ let spacingWarnings = [];  // Populated by computeProfiles, displayed in the edi
       { z: 14700, profileName: 'FB 160x11' },
     ],
     innerSide: [
-      // Synced from Excel export (Wagenborg Baltic Laker GC, 2026-05-15).
+      // Synced from Excel export (example general cargo midship, 2026-05-15).
       // Variant 1B reference. Variant 2A keeps the same list but the 2A
       // override block below removes z=10435 and z=11665 (replaced by
       // extra stringer plates).

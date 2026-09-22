@@ -1,7 +1,7 @@
 // =========================================================================
 //  95-project.js  —  Project lifecycle: New / Save / Restore / Example
 //
-//  Everything this app boots with today is the "Wagenborg Baltic Laker GC"
+//  The built-in example ship (an anonymised general cargo midship) lives as
 //  project, written as literals in 10-draw.js (GEOMETRY, PARAMS,
 //  SIDE_GIRDERS, COMPARTMENTS, PLATE_THICKNESS, WT_FLAGS) and as value=""
 //  attributes in index.html (142 form inputs). That made the tool a viewer
@@ -709,7 +709,7 @@
   // "load the example" is just: forget the autosave and start over.
   var EXAMPLE_FLAG = LS_KEY + ':example';
   function loadExample() {
-    if (!confirm('Discard the current project and load the built-in example (Wagenborg Baltic Laker GC)?\n\nAnything not saved to a .json file will be lost.')) return;
+    if (!confirm('Discard the current project and load the built-in example ship?\n\nAnything not saved to a .json file will be lost.')) return;
     clearLocal();
     try { localStorage.setItem(EXAMPLE_FLAG, '1'); } catch (e) {}   // one launch with the code defaults
     location.reload();
@@ -912,6 +912,31 @@
 
     var saved = loadLocal();
     if (!saved) { blankStart(); return; }   // nothing saved: the empty project, not the built-in example
+
+    // ESKI ORNEK KAYDI: eski surumler ornek gemiyle aciliyordu ve otomatik
+    // kayit onu diske yaziyordu; o tarayicilarda her acilista ayni gemi geri
+    // geliyor (olculdu 23 Eylul 2026: lumoship.org/midship'te 55 KB'lik kayit,
+    // vesselName = eski ornek adi). Tam ADINA bakip yalnizca o kaydi atiyoruz -
+    // kullanicinin kendi projesi (baska bir ad) dokunulmadan durur.
+    var ESKI_ORNEK_ADI = 'Wagenborg Baltic Laker GC';
+    var kayitliAd = null;
+    try { kayitliAd = saved && saved.formValues ? saved.formValues.vesselName : null; } catch (e) {}
+    if (kayitliAd === ESKI_ORNEK_ADI) {
+      dropSaved();
+      blankStart();
+      console.log('[Project] retired example autosave dropped - starting empty');
+      // blankStart 600 ms sonra bos durumu yaziyor (importFullState sayfayi
+      // yeniden kuruyor); bildirim ondan SONRA gosterilmeli, yoksa banner
+      // temizleniyor - olculdu: 900 ms'de banner bos kaliyordu.
+      // Bildirim TOAST ile: np_pendingBanner yalnizca Setup sayfasinda
+      // gorunuyor, blankStart ise geometri sayfasinda basliyor - olculdu,
+      // banner acilmiyordu. Toast hangi sayfada olursak olalim gorunur.
+      setTimeout(function () {
+        toast('Empty project: the old built-in example was still autosaved in this browser and has been cleared.', 'info');
+      }, 1600);
+      installAutosave();
+      return;
+    }
     if (saved) {
       try { localStorage.setItem(BOOT_FLAG, '1'); } catch (e) {}
       // Restore on the geometry page so the drawing engine is live.
