@@ -2072,10 +2072,15 @@
                 const firstName = displayName.split(' ')[0];
                 
                 const avatarEl = document.getElementById('userBadgeAvatar');
+                const initial = (firstName[0] || 'U').toUpperCase();
                 if (meta.avatar_url || meta.picture) {
-                    avatarEl.innerHTML = `<img src="${meta.avatar_url || meta.picture}" alt="">`;
+                    // the picture, and the initial only if it fails to load — never both
+                    avatarEl.textContent = '';
+                    const img = document.createElement('img'); img.alt = ''; img.referrerPolicy = 'no-referrer';
+                    img.onerror = () => { avatarEl.textContent = initial; };
+                    img.src = meta.avatar_url || meta.picture; avatarEl.appendChild(img);
                 } else {
-                    avatarEl.textContent = (firstName[0] || 'U').toUpperCase();
+                    avatarEl.textContent = initial;
                 }
                 
                 document.getElementById('userBadgeName').textContent = firstName;
