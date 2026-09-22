@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DXFTrace - DXF Layers to Coordinate Tables | Lumoship</title>
+<meta name="description" content="Read a DXF drawing, pick the layers you need, set 0,0 on any snap point and export the geometry as a coordinate table (CSV, TSV, JSON) for structural models.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/app.css">
+<link rel="stylesheet" href="app/dxftrace.css">
+<link rel="stylesheet" href="lumoship-nav.css">
+</head>
+<body>
+<!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
+    <nav class="lumoship-nav">
+        <div class="lumoship-nav-inner">
+            <div class="nav-left">
+                <a href="https://lumoship.org" class="lumoship-nav-logo">
+                    <div class="lumoship-nav-logo-mark">L</div>
+                    <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+                </a>
+                <span class="nav-context">DXFTrace</span>
+            </div>
+            <div class="nav-right">
+                <a href="https://lumoship.org/workspace.html" class="nav-back">
+                    <span class="nav-back-arrow">&larr;</span>
+                    <span class="nav-back-text">Workspace</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="userBadge" class="user-badge" style="display: none;">
+                    <span id="userBadgeAvatar" class="user-badge-avatar">L</span>
+                    <span id="userBadgeName" class="user-badge-name">Account</span>
+                </a>
+                <a href="https://lumoship.org/workspace.html" id="loginBadge" class="user-badge user-badge-login" style="display: none;">
+                    <span>Sign in</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+<header class="ea-header">
+  <div class="ea-header-inner">
+    <div class="ea-header-top">
+      <div class="ea-header-left">
+        <div class="ea-brand">
+          <div class="ea-logo">D</div>
+          <div class="ea-title-group">
+            <h1>DXFTrace</h1>
+            <p>DXF layers &rarr; coordinate tables &mdash; pick the layers, set 0,0 on a snap point, export for the model</p>
+          </div>
+        </div>
+      </div>
+      <div class="ea-header-actions">
+        <span class="ea-header-badge">v0.1</span>
+        <span class="ea-header-badge" id="unitBadge" style="display:none">units: &mdash;</span>
+        <button class="ea-header-btn" onclick="DT.reset()" title="Clear the file and start again">Reset</button>
+        <button class="ea-header-btn primary" onclick="DT.gotoPage(3)" id="btnHeaderExport" disabled title="Go to the export page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+    <div class="ea-wizard">
+      <button class="ea-wizard-step active" id="step1btn" onclick="DT.gotoPage(1)"><span class="ea-wizard-num">1</span> Load DXF</button>
+      <div class="ea-wizard-line" id="line1"></div>
+      <button class="ea-wizard-step" id="step2btn" onclick="DT.gotoPage(2)" disabled><span class="ea-wizard-num">2</span> Layers &amp; origin</button>
+      <div class="ea-wizard-line" id="line2"></div>
+      <button class="ea-wizard-step" id="step3btn" onclick="DT.gotoPage(3)" disabled><span class="ea-wizard-num">3</span> Table</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ 1. LOAD ============================ -->
+<div class="ea-page active" id="page-1">
+  <div class="ea-main">
+    <div class="ea-input-layout">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><div class="ea-panel-title">DXF file</div></div>
+        <div class="ea-panel-body">
+          <div class="dxf-dropzone" id="dropzone"
+               onclick="document.getElementById('dxfFileInput').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="DT.drop(event)">
+            <span class="dxf-dropzone-icon">&#128207;</span>
+            <div class="dxf-dropzone-title">Drop a DXF file here</div>
+            <div class="dxf-dropzone-sub">or click to browse &mdash; ASCII DXF (AutoCAD R12 and newer). The file never leaves your browser.</div>
+          </div>
+          <input type="file" id="dxfFileInput" accept=".dxf" class="hidden-input" onchange="DT.pick(event)">
+          <div id="fileInfoRow" style="display:none;margin-top:12px;align-items:center;gap:10px">
+            <span class="dxf-file-badge" id="fileNameBadge"></span>
+            <span style="font-size:var(--fs-xs);color:var(--text-muted)" id="fileSizeBadge"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel" id="settingsPanel" style="display:none">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><div class="ea-panel-title">What to read</div></div>
+        <div class="ea-panel-body">
+          <div class="ea-input-row-2">
+            <div>
+              <div class="coord-grid-label">Entity types</div>
+              <div class="parse-checks">
+                <label class="parse-check"><input type="checkbox" id="chkLine" checked> LINE</label>
+                <label class="parse-check"><input type="checkbox" id="chkPoly" checked> POLYLINE / LWPOLYLINE</label>
+                <label class="parse-check"><input type="checkbox" id="chkCircle" checked> CIRCLE</label>
+                <label class="parse-check"><input type="checkbox" id="chkArc" checked> ARC</label>
+                <label class="parse-check"><input type="checkbox" id="chkPoint" checked> POINT</label>
+              </div>
+              <div class="coord-grid-label" style="margin-top:14px">Blocks</div>
+              <div class="parse-checks">
+                <label class="parse-check"><input type="checkbox" id="chkInsert" checked> Expand block references (INSERT)</label>
+              </div>
+              <small style="color:var(--text-3,var(--text-muted));font-size:var(--fs-xs);display:block;margin-top:6px">
+                Blocks are placed with their insertion point, scale and rotation. Off &rarr; block geometry is left out and reported.
+              </small>
+            </div>
+            <div>
+              <div class="coord-grid-label">Duplicate parallel lines</div>
+              <div class="parse-checks">
+                <label class="parse-check"><input type="checkbox" id="chkDedup"> Keep one line per pair</label>
+                <input type="number" id="dedupTol" value="15" min="0.001" step="1" class="ea-input" style="width:110px" title="Two parallel, overlapping lines closer than this (drawing units) count as one">
+                <span style="font-size:var(--fs-xs);color:var(--text-muted)">units apart</span>
+              </div>
+              <small style="color:var(--text-muted);font-size:var(--fs-xs);display:block;margin-top:6px">
+                A plate drawn as two lines becomes one. Direction is measured by angle, so the tolerance means the same in a millimetre and in a metre drawing.
+              </small>
+              <div class="coord-grid-label" style="margin-top:14px">Curve tessellation</div>
+              <div class="parse-checks">
+                <input type="number" id="arcSeg" value="24" min="4" max="360" step="4" class="ea-input" style="width:110px">
+                <span style="font-size:var(--fs-xs);color:var(--text-muted)">segments per full circle (polyline bulges)</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:var(--spacing-lg);flex-wrap:wrap">
+            <button class="ea-btn ea-btn-primary" onclick="DT.parse()">Read the drawing</button>
+            <button class="ea-btn" id="btn1to2" style="display:none" onclick="DT.gotoPage(2)">Layers &amp; origin &rarr;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel" id="warnPanel" style="display:none">
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><div class="ea-panel-title">What the file contains</div></div>
+        <div class="ea-panel-body"><div id="warnList" class="warn-list"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= 2. LAYERS & ORIGIN ======================= -->
+<div class="ea-page" id="page-2">
+  <div class="ea-main">
+    <div class="ea-summary-grid">
+      <div class="ea-summary-card"><div class="ea-summary-label">Layers</div><div class="ea-summary-value" id="statLayers">&mdash;</div><div class="ea-summary-sub">in the drawing</div></div>
+      <div class="ea-summary-card cyan"><div class="ea-summary-label">Segments</div><div class="ea-summary-value" id="statSegments">&mdash;</div><div class="ea-summary-sub">lines + polyline edges</div></div>
+      <div class="ea-summary-card"><div class="ea-summary-label">Curves</div><div class="ea-summary-value" id="statCurves">&mdash;</div><div class="ea-summary-sub">circles + arcs</div></div>
+      <div class="ea-summary-card"><div class="ea-summary-label">Points</div><div class="ea-summary-value" id="statPoints">&mdash;</div><div class="ea-summary-sub">POINT entities</div></div>
+    </div>
+
+    <div class="ea-input-row-2 mt-lg" style="grid-template-columns:280px 1fr">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><div class="ea-panel-title">Layers</div></div>
+        <div class="ea-panel-body" style="padding:var(--spacing-sm)">
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button class="pt-btn" onclick="DT.allLayers(true)">All</button>
+            <button class="pt-btn" onclick="DT.allLayers(false)">None</button>
+          </div>
+          <div class="layer-list" id="layerList"></div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><div class="ea-panel-title">Drawing &mdash; click a snap point to read or set 0,0</div></div>
+        <div class="dxf-canvas-toolbar">
+          <button class="dxf-zoom-btn" onclick="DT.zoom(1.25)" title="Zoom in">+</button>
+          <button class="dxf-zoom-btn" onclick="DT.zoom(0.8)" title="Zoom out">&minus;</button>
+          <button class="dxf-zoom-btn" onclick="DT.fit()" title="Fit the visible layers [F]">Fit</button>
+          <label class="snap-toggle" title="Snap to endpoints, midpoints, vertices, centres, quadrants and intersections"><input type="checkbox" id="snapChk" checked onchange="DT.snapToggle(this.checked)"> SNAP</label>
+          <span class="origin-badge" id="originBadge" style="margin-left:auto" title="Coordinates in the preview and the table are relative to this point">Origin: 0, 0</span>
+          <button class="pt-btn" id="useUcsBtn" style="display:none" onclick="DT.useUcs()">Use UCS origin</button>
+          <button class="pt-btn" onclick="DT.resetOrigin()" title="Back to raw DXF (WCS) coordinates">Raw 0,0</button>
+        </div>
+        <div class="dxf-canvas-wrap"><canvas id="dxfCanvas" width="900" height="560"></canvas></div>
+        <div class="pt-inspector">
+          <span class="pt-label">Point</span>
+          <span class="pt-kind" id="ptKind" style="display:none">&mdash;</span>
+          <span class="pt-coord" id="ptCoord">&mdash; click a snap point &mdash;</span>
+          <span class="pt-coord raw" id="ptCoordRaw"></span>
+          <button class="pt-btn" id="ptCopyBtn" style="margin-left:auto" onclick="DT.copyPoint()" disabled>Copy X,Y</button>
+          <button class="pt-btn accent" id="ptOriginBtn" onclick="DT.pointAsOrigin()" disabled title="Make this point the 0,0 of the table">Set as 0,0</button>
+        </div>
+        <div class="dxf-canvas-info">
+          <span id="canvasZoom">Zoom: 100%</span>
+          <span id="canvasCursor">Cursor: &mdash;</span>
+          <span id="canvasCount">Entities: &mdash;</span>
+          <span id="canvasSnapCount">Snap pts: &mdash;</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:var(--spacing-lg);flex-wrap:wrap">
+      <button class="ea-btn" onclick="DT.gotoPage(1)">&larr; File</button>
+      <button class="ea-btn ea-btn-primary" onclick="DT.gotoPage(3)">Table &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 3. TABLE ============================ -->
+<div class="ea-page" id="page-3">
+  <div class="ea-main">
+    <div class="ea-input-row-2" style="grid-template-columns:300px 1fr">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><div class="ea-panel-title">Layers in the table</div></div>
+        <div class="ea-panel-body" style="padding:var(--spacing-sm)">
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button class="pt-btn" onclick="DT.allExport(true)">All</button>
+            <button class="pt-btn" onclick="DT.allExport(false)">None</button>
+          </div>
+          <div class="export-layer-list" id="exportLayerList"></div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><div class="ea-panel-title">Table</div></div>
+        <div class="ea-panel-body">
+          <div class="coord-grid-label">Format</div>
+          <div class="fmt-opts" id="fmtOpts">
+            <div class="fmt-opt active" data-fmt="csv" onclick="DT.setFmt('csv',this)">CSV</div>
+            <div class="fmt-opt" data-fmt="tsv" onclick="DT.setFmt('tsv',this)">TSV</div>
+            <div class="fmt-opt" data-fmt="excel" onclick="DT.setFmt('excel',this)">Excel (tab, .txt)</div>
+            <div class="fmt-opt" data-fmt="json" onclick="DT.setFmt('json',this)">JSON</div>
+          </div>
+
+          <div class="coord-grid-label">Columns</div>
+          <div class="col-checks">
+            <label class="col-check"><input type="checkbox" id="colLayer" checked onchange="DT.preview()"> layer</label>
+            <label class="col-check"><input type="checkbox" id="colType" checked onchange="DT.preview()"> type</label>
+            <label class="col-check"><input type="checkbox" id="colX1" checked onchange="DT.preview()"> x1</label>
+            <label class="col-check"><input type="checkbox" id="colY1" checked onchange="DT.preview()"> y1</label>
+            <label class="col-check"><input type="checkbox" id="colZ1" checked onchange="DT.preview()"> z1</label>
+            <label class="col-check"><input type="checkbox" id="colX2" checked onchange="DT.preview()"> x2</label>
+            <label class="col-check"><input type="checkbox" id="colY2" checked onchange="DT.preview()"> y2</label>
+            <label class="col-check"><input type="checkbox" id="colZ2" checked onchange="DT.preview()"> z2</label>
+            <label class="col-check"><input type="checkbox" id="colLen" onchange="DT.preview()"> length</label>
+            <label class="col-check"><input type="checkbox" id="colArc" onchange="DT.preview()"> cx, cy, r, a1, a2</label>
+            <label class="col-check"><input type="checkbox" id="colSrc" onchange="DT.preview()"> source (block)</label>
+          </div>
+
+          <div class="coord-grid mt-lg">
+            <div>
+              <div class="coord-grid-label">Origin X (drawing units)</div>
+              <input type="number" id="originX" value="0" class="ea-input" oninput="DT.originFromFields()">
+            </div>
+            <div>
+              <div class="coord-grid-label">Origin Y</div>
+              <input type="number" id="originY" value="0" class="ea-input" oninput="DT.originFromFields()">
+            </div>
+            <div>
+              <div class="coord-grid-label">Scale (&times;)</div>
+              <select class="ea-select" id="scaleSel" onchange="DT.scaleChanged()">
+                <option value="1" selected>1 &mdash; keep drawing units</option>
+                <option value="0.001">0.001 &mdash; mm to m</option>
+                <option value="1000">1000 &mdash; m to mm</option>
+                <option value="25.4">25.4 &mdash; inch to mm</option>
+                <option value="custom">custom&hellip;</option>
+              </select>
+              <input type="number" id="scaleCustom" value="1" step="0.0001" class="ea-input" style="display:none;margin-top:6px" oninput="DT.preview()">
+            </div>
+          </div>
+
+          <div class="coord-grid">
+            <div>
+              <div class="coord-grid-label">Decimals</div>
+              <select class="ea-select" id="decimals" onchange="DT.preview()">
+                <option value="0">0</option><option value="1">1</option>
+                <option value="2" selected>2</option><option value="3">3</option><option value="4">4</option>
+              </select>
+            </div>
+            <div>
+              <div class="coord-grid-label">Z</div>
+              <label class="col-check" style="margin-top:8px"><input type="checkbox" id="zFix" onchange="DT.preview()"> write one Z value</label>
+              <input type="number" id="zValue" value="0" class="ea-input" style="margin-top:6px" oninput="DT.preview()">
+            </div>
+            <div>
+              <div class="coord-grid-label">One file per layer</div>
+              <label class="col-check" style="margin-top:8px"><input type="checkbox" id="splitByLayer" onchange="DT.preview()"> split into a .zip</label>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:var(--spacing-md);margin-top:var(--spacing-lg);flex-wrap:wrap">
+            <button class="ea-btn ea-btn-primary" onclick="DT.download()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+            <button class="ea-btn" onclick="DT.copyTable()">Copy to clipboard</button>
+            <span style="font-size:var(--fs-xs);color:var(--text-muted)" id="previewCount">&mdash;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ea-panel mt-lg">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><div class="ea-panel-title">Preview</div></div>
+      <div class="ea-panel-body"><div class="export-preview" id="exportPreview">Pick at least one layer.</div></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:var(--spacing-lg)">
+      <button class="ea-btn" onclick="DT.gotoPage(2)">&larr; Layers &amp; origin</button>
+    </div>
+  </div>
+</div>
+
+<footer class="ea-footer">
+  <div class="ea-footer-inner">
+    <div class="ea-footer-signature"><strong>DXFTrace</strong> &mdash; part of the Lumoship marine structural tools. Everything runs in your browser; no file is uploaded.</div>
+    <div class="ea-footer-meta">Lumoship &middot; lumoship.org</div>
+  </div>
+</footer>
+
+<div class="dt-toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app/dxf.js"></script>
+<script src="app/rows.js"></script>
+<script src="app/ui.js"></script>
+
+<!-- account badge: avatar or initial, Sign in when signed out (Supabase anon key only) -->
+<script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://mmjdgxvxtjippjktajdd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tamRneHZ4dGppcHBqa3RhamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxODczMzQsImV4cCI6MjEwNDc2MzMzNH0.yJwV6pjt5fBCR_bweiBXCi3etL0z4bQ0zXsz_Tmzen4';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    (async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userBadge = document.getElementById('userBadge');
+            const loginBadge = document.getElementById('loginBadge');
+            if (session && session.user) {
+                const user = session.user;
+                const meta = user.user_metadata || {};
+                const displayName = meta.full_name || meta.name || user.email.split('@')[0];
+                const firstName = displayName.split(' ')[0];
+                const avatarEl = document.getElementById('userBadgeAvatar');
+                const initial = (firstName[0] || 'U').toUpperCase();
+                if (meta.avatar_url || meta.picture) {
+                    avatarEl.textContent = '';
+                    const img = document.createElement('img'); img.alt = ''; img.referrerPolicy = 'no-referrer';
+                    img.onerror = () => { avatarEl.textContent = initial; };
+                    img.src = meta.avatar_url || meta.picture; avatarEl.appendChild(img);
+                } else {
+                    avatarEl.textContent = initial;
+                }
+                document.getElementById('userBadgeName').textContent = firstName;
+                userBadge.style.display = 'inline-flex';
+                loginBadge.style.display = 'none';
+            } else {
+                userBadge.style.display = 'none';
+                loginBadge.style.display = 'inline-flex';
+            }
+        } catch (err) {
+            console.warn('Auth check failed:', err);
+            document.getElementById('loginBadge').style.display = 'inline-flex';
+        }
+    })();
+</script>
+</body>
+</html>
