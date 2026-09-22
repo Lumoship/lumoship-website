@@ -1,0 +1,1950 @@
+<!--
+================================================================================
+    PSM OPENING CHECKER  v2.3  —  Lumoship / EA Engineering Tools
+================================================================================
+    Openings (manholes, lightening holes) in primary supporting member webs.
+    Rule basis, DNV-RU-SHIP July 2026 edition:
+
+      Pt.3 Ch.3 Sec.6 [7.2.1]   where openings shall be avoided
+      Pt.3 Ch.3 Sec.6 [7.2.3]   openings that need no reinforcement
+      Pt.3 Ch.3 Sec.6 [7.2.4]   reinforcement around openings
+      Pt.3 Ch.3 Sec.6 [7.3.2]   openings in shell / longitudinal bulkheads and
+                                girders: 2 x opening breadth below strength deck
+      Pt.3 Ch.3 Sec.7 [1.4.6]   effective shear area and section modulus
+      Pt.3 Ch.3 Sec.7 [1.4.7]   effective web height with web openings
+      Pt.3 Ch.6 Sec.6 [2.1.2]   required shear area, f_shr of Table 1
+      Pt.3 Ch.6 Sec.6 [2.2.2]   acceptance criteria for beam analysis, Table 2
+      Pt.3 Ch.8 Sec.2 [5.1.1]   tripping bracket spacing, Table 4
+      Pt.3 Ch.8 Sec.2 [7.1]     depth of edge stiffener in way of openings
+      Pt.3 Ch.8 Sec.1 Table 1 / DNV-CG-0128 Sec.3 [3.4]  web buckling in way of
+                                openings - inputs prepared, utilisation not
+                                computed here
+
+    v1.0 -> v2.0, the six findings of the rule review:
+      1. Cs = beta - alpha*|sig_hg|/ReH <= Cs-max is now applied; v1.0 computed
+         alpha/beta, displayed them, and then used Cs-max.
+      2. The geometric limits of [7.2.3] are checked; v1.0's "max opening"
+         could reach the full web depth.
+      3. Opening length enters the checks and drives the layout page.
+      4. Bending is taken on the net section through the opening.
+      5. All stress components are read and the material is taken per beam.
+      6. Gross / net-n50 scantling basis is explicit.
+================================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSM Opening Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  color-scheme: light;
+  --bg-primary:#ffffff;--bg-secondary:#f6f8fb;--bg-tertiary:#eef2f7;--bg-input:#ffffff;
+  --accent:#2563eb;--accent-hover:#1d4ed8;--accent-subtle:rgba(37,99,235,0.06);
+  --text-primary:#0f172a;--text-secondary:#475569;--text-muted:#64748b;
+  --success:#16a34a;--warning:#b45309;--error:#dc2626;--border:#e2e8f0;--border-strong:#cbd5e1;
+  --cyan:#0891b2;--purple:#7c3aed;
+  --font-display:'JetBrains Mono',monospace;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --fs-xs:0.72rem;--fs-sm:0.8rem;--fs-base:0.86rem;--fs-md:1rem;--fs-lg:1.2rem;--fs-xl:1.45rem;
+  --sp-xs:4px;--sp-sm:8px;--sp-md:16px;--sp-lg:24px;--sp-xl:32px;
+  --r-sm:4px;--r-md:6px;--r-lg:8px;--r-xl:12px;
+  --lumoship-nav-h:44px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-primary);background:var(--bg-primary);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+
+.lumoship-nav{position:sticky;top:0;z-index:10000;height:var(--lumoship-nav-h);box-sizing:border-box;padding:0 1.25rem;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid #e2e8f0;color:#0f172a}
+.lumoship-nav-inner{height:100%;display:flex;justify-content:space-between;align-items:center}
+.nav-left,.nav-right{display:flex;align-items:center}
+.nav-right{gap:1rem}
+.lumoship-nav-logo{display:flex;align-items:center;gap:0.55rem;text-decoration:none;transition:opacity 200ms}
+.lumoship-nav-logo:hover{opacity:0.85}
+.lumoship-nav-logo-mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#3b82f6 0%,#0ea5e9 100%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:0.9rem;color:#fff}
+.lumoship-nav-logo-text{font-size:0.95rem;font-weight:600;color:#0f172a;letter-spacing:0.06em}
+.nav-context{font-family:var(--font-mono);font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;padding-left:1rem;margin-left:1rem;border-left:1px solid #e2e8f0}
+.nav-back{color:#475569;text-decoration:none;font-size:0.8rem;font-weight:500;display:inline-flex;align-items:center;gap:0.4rem;transition:color 200ms}
+.nav-back:hover{color:#0f172a}
+@media(max-width:640px){.nav-back-text,.nav-context{display:none}}
+
+.ea-header{position:sticky;top:var(--lumoship-nav-h);z-index:100;background:linear-gradient(180deg,rgba(246,248,251,0.98),rgba(255,255,255,0.98));backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.ea-header-inner{max-width:1600px;margin:0 auto;padding:var(--sp-md) var(--sp-xl)}
+.ea-header-top{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-lg);margin-bottom:var(--sp-md);flex-wrap:wrap}
+.ea-brand{display:flex;align-items:center;gap:var(--sp-md)}
+.ea-logo{width:38px;height:38px;border-radius:var(--r-lg);background:linear-gradient(135deg,#3b82f6,#0ea5e9);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#fff;font-size:0.8rem}
+.ea-title-group h1{font-family:var(--font-display);font-size:var(--fs-xl);font-weight:700;line-height:1.2}
+.ea-title-group p{font-size:var(--fs-xs);color:var(--text-muted)}
+.ea-header-actions{display:flex;align-items:center;gap:var(--sp-sm)}
+.ea-header-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 13px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-secondary);color:var(--text-secondary);font-size:var(--fs-xs);font-family:var(--font-display);cursor:pointer;transition:all 0.2s}
+.ea-header-btn:hover{border-color:var(--border-strong);color:var(--text-primary)}
+.ea-header-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.ea-header-btn.primary:hover{background:var(--accent-hover)}
+.ea-header-badge{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-muted);background:var(--bg-secondary);padding:3px 10px;border-radius:20px;border:1px solid var(--border)}
+.ea-wizard{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+.ea-wizard-step{display:flex;align-items:center;gap:var(--sp-sm);padding:9px 16px;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-display);font-size:var(--fs-sm);font-weight:500;cursor:pointer;transition:all 0.2s}
+.ea-wizard-step:hover{color:var(--text-secondary)}
+.ea-wizard-step.active{color:var(--accent)}
+.ea-wizard-step.completed{color:var(--success)}
+.ea-wizard-num{width:23px;height:23px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);font-weight:700}
+.ea-wizard-step.active .ea-wizard-num{background:var(--accent);border-color:var(--accent);color:#fff}
+.ea-wizard-step.completed .ea-wizard-num{background:var(--success);border-color:var(--success);color:#fff}
+.ea-wizard-line{width:36px;height:2px;background:var(--border);margin:0 var(--sp-xs)}
+.ea-wizard-line.completed{background:var(--success)}
+
+.ea-page{display:none}
+.ea-page.active{display:block}
+.ea-main{max-width:1600px;width:100%;margin:0 auto;padding:var(--sp-xl)}
+.ea-col{display:flex;flex-direction:column;gap:var(--sp-lg)}
+.ea-row-2{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-lg);align-items:start}
+.ea-row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-lg);align-items:start}
+.ea-panel{background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,0.04)}
+.ea-panel-header{padding:var(--sp-sm) var(--sp-lg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:var(--sp-sm);background:var(--bg-secondary)}
+.ea-panel-icon{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.ea-panel-icon.cyan{background:var(--cyan)}.ea-panel-icon.warning{background:var(--warning)}.ea-panel-icon.success{background:var(--success)}.ea-panel-icon.purple{background:var(--purple)}
+.ea-panel-title{font-family:var(--font-display);font-size:var(--fs-xs);letter-spacing:0.12em;text-transform:uppercase;color:var(--text-secondary)}
+.ea-panel-body{padding:var(--sp-lg)}
+.ea-field{margin-bottom:var(--sp-md)}
+.ea-field:last-child{margin-bottom:0}
+.ea-label{display:block;font-family:var(--font-display);font-size:var(--fs-xs);letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px}
+.ea-input,.ea-select{width:100%;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border-strong);border-radius:var(--r-md);color:var(--text-primary);font-family:var(--font-body);font-size:var(--fs-sm);transition:border-color .15s}
+.ea-input:focus,.ea-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-subtle)}
+.ea-form-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md)}
+.ea-calc-box{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-top:var(--sp-md)}
+.ea-calc-row{display:flex;justify-content:space-between;gap:var(--sp-md);font-family:var(--font-mono);font-size:var(--fs-xs);padding:3px 0}
+.ea-calc-row .lbl{color:var(--text-muted)}
+.ea-calc-row .val{color:var(--text-primary);font-weight:600;text-align:right}
+.ea-calc-row .val.success{color:var(--success)}.ea-calc-row .val.warning{color:var(--warning)}.ea-calc-row .val.error{color:var(--error)}
+.ea-upload-zone{border:2px dashed var(--border-strong);border-radius:var(--r-lg);padding:var(--sp-lg);text-align:center;cursor:pointer;transition:all .2s;color:var(--text-muted)}
+.ea-upload-zone:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-subtle)}
+.ea-upload-zone.loaded{border-style:solid;border-color:var(--success);color:var(--success)}
+.ea-upload-zone p{font-size:var(--fs-sm)}
+.ea-upload-zone .filename{font-family:var(--font-mono);font-size:var(--fs-xs);margin-top:5px;color:var(--text-secondary);word-break:break-all}
+.hidden-input{display:none}
+.ea-info-text{font-size:var(--fs-xs);color:var(--text-muted);margin-top:6px;line-height:1.5}
+.ea-notes{background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:10px 12px}
+.ea-notes.warn{border-left-color:var(--warning)}
+.ea-notes-title{font-family:var(--font-display);font-size:var(--fs-xs);letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.ea-notes.warn .ea-notes-title{color:var(--warning)}
+.ea-notes ul{list-style:none;font-size:var(--fs-xs);color:var(--text-secondary)}
+.ea-notes li{padding-left:12px;position:relative;margin-bottom:4px;line-height:1.55}
+.ea-notes li::before{content:'—';position:absolute;left:0;color:var(--text-muted)}
+.ea-notes li b{color:var(--text-primary)}
+.ea-table{width:100%;border-collapse:collapse;font-size:var(--fs-xs);font-family:var(--font-mono)}
+.ea-table th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border-strong);color:var(--text-muted);font-weight:500;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+.ea-table td{padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.ea-table tr:hover td{background:var(--bg-secondary)}
+.ea-table td.name{font-family:var(--font-body);font-weight:600;white-space:normal}
+.tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:0.65rem;font-family:var(--font-mono);letter-spacing:0.05em}
+.tag.ok{color:var(--success);background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.3)}
+.tag.warn{color:var(--warning);background:rgba(180,83,9,0.08);border:1px solid rgba(180,83,9,0.3)}
+.tag.bad{color:var(--error);background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.3)}
+.tag.info{color:var(--text-secondary);background:var(--bg-tertiary);border:1px solid var(--border-strong)}
+.uc-bar{height:5px;border-radius:3px;background:var(--bg-tertiary);overflow:hidden;min-width:70px;margin-top:3px}
+.uc-bar span{display:block;height:100%;border-radius:3px}
+.uc-bar span.ok{background:var(--success)}.uc-bar span.warn{background:var(--warning)}.uc-bar span.bad{background:var(--error)}
+.ea-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md)}
+.ea-summary-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md)}
+.ea-summary-label{font-family:var(--font-display);font-size:var(--fs-xs);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted)}
+.ea-summary-value{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-top:3px}
+.ea-summary-sub{font-size:var(--fs-xs);color:var(--text-muted)}
+.ea-page-actions{display:flex;justify-content:space-between;gap:var(--sp-md);margin-top:var(--sp-xl)}
+.ea-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--r-md);border:1px solid var(--border-strong);background:var(--bg-secondary);color:var(--text-secondary);font-family:var(--font-display);font-size:var(--fs-sm);cursor:pointer;transition:all .2s}
+.ea-btn:hover{border-color:var(--text-muted);color:var(--text-primary)}
+.ea-btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.ea-btn-primary:hover{background:var(--accent-hover)}
+.scroll-x{overflow-x:auto}
+.rule-ref{font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted)}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:var(--fs-xs);color:var(--text-secondary);margin-bottom:6px;line-height:1.5}
+.chk input{margin-top:3px;width:auto;flex:none}
+.ea-footer{margin-top:auto;border-top:1px solid var(--border);padding:var(--sp-md) var(--sp-xl);display:flex;justify-content:space-between;gap:var(--sp-md);font-size:var(--fs-xs);color:var(--text-muted);flex-wrap:wrap}
+@media(max-width:1200px){.ea-row-3{grid-template-columns:1fr 1fr}.ea-summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.ea-main{padding:var(--sp-md)}.ea-row-2,.ea-row-3,.ea-form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="lumoship-nav">
+  <div class="lumoship-nav-inner">
+    <div class="nav-left">
+      <a href="https://lumoship.org" class="lumoship-nav-logo">
+        <div class="lumoship-nav-logo-mark">L</div>
+        <span class="lumoship-nav-logo-text">LUMOSHIP</span>
+      </a>
+      <span class="nav-context">PSM Opening Checker</span>
+    </div>
+    <div class="nav-right">
+      <a href="https://lumoship.org/workspace.html" class="nav-back"><span>&larr;</span><span class="nav-back-text">Workspace</span></a>
+    </div>
+  </div>
+</nav>
+
+<header class="ea-header">
+  <div class="ea-header-inner">
+    <div class="ea-header-top">
+      <div class="ea-brand">
+        <div class="ea-logo">PSM</div>
+        <div class="ea-title-group">
+          <h1>PSM Opening Checker</h1>
+          <p>Openings in primary supporting member webs &mdash; DNV-RU-SHIP Pt.3 Ch.3 Sec.6 [7.2], Sec.7 [1.4.7], Ch.6 Sec.6 [2.2.2]</p>
+        </div>
+      </div>
+      <div class="ea-header-actions">
+        <button class="ea-header-btn" onclick="saveJSON()">Save</button>
+        <label class="ea-header-btn">Load<input type="file" accept=".json" class="hidden-input" onchange="loadJSON(event)"></label>
+        <button class="ea-header-btn primary" onclick="exportPDF()">PDF</button>
+        <span class="ea-header-badge">v2.3</span>
+      </div>
+    </div>
+    <nav class="ea-wizard">
+      <button class="ea-wizard-step active" onclick="goToPage(1)"><span class="ea-wizard-num">1</span> Setup</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" onclick="goToPage(2)"><span class="ea-wizard-num">2</span> Input</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" onclick="goToPage(3)"><span class="ea-wizard-num">3</span> Beam check</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" onclick="goToPage(4)"><span class="ea-wizard-num">4</span> Opening layout</button>
+      <div class="ea-wizard-line"></div>
+      <button class="ea-wizard-step" onclick="goToPage(5)"><span class="ea-wizard-num">5</span> Detail checks</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ======================= PAGE 1 : SETUP ======================= -->
+<div class="ea-page active" id="page-1">
+<main class="ea-main">
+  <div class="ea-row-2">
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Project information</span></div>
+      <div class="ea-panel-body">
+        <div class="ea-field"><label class="ea-label">Vessel name</label><input type="text" class="ea-input" id="vesselName" placeholder="Enter vessel name"></div>
+        <div class="ea-form-row">
+          <div class="ea-field"><label class="ea-label">Project number</label><input type="text" class="ea-input" id="projectNumber" placeholder="e.g. A3073"></div>
+          <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
+        </div>
+        <div class="ea-form-row">
+          <div class="ea-field"><label class="ea-label">Analysis date</label><input type="date" class="ea-input" id="analysisDate"></div>
+          <div class="ea-field"><label class="ea-label">Prepared by</label><input type="text" class="ea-input" id="preparedBy" placeholder="Engineer name"></div>
+        </div>
+        <div class="ea-field"><label class="ea-label">Notes for the report</label><input type="text" class="ea-input" id="reportNotes" placeholder="Additional notes"></div>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Acceptance criteria &mdash; Ch.6 Sec.6 [2.2.2] Table 2</span></div>
+      <div class="ea-panel-body">
+        <div class="ea-form-row">
+          <div class="ea-field">
+            <label class="ea-label">Acceptance class</label>
+            <select class="ea-select" id="acceptanceClass" onchange="recalc()">
+              <option value="AC1">AC-I</option>
+              <option value="AC23" selected>AC-II / AC-III</option>
+            </select>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Hull girder loads</label>
+            <select class="ea-select" id="hullGirderLoads" onchange="recalc()">
+              <option value="no" selected>Not subjected</option>
+              <option value="yes">Subjected</option>
+            </select>
+          </div>
+        </div>
+        <div class="ea-field" id="sigHgField" style="display:none">
+          <label class="ea-label">&sigma;_hg at the member (N/mm&sup2;)</label>
+          <input type="number" class="ea-input" id="sigHg" value="0" min="0" step="1" onchange="recalc()">
+          <p class="ea-info-text">C_s = &beta; &minus; &alpha;&middot;|&sigma;_hg|/R_eH, capped at C_s-max. Hull girder loads are to be included when |&sigma;_hg| &ge; 0.15&middot;R_eH (Ch.6 Sec.6 [1.1.2]). Aft of 0.4L the hull girder stress is usually low, so this rarely governs there &mdash; but it is no longer silently ignored.</p>
+        </div>
+        <div class="ea-form-row">
+          <div class="ea-field">
+            <label class="ea-label">R_eH default (N/mm&sup2;)</label>
+            <input type="number" class="ea-input" id="yieldStrength" value="235" step="5" onchange="recalc()">
+            <p class="ea-info-text">Per-beam yield from the model overrides this.</p>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Scantling basis</label>
+            <select class="ea-select" id="scantlingBasis" onchange="recalc()">
+              <option value="gross" selected>Gross (ships other than ESP)</option>
+              <option value="n50">Net n50 (ESP ships)</option>
+            </select>
+          </div>
+        </div>
+        <div class="ea-field" id="tcField" style="display:none">
+          <label class="ea-label">t_c of the web (mm)</label>
+          <input type="number" class="ea-input" id="corrAdd" value="2.0" step="0.5" min="0" onchange="recalc()">
+          <p class="ea-info-text">Sec.7 [1.4.6] takes net n50 for ESP ships and gross for all others; n50 = gross &minus; 0.5&middot;t_c. Stresses read from a gross model are scaled by the ratio of the two section properties.</p>
+        </div>
+        <div class="ea-calc-box">
+          <div class="ea-calc-row"><span class="lbl">&beta; / &alpha;</span><span class="val"><span id="dispBeta">0.85</span> / <span id="dispAlpha">0</span></span></div>
+          <div class="ea-calc-row"><span class="lbl">C_s-max / C_t</span><span class="val"><span id="dispCsMax">0.85</span> / <span id="dispCt">0.85</span></span></div>
+          <div class="ea-calc-row"><span class="lbl">C_s applied</span><span class="val success" id="dispCs">0.85</span></div>
+          <div class="ea-calc-row"><span class="lbl">&sigma;_allow = C_s &middot; R_eH</span><span class="val success" id="calcSigAllow">&mdash;</span></div>
+          <div class="ea-calc-row"><span class="lbl">&tau;_allow = C_t &middot; R_eH/&radic;3</span><span class="val success" id="calcTauAllow">&mdash;</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-panel" style="margin-top:var(--sp-lg)">
+    <div class="ea-panel-header"><div class="ea-panel-icon purple"></div><span class="ea-panel-title">Scope</span></div>
+    <div class="ea-panel-body">
+      <div class="ea-row-2">
+        <div class="ea-notes">
+          <div class="ea-notes-title">Computed by this tool</div>
+          <ul>
+            <li><b>Shear</b> on the net section: effective web height of <b>Sec.7 [1.4.7]</b> (opening plus any stiffener cut-out in the same section), A_shr = (h_w + t_f + t_p)&middot;t_w&middot;10&minus;&sup2; of <b>[1.4.6]</b>, &tau;_net &le; C_t&middot;&tau;_eH.</li>
+            <li><b>Bending</b> on the net section through the opening, Z recomputed with the hole removed &mdash; <b>Ch.6 Sec.6 [2.2.2]</b>.</li>
+            <li><b>[7.2.3]</b> depth, edge distance, length, spacing of adjacent openings, hole in a bracket.</li>
+            <li><b>[7.3.2]</b> for shell / longitudinal bulkhead / longitudinal girder: 2&times; opening breadth below the strength deck.</li>
+            <li><b>[7.2.4] + Ch.8 Sec.2 [7.1]</b>: the required depth of the edge stiffener when the limits are exceeded.</li>
+            <li><b>Ch.6 Sec.6 [2.1.2]</b> prescriptive shear area with f_shr of Table 1, as a second opinion where there is no beam model.</li>
+            <li><b>Ch.8 Sec.2 [5.1.1]</b> tripping bracket spacing, since an opening close to the flange weakens its lateral support.</li>
+            <li>Secondary (Vierendeel) bending of the strips above and below the opening &mdash; a screening calculation, see the note on that panel.</li>
+          </ul>
+        </div>
+        <div class="ea-notes warn">
+          <div class="ea-notes-title">Not computed &mdash; stays with the engineer</div>
+          <ul>
+            <li><b>Web buckling in way of the opening</b>: &eta;_Opening &le; &eta;_all per <b>Ch.8 Sec.1 Table 1 &rarr; DNV-CG-0128 Sec.3 [3.4]</b>. The tool prepares the panels P1/P2 and the stresses that check needs (including &tau;_av = &tau;_av,web&middot;h/(h&minus;h_0) of CG-0128 Table 6) but does not evaluate the reduction factors.</li>
+            <li><b>Fatigue</b> of the free edge and of the reinforcement welds.</li>
+            <li>Corner radii, edge preparation, local stress concentration.</li>
+            <li>The proximity rules of <b>[7.2.1]</b> are a checklist on the detail page, not a calculation: bracket toes, pillars, span ends of floors and girders, narrow cofferdam diaphragms. Aft peak heavy floors in way of the rudder horn (<b>Ch.3 Sec.5 [4.2.2]</b>) and structure under windlass / crane (<b>Ch.11 Sec.2 [5.4.3]</b>) are on that list too.</li>
+            <li>Whether the beam model itself is right &mdash; spans, fixity, effective breadth.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-page-actions"><span></span><button class="ea-btn ea-btn-primary" onclick="goToPage(2)">Continue to input &rarr;</button></div>
+</main>
+</div>
+
+<!-- ======================= PAGE 2 : INPUT ======================= -->
+<div class="ea-page" id="page-2">
+<main class="ea-main">
+  <div class="ea-col">
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Model XML (sections, beams, material)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-upload-zone" id="modelUploadZone" onclick="document.getElementById('modelXmlInput').click()">
+            <p>Click to upload the model XML</p><div class="filename" id="modelFileName"></div>
+          </div>
+          <input type="file" id="modelXmlInput" accept=".xml" class="hidden-input" onchange="loadModelXML(event)">
+          <div id="sectionsDisplay" class="ea-calc-box"><div class="ea-calc-row"><span class="lbl">Sections</span><span class="val">none loaded</span></div></div>
+        </div>
+      </div>
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Results XML (stresses)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-upload-zone" id="resultsUploadZone" onclick="document.getElementById('resultsXmlInput').click()">
+            <p>Click to upload the results XML</p><div class="filename" id="resultsFileName"></div>
+          </div>
+          <input type="file" id="resultsXmlInput" accept=".xml" class="hidden-input" onchange="loadResultsXML(event)">
+          <div class="ea-calc-box">
+            <div class="ea-calc-row"><span class="lbl">Components found</span><span class="val" id="dispComponents">&mdash;</span></div>
+            <div class="ea-calc-row"><span class="lbl">Stress unit in the file</span><span class="val" id="dispUnits">&mdash;</span></div>
+            <div class="ea-calc-row"><span class="lbl">Beams with results</span><span class="val" id="dispBeamCount">0</span></div>
+          </div>
+          <div class="ea-field" style="margin-top:var(--sp-md)">
+            <label class="ea-label">Web shear component</label>
+            <select class="ea-select" id="shearComponent" onchange="recalc()">
+              <option value="auto" selected>Auto &mdash; larger of &tau;_Qy and &tau;_Qz</option>
+              <option value="Qz">&tau;_Qz only</option>
+              <option value="Qy">&tau;_Qy only</option>
+            </select>
+            <p class="ea-info-text">The opening cuts the web, so the shear carried by the web governs: Q_z for a horizontal girder, Q_y for a vertical web frame.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Opening definition</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-form-row">
+            <div class="ea-field"><label class="ea-label">Opening height h_o (mm)</label><input type="number" class="ea-input" id="openingHeight" value="200" step="10" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">Opening length w_o (mm)</label><input type="number" class="ea-input" id="openingWidth" value="300" step="10" onchange="recalc()"></div>
+          </div>
+          <div class="ea-form-row">
+            <div class="ea-field">
+              <label class="ea-label">Web type</label>
+              <select class="ea-select" id="skinType" onchange="recalc()">
+                <option value="single" selected>Single skin section</option>
+                <option value="double">Double skin section</option>
+              </select>
+            </div>
+            <div class="ea-field">
+              <label class="ea-label">Vertical placement</label>
+              <select class="ea-select" id="holeVertical" onchange="recalc()">
+                <option value="mid" selected>Centred on web mid-height</option>
+                <option value="na">Centred on the neutral axis</option>
+                <option value="custom">Custom distance from faceplate</option>
+              </select>
+            </div>
+          </div>
+          <div class="ea-field" id="holeCustomField" style="display:none">
+            <label class="ea-label">Hole centre above the faceplate (mm)</label>
+            <input type="number" class="ea-input" id="holeCentre" value="400" step="10" onchange="recalc()">
+          </div>
+          <div class="ea-form-row">
+            <div class="ea-field">
+              <label class="ea-label">Stiffener spacing s (mm)</label>
+              <input type="number" class="ea-input" id="stiffSpacing" value="700" step="10" onchange="recalc()">
+            </div>
+            <div class="ea-field">
+              <label class="ea-label">Cut-out in the same section (mm)</label>
+              <input type="number" class="ea-input" id="cutoutDeduct" value="0" step="10" min="0" onchange="recalc()">
+              <p class="ea-info-text">Sec.7 [1.4.7]: a cut-out for a passing stiffener eats the same web section. Enter its height here and it is deducted from h_eff together with the opening.</p>
+            </div>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Stresses for the single-point check (beam check and detail pages)</label>
+            <select class="ea-select" id="holePosition" onchange="recalc()">
+              <option value="max" selected>Envelope maximum along the beam (conservative)</option>
+              <option value="0.10">par = 0.10 &mdash; near the end</option>
+              <option value="0.25">par = 0.25 &mdash; quarter span</option>
+              <option value="0.50">par = 0.50 &mdash; mid-span</option>
+              <option value="0.75">par = 0.75 &mdash; quarter span</option>
+              <option value="0.90">par = 0.90 &mdash; near the end</option>
+            </select>
+            <p class="ea-info-text"><b>par</b> is the relative position along the beam in the results file: 0 at the first node, 1 at the second, 0.5 at mid-span. The file carries only the stations the analysis wrote (often 0 / 0.5 / 1); a position between them is interpolated linearly.<br>
+            This setting only decides which stresses the <b>beam check table and the detail checks</b> use, as a single-point screening. It does <b>not</b> move the opening: the layout page evaluates every opening at its own x with the shear that belongs there. Leave it on the envelope maximum unless you know where the opening will sit.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Manual beam (works without XML)</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-field">
+            <label class="chk"><input type="checkbox" id="manualEnable" checked onchange="recalc()"><span>Use a manually entered beam. Section is a T on attached plating; &tau; and &sigma; are the gross values from your analysis.</span></label>
+          </div>
+          <div class="ea-row-3" style="gap:var(--sp-md)">
+            <div class="ea-field"><label class="ea-label">h_w (mm)</label><input type="number" class="ea-input" id="mHw" value="800" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">t_w (mm)</label><input type="number" class="ea-input" id="mTw" value="12" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">b_f (mm)</label><input type="number" class="ea-input" id="mBf" value="200" onchange="recalc()"></div>
+          </div>
+          <div class="ea-row-3" style="gap:var(--sp-md)">
+            <div class="ea-field"><label class="ea-label">t_f (mm)</label><input type="number" class="ea-input" id="mTf" value="15" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">b_eff (mm)</label><input type="number" class="ea-input" id="mBeff" value="1400" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">t_p (mm)</label><input type="number" class="ea-input" id="mTp" value="14" onchange="recalc()"></div>
+          </div>
+          <div class="ea-row-3" style="gap:var(--sp-md)">
+            <div class="ea-field"><label class="ea-label">&tau; gross (N/mm&sup2;)</label><input type="number" class="ea-input" id="mTau" value="55" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">&sigma;_b gross (N/mm&sup2;)</label><input type="number" class="ea-input" id="mSig" value="120" onchange="recalc()"></div>
+            <div class="ea-field"><label class="ea-label">Length (m)</label><input type="number" class="ea-input" id="mLen" value="5" step="0.1" onchange="recalc()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-page-actions">
+    <button class="ea-btn" onclick="goToPage(1)">&larr; Back</button>
+    <button class="ea-btn ea-btn-primary" onclick="goToPage(3)">View beam check &rarr;</button>
+  </div>
+</main>
+</div>
+
+<!-- ======================= PAGE 3 : BEAM CHECK ======================= -->
+<div class="ea-page" id="page-3">
+<main class="ea-main">
+  <div class="ea-col">
+    <div class="ea-summary-grid">
+      <div class="ea-summary-card"><div class="ea-summary-label">Beams</div><div class="ea-summary-value" id="sumTotal">0</div><div class="ea-summary-sub">checked</div></div>
+      <div class="ea-summary-card"><div class="ea-summary-label">Opening accepted</div><div class="ea-summary-value" style="color:var(--success)" id="sumPass">0</div><div class="ea-summary-sub">stress + [7.2.3]</div></div>
+      <div class="ea-summary-card"><div class="ea-summary-label">Reinforcement needed</div><div class="ea-summary-value" style="color:var(--warning)" id="sumReinf">0</div><div class="ea-summary-sub">[7.2.4]</div></div>
+      <div class="ea-summary-card"><div class="ea-summary-label">Max UC</div><div class="ea-summary-value" id="sumUC">&mdash;</div><div class="ea-summary-sub">shear or bending</div></div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Beam layout &mdash; plan view</span><span class="rule-ref" style="margin-left:auto" id="planRef"></span></div>
+      <div class="ea-panel-body">
+        <div style="display:flex;gap:var(--sp-lg);flex-wrap:wrap;align-items:center;margin-bottom:10px">
+          <label class="chk" style="margin:0"><input type="checkbox" id="planLabels" checked onchange="drawPlan()"><span>Beam labels</span></label>
+          <label class="chk" style="margin:0"><input type="checkbox" id="planSlivers" onchange="drawPlan()"><span>Show slivers (&lt; 50 mm)</span></label>
+          <span class="ea-info-text" style="margin:0">Colour = max(UC shear, UC bending). Click a beam to take it to the layout page.</span>
+        </div>
+        <div id="planSvg" style="overflow:auto"></div>
+        <div style="display:flex;gap:var(--sp-lg);flex-wrap:wrap;font-size:var(--fs-xs);color:var(--text-secondary);margin-top:8px">
+          <span><span style="display:inline-block;width:18px;height:3px;background:#16a34a;vertical-align:middle"></span> UC &le; 0.85</span>
+          <span><span style="display:inline-block;width:18px;height:3px;background:#b45309;vertical-align:middle"></span> 0.85 &lt; UC &le; 1.0</span>
+          <span><span style="display:inline-block;width:18px;height:3px;background:#dc2626;vertical-align:middle"></span> UC &gt; 1.0</span>
+          <span><span style="display:inline-block;width:18px;height:3px;background:#2563eb;vertical-align:middle"></span> selected</span>
+          <span><span style="display:inline-block;width:18px;border-top:3px dotted #b45309;vertical-align:middle"></span> opening needs reinforcement</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Beam by beam</span><span class="rule-ref" style="margin-left:auto" id="beamTableRef"></span></div>
+      <div class="ea-panel-body scroll-x">
+        <table class="ea-table">
+          <thead><tr>
+            <th>Beam</th><th>Section</th><th>h_w</th><th>h_eff</th><th>R_eH</th>
+            <th>&tau;</th><th>&tau;_net</th><th>UC shear</th>
+            <th>&sigma;</th><th>&sigma;_net</th><th>UC bend</th>
+            <th>h_o max</th><th>[7.2.3]</th><th>Status</th>
+          </tr></thead>
+          <tbody id="beamBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Governing beam &mdash; what may be cut</span></div>
+      <div class="ea-panel-body" id="governing"></div>
+    </div>
+  </div>
+
+  <div class="ea-page-actions">
+    <button class="ea-btn" onclick="goToPage(2)">&larr; Back</button>
+    <button class="ea-btn ea-btn-primary" onclick="goToPage(4)">Opening layout &rarr;</button>
+  </div>
+</main>
+</div>
+
+<!-- ======================= PAGE 4 : OPENING LAYOUT ======================= -->
+<div class="ea-page" id="page-4">
+<main class="ea-main">
+  <div class="ea-col">
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon purple"></div><span class="ea-panel-title">Layout input</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-field"><label class="ea-label">Beam</label><select class="ea-select" id="layoutBeam" onchange="fillLayoutBeams(); renderLayout(); renderDetails(); drawPlan();"></select>
+            <p class="ea-info-text">Or click the beam in the plan view on the beam check page.</p></div>
+          <div class="ea-form-row">
+            <div class="ea-field">
+              <label class="ea-label">Beam length (m) &mdash; from the model</label>
+              <input type="number" class="ea-input" id="layoutLength" value="5" step="0.1" onchange="renderLayout()" readonly>
+              <label class="chk" style="margin-top:6px"><input type="checkbox" id="layoutLenOverride" onchange="fillLayoutBeams(); renderLayout()"><span>Set the span by hand &mdash; the node-to-node length is not always the span the openings sit in (end brackets, effective shear span of Ch.3 Sec.7 [1.1.7]).</span></label>
+            </div>
+            <div class="ea-field"><label class="ea-label">Opening length w_o (mm)</label><input type="number" class="ea-input" id="layoutWidth" value="300" step="10" onchange="renderLayout()"></div>
+          </div>
+          <div class="ea-form-row">
+            <div class="ea-field">
+              <label class="ea-label">End region (fraction of &#8467;)</label>
+              <input type="number" class="ea-input" id="layoutEndZone" value="0.2" step="0.05" min="0" max="0.45" onchange="renderLayout()">
+              <p class="ea-info-text">[7.2.3] separates "mid-span" from "ends of the span"; 0.2&#8467; is the support region of Ch.6 Sec.6 Table 1 notes 1 and 2.</p>
+            </div>
+            <div class="ea-field">
+              <label class="ea-label">Keep clear of each end (mm)</label>
+              <input type="number" class="ea-input" id="layoutClearEnd" value="800" step="50" min="0" onchange="renderLayout()">
+              <select class="ea-select" id="layoutEndMode" onchange="renderLayout()" style="margin-top:6px">
+                <option value="both" selected>at both ends</option>
+                <option value="connected">only where other members meet</option>
+                <option value="none">nowhere &mdash; I place it myself</option>
+              </select>
+              <p class="ea-info-text">[7.2.1]: no openings at bracket toes and span ends of floors and girders. Default is one web depth, which is the usual yard practice; 200 mm is the figure [7.1.2] uses for stiffener openings.</p>
+            </div>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Opening height in the layout</label>
+            <select class="ea-select" id="layoutHoMode" onchange="renderLayout()">
+              <option value="design" selected>As entered on the input page</option>
+              <option value="max">Maximum allowed at each position</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Answer</span></div>
+        <div class="ea-panel-body" id="layoutAnswer"></div>
+      </div>
+    </div>
+
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Plan &mdash; click a beam</span><span class="rule-ref" style="margin-left:auto" id="planRef2"></span></div>
+        <div class="ea-panel-body"><div id="planSvg2" style="overflow:auto"></div></div>
+      </div>
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Elevation of the selected beam</span></div>
+        <div class="ea-panel-body"><div id="layoutSvg" style="overflow-x:auto"></div></div>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Opening by opening</span></div>
+      <div class="ea-panel-body scroll-x">
+        <table class="ea-table">
+          <thead><tr><th>#</th><th>x (mm)</th><th>par</th><th>Zone</th><th>h_o</th><th>w_o</th><th>Clear to next</th><th>&tau;</th><th>&tau;_net</th><th>UC</th><th>h_o max here</th><th>Status</th></tr></thead>
+          <tbody id="layoutBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">All beams &mdash; how many openings fit</span>
+        <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <label class="chk" style="margin:0"><input type="checkbox" id="allOnlyFit" onchange="renderAllLayout()"><span>only beams that take at least one</span></label>
+          <button class="ea-header-btn" onclick="exportLayoutCSV()">CSV</button>
+        </span>
+      </div>
+      <div class="ea-panel-body">
+        <p class="ea-info-text" style="margin-bottom:10px">Each beam with its own length from the model and its own shear at each position; the opening size is the one entered on the input page. <b>Ends</b> is how many other beams meet at each end of that beam &mdash; an end where several members meet is an intersection or a support, an end where none do is either a boundary condition or a free end, and only you can tell which. Click a row to open that beam above.</p>
+        <div class="scroll-x">
+          <table class="ea-table">
+            <thead><tr><th>Beam</th><th>L (m)</th><th>Ends</th><th>Openings</th><th>Pitch</th><th>Positions x (mm)</th><th>max UC</th><th>h_o max</th><th>Elevation</th><th>Status</th></tr></thead>
+            <tbody id="allLayoutBody"></tbody>
+          </table>
+        </div>
+        <div id="allLayoutSum" style="margin-top:var(--sp-md)"></div>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Number of openings vs. their length</span></div>
+      <div class="ea-panel-body scroll-x">
+        <p class="ea-info-text" style="margin-bottom:10px">Uniform pitch over the usable length. [7.2.3]: the length of an unreinforced opening is limited to the clear distance to the adjacent opening at mid-span, and to 25% of it at the ends of the span; in single skin sections also to the greater of the web depth and 0.6&middot;s.</p>
+        <table class="ea-table">
+          <thead><tr><th>N openings</th><th>Pitch</th><th>Max w_o, mid-span</th><th>Max w_o, end region</th><th>Governing limit</th></tr></thead>
+          <tbody id="layoutNTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-page-actions">
+    <button class="ea-btn" onclick="goToPage(3)">&larr; Back</button>
+    <button class="ea-btn ea-btn-primary" onclick="goToPage(5)">Detail checks &rarr;</button>
+  </div>
+</main>
+</div>
+
+<!-- ======================= PAGE 5 : DETAIL CHECKS ======================= -->
+<div class="ea-page" id="page-5">
+<main class="ea-main">
+  <div class="ea-col">
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Reinforcement &mdash; [7.2.4] and Ch.8 Sec.2 [7.1]</span></div>
+        <div class="ea-panel-body" id="reinfBox"></div>
+      </div>
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Buckling input &mdash; CG-0128 Sec.3 [3.4]</span></div>
+        <div class="ea-panel-body" id="bucklingBox"></div>
+      </div>
+    </div>
+
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon purple"></div><span class="ea-panel-title">Secondary (Vierendeel) bending &mdash; screening</span></div>
+        <div class="ea-panel-body" id="vierendeelBox"></div>
+      </div>
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon success"></div><span class="ea-panel-title">Position rules</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-form-row">
+            <div class="ea-field">
+              <label class="ea-label">Member type</label>
+              <select class="ea-select" id="memberType" onchange="recalc()">
+                <option value="transverse" selected>Transverse PSM (web frame, floor, transverse girder)</option>
+                <option value="longitudinal">Side shell / longitudinal bulkhead / longitudinal girder</option>
+              </select>
+            </div>
+            <div class="ea-field" id="deckDistField" style="display:none">
+              <label class="ea-label">Distance below strength deck (mm)</label>
+              <input type="number" class="ea-input" id="deckDist" value="2000" step="50" onchange="recalc()">
+            </div>
+          </div>
+          <div class="ea-field">
+            <label class="chk"><input type="checkbox" id="inBracket" onchange="recalc()"><span>The opening is cut in a bracket &mdash; [7.2.3]: the distance from the circumference of the hole to the free flange of the bracket shall not be less than the diameter of the hole.</span></label>
+            <div id="bracketFields" style="display:none">
+              <div class="ea-form-row">
+                <div class="ea-field"><label class="ea-label">Hole diameter (mm)</label><input type="number" class="ea-input" id="bracketHoleD" value="150" step="10" onchange="recalc()"></div>
+                <div class="ea-field"><label class="ea-label">Edge of hole to free flange (mm)</label><input type="number" class="ea-input" id="bracketEdge" value="150" step="10" onchange="recalc()"></div>
+              </div>
+            </div>
+          </div>
+          <div id="positionBox"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ea-row-2">
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Prescriptive shear area &mdash; Ch.6 Sec.6 [2.1.2]</span></div>
+        <div class="ea-panel-body">
+          <label class="chk"><input type="checkbox" id="prescEnable" onchange="recalc()"><span>Check the required shear area from the design pressure as well (useful where there is no beam model).</span></label>
+          <div id="prescFields" style="display:none">
+            <div class="ea-row-3" style="gap:var(--sp-md);margin-top:var(--sp-md)">
+              <div class="ea-field"><label class="ea-label">P (kN/m&sup2;)</label><input type="number" class="ea-input" id="prescP" value="100" step="5" onchange="recalc()"></div>
+              <div class="ea-field"><label class="ea-label">S (m)</label><input type="number" class="ea-input" id="prescS" value="2.4" step="0.1" onchange="recalc()"></div>
+              <div class="ea-field"><label class="ea-label">&#8467;_shr (m)</label><input type="number" class="ea-input" id="prescL" value="5" step="0.1" onchange="recalc()"></div>
+            </div>
+            <div class="ea-field">
+              <label class="ea-label">f_shr &mdash; Table 1</label>
+              <select class="ea-select" id="prescF" onchange="recalc()">
+                <option value="0.50" selected>0.50 &mdash; model A / C support, and the floor of note 3</option>
+                <option value="0.38">0.38 &mdash; model B, position 1</option>
+                <option value="0.63">0.63 &mdash; model B, position 3</option>
+                <option value="0.30">0.30 &mdash; model D, position 1</option>
+                <option value="0.70">0.70 &mdash; model D, position 3</option>
+                <option value="0.20">0.20 &mdash; model E, position 1</option>
+                <option value="0.80">0.80 &mdash; model E, position 3</option>
+                <option value="1.00">1.00 &mdash; model F</option>
+              </select>
+              <p class="ea-info-text">Note 3 of Table 1: within 0.2&#8467;_shr of the span end take f_shr = 0.5 or the applicable f_shr1 / f_shr3, whichever is greater; outside that it may be reduced gradually towards 0.5&middot;f_shr at mid-span. Which is the reason openings belong in the middle third, not at the ends.</p>
+            </div>
+            <div id="prescBox"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-panel">
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Flange support &mdash; Ch.8 Sec.2 [5.1.1] Table 4</span></div>
+        <div class="ea-panel-body">
+          <div class="ea-form-row">
+            <div class="ea-field">
+              <label class="ea-label">Location</label>
+              <select class="ea-select" id="tripLoc" onchange="recalc()">
+                <option value="deck" selected>Deck and bottom</option>
+                <option value="side">Bulkheads and side</option>
+              </select>
+            </div>
+            <div class="ea-field">
+              <label class="ea-label">Flange</label>
+              <select class="ea-select" id="tripFlange" onchange="recalc()">
+                <option value="sym" selected>Symmetrical</option>
+                <option value="unsym">Unsymmetrical</option>
+              </select>
+            </div>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label">Actual distance between tripping brackets (m)</label>
+            <input type="number" class="ea-input" id="tripActual" value="3" step="0.1" onchange="recalc()">
+          </div>
+          <div id="tripBox"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ea-panel">
+      <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">[7.2.1] &mdash; where an opening shall not be cut</span></div>
+      <div class="ea-panel-body">
+        <p class="ea-info-text" style="margin-bottom:10px">These are locations, not formulae; the tool cannot see them in the model. Confirm each one on the drawing.</p>
+        <div class="ea-row-2">
+          <div>
+            <label class="chk"><input type="checkbox"><span>Clear of bracket toes &mdash; keep at least one web depth from a soft toe ([7.2.1], stress concentration).</span></label>
+            <label class="chk"><input type="checkbox"><span>Clear of the span ends of floors and double bottom girders.</span></label>
+            <label class="chk"><input type="checkbox"><span>Not above the head or below the heel of a pillar.</span></label>
+            <label class="chk"><input type="checkbox"><span>Not in diaphragms of narrow cofferdams / double plate bulkheads within one sixth of their length from either end.</span></label>
+          </div>
+          <div>
+            <label class="chk"><input type="checkbox"><span>Aft peak: heavy floors in way of the rudder horn kept with minimum openings (Ch.3 Sec.5 [4.2.2]).</span></label>
+            <label class="chk"><input type="checkbox"><span>Structure under windlass, winch or crane seats (Ch.11 Sec.2 [5.4.3]).</span></label>
+            <label class="chk"><input type="checkbox"><span>Fatigue sensitive details of [7.2.2] &mdash; no scallops at stringer heels, corrugated bulkhead connections, hopper knuckles.</span></label>
+            <label class="chk"><input type="checkbox"><span>Well rounded, smooth edges; corners radiused ([7.2.1]).</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-page-actions">
+    <button class="ea-btn" onclick="goToPage(4)">&larr; Back</button>
+    <button class="ea-btn ea-btn-primary" onclick="exportPDF()">Export PDF</button>
+  </div>
+</main>
+</div>
+
+<footer class="ea-footer">
+  <div>PSM Opening Checker v2.3 &mdash; Lumoship</div>
+  <div class="rule-ref">DNV-RU-SHIP Pt.3 Ch.3 Sec.6 [7.2]/[7.3] &middot; Sec.7 [1.4.6]&ndash;[1.4.7] &middot; Ch.6 Sec.6 [2.1.2]/[2.2.2] &middot; Ch.8 Sec.2 [5.1.1]/[7.1] &middot; CG-0128 Sec.3 [3.4]</div>
+</footer>
+
+<script>
+'use strict';
+
+/* Pt.3 Ch.6 Sec.6 [2.2.2] Table 2 */
+const TABLE2 = {
+  AC1:  { hg: { beta: 0.85, alpha: 1 }, nohg: { beta: 0.70, alpha: 0 }, CsMax: 0.70, Ct: 0.70 },
+  AC23: { hg: { beta: 0.95, alpha: 1 }, nohg: { beta: 0.85, alpha: 0 }, CsMax: 0.85, Ct: 0.85 }
+};
+/* Pt.3 Ch.3 Sec.6 [7.2.3] */
+const LIM = { depthSingle: 0.40, depthDouble: 0.50, edgeFromFacePlate: 0.20, lengthStiffFactor: 0.6 };
+/* Pt.3 Ch.8 Sec.2 Table 4 - tripping bracket spacing, C and Sb-max */
+const TRIP = { deck: { sym: 0.020, unsym: 0.025, max: 6.0 }, side: { sym: 0.015, unsym: 0.020, max: 5.0 } };
+
+let model = { sections: {}, beamSection: {}, beamCoords: {}, beamMaterial: {}, materials: {} };
+let stress = {};
+let results = [];
+let coeff = { beta: 0.85, alpha: 0, CsMax: 0.85, Ct: 0.85, Cs: 0.85 };
+
+const $ = id => document.getElementById(id);
+const num = (id, dflt) => { const el = $(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? dflt : v; };
+const fmt = (v, d) => (v == null || !isFinite(v)) ? '-' : v.toFixed(d == null ? 1 : d);
+const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
+$('analysisDate').valueAsDate = new Date();
+
+function goToPage(n) {
+  document.querySelectorAll('.ea-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ea-wizard-step').forEach((s, i) => {
+    s.classList.remove('active', 'completed');
+    if (i < n - 1) s.classList.add('completed');
+    if (i === n - 1) s.classList.add('active');
+  });
+  document.querySelectorAll('.ea-wizard-line').forEach((l, i) => l.classList.toggle('completed', i < n - 1));
+  $('page-' + n).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  recalc();
+}
+
+/* --------------------------------------------------------------------------
+   Coefficients - Ch.6 Sec.6 [2.2.2]:  Cs = beta - alpha |sig_hg| / ReH <= Cs-max
+   -------------------------------------------------------------------------- */
+function allow(ReH) {
+  const t = TABLE2[$('acceptanceClass').value] || TABLE2.AC23;
+  const hg = $('hullGirderLoads').value === 'yes';
+  const row = hg ? t.hg : t.nohg;
+  const sigHg = hg ? Math.abs(num('sigHg', 0)) : 0;
+  const Cs = Math.max(0, Math.min(row.beta - row.alpha * sigHg / Math.max(1, ReH), t.CsMax));
+  const tauEH = ReH / Math.sqrt(3);
+  return { beta: row.beta, alpha: row.alpha, CsMax: t.CsMax, Cs: Cs, Ct: t.Ct, sig: Cs * ReH, tau: t.Ct * tauEH, tauEH: tauEH };
+}
+
+function updateCoefficients() {
+  const ReH = Math.max(1, num('yieldStrength', 235));
+  const a = allow(ReH);
+  coeff = { beta: a.beta, alpha: a.alpha, CsMax: a.CsMax, Ct: a.Ct, Cs: a.Cs };
+  $('sigHgField').style.display = $('hullGirderLoads').value === 'yes' ? '' : 'none';
+  $('tcField').style.display = $('scantlingBasis').value === 'n50' ? '' : 'none';
+  $('holeCustomField').style.display = $('holeVertical').value === 'custom' ? '' : 'none';
+  $('deckDistField').style.display = $('memberType').value === 'longitudinal' ? '' : 'none';
+  $('bracketFields').style.display = $('inBracket').checked ? '' : 'none';
+  $('prescFields').style.display = $('prescEnable').checked ? '' : 'none';
+  $('dispBeta').textContent = a.beta.toFixed(2);
+  $('dispAlpha').textContent = String(a.alpha);
+  $('dispCsMax').textContent = a.CsMax.toFixed(2);
+  $('dispCs').textContent = a.Cs.toFixed(3);
+  $('dispCt').textContent = a.Ct.toFixed(2);
+  $('calcSigAllow').textContent = a.sig.toFixed(1) + ' N/mm2';
+  $('calcTauAllow').textContent = a.tau.toFixed(1) + ' N/mm2';
+}
+
+/* --------------------------------------------------------------------------
+   Section properties
+   Sec.7 [1.4.6]: A_shr-0 = (h_w + t_f + t_p) t_w 1e-2, web perpendicular
+   Sec.7 [1.4.7]: h_eff with the opening (and any cut-out in the same section)
+   -------------------------------------------------------------------------- */
+function sectionProps(dim, ho, cFromFlange, basis, tc, cutout) {
+  const d = 0.5 * ((basis === 'n50') ? tc : 0);
+  const tw = Math.max(0.1, dim.tw - d), tf = Math.max(0.1, dim.tf - d),
+        tp = Math.max(0.1, dim.tp - d), hw = dim.hw, bf = dim.bf, beff = dim.beff;
+  const cut = cutout || 0;
+
+  const A_shr0 = (hw + tf + tp) * tw / 100;
+  const hEff = Math.max(0, hw - ho - cut);
+  const A_shrNet = (hEff + tf + tp) * tw / 100;
+
+  const Af = bf * tf, zf = tf / 2;
+  const Aw = hw * tw, zw = tf + hw / 2;
+  const Ap = beff * tp, zp = tf + hw + tp / 2;
+  const H = tf + hw + tp;
+  const A = Af + Aw + Ap;
+  const S = Af * zf + Aw * zw + Ap * zp;
+  const I0 = (bf * Math.pow(tf, 3) / 12 + Af * zf * zf)
+           + (tw * Math.pow(hw, 3) / 12 + Aw * zw * zw)
+           + (beff * Math.pow(tp, 3) / 12 + Ap * zp * zp);
+  const zna = S / A;
+  const I = I0 - A * zna * zna;
+  const Zfl = I / Math.max(1, zna) / 1000;
+  const Zpl = I / Math.max(1, H - zna) / 1000;
+
+  const zh = tf + cFromFlange;
+  const Ah = ho * tw;
+  const An = Math.max(1, A - Ah);
+  const Sn = S - Ah * zh;
+  const I0n = I0 - (tw * Math.pow(ho, 3) / 12 + Ah * zh * zh);
+  const znan = Sn / An;
+  const In = Math.max(1, I0n - An * znan * znan);
+  const ZflN = In / Math.max(1, znan) / 1000;
+  const ZplN = In / Math.max(1, H - znan) / 1000;
+
+  return { tw: tw, tf: tf, tp: tp, hw: hw, bf: bf, beff: beff, H: H,
+           A_shr0: A_shr0, A_shrNet: A_shrNet, hEff: hEff,
+           A: A / 100, An: An / 100, I: I, In: In, zna: zna, znaNet: znan,
+           Zfl: Zfl, Zpl: Zpl, ZflNet: ZflN, ZplNet: ZplN };
+}
+
+/* largest h_o the shear check still allows */
+function hoFromShear(dim, tauGross, tauAllow, basis, tc, cutout) {
+  const p0 = sectionProps(dim, 0, dim.hw / 2, basis, tc, 0);
+  const pg = sectionProps(dim, 0, dim.hw / 2, 'gross', 0, 0);
+  if (tauGross <= 0) return dim.hw;
+  const A_req = tauGross * pg.A_shr0 / tauAllow;
+  const hNet = 100 * A_req / p0.tw - p0.tf - p0.tp;
+  return Math.max(0, dim.hw - (cutout || 0) - hNet);
+}
+
+/* [7.2.3] geometric limits */
+function geomLimits(dim, ho, wo, cFromFlange, single, sStf) {
+  const hw = dim.hw;
+  const depthLim = (single ? LIM.depthSingle : LIM.depthDouble) * hw;
+  const eFlange = cFromFlange - ho / 2;
+  const ePlate = hw - cFromFlange - ho / 2;
+  const edgeReq = single ? LIM.edgeFromFacePlate * hw : 0;
+  const lenLim = single ? Math.max(hw, LIM.lengthStiffFactor * sStf) : Infinity;
+  const msgs = [];
+  if (ho > depthLim + 1e-6) msgs.push('h_o ' + fmt(ho, 0) + ' > ' + fmt(depthLim, 0) + ' mm (' + (single ? '40' : '50') + '% h_w)');
+  if (single && eFlange < edgeReq - 1e-6) msgs.push('edge to faceplate ' + fmt(eFlange, 0) + ' < ' + fmt(edgeReq, 0) + ' mm (20% h_w)');
+  if (ePlate < 0 || eFlange < 0) msgs.push('opening does not fit in the web');
+  if (wo > lenLim + 1e-6) msgs.push('w_o ' + fmt(wo, 0) + ' > ' + fmt(lenLim, 0) + ' mm (greater of h_w and 0.6s)');
+  let hoMax = depthLim;
+  if (single) hoMax = Math.min(hoMax, 2 * Math.max(0, cFromFlange - edgeReq));
+  hoMax = Math.min(hoMax, 2 * Math.max(0, hw - cFromFlange));
+  return { ok: msgs.length === 0, msgs: msgs, depthLim: depthLim, edgeReq: edgeReq, lenLim: lenLim,
+           eFlange: eFlange, ePlate: ePlate, hoMax: Math.max(0, hoMax) };
+}
+
+/* --------------------------------------------------------------------------
+   XML
+   -------------------------------------------------------------------------- */
+function loadModelXML(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = function (ev) {
+    try {
+      const xml = new DOMParser().parseFromString(ev.target.result, 'text/xml');
+      model = { sections: {}, beamSection: {}, beamCoords: {}, beamMaterial: {}, materials: {} };
+
+      xml.querySelectorAll('section').forEach(sec => {
+        const name = sec.getAttribute('name');
+        const desc = sec.querySelector('description');
+        let dim = null;
+        const p3db = sec.querySelector('p3db_section');
+        if (p3db && p3db.getAttribute('dimensions')) {
+          const p = p3db.getAttribute('dimensions').split('/').map(s => parseFloat(s.trim()));
+          if (p.length >= 6 && p.slice(0, 6).every(v => isFinite(v))) {
+            dim = { beff: p[0], tp: p[1], hw: p[2], tw: p[3], bf: p[4], tf: p[5] };
+          }
+        }
+        if (!dim) {
+          const ui = sec.querySelector('unsymmetrical_i_section') || sec.querySelector('i_section');
+          if (ui) {
+            const g = a => parseFloat(ui.getAttribute(a));
+            const sc = (isFinite(g('h')) && g('h') < 10) ? 1000 : 1;
+            dim = { hw: (isFinite(g('h')) ? g('h') : 0.3) * sc,
+                    tw: (isFinite(g('tw')) ? g('tw') : 0.012) * sc,
+                    bf: (isFinite(g('bft')) ? g('bft') : (isFinite(g('b')) ? g('b') : 0.2)) * sc,
+                    tf: (isFinite(g('tft')) ? g('tft') : (isFinite(g('tf')) ? g('tf') : 0.015)) * sc,
+                    beff: 0, tp: 0 };
+          }
+        }
+        if (dim) model.sections[name] = { dim: dim, desc: desc ? (desc.getAttribute('text') || '') : '' };
+      });
+
+      xml.querySelectorAll('straight_beam').forEach(beam => {
+        const name = beam.getAttribute('name');
+        const seg = beam.querySelector('straight_segment');
+        if (!seg) return;
+        model.beamSection[name] = seg.getAttribute('section_ref');
+        if (seg.getAttribute('material_ref')) model.beamMaterial[name] = seg.getAttribute('material_ref');
+        const pos = seg.querySelectorAll('position');
+        if (pos.length >= 2) {
+          const f = (el, a) => parseFloat(el.getAttribute(a)) || 0;
+          model.beamCoords[name] = { x1: f(pos[0], 'x'), y1: f(pos[0], 'y'), z1: f(pos[0], 'z'),
+                                     x2: f(pos[1], 'x'), y2: f(pos[1], 'y'), z2: f(pos[1], 'z') };
+        }
+      });
+
+      // which beams meet at each end - the only honest way to say what is at a
+      // beam end without guessing; rounded to 5 mm to absorb modelling noise
+      model.nodes = {};
+      const key = (x, y, z) => [x, y, z || 0].map(v => Math.round(v * 200) / 200).join('|');
+      Object.keys(model.beamCoords).forEach(n => {
+        const c = model.beamCoords[n];
+        [key(c.x1, c.y1, c.z1), key(c.x2, c.y2, c.z2)].forEach(k => {
+          (model.nodes[k] = model.nodes[k] || []).push(n);
+        });
+      });
+
+      xml.querySelectorAll('material').forEach(mat => {
+        const iso = mat.querySelector('isotropic_linear_material');
+        if (!iso) return;
+        const fy = parseFloat(iso.getAttribute('yield_stress'));
+        if (isFinite(fy)) model.materials[mat.getAttribute('name')] = fy > 1e5 ? fy / 1e6 : fy;
+      });
+      // the library holds every material; take the one the beams actually use
+      const cnt = {};
+      Object.values(model.beamMaterial).forEach(m => { cnt[m] = (cnt[m] || 0) + 1; });
+      const used = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || Object.keys(model.materials)[0];
+      if (used && model.materials[used]) $('yieldStrength').value = model.materials[used].toFixed(0);
+
+      let html = '';
+      Object.keys(model.sections).forEach(n => {
+        const d = model.sections[n].dim;
+        html += '<div class="ea-calc-row"><span class="lbl">' + esc(n) + '</span><span class="val">h_w ' + fmt(d.hw, 0) + ' &middot; t_w ' + fmt(d.tw, 1) + ' &middot; b_f ' + fmt(d.bf, 0) + '/' + fmt(d.tf, 1) + '</span></div>';
+      });
+      $('sectionsDisplay').innerHTML = html || '<div class="ea-calc-row"><span class="lbl">Sections</span><span class="val">none found</span></div>';
+      // a starting opening height that the rule actually allows unreinforced
+      if (!$('openingHeight').dataset.touched) {
+        const hws = Object.values(model.sections).map(x => x.dim.hw).filter(v => v > 0);
+        if (hws.length) {
+          const f = $('skinType').value === 'single' ? LIM.depthSingle : LIM.depthDouble;
+          $('openingHeight').value = String(Math.floor(Math.min.apply(null, hws) * f / 5) * 5);
+        }
+      }
+      $('modelUploadZone').classList.add('loaded');
+      $('modelFileName').textContent = file.name + ' (' + Object.keys(model.sections).length + ' sections, ' + Object.keys(model.beamSection).length + ' beams)';
+      if (Object.keys(model.beamSection).length) $('manualEnable').checked = false;
+      recalc();
+    } catch (err) { alert('Model XML: ' + err.message); }
+  };
+  r.readAsText(file);
+}
+
+function loadResultsXML(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = function (ev) {
+    try {
+      const xml = new DOMParser().parseFromString(ev.target.result, 'text/xml');
+      stress = {};
+      const found = {};
+
+      // Stress unit: taken from the file's own <model_units>, never guessed from
+      // the size of a single number. A results file written with force = N and
+      // length = m carries stresses in Pa, and a station with almost no shear
+      // (1024 Pa) would otherwise be read as 1024 N/mm2.
+      const mu = xml.querySelector('model_units');
+      const FU = { N: 1, kN: 1e3, MN: 1e6, lbf: 4.4482 };
+      const LU = { m: 1, mm: 1e-3, cm: 1e-2, km: 1e3 };
+      let uScale = null, uNote = '';
+      if (mu) {
+        const f = FU[mu.getAttribute('force')], l = LU[mu.getAttribute('length')];
+        if (f && l) { uScale = f / (l * l) / 1e6; uNote = mu.getAttribute('force') + '/' + mu.getAttribute('length') + '2'; }
+      }
+      if (uScale == null) {                       // no units block: judge by the file maximum
+        let mx = 0;
+        xml.querySelectorAll('response').forEach(rp => {
+          ['tau_Qy', 'tau_Qz', 'sig_My_top', 'sig_My_bot', 'sig_Mz_left', 'sig_Mz_right', 'sig_N', 'sig_Nx'].forEach(a => {
+            const v = Math.abs(parseFloat(rp.getAttribute(a))); if (isFinite(v) && v > mx) mx = v;
+          });
+        });
+        uScale = mx > 1e5 ? 1e-6 : 1; uNote = mx > 1e5 ? 'assumed Pa' : 'assumed N/mm2';
+      }
+      window.__uNote = uNote + ' -> N/mm2 (x' + uScale.toExponential(0) + ')';
+
+      const val = (el, a) => {
+        const v = parseFloat(el.getAttribute(a));
+        if (!isFinite(v)) return null;
+        found[a] = true;
+        return Math.abs(v) * uScale;
+      };
+      xml.querySelectorAll('beam_response').forEach(br => {
+        const name = br.getAttribute('beam_ref');
+        if (!stress[name]) stress[name] = { positions: {}, max: { tauQy: 0, tauQz: 0, sigMy: 0, sigMz: 0, sigN: 0 } };
+        br.querySelectorAll('response').forEach(resp => {
+          const par = parseFloat(resp.getAttribute('par'));
+          const key = (isFinite(par) ? par : 0).toFixed(2);
+          const p = stress[name].positions[key] || (stress[name].positions[key] = { tauQy: 0, tauQz: 0, sigMy: 0, sigMz: 0, sigN: 0 });
+          const put = (k, v) => { if (v != null) { p[k] = Math.max(p[k], v); stress[name].max[k] = Math.max(stress[name].max[k], v); } };
+          put('tauQy', val(resp, 'tau_Qy'));
+          put('tauQz', val(resp, 'tau_Qz'));
+          const my = Math.max(val(resp, 'sig_My_top') || 0, val(resp, 'sig_My_bot') || 0);
+          put('sigMy', my || null);
+          const mz = Math.max(val(resp, 'sig_Mz_left') || 0, val(resp, 'sig_Mz_right') || 0);
+          put('sigMz', mz || null);
+          put('sigN', val(resp, 'sig_N') != null ? val(resp, 'sig_N') : val(resp, 'sig_Nx'));
+        });
+      });
+      $('dispComponents').textContent = (Object.keys(found).join(', ') || 'none');
+      $('dispUnits').textContent = window.__uNote || '-';
+      $('dispBeamCount').textContent = String(Object.keys(stress).length);
+      $('resultsUploadZone').classList.add('loaded');
+      $('resultsFileName').textContent = file.name + ' (' + Object.keys(stress).length + ' beams)';
+      if (Object.keys(stress).length) $('manualEnable').checked = false;
+      recalc();
+    } catch (err) { alert('Results XML: ' + err.message); }
+  };
+  r.readAsText(file);
+}
+
+/* Stress at a position. The result file often carries only a few stations
+   (0 / 0.5 / 1 is common), so the value between them is interpolated linearly
+   rather than snapped to the nearest station. */
+function stressAt(name, target) {
+  const d = stress[name];
+  if (!d) return null;
+  if (target === 'max') return Object.assign({ par: 'max' }, d.max);
+  const keys = Object.keys(d.positions).map(parseFloat).sort((a, b) => a - b);
+  if (!keys.length) return Object.assign({ par: 'max' }, d.max);
+  const at = k => d.positions[k.toFixed(2)];
+  if (target <= keys[0]) return Object.assign({ par: keys[0].toFixed(2) }, at(keys[0]));
+  if (target >= keys[keys.length - 1]) return Object.assign({ par: keys[keys.length - 1].toFixed(2) }, at(keys[keys.length - 1]));
+  let i = 0; while (i < keys.length - 1 && keys[i + 1] < target) i++;
+  const k0 = keys[i], k1 = keys[i + 1], f = (target - k0) / Math.max(1e-9, k1 - k0);
+  const a = at(k0), b = at(k1), o = { par: target.toFixed(2) };
+  ['tauQy', 'tauQz', 'sigMy', 'sigMz', 'sigN'].forEach(k => { o[k] = a[k] + f * (b[k] - a[k]); });
+  return o;
+}
+
+/* how many other beams meet at each end of this one */
+function endInfo(name) {
+  const c = model.beamCoords[name];
+  if (!c || !model.nodes) return null;
+  const key = (x, y, z) => [x, y, z || 0].map(v => Math.round(v * 200) / 200).join('|');
+  const at = k => (model.nodes[k] || []).filter(n => n !== name).length;
+  return { a: at(key(c.x1, c.y1, c.z1)), b: at(key(c.x2, c.y2, c.z2)) };
+}
+
+function beamLength(name) {
+  const c = model.beamCoords[name];
+  if (!c) return null;
+  const L = Math.hypot(c.x2 - c.x1, c.y2 - c.y1, (c.z2 || 0) - (c.z1 || 0));
+  return L < 100 ? L * 1000 : L;
+}
+
+function holeCentreFor(dim, basis, tc) {
+  const mode = $('holeVertical').value;
+  if (mode === 'custom') return num('holeCentre', dim.hw / 2);
+  if (mode === 'na') {
+    const p = sectionProps(dim, 0, dim.hw / 2, basis, tc, 0);
+    return Math.min(dim.hw, Math.max(0, p.zna - p.tf));
+  }
+  return dim.hw / 2;
+}
+
+/* --------------------------------------------------------------------------
+   Main calculation
+   -------------------------------------------------------------------------- */
+function recalc() {
+  updateCoefficients();
+
+  const ho = num('openingHeight', 200);
+  const wo = num('openingWidth', 300);
+  const single = $('skinType').value === 'single';
+  const sStf = num('stiffSpacing', 700);
+  const basis = $('scantlingBasis').value;
+  const tc = num('corrAdd', 0);
+  const cut = num('cutoutDeduct', 0);
+  const posSel = $('holePosition').value;
+  const target = posSel === 'max' ? 'max' : parseFloat(posSel);
+  const shearSel = $('shearComponent').value;
+
+  const list = [];
+  if ($('manualEnable').checked) {
+    list.push({ name: 'Manual beam', section: 'manual',
+      dim: { hw: num('mHw', 800), tw: num('mTw', 12), bf: num('mBf', 200), tf: num('mTf', 15), beff: num('mBeff', 1400), tp: num('mTp', 14) },
+      ReH: num('yieldStrength', 235), L: num('mLen', 5) * 1000,
+      s: { tauQy: 0, tauQz: num('mTau', 55), sigMy: num('mSig', 120), sigMz: 0, sigN: 0, par: 'manual' } });
+  }
+  Object.keys(stress).forEach(name => {
+    const secName = model.beamSection[name];
+    const sec = secName ? model.sections[secName] : null;
+    if (!sec) return;
+    const matName = model.beamMaterial[name];
+    const ReH = (matName && model.materials[matName]) ? model.materials[matName] : num('yieldStrength', 235);
+    const L = beamLength(name);
+    list.push({ name: name, section: secName, dim: sec.dim, ReH: ReH, L: L,
+                sliver: (L != null && L < 50), s: stressAt(name, target) });
+  });
+
+  results = list.map(b => {
+    const dim = b.dim;
+    const c = holeCentreFor(dim, basis, tc);
+    const p = sectionProps(dim, ho, c, basis, tc, cut);
+    const pg = sectionProps(dim, 0, c, 'gross', 0, 0);
+    const a = allow(b.ReH);
+
+    const tau = shearSel === 'Qz' ? b.s.tauQz : shearSel === 'Qy' ? b.s.tauQy : Math.max(b.s.tauQy, b.s.tauQz);
+    const kShr = p.A_shrNet > 0 ? pg.A_shr0 / p.A_shrNet : 999;
+    const tauNet = tau * kShr;
+
+    const kBend = Math.max(pg.Zfl / Math.max(1e-6, p.ZflNet), pg.Zpl / Math.max(1e-6, p.ZplNet));
+    const sigGross = (b.s.sigN || 0) + b.s.sigMy + (b.s.sigMz || 0);
+    const sigNet = (b.s.sigN || 0) * (pg.A / Math.max(1e-6, p.An)) + b.s.sigMy * kBend + (b.s.sigMz || 0);
+
+    const g = geomLimits(dim, ho, wo, c, single, sStf);
+    const hoShear = hoFromShear(dim, tau, a.tau, basis, tc, cut);
+    const hoMax = Math.min(hoShear, g.hoMax);
+
+    const ucS = tauNet / a.tau, ucB = sigNet / a.sig;
+    let status = 'OK', cls = 'ok';
+    if (ucS > 1 || ucB > 1) { status = (ucS > 1 && ucB > 1) ? 'FAIL B+S' : ucS > 1 ? 'FAIL shear' : 'FAIL bending'; cls = 'bad'; }
+    else if (!g.ok) { status = 'Reinforce'; cls = 'warn'; }
+
+    return { name: b.name, section: b.section, dim: dim, ReH: b.ReH, L: b.L, sliver: !!b.sliver, par: b.s.par, sRaw: b.s,
+             tau: tau, tauNet: tauNet, sig: sigGross, sigNet: sigNet, ucS: ucS, ucB: ucB,
+             allow: a, geom: g, hoShear: hoShear, hoMax: hoMax, props: p, propsGross: pg,
+             kShr: kShr, kBend: kBend, status: status, cls: cls, cHole: c, cut: cut };
+  });
+
+  results.sort((x, y) => Math.max(y.ucS, y.ucB) - Math.max(x.ucS, x.ucB));
+  renderBeams();
+  fillLayoutBeams();
+  renderLayout();
+  renderDetails();
+  drawPlan();
+}
+
+function ucCell(uc) {
+  const c = uc > 1 ? 'bad' : uc > 0.85 ? 'warn' : 'ok';
+  return '<span class="tag ' + c + '">' + uc.toFixed(2) + '</span><div class="uc-bar"><span class="' + c + '" style="width:' + Math.min(100, uc * 100).toFixed(0) + '%"></span></div>';
+}
+
+function renderBeams() {
+  const tb = $('beamBody');
+  if (!results.length) {
+    tb.innerHTML = '<tr><td colspan="14" style="color:var(--text-muted)">Load the XML files, or tick the manual beam on the input page.</td></tr>';
+    ['sumTotal', 'sumPass', 'sumReinf'].forEach(id => $(id).textContent = '0');
+    $('sumUC').textContent = '-';
+    $('governing').innerHTML = '<p style="color:var(--text-muted);font-size:var(--fs-sm)">No results yet.</p>';
+    return;
+  }
+  const posSel = $('holePosition').value;
+  $('beamTableRef').textContent = 'stresses at ' + (posSel === 'max' ? 'the envelope maximum' : 'par = ' + posSel) +
+    '  |  C_s ' + coeff.Cs.toFixed(3) + '  |  ' + ($('scantlingBasis').value === 'n50' ? 'net n50' : 'gross') +
+    (num('cutoutDeduct', 0) > 0 ? '  |  cut-out ' + fmt(num('cutoutDeduct', 0), 0) + ' mm' : '');
+
+  tb.innerHTML = results.map(r =>
+    '<tr id="row-' + rowId(r.name) + '">' +
+    '<td class="name">' + esc(r.name) + (r.sliver ? ' <span class="tag info" title="beam shorter than 50 mm - a modelling sliver, not a real member">sliver</span>' : '') + '</td><td>' + esc(r.section || '-') + '</td>' +
+    '<td>' + fmt(r.dim.hw, 0) + '</td><td>' + fmt(r.props.hEff, 0) + '</td><td>' + fmt(r.ReH, 0) + '</td>' +
+    '<td>' + fmt(r.tau, 1) + '</td><td>' + fmt(r.tauNet, 1) + '</td><td>' + ucCell(r.ucS) + '</td>' +
+    '<td>' + fmt(r.sig, 1) + '</td><td>' + fmt(r.sigNet, 1) + '</td><td>' + ucCell(r.ucB) + '</td>' +
+    '<td>' + fmt(r.hoMax, 0) + '</td>' +
+    '<td>' + (r.geom.ok ? '<span class="tag ok">within</span>' : '<span class="tag warn" title="' + esc(r.geom.msgs.join(' | ')) + '">' + r.geom.msgs.length + ' over</span>') + '</td>' +
+    '<td><span class="tag ' + r.cls + '">' + r.status + '</span></td></tr>').join('');
+
+  const pass = results.filter(r => r.status === 'OK').length;
+  const reinf = results.filter(r => r.status === 'Reinforce').length;
+  const maxUC = Math.max.apply(null, results.map(r => Math.max(r.ucS, r.ucB)));
+  $('sumTotal').textContent = String(results.length);
+  $('sumPass').textContent = String(pass);
+  $('sumReinf').textContent = String(reinf);
+  $('sumUC').textContent = maxUC.toFixed(2);
+  $('sumUC').style.color = maxUC > 1 ? 'var(--error)' : maxUC > 0.85 ? 'var(--warning)' : 'var(--success)';
+
+  const gov = results.slice().sort((a, b) => a.hoMax - b.hoMax)[0];
+  const ho = num('openingHeight', 200), wo = num('openingWidth', 300);
+  let h = '<div class="ea-row-2"><div><div class="ea-calc-box" style="margin-top:0">';
+  h += '<div class="ea-calc-row"><span class="lbl">Governing beam</span><span class="val">' + esc(gov.name) + '</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">Web h_w x t_w</span><span class="val">' + fmt(gov.dim.hw, 0) + ' x ' + fmt(gov.dim.tw, 1) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">h_eff / A_shr net</span><span class="val">' + fmt(gov.props.hEff, 0) + ' mm / ' + fmt(gov.props.A_shrNet, 1) + ' cm2</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">tau gross / allow</span><span class="val">' + fmt(gov.tau, 1) + ' / ' + fmt(gov.allow.tau, 1) + ' N/mm2</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">h_o from shear</span><span class="val">' + fmt(gov.hoShear, 0) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">h_o from [7.2.3]</span><span class="val">' + fmt(gov.geom.hoMax, 0) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">h_o allowed</span><span class="val success">' + fmt(gov.hoMax, 0) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">w_o limit</span><span class="val">' + (isFinite(gov.geom.lenLim) ? fmt(gov.geom.lenLim, 0) + ' mm' : 'spacing only') + '</span></div>';
+  h += '</div></div><div><div class="ea-notes"><div class="ea-notes-title">Reading</div><ul>';
+  h += '<li>With h_o = ' + fmt(ho, 0) + ' and w_o = ' + fmt(wo, 0) + ' mm: <b>' + pass + '</b> of ' + results.length + ' beams take the opening as it is, <b>' + reinf + '</b> need reinforcement per [7.2.4], <b>' + (results.length - pass - reinf) + '</b> fail the stress check.</li>';
+  h += '<li>h_o is governed by ' + (gov.hoShear < gov.geom.hoMax ? '<b>shear</b>' : '<b>the [7.2.3] limits</b>') + ' on beam ' + esc(gov.name) + '.</li>';
+  h += '<li>Bending on the net section: Z drops by the factor ' + gov.kBend.toFixed(3) + ', so sigma goes from ' + fmt(gov.sig, 1) + ' to ' + fmt(gov.sigNet, 1) + ' N/mm2.</li>';
+  h += '<li>C_s = ' + coeff.Cs.toFixed(3) + ' (beta ' + coeff.beta.toFixed(2) + ', alpha ' + coeff.alpha + ', cap ' + coeff.CsMax.toFixed(2) + ')' + ($('hullGirderLoads').value === 'yes' ? ' with sigma_hg = ' + fmt(Math.abs(num('sigHg', 0)), 0) + ' N/mm2 deducted.' : '.') + '</li>';
+  h += '</ul></div></div></div>';
+  $('governing').innerHTML = h;
+}
+
+/* --------------------------------------------------------------------------
+   Plan view - where each beam sits, coloured by utilisation
+   -------------------------------------------------------------------------- */
+function rowId(name) { return String(name).replace(/[^A-Za-z0-9_-]/g, ''); }
+
+function selectBeam(name) {
+  const sel = $('layoutBeam');
+  if (!sel || !name) return;
+  sel.value = name;
+  fillLayoutBeams();          // length and end clearance belong to the new beam
+  renderLayout(); renderDetails(); drawPlan();
+  const onLayout = $('page-4') && $('page-4').classList.contains('active');
+  const row = onLayout ? null : document.getElementById('row-' + rowId(name));
+  if (row) {
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.style.transition = 'background-color .2s';
+    row.style.backgroundColor = 'rgba(37,99,235,0.16)';
+    setTimeout(function () { row.style.backgroundColor = ''; }, 1500);
+  }
+}
+
+function drawPlan() {
+  const hosts = ['planSvg', 'planSvg2'].map($).filter(Boolean);
+  if (!hosts.length) return;
+  const host = hosts[0];
+  const showLbl = $('planLabels') ? $('planLabels').checked : true;
+  const showSl = $('planSlivers') ? $('planSlivers').checked : false;
+  const sel = $('layoutBeam') ? $('layoutBeam').value : null;
+
+  const drawn = results.filter(r => model.beamCoords[r.name] && (showSl || !r.sliver));
+  if (!drawn.length) {
+    hosts.forEach(h => { h.innerHTML = '<p class="ea-info-text">No beam coordinates in the model XML, so there is nothing to plot (the manual beam has no position).</p>'; });
+    ['planRef', 'planRef2'].forEach(id => { if ($(id)) $(id).textContent = ''; });
+    return;
+  }
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  drawn.forEach(r => {
+    const c = model.beamCoords[r.name];
+    x0 = Math.min(x0, c.x1, c.x2); x1 = Math.max(x1, c.x1, c.x2);
+    y0 = Math.min(y0, c.y1, c.y2); y1 = Math.max(y1, c.y1, c.y2);
+  });
+  const spanX = Math.max(0.001, x1 - x0), spanY = Math.max(0.001, y1 - y0);
+
+  const W = 1180, m = 54;
+  const H = Math.max(340, Math.min(920, (W - 2 * m) * spanY / spanX + 2 * m));
+  const k = Math.min((W - 2 * m) / spanX, (H - 2 * m) / spanY);   // one scale, no distortion
+  const ox = m + ((W - 2 * m) - spanX * k) / 2;
+  const oy = m + ((H - 2 * m) - spanY * k) / 2;
+  const X = v => ox + (v - x0) * k;
+  const Y = v => H - oy - (v - y0) * k;
+
+  const col = r => {
+    if (r.name === sel) return '#2563eb';
+    const uc = Math.max(r.ucS, r.ucB);
+    return uc > 1 ? '#dc2626' : uc > 0.85 ? '#b45309' : '#16a34a';
+  };
+
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;font-family:var(--font-mono);font-size:9px">';
+  const step = spanX > 30 ? 5 : spanX > 12 ? 2 : 1;
+  for (let v = Math.ceil(x0 / step) * step; v <= x1 + 1e-9; v += step) {
+    g += '<line x1="' + X(v) + '" y1="' + oy + '" x2="' + X(v) + '" y2="' + (H - oy) + '" stroke="#eef2f7"/>';
+    g += '<text x="' + X(v) + '" y="' + (H - oy + 16) + '" text-anchor="middle" fill="#94a3b8">' + v + '</text>';
+  }
+  for (let v = Math.ceil(y0 / step) * step; v <= y1 + 1e-9; v += step) {
+    g += '<line x1="' + ox + '" y1="' + Y(v) + '" x2="' + (W - ox) + '" y2="' + Y(v) + '" stroke="#eef2f7"/>';
+    g += '<text x="' + (ox - 8) + '" y="' + (Y(v) + 3) + '" text-anchor="end" fill="#94a3b8">' + v + '</text>';
+  }
+  g += '<text x="' + (W / 2) + '" y="' + (H - 8) + '" text-anchor="middle" fill="#64748b">X (m)</text>';
+  g += '<text x="14" y="' + (H / 2) + '" text-anchor="middle" fill="#64748b" transform="rotate(-90 14 ' + (H / 2) + ')">Y (m)</text>';
+
+  drawn.forEach(r => {
+    const c = model.beamCoords[r.name];
+    const isSel = r.name === sel;
+    const dash = (r.status === 'Reinforce') ? ' stroke-dasharray="6 3"' : '';
+    const tip = r.name + '   ' + (r.L ? (r.L / 1000).toFixed(2) + ' m' : '') +
+                '&#10;UC shear ' + r.ucS.toFixed(2) + ' , UC bending ' + r.ucB.toFixed(2) +
+                '&#10;tau ' + fmt(r.tau, 1) + ' -> net ' + fmt(r.tauNet, 1) + ' N/mm2' +
+                '&#10;h_o max ' + fmt(r.hoMax, 0) + ' mm , ' + r.status;
+    g += '<g class="plan-beam" data-beam="' + esc(r.name) + '" style="cursor:pointer">';
+    g += '<title>' + esc(tip) + '</title>';
+    g += '<line x1="' + X(c.x1) + '" y1="' + Y(c.y1) + '" x2="' + X(c.x2) + '" y2="' + Y(c.y2) + '" stroke="rgba(0,0,0,0)" stroke-width="14"/>';
+    g += '<line x1="' + X(c.x1) + '" y1="' + Y(c.y1) + '" x2="' + X(c.x2) + '" y2="' + Y(c.y2) + '" stroke="' + col(r) + '" stroke-width="' + (isSel ? 4.5 : 2.6) + '" stroke-linecap="round"' + dash + '/>';
+    g += '<circle cx="' + X(c.x1) + '" cy="' + Y(c.y1) + '" r="2.2" fill="' + col(r) + '"/>';
+    g += '<circle cx="' + X(c.x2) + '" cy="' + Y(c.y2) + '" r="2.2" fill="' + col(r) + '"/>';
+    if (showLbl) {
+      const mx = (X(c.x1) + X(c.x2)) / 2, my = (Y(c.y1) + Y(c.y2)) / 2;
+      const lab = r.name.replace(/^Beam/i, 'B');
+      const wLab = lab.length * 5.6 + 7;
+      g += '<rect x="' + (mx - wLab / 2) + '" y="' + (my - 7) + '" width="' + wLab + '" height="13" rx="3" fill="#ffffff" stroke="' + col(r) + '" stroke-width="0.8" opacity="0.95"/>';
+      g += '<text x="' + mx + '" y="' + (my + 3) + '" text-anchor="middle" fill="#0f172a" style="pointer-events:none">' + lab + '</text>';
+    }
+    g += '</g>';
+  });
+  g += '</svg>';
+  hosts.forEach(h => {
+    h.innerHTML = g;
+    h.querySelectorAll('.plan-beam').forEach(el =>
+      el.addEventListener('click', function () { selectBeam(el.getAttribute('data-beam')); }));
+  });
+
+  const hidden = results.filter(r => r.sliver).length;
+  const txt = drawn.length + ' beams' + (hidden && !showSl ? '  |  ' + hidden + ' sliver(s) hidden' : '') +
+              (sel ? '  |  selected: ' + sel : '');
+  ['planRef', 'planRef2'].forEach(id => { if ($(id)) $(id).textContent = txt; });
+}
+
+/* --------------------------------------------------------------------------
+   Layout - how many openings, how long each
+   -------------------------------------------------------------------------- */
+function fillLayoutBeams() {
+  const sel = $('layoutBeam');
+  const cur = sel.value;
+  const pick = results.filter(r => !r.sliver);
+  const list = pick.length ? pick : results;
+  sel.innerHTML = list.map(r => '<option value="' + esc(r.name) + '">' + esc(r.name) + (r.section ? ' (' + esc(r.section) + ')' : '') + '</option>').join('');
+  if (cur && list.some(r => r.name === cur)) sel.value = cur;
+  const r = list.find(x => x.name === sel.value) || list[0];
+  if (r) {
+    // length is a property of the model, not something to ask for
+    const manual = $('layoutLenOverride') && $('layoutLenOverride').checked;
+    const el = $('layoutLength');
+    const hasL = r.L && r.L > 50;
+    el.readOnly = hasL && !manual;
+    if (hasL && !manual) el.value = (r.L / 1000).toFixed(2);
+    else if (!hasL && !manual && r.name === 'Manual beam') el.value = String(num('mLen', 5));
+    if (!$('layoutWidth').dataset.touched) $('layoutWidth').value = String(num('openingWidth', 300));
+    if (!$('layoutClearEnd').dataset.touched) $('layoutClearEnd').value = String(Math.round(Math.max(200, r.dim.hw)));
+    window.__layoutBeam = r.name;
+  }
+}
+['layoutWidth', 'layoutClearEnd', 'openingHeight', 'openingWidth'].forEach(id => $(id).addEventListener('input', function () { this.dataset.touched = '1'; }));
+
+function tauAtPar(name, par) {
+  const sel = $('shearComponent').value;
+  const s = stressAt(name, par);
+  if (!s) return null;
+  return sel === 'Qz' ? s.tauQz : sel === 'Qy' ? s.tauQy : Math.max(s.tauQy, s.tauQz);
+}
+
+/* The placement itself: same rules for one beam or for all of them.
+   [7.2.3] clear distance to the next opening - at least the opening length at
+   mid-span, at least four times it inside the end region (length <= 25% of the
+   clear distance there) - plus the shear check at each position. */
+function computeLayout(r, L, wo, hoMode) {
+  const endFrac = Math.min(0.45, Math.max(0, num('layoutEndZone', 0.2)));
+  const clear = Math.max(0, num('layoutClearEnd', 300));
+  const single = $('skinType').value === 'single';
+  const sStf = num('stiffSpacing', 700);
+  const hoDesign = num('openingHeight', 200);
+  const basis = $('scantlingBasis').value, tc = num('corrAdd', 0), cut = num('cutoutDeduct', 0);
+  const cHole = holeCentreFor(r.dim, basis, tc);
+  const lenLim = single ? Math.max(r.dim.hw, LIM.lengthStiffFactor * sStf) : Infinity;
+
+  // where the end clearance of [7.2.1] applies - a model fact, not a guess
+  const mode = $('layoutEndMode') ? $('layoutEndMode').value : 'both';
+  const inf = endInfo(r.name);
+  const useA = mode === 'both' || (mode === 'connected' && (!inf || inf.a > 0));
+  const useB = mode === 'both' || (mode === 'connected' && (!inf || inf.b > 0));
+  const bandA = useA ? clear : 0, bandB = L - (useB ? clear : 0);
+  const band = Math.max(0, bandB - bandA);
+
+  // an opening belongs to the end region as soon as any part of it reaches into it
+  const zoneOf = x => ((x - wo / 2) < endFrac * L || (x + wo / 2) > (1 - endFrac) * L) ? 'end' : 'mid';
+  const clearReq = z => (z === 'end' ? 4 * wo : wo);      // [7.2.3]
+  const pg = sectionProps(r.dim, 0, cHole, 'gross', 0, 0);
+  const gLim = geomLimits(r.dim, hoDesign, wo, cHole, single, sStf);
+
+  const shearAt = (x, ho) => {
+    const par = x / L;
+    let tau = r.tau;
+    if (r.name !== 'Manual beam') { const t = tauAtPar(r.name, par); if (t != null) tau = t; }
+    const hoShear = hoFromShear(r.dim, tau, r.allow.tau, basis, tc, cut);
+    const hoAllow = Math.min(hoShear, gLim.hoMax);
+    const hh = ho == null ? (hoMode === 'max' ? Math.max(0, Math.floor(hoAllow / 5) * 5) : hoDesign) : ho;
+    const p = sectionProps(r.dim, hh, cHole, basis, tc, cut);
+    const tauNet = p.A_shrNet > 0 ? tau * pg.A_shr0 / p.A_shrNet : Infinity;
+    return { par: par, tau: tau, ho: hh, tauNet: tauNet, uc: tauNet / r.allow.tau, hoAllow: hoAllow };
+  };
+
+  /* Symmetric, uniform pitch: the openings sit as a group centred on mid-span,
+     at the tightest pitch [7.2.3] allows. The largest N that fits the usable
+     length, the spacing rule and the shear check wins. Placing them in the
+     middle is also where the shear is lowest, so it is not only tidier. */
+  // the strip the openings may occupy: the usable length, and outside the end
+  // regions unless nothing fits there
+  const lo0 = Math.max(bandA, endFrac * L) + wo / 2;
+  const hi0 = Math.min(bandB, (1 - endFrac) * L) - wo / 2;
+  const okAt = xs => xs.every((x, i) => {
+    if (i < xs.length - 1) {
+      const need = Math.max(clearReq(zoneOf(x)), clearReq(zoneOf(xs[i + 1])));
+      if (xs[i + 1] - x - wo < need - 1e-6) return false;
+    }
+    return shearAt(x, null).uc <= 1;
+  });
+  // N openings spread evenly and symmetrically between lo and hi
+  const spread = (N, lo, hi) => {
+    if (N === 1) return [(lo + hi) / 2];
+    const p = (hi - lo) / (N - 1);
+    const xs = [];
+    for (let i = 0; i < N; i++) xs.push(lo + i * p);
+    return xs;
+  };
+
+  let xs = [], reason = '', N0 = 0;
+  if (hi0 - lo0 >= -1e-6) {                    // room outside the end regions
+    N0 = Math.max(1, Math.floor((hi0 - lo0) / (2 * wo)) + 1);
+    for (let N = N0; N >= 1; N--) {
+      const t = spread(N, lo0, hi0);
+      if (okAt(t)) { xs = t; break; }
+    }
+    if (xs.length && xs.length === N0) {
+      // the strip ran out - which of the two limits set the strip?
+      const byRegion = (endFrac * L) > bandA + 1e-6;
+      reason = 'the length available between the end ' + (byRegion ? 'regions (' + (endFrac * 100).toFixed(0) + '% of L each side)' : 'clearances (' + fmt(clear, 0) + ' mm each side)') +
+               ' - ' + fmt(hi0 - lo0 + wo, 0) + ' mm - at the minimum pitch of ' + fmt(2 * wo, 0) + ' mm';
+    } else if (xs.length) {
+      reason = 'the shear check: ' + (N0) + ' openings would fit geometrically but the one nearest the end exceeds tau_allow';
+    }
+  }
+  if (!xs.length) {                            // fall back into the end region
+    const lo = bandA + wo / 2, hi = bandB - wo / 2;
+    if (hi >= lo) {
+      const N0 = Math.max(1, Math.floor((hi - lo) / (5 * wo)) + 1);
+      for (let N = N0; N >= 1; N--) {
+        const t = spread(N, lo, hi);
+        if (okAt(t)) { xs = t; break; }
+      }
+    }
+  }
+
+  const items = xs.map((x, i) => {
+    const sh = shearAt(x, null);
+    const gg = geomLimits(r.dim, sh.ho, wo, cHole, single, sStf);
+    const z = zoneOf(x);
+    const next = xs[i + 1];
+    return { x: x, par: sh.par, zone: z, ho: sh.ho, wo: wo, tau: sh.tau, tauNet: sh.tauNet, uc: sh.uc,
+             hoAllow: sh.hoAllow, ok: sh.uc <= 1 && gg.ok, msgs: gg.msgs.slice(),
+             gap: next == null ? null : (next - x - wo), gapReq: next == null ? null : Math.max(clearReq(z), clearReq(zoneOf(next))) };
+  });
+  return { items: items, band: band, bandA: bandA, bandB: bandB, lenLim: lenLim,
+           endFrac: endFrac, cHole: cHole, clear: clear, reason: reason, nGeom: N0,
+           midLo: lo0, midHi: hi0,
+           pitch: xs.length > 1 ? (xs[1] - xs[0]) : null, pitchMin: 2 * wo,
+           ends: { a: useA, b: useB, info: inf } };
+}
+
+/* one beam, one elevation strip - used in the all-beams table */
+function miniElevation(r, L, res) {
+  const W = 230, H = 26, pad = 2;
+  const sx = (W - 2 * pad) / L;
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" style="vertical-align:middle">';
+  g += '<rect x="' + pad + '" y="4" width="' + (L * sx) + '" height="' + (H - 8) + '" fill="#fbfcfe" stroke="#cbd5e1"/>';
+  g += '<rect x="' + pad + '" y="4" width="' + (res.endFrac * L * sx) + '" height="' + (H - 8) + '" fill="rgba(180,83,9,0.10)"/>';
+  g += '<rect x="' + (pad + (1 - res.endFrac) * L * sx) + '" y="4" width="' + (res.endFrac * L * sx) + '" height="' + (H - 8) + '" fill="rgba(180,83,9,0.10)"/>';
+  res.items.forEach(it => {
+    const x0 = pad + (it.x - it.wo / 2) * sx, w = Math.max(1.5, it.wo * sx);
+    const col = it.ok ? '#16a34a' : (it.uc > 1 ? '#dc2626' : '#b45309');
+    g += '<rect x="' + x0 + '" y="8" width="' + w + '" height="' + (H - 16) + '" rx="2" fill="rgba(37,99,235,0.10)" stroke="' + col + '" stroke-width="1.1"/>';
+  });
+  g += '</svg>';
+  return g;
+}
+
+function renderAllLayout() {
+  const tb = $('allLayoutBody'); if (!tb) return;
+  const wo = Math.max(10, num('layoutWidth', 300));
+  const hoMode = $('layoutHoMode').value;
+  const onlyFit = $('allOnlyFit') ? $('allOnlyFit').checked : false;
+  const sel = $('layoutBeam') ? $('layoutBeam').value : null;
+  const fallbackL = Math.max(100, num('layoutLength', 5) * 1000);
+
+  const rows = [];
+  window.__allLayout = [];
+  results.forEach(r => {
+    if (r.sliver) return;
+    const L = (r.L && r.L > 50) ? r.L : (r.name === 'Manual beam' ? fallbackL : null);
+    if (!L) return;
+    const res = computeLayout(r, L, wo, hoMode);
+    const n = res.items.length;
+    const okN = res.items.filter(i => i.ok).length;
+    const maxUC = n ? Math.max.apply(null, res.items.map(i => i.uc)) : 0;
+    const hoMax = n ? Math.min.apply(null, res.items.map(i => i.hoAllow)) : r.hoMax;
+    window.__allLayout.push({ r: r, L: L, res: res });
+    if (onlyFit && !n) return;
+    const tag = !n ? '<span class="tag info">no room</span>'
+              : okN === n ? '<span class="tag ok">' + n + ' OK</span>'
+              : '<span class="tag warn">' + okN + ' of ' + n + '</span>';
+    rows.push('<tr data-beam="' + esc(r.name) + '" style="cursor:pointer' + (r.name === sel ? ';background:rgba(37,99,235,0.07)' : '') + '">' +
+      '<td class="name">' + esc(r.name) + '</td>' +
+      '<td>' + (L / 1000).toFixed(2) + '</td>' +
+      '<td>' + (res.ends.info ? res.ends.info.a + ' / ' + res.ends.info.b : '?') + '</td>' +
+      '<td>' + n + '</td>' +
+      '<td>' + (n > 1 ? fmt(res.pitch, 0) : '&mdash;') + '</td>' +
+      '<td>' + (n ? res.items.map(i => Math.round(i.x)).join(' , ') : '&mdash;') + '</td>' +
+      '<td>' + (n ? '<span class="tag ' + (maxUC > 1 ? 'bad' : maxUC > 0.85 ? 'warn' : 'ok') + '">' + maxUC.toFixed(2) + '</span>' : '&mdash;') + '</td>' +
+      '<td>' + fmt(hoMax, 0) + '</td>' +
+      '<td>' + miniElevation(r, L, res) + '</td>' +
+      '<td>' + tag + '</td></tr>');
+  });
+
+  tb.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="10" style="color:var(--text-muted)">No beam with a usable length &mdash; load a model, or use the manual beam.</td></tr>';
+  tb.querySelectorAll('tr[data-beam]').forEach(tr =>
+    tr.addEventListener('click', function () { selectBeam(tr.getAttribute('data-beam')); goToPage(4); }));
+
+  const all = window.__allLayout;
+  const tot = all.reduce((a, x) => a + x.res.items.length, 0);
+  const totOk = all.reduce((a, x) => a + x.res.items.filter(i => i.ok).length, 0);
+  const none = all.filter(x => !x.res.items.length).length;
+  let h = '<div class="ea-calc-box" style="margin-top:0">';
+  h += '<div class="ea-calc-row"><span class="lbl">Beams with a real length</span><span class="val">' + all.length + '</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">Openings in total</span><span class="val success" style="font-size:1.05rem">' + tot + '</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">of which acceptable unreinforced</span><span class="val ' + (totOk === tot ? 'success' : 'warning') + '">' + totOk + '</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">Beams too short for one opening</span><span class="val">' + none + '</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">Opening size used</span><span class="val">' + fmt(num('openingHeight', 0), 0) + ' x ' + fmt(wo, 0) + ' mm</span></div>';
+  h += '</div>';
+  $('allLayoutSum').innerHTML = h;
+}
+
+function exportLayoutCSV() {
+  const all = window.__allLayout || [];
+  if (!all.length) { alert('Nothing to export yet.'); return; }
+  const out = ['beam;length_mm;ends_a;ends_b;opening_no;x_mm;par;zone;ho_mm;wo_mm;clear_to_next_mm;tau_N_mm2;tau_net_N_mm2;UC;ho_max_here_mm;status'];
+  all.forEach(a => {
+    const e = a.res.ends.info || { a: '', b: '' };
+    if (!a.res.items.length) { out.push([a.r.name, Math.round(a.L), e.a, e.b, 0, '', '', '', '', '', '', '', '', '', '', 'no room'].join(';')); return; }
+    a.res.items.forEach((it, i) => out.push([a.r.name, Math.round(a.L), e.a, e.b, i + 1, Math.round(it.x), it.par.toFixed(3), it.zone,
+      Math.round(it.ho), Math.round(it.wo), it.gap == null ? '' : Math.round(it.gap),
+      it.tau.toFixed(1), it.tauNet.toFixed(1), it.uc.toFixed(2),
+      Math.round(it.hoAllow), it.ok ? 'OK' : (it.uc > 1 ? 'shear' : 'reinforce')].join(';')));
+  });
+  offerFile(($('projectNumber').value || 'PSM') + '_opening_layout.csv', out.join('\r\n'), 'text/csv');
+}
+
+function renderLayout() {
+  const r = results.find(x => x.name === $('layoutBeam').value) || results[0];
+  if (!r) {
+    $('layoutAnswer').innerHTML = '<p style="color:var(--text-muted);font-size:var(--fs-sm)">No beam yet.</p>';
+    $('layoutBody').innerHTML = '<tr><td colspan="12" style="color:var(--text-muted)">-</td></tr>';
+    $('layoutNTable').innerHTML = '<tr><td colspan="5" style="color:var(--text-muted)">-</td></tr>';
+    $('layoutSvg').innerHTML = '';
+    return;
+  }
+  const L = Math.max(100, num('layoutLength', 5) * 1000);
+  const wo = Math.max(10, num('layoutWidth', 300));
+  const hoMode = $('layoutHoMode').value;
+  const res = computeLayout(r, L, wo, hoMode);
+  const items = res.items, band = res.band, lenLim = res.lenLim, endFrac = res.endFrac, cHole = res.cHole;
+  const sStf = num('stiffSpacing', 700);
+
+  let rows = '';
+  for (let N = 1; N <= 12; N++) {
+    const pitch = band / N;
+    const wMid = Math.min(pitch / 2, lenLim);
+    const wEnd = Math.min(pitch / 5, lenLim);
+    rows += '<tr><td>' + N + '</td><td>' + fmt(pitch, 0) + '</td><td>' + fmt(wMid, 0) + '</td><td>' + fmt(wEnd, 0) +
+            '</td><td>' + (pitch / 2 > lenLim ? 'length limit ' + fmt(lenLim, 0) + ' mm' : 'spacing [7.2.3]') + '</td></tr>';
+  }
+  $('layoutNTable').innerHTML = rows;
+
+  $('layoutBody').innerHTML = items.length ? items.map((it, i) =>
+    '<tr><td>' + (i + 1) + '</td><td>' + fmt(it.x, 0) + '</td><td>' + it.par.toFixed(3) + '</td>' +
+    '<td>' + (it.zone === 'end' ? '<span class="tag warn">end</span>' : '<span class="tag ok">mid</span>') + '</td>' +
+    '<td>' + fmt(it.ho, 0) + '</td><td>' + fmt(it.wo, 0) + '</td>' +
+    '<td>' + (it.gap == null ? '&mdash;' : fmt(it.gap, 0) + ' <span style="color:var(--text-muted)">/ ' + fmt(it.gapReq, 0) + ' req</span>') + '</td>' +
+    '<td>' + fmt(it.tau, 1) + '</td><td>' + fmt(it.tauNet, 1) + '</td>' +
+    '<td>' + ucCell(it.uc) + '</td><td>' + fmt(it.hoAllow, 0) + '</td>' +
+    '<td>' + (it.ok ? '<span class="tag ok">OK</span>' : '<span class="tag warn" title="' + esc(it.msgs.join(' | ')) + '">' + (it.uc > 1 ? 'shear' : 'reinforce') + '</span>') + '</td></tr>').join('')
+    : '<tr><td colspan="12" style="color:var(--text-muted)">No opening fits with these inputs.</td></tr>';
+
+  const okN = items.filter(i => i.ok).length;
+  const hoUsed = items.length ? Math.min.apply(null, items.map(i => i.ho)) : 0;
+  let a = '<div class="ea-calc-box" style="margin-top:0">';
+  a += '<div class="ea-calc-row"><span class="lbl">Beam length</span><span class="val">' + fmt(L, 0) + ' mm</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">Usable length</span><span class="val">' + fmt(band, 0) + ' mm</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">Openings that fit</span><span class="val success" style="font-size:1.05rem">' + items.length + '</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">acceptable unreinforced</span><span class="val ' + (okN === items.length ? 'success' : 'warning') + '">' + okN + '</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">Each opening</span><span class="val">' + fmt(hoUsed, 0) + ' x ' + fmt(wo, 0) + ' mm</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">Pitch used</span><span class="val">' + (res.pitch ? fmt(res.pitch, 0) + ' mm' : 'single opening') + '</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">Clear distance: used / required</span><span class="val">' + (res.pitch ? fmt(res.pitch - wo, 0) : '&mdash;') + ' / ' + fmt(wo, 0) + ' mm</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">w_o length limit</span><span class="val">' + (isFinite(lenLim) ? fmt(lenLim, 0) + ' mm' : 'spacing only') + '</span></div>';
+  a += '<div class="ea-calc-row"><span class="lbl">Ends: members meeting there</span><span class="val">' + (res.ends.info ? (res.ends.info.a + ' / ' + res.ends.info.b) : 'unknown') +
+       ' &middot; clearance ' + (res.ends.a ? 'on' : 'off') + '/' + (res.ends.b ? 'on' : 'off') + '</span></div>';
+  a += '</div><div class="ea-notes" style="margin-top:var(--sp-md)"><div class="ea-notes-title">How it comes out</div><ul>';
+  a += '<li>The count is the largest that fits at the tightest pitch [7.2.3] allows &mdash; clear distance &ge; w_o = <b>' + fmt(wo, 0) + ' mm</b> at mid-span, so pitch &ge; <b>' + fmt(2 * wo, 0) + ' mm</b> &mdash; and those openings are then spread evenly and symmetrically about mid-span, which is why the pitch actually used (<b>' + (res.pitch ? fmt(res.pitch, 0) + ' mm' : 'n/a') + '</b>) is the same for every gap and at least the minimum.</li>';
+  a += '<li>Inside the end region (' + (endFrac * 100).toFixed(0) + '% of &#8467; each side) the same rule allows only 25% of the clear distance, so an opening reaching in there would need <b>' + fmt(4 * wo, 0) + ' mm</b> clear &mdash; which is why the group stops before the ends rather than spreading into them.</li>';
+  a += '<li>' + (isFinite(lenLim) ? 'Single skin: w_o &le; max(h_w ' + fmt(r.dim.hw, 0) + ', 0.6&middot;s ' + fmt(0.6 * sStf, 0) + ') = <b>' + fmt(lenLim, 0) + ' mm</b>.' : 'Double skin: no explicit length limit against the web depth in [7.2.3]; the spacing rule and the stiffener cut-outs govern.') + '</li>';
+  a += '<li>Each position is checked with its own &tau;: openings near the ends come out smaller or drop out, which is also what note 3 of Ch.6 Sec.6 Table 1 implies through f_shr.</li>';
+  a += '<li>What sits at a beam end is taken from the model, not assumed: <b>' + (res.ends.info ? res.ends.info.a + ' member(s) meet at x = 0 and ' + res.ends.info.b + ' at the far end' : 'no coordinates for this beam') + '</b>. The end clearance is applied where you tell it to &mdash; a free end in the model may still be a bracketed connection to structure that was not modelled, and that call is yours ([7.2.1]).</li>';
+  a += '<li><b>What set the number:</b> ' + (res.reason || (items.length ? 'the shear check' : 'nothing fits in the usable length')) +
+       '. The clear distance and the length limit come from [7.2.3]; the end region and the end clearance are yours to set, and on short members they are usually what decides.</li>';
+  a += '<li>"Reinforce" is not a refusal &mdash; it means edge stiffening per [7.2.4], sized on the detail page.</li>';
+  a += '</ul></div>';
+  $('layoutAnswer').innerHTML = a;
+
+  drawLayout(r, L, items, endFrac, cHole);
+  renderAllLayout();
+}
+
+function drawLayout(r, L, items, endFrac, cHole) {
+  const W = 980, H = 200, m = 40;
+  const sx = (W - 2 * m) / L;
+  const hw = r.dim.hw;
+  const webTop = 56, webH = Math.max(40, Math.min(90, hw * 0.09));
+  const sy = webH / hw;
+  const X = v => m + v * sx;
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;font-family:var(--font-mono);font-size:9px">';
+  s += '<rect x="' + X(0) + '" y="' + webTop + '" width="' + (endFrac * L * sx) + '" height="' + webH + '" fill="rgba(180,83,9,0.08)"/>';
+  s += '<rect x="' + X((1 - endFrac) * L) + '" y="' + webTop + '" width="' + (endFrac * L * sx) + '" height="' + webH + '" fill="rgba(180,83,9,0.08)"/>';
+  s += '<rect x="' + X(0) + '" y="' + webTop + '" width="' + (L * sx) + '" height="' + webH + '" fill="#fbfcfe" stroke="#94a3b8"/>';
+  s += '<rect x="' + X(0) + '" y="' + (webTop + webH) + '" width="' + (L * sx) + '" height="5" fill="#cbd5e1" stroke="#94a3b8"/>';
+  s += '<rect x="' + X(0) + '" y="' + (webTop - 5) + '" width="' + (L * sx) + '" height="5" fill="#e2e8f0" stroke="#94a3b8"/>';
+  items.forEach((it, i) => {
+    const yTop = webTop + webH - (cHole + it.ho / 2) * sy;
+    const x0 = X(it.x - it.wo / 2), w = Math.max(1, it.wo * sx), h = Math.max(1, it.ho * sy);
+    const col = it.ok ? '#16a34a' : (it.uc > 1 ? '#dc2626' : '#b45309');
+    s += '<rect x="' + x0 + '" y="' + yTop + '" width="' + w + '" height="' + h + '" rx="' + Math.min(6, h / 3) + '" fill="rgba(37,99,235,0.07)" stroke="' + col + '" stroke-width="1.4"/>';
+    s += '<text x="' + (x0 + w / 2) + '" y="' + (webTop - 12) + '" text-anchor="middle" fill="#64748b">' + (i + 1) + '</text>';
+  });
+  s += '<text x="' + X(0) + '" y="' + (webTop + webH + 22) + '" fill="#64748b">0</text>';
+  s += '<text x="' + X(L) + '" y="' + (webTop + webH + 22) + '" text-anchor="end" fill="#64748b">' + (L / 1000).toFixed(2) + ' m</text>';
+  s += '<text x="' + X(L / 2) + '" y="' + (webTop + webH + 22) + '" text-anchor="middle" fill="#64748b">h_w = ' + fmt(hw, 0) + ' mm, faceplate at the bottom</text>';
+  s += '<text x="' + X(endFrac * L / 2) + '" y="' + (webTop + webH / 2) + '" text-anchor="middle" fill="#b45309">end region</text>';
+  s += '<text x="' + m + '" y="20" fill="#0f172a" font-weight="600">' + esc(r.name) + '</text>';
+  s += '</svg>';
+  $('layoutSvg').innerHTML = s;
+}
+
+/* --------------------------------------------------------------------------
+   Detail checks
+   -------------------------------------------------------------------------- */
+function renderDetails() {
+  const r = results.find(x => x.name === $('layoutBeam').value) || results[0];
+  if (!r) {
+    ['reinfBox', 'bucklingBox', 'vierendeelBox', 'positionBox', 'prescBox', 'tripBox'].forEach(id =>
+      $(id).innerHTML = '<p style="color:var(--text-muted);font-size:var(--fs-sm)">No beam yet.</p>');
+    return;
+  }
+  const ho = num('openingHeight', 200), wo = num('openingWidth', 300);
+  const single = $('skinType').value === 'single';
+  const basis = $('scantlingBasis').value, tc = num('corrAdd', 0);
+  const c = r.cHole, p = r.props, hw = r.dim.hw, tw = p.tw;
+
+  /* --- [7.2.4] + Ch.8 Sec.2 [7.1] edge stiffener --- */
+  const need = !r.geom.ok;
+  const lMetres = wo / 1000;                                    // free edge length
+  const hEdge = Math.max(50, 50 * lMetres * Math.sqrt(r.ReH / 235));
+  let h = '<div class="ea-calc-box" style="margin-top:0">';
+  h += '<div class="ea-calc-row"><span class="lbl">[7.2.3] limits</span><span class="val ' + (need ? 'warning' : 'success') + '">' + (need ? 'exceeded' : 'satisfied') + '</span></div>';
+  r.geom.msgs.forEach(m => { h += '<div class="ea-calc-row"><span class="lbl">&bull;</span><span class="val warning">' + esc(m) + '</span></div>'; });
+  h += '<div class="ea-calc-row"><span class="lbl">Edge stiffener depth required</span><span class="val">' + fmt(hEdge, 0) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">from</span><span class="val">max(50 ; 50&middot;&#8467;&middot;&radic;(R_eH/235)), &#8467; = ' + fmt(lMetres, 2) + ' m</span></div>';
+  h += '</div><div class="ea-notes ' + (need ? 'warn' : '') + '" style="margin-top:var(--sp-md)"><div class="ea-notes-title">' + (need ? 'Reinforcement required' : 'No reinforcement required by [7.2.3]') + '</div><ul>';
+  if (need) {
+    h += '<li>[7.2.4]: stiffeners along the free edges parallel to the vertical and horizontal axis of the opening on members contributing to longitudinal strength; the stiffener on the shortest axis may be omitted. Edge reinforcement is an alternative to stiffeners.</li>';
+    h += '<li>Depth of the edge stiffener web from <b>Ch.8 Sec.2 [7.1]</b>: h_w = C&middot;&#8467;&middot;&radic;(R_eH/235) with C = 50, or 50 mm, whichever is greater &rarr; <b>' + fmt(hEdge, 0) + ' mm</b>. Its own web and flange must satisfy the slenderness of Ch.8 Sec.2 [3.1.1] and [3.1.2].</li>';
+    h += '<li>Alternatively [7.2.4] accepts a direct demonstration: stresses in the plating and the panel buckling characteristics calculated and shown satisfactory.</li>';
+  } else {
+    h += '<li>The opening stays inside [7.2.3], so no reinforcement is required by that clause. The stress checks on page 3 still have to pass, and the buckling check below still applies.</li>';
+  }
+  h += '</ul></div>';
+  $('reinfBox').innerHTML = h;
+
+  /* --- CG-0128 Sec.3 [3.4] buckling input --- */
+  const hP1 = Math.max(0, c - ho / 2);              // strip on the faceplate side
+  const hP2 = Math.max(0, hw - c - ho / 2);         // strip on the attached plating side
+  const tauAv = r.tau * hw / Math.max(1, hw - ho);  // CG-0128 Table 6, opening not modelled
+  h = '<div class="ea-calc-box" style="margin-top:0">';
+  h += '<div class="ea-calc-row"><span class="lbl">Panel P1 (faceplate side)</span><span class="val">' + fmt(hP1, 0) + ' x ' + fmt(wo, 0) + ' x ' + fmt(tw, 1) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">Panel P2 (plating side)</span><span class="val">' + fmt(hP2, 0) + ' x ' + fmt(wo, 0) + ' x ' + fmt(tw, 1) + ' mm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">&tau;_av = &tau;_web&middot;h/(h&minus;h_0)</span><span class="val">' + fmt(tauAv, 1) + ' N/mm2</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">&sigma;_av in the web (from the model)</span><span class="val">' + fmt(r.sig, 1) + ' N/mm2</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">slenderness h/t of P1 / P2</span><span class="val">' + fmt(hP1 / tw, 1) + ' / ' + fmt(hP2 / tw, 1) + '</span></div>';
+  h += '</div><div class="ea-notes warn" style="margin-top:var(--sp-md)"><div class="ea-notes-title">Buckling is not evaluated here</div><ul>';
+  h += '<li>Ch.8 Sec.1 Table 1 sends the web plate in way of openings to <b>DNV-CG-0128 Sec.3 [3.4]</b>: P1 and P2 are treated as individual unstiffened panels and the interaction formula of [3.2.1] is used with &sigma;_x = &sigma;_av, &sigma;_y = 0, &tau; = &tau;_av.</li>';
+  h += '<li>The &tau;_av above is the factor CG-0128 Table 6 gives for an opening that is <b>not modelled</b> &mdash; the same h/(h&minus;h_0) this tool uses for the shear check.</li>';
+  h += '<li>The reduction factors (Table 3 cases 15, 17, 18, 19 depending on edge reinforcement and boundary conditions) and &eta;_all are not implemented. Take these numbers into your buckling tool.</li>';
+  h += '</ul></div>';
+  $('bucklingBox').innerHTML = h;
+
+  /* --- Vierendeel screening --- */
+  const V = r.tau * r.propsGross.A_shr0 * 100 / 1000;                 // kN, tau [N/mm2] x A [cm2]
+  const a1 = hP1 * tw, a2 = hP2 * tw;
+  const sumA = Math.max(1, a1 + a2);
+  const tee = (hStrip, bf, tf) => {                                    // strip + its flange / plating
+    const As = hStrip * tw, Af = bf * tf;
+    const A = As + Af;
+    const zs = hStrip / 2 + tf, zf = tf / 2;
+    const zna = (As * zs + Af * zf) / Math.max(1, A);
+    const I = (tw * Math.pow(hStrip, 3) / 12 + As * Math.pow(zs - zna, 2)) + (bf * Math.pow(tf, 3) / 12 + Af * Math.pow(zf - zna, 2));
+    const zEdge = Math.max(1, hStrip + tf - zna);                      // fibre at the opening edge
+    return { A: A, I: I, Z: I / zEdge };
+  };
+  const t1 = tee(hP1, r.dim.bf, p.tf);
+  const t2 = tee(hP2, r.dim.beff || r.dim.bf, p.tp || p.tf);
+  const V1 = V * a1 / sumA, V2 = V * a2 / sumA;
+  const M1 = V1 * (wo / 1000) / 2, M2 = V2 * (wo / 1000) / 2;          // kNm, fixed-fixed strip
+  const s1 = t1.Z > 0 ? M1 * 1e6 / t1.Z : Infinity;                    // N/mm2
+  const s2 = t2.Z > 0 ? M2 * 1e6 / t2.Z : Infinity;
+  const sMax = Math.max(s1, s2);
+  const ucV = sMax / r.allow.sig;
+  h = '<div class="ea-calc-box" style="margin-top:0">';
+  h += '<div class="ea-calc-row"><span class="lbl">Shear across the opening V</span><span class="val">' + fmt(V, 1) + ' kN</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">split V1 / V2</span><span class="val">' + fmt(V1, 1) + ' / ' + fmt(V2, 1) + ' kN</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">local M1 / M2 = V&middot;w_o/2</span><span class="val">' + fmt(M1, 2) + ' / ' + fmt(M2, 2) + ' kNm</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">&sigma;_sec, strip 1 / 2</span><span class="val">' + fmt(s1, 1) + ' / ' + fmt(s2, 1) + ' N/mm2</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">UC against C_s&middot;R_eH</span><span class="val ' + (ucV > 1 ? 'error' : ucV > 0.7 ? 'warning' : 'success') + '">' + (isFinite(ucV) ? ucV.toFixed(2) : '-') + '</span></div>';
+  h += '</div><div class="ea-notes" style="margin-top:var(--sp-md)"><div class="ea-notes-title">Screening, not a rule formula</div><ul>';
+  h += '<li>DNV gives no formula for this; [7.2.4] only says secondary stresses / secondary bending in way of large openings shall be considered. This panel uses the classical Vierendeel model: the shear is split between the two tees by their web areas and each tee spans the opening fixed at both ends, M = V_i&middot;w_o/2.</li>';
+  h += '<li>The local stress adds to the primary bending stress of page 3; treat a UC above roughly 0.3 as a sign that the opening is long enough to need a proper check or edge reinforcement.</li>';
+  h += '<li>It scales with w_o, which is why a long slot is a different animal from a round lightening hole of the same height.</li>';
+  h += '</ul></div>';
+  $('vierendeelBox').innerHTML = h;
+
+  /* --- position rules: [7.3.2] and bracket hole --- */
+  h = '<div class="ea-calc-box" style="margin-top:0">';
+  if ($('memberType').value === 'longitudinal') {
+    const breadth = Math.max(ho, wo);
+    const req = 2 * breadth;
+    const act = num('deckDist', 0);
+    h += '<div class="ea-calc-row"><span class="lbl">[7.3.2] below strength deck</span><span class="val ' + (act >= req ? 'success' : 'error') + '">' + fmt(act, 0) + ' / ' + fmt(req, 0) + ' mm required</span></div>';
+    h += '<div class="ea-calc-row"><span class="lbl">opening breadth taken as</span><span class="val">' + fmt(breadth, 0) + ' mm (larger of h_o and w_o)</span></div>';
+  } else {
+    h += '<div class="ea-calc-row"><span class="lbl">[7.3.2]</span><span class="val">not applicable to a transverse member</span></div>';
+  }
+  if ($('inBracket').checked) {
+    const d = num('bracketHoleD', 150), e = num('bracketEdge', 150);
+    h += '<div class="ea-calc-row"><span class="lbl">[7.2.3] hole in bracket</span><span class="val ' + (e >= d ? 'success' : 'error') + '">edge ' + fmt(e, 0) + ' / &ge; diameter ' + fmt(d, 0) + ' mm</span></div>';
+  }
+  h += '<div class="ea-calc-row"><span class="lbl">Edge to faceplate / to plating</span><span class="val">' + fmt(r.geom.eFlange, 0) + ' / ' + fmt(r.geom.ePlate, 0) + ' mm</span></div>';
+  h += '</div>';
+  $('positionBox').innerHTML = h;
+
+  /* --- prescriptive shear area, Ch.6 Sec.6 [2.1.2] --- */
+  if ($('prescEnable').checked) {
+    const P = Math.abs(num('prescP', 0)), S = num('prescS', 0), ls = num('prescL', 0), f = num('prescF', 0.5);
+    const Areq = 10 * f * P * S * ls / (r.allow.Ct * r.allow.tauEH);   // cm2
+    const ok = r.props.A_shrNet >= Areq;
+    let hh = '<div class="ea-calc-box">';
+    hh += '<div class="ea-calc-row"><span class="lbl">A_shr required</span><span class="val">' + fmt(Areq, 1) + ' cm2</span></div>';
+    hh += '<div class="ea-calc-row"><span class="lbl">A_shr net with the opening</span><span class="val ' + (ok ? 'success' : 'error') + '">' + fmt(r.props.A_shrNet, 1) + ' cm2</span></div>';
+    hh += '<div class="ea-calc-row"><span class="lbl">utilisation</span><span class="val ' + (ok ? 'success' : 'error') + '">' + fmt(Areq / Math.max(0.01, r.props.A_shrNet), 2) + '</span></div>';
+    hh += '<div class="ea-calc-row"><span class="lbl">A_shr = 10&middot;f_shr&middot;|P|&middot;S&middot;&#8467;_shr/(C_t&middot;&tau;_eH)</span><span class="val">f_shr = ' + f.toFixed(2) + '</span></div>';
+    hh += '</div>';
+    $('prescBox').innerHTML = hh;
+  } else { $('prescBox').innerHTML = ''; }
+
+  /* --- tripping, Ch.8 Sec.2 [5.1.1] --- */
+  const loc = TRIP[$('tripLoc').value] || TRIP.deck;
+  const C = $('tripFlange').value === 'unsym' ? loc.unsym : loc.sym;
+  const Sb = Math.min(loc.max, Math.max(3.0, C * r.dim.bf));
+  const act = num('tripActual', 3);
+  h = '<div class="ea-calc-box" style="margin-top:0">';
+  h += '<div class="ea-calc-row"><span class="lbl">S_b = C&middot;b_f</span><span class="val">' + C.toFixed(3) + ' x ' + fmt(r.dim.bf, 0) + ' mm &rarr; ' + fmt(Sb, 2) + ' m</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">bounds</span><span class="val">not less than 3.0 m, not more than ' + loc.max.toFixed(1) + ' m</span></div>';
+  h += '<div class="ea-calc-row"><span class="lbl">actual spacing</span><span class="val ' + (act <= Sb ? 'success' : 'error') + '">' + fmt(act, 2) + ' m</span></div>';
+  h += '</div><div class="ea-notes" style="margin-top:var(--sp-md)"><div class="ea-notes-title">Why it is here</div><ul>';
+  h += '<li>An opening that comes close to the faceplate reduces the lateral support of the flange. Check the tripping bracket spacing of <b>Ch.8 Sec.2 [5.1.1] Table 4</b> together with the opening layout, and keep the openings clear of the tripping brackets.</li>';
+  h += '<li>Current edge distance to the faceplate: <b>' + fmt(r.geom.eFlange, 0) + ' mm</b>' + (single ? ', required at least ' + fmt(r.geom.edgeReq, 0) + ' mm by [7.2.3].' : '.') + '</li>';
+  h += '</ul></div>';
+  $('tripBox').innerHTML = h;
+}
+
+/* --------------------------------------------------------------------------
+   Save / load / PDF
+   -------------------------------------------------------------------------- */
+const FIELDS = ['vesselName','projectNumber','revision','analysisDate','preparedBy','reportNotes','acceptanceClass','hullGirderLoads','sigHg','yieldStrength','scantlingBasis','corrAdd','shearComponent','openingHeight','openingWidth','skinType','holeVertical','holeCentre','stiffSpacing','cutoutDeduct','holePosition','manualEnable','mHw','mTw','mBf','mTf','mBeff','mTp','mTau','mSig','mLen','layoutLength','layoutLenOverride','layoutWidth','layoutEndZone','layoutClearEnd','layoutEndMode','layoutHoMode','memberType','deckDist','inBracket','bracketHoleD','bracketEdge','prescEnable','prescP','prescS','prescL','prescF','tripLoc','tripFlange','tripActual'];
+
+/* Saving a file: a normal browser download when the page runs from disk, and
+   the viewer-confirmed save when it runs inside the claude.ai artifact viewer,
+   where a plain download link does nothing. */
+let hostDownloads = null;
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('downloads').then(d => { hostDownloads = d; }).catch(() => {});
+}
+function offerFile(filename, data, mime) {
+  if (hostDownloads) {
+    hostDownloads.save({ filename: filename, data: data })
+      .catch(err => { if (err && err.code !== 'declined') alert('Could not save the file: ' + (err.message || err.code)); });
+    return;
+  }
+  const blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function saveJSON() {
+  const data = { tool: 'PSM Opening Checker', version: '2.3', saved: new Date().toISOString(), fields: {} };
+  FIELDS.forEach(id => { const el = $(id); if (el) data.fields[id] = el.type === 'checkbox' ? el.checked : el.value; });
+  offerFile(($('projectNumber').value || 'PSM') + '_opening_check.json',
+            JSON.stringify(data, null, 2), 'application/json');
+}
+function loadJSON(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      Object.keys(d.fields || {}).forEach(id => {
+        const el = $(id); if (!el) return;
+        if (el.type === 'checkbox') el.checked = !!d.fields[id]; else el.value = d.fields[id];
+      });
+      recalc();
+    } catch (err) { alert('Could not read the file: ' + err.message); }
+  };
+  r.readAsText(f);
+}
+
+function exportPDF() {
+  if (!window.jspdf) { alert('The PDF library did not load (no network?). Print the page instead.'); return; }
+  if (!results.length) { alert('Nothing to report yet.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const lm = 15, rm = 195, cw = rm - lm;
+  let y = 18;
+  const project = $('projectNumber').value || 'Project';
+  const ReH = num('yieldStrength', 235);
+  const line = (t, x, s) => { doc.text(String(t), x == null ? lm : x, y); y += (s || 4.6); };
+
+  doc.setFontSize(15); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+  line('PSM Opening Assessment', lm, 6);
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 80, 95);
+  line('DNV-RU-SHIP Pt.3 Ch.3 Sec.6 [7.2]/[7.3], Sec.7 [1.4.6]-[1.4.7], Ch.6 Sec.6 [2.1.2]/[2.2.2], Ch.8 Sec.2 [5.1.1]/[7.1]', lm, 8);
+  doc.setDrawColor(200); doc.line(lm, y, rm, y); y += 6;
+
+  doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+  [['Vessel', $('vesselName').value || '-'], ['Project', project], ['Revision', $('revision').value || '-'],
+   ['Date', $('analysisDate').value || '-'], ['Prepared by', $('preparedBy').value || '-'],
+   ['Acceptance class', $('acceptanceClass').value === 'AC1' ? 'AC-I' : 'AC-II / AC-III'],
+   ['Hull girder loads', $('hullGirderLoads').value === 'yes' ? 'included, sig_hg = ' + fmt(Math.abs(num('sigHg', 0)), 0) + ' N/mm2' : 'not subjected'],
+   ['Scantling basis', $('scantlingBasis').value === 'n50' ? 'net n50, t_c = ' + fmt(num('corrAdd', 0), 1) + ' mm' : 'gross'],
+   ['Member', $('memberType').value === 'longitudinal' ? 'longitudinal girder / shell / long. bhd' : 'transverse PSM']
+  ].forEach(p => { doc.setTextColor(100); doc.text(p[0], lm, y); doc.setTextColor(15, 23, 42); doc.text(String(p[1]), lm + 48, y); y += 5; });
+  y += 3;
+
+  doc.setFont('helvetica', 'bold'); line('1. Acceptance criteria', lm, 5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  line('Cs = beta - alpha |sig_hg| / ReH <= Cs-max = ' + coeff.beta.toFixed(2) + ' - ' + coeff.alpha + ' x ' + fmt(Math.abs(num('sigHg', 0)), 0) + ' / ' + fmt(ReH, 0) + ' -> Cs = ' + coeff.Cs.toFixed(3) + ' (cap ' + coeff.CsMax.toFixed(2) + ')', lm + 3);
+  line('sig_allow = ' + fmt(coeff.Cs * ReH, 1) + ' N/mm2      tau_allow = ' + fmt(coeff.Ct * ReH / Math.sqrt(3), 1) + ' N/mm2', lm + 3, 7);
+
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); line('2. Opening', lm, 5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  line('h_o = ' + fmt(num('openingHeight', 0), 0) + ' mm, w_o = ' + fmt(num('openingWidth', 0), 0) + ' mm, ' + ($('skinType').value === 'single' ? 'single skin' : 'double skin') + ', placement ' + $('holeVertical').value + ', cut-out deduction ' + fmt(num('cutoutDeduct', 0), 0) + ' mm', lm + 3, 7);
+
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); line('3. Beam check', lm, 5);
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+  const cols = [lm, lm + 30, lm + 46, lm + 60, lm + 76, lm + 92, lm + 108, lm + 124, lm + 150];
+  ['Beam', 'h_w', 'h_eff', 'tau_net', 'UC_s', 'sig_net', 'UC_b', 'h_o max', 'Status'].forEach((t, i) => doc.text(t, cols[i], y));
+  y += 2; doc.setDrawColor(220); doc.line(lm, y, rm, y); y += 4;
+  doc.setFont('helvetica', 'normal');
+  results.slice(0, 30).forEach(r => {
+    if (y > 268) { doc.addPage(); y = 20; }
+    [String(r.name).slice(0, 16), fmt(r.dim.hw, 0), fmt(r.props.hEff, 0), fmt(r.tauNet, 1), r.ucS.toFixed(2),
+     fmt(r.sigNet, 1), r.ucB.toFixed(2), fmt(r.hoMax, 0), r.status].forEach((cVal, i) => doc.text(String(cVal), cols[i], y));
+    y += 4.4;
+  });
+  y += 6;
+
+  const r0 = results.find(x => x.name === $('layoutBeam').value) || results[0];
+  if (y > 225) { doc.addPage(); y = 20; }
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); line('4. Opening layout - ' + r0.name, lm, 5);
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
+  doc.splitTextToSize($('layoutAnswer').innerText.replace(/\s+/g, ' ').trim(), cw).slice(0, 16)
+     .forEach(t => { if (y > 275) { doc.addPage(); y = 20; } doc.text(t, lm + 3, y); y += 4.2; });
+  y += 4;
+
+  if (y > 235) { doc.addPage(); y = 20; }
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); line('5. Detail checks', lm, 5);
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
+  [['Reinforcement', $('reinfBox')], ['Buckling input', $('bucklingBox')], ['Vierendeel screening', $('vierendeelBox')], ['Tripping', $('tripBox')]]
+    .forEach(pair => {
+      if (y > 262) { doc.addPage(); y = 20; }
+      doc.setFont('helvetica', 'bold'); doc.text(pair[0], lm + 3, y); y += 4.2; doc.setFont('helvetica', 'normal');
+      doc.splitTextToSize(pair[1].innerText.replace(/\s+/g, ' ').trim(), cw - 6).slice(0, 8)
+         .forEach(t => { if (y > 275) { doc.addPage(); y = 20; } doc.text(t, lm + 6, y); y += 4; });
+      y += 2;
+    });
+
+  if (y > 240) { doc.addPage(); y = 20; }
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); line('6. Notes and assumptions', lm, 5);
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+  ['Shear: A_shr = (h_w + t_f + t_p) t_w 1e-2 per Sec.7 [1.4.6]; the effective web height of [1.4.7] is taken as',
+   'h_w - h_o - (cut-out entered), which is the least path for an opening with clear edges.',
+   'Bending: net section through the opening; the model bending stress is scaled by Z_gross / Z_net of the governing',
+   'fibre, which assumes the beam model section matches the dimensions read from the model XML.',
+   'Geometry: depth, edge distance, length and spacing of Sec.6 [7.2.3]; openings outside those limits require',
+   'reinforcement per [7.2.4], sized with Ch.8 Sec.2 [7.1].',
+   'Not covered: web buckling in way of the opening (Ch.8 Sec.1 Table 1 -> DNV-CG-0128 Sec.3 [3.4]; the inputs are',
+   'listed in section 5), fatigue of the free edge, corner radii, and the location rules of [7.2.1], which are a',
+   'drawing review item.',
+   'Vierendeel figures are a screening calculation with the classical model, not a DNV formula.',
+   'Stresses are the envelope of the load cases in the results file at the position stated above.'
+  ].forEach(t => { if (y > 282) { doc.addPage(); y = 20; } doc.text(t, lm + 3, y); y += 3.8; });
+
+  offerFile(project + '_PSM_Opening_Assessment_Rev' + ($('revision').value || 'A') + '.pdf', doc.output('blob'), 'application/pdf');
+}
+
+recalc();
+</script>
+</body>
+</html>
