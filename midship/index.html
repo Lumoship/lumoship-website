@@ -11,201 +11,7 @@
      app modules below — exactly the order the single-file build had. -->
 <script src="app/vendor/jspdf.umd.min.js" defer></script>
 <script src="app/vendor/xlsx.full.min.js" defer></script>
-    <style>
-/* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
-        .lumoship-nav {
-            position: sticky;
-            top: 0;
-            background: rgba(10, 14, 23, 0.95);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid #1e2536;
-            z-index: 10000;
-            padding: 0.875rem 1.5rem;
-        }
-        .lumoship-nav-inner {
-            /* Altindaki uygulamanin icerik genisligi ile ayni, yoksa cubuk
-               uygulamadan dar/genis kalip hizasiz gorunuyor. */
-            max-width: 1600px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .lumoship-nav-logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            gap: 0.6rem;
-            transition: opacity 200ms;
-        }
-        .lumoship-nav-logo:hover { opacity: 0.85; }
-        .lumoship-nav-logo-mark {
-            width: 28px;
-            height: 28px;
-            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
-            border-radius: 7px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: white;
-        }
-        .lumoship-nav-logo-text {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #f8fafc;
-            letter-spacing: 0.06em;
-        }
-        .lumoship-nav-links {
-            display: none;
-        }
-        
-        /* NEW MINIMAL NAVBAR */
-        .nav-left {
-            display: flex;
-            align-items: center;
-        }
-        
-        .nav-context {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
-            color: #64748b;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            padding-left: clamp(0.75rem, 1.5vw, 1rem);
-            margin-left: clamp(0.75rem, 1.5vw, 1rem);
-            border-left: 1px solid #1e2536;
-        }
-        
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: clamp(0.75rem, 1.5vw, 1.25rem);
-        }
-        
-        .nav-back {
-            color: #94a3b8;
-            text-decoration: none;
-            font-family: 'Inter', sans-serif;
-            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: color 200ms;
-        }
-        
-        .nav-back:hover { color: #f8fafc; }
-        .nav-back-arrow { font-size: 1em; }
-        
-        .user-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
-            background: rgba(59, 130, 246, 0.06);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            border-radius: 999px;
-            text-decoration: none;
-            color: #f8fafc;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.825rem;
-            font-weight: 500;
-            transition: all 200ms;
-        }
-        
-        .user-badge:hover {
-            background: rgba(59, 130, 246, 0.12);
-            border-color: rgba(59, 130, 246, 0.4);
-        }
-        
-        .user-badge-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 0.75rem;
-            color: white;
-            letter-spacing: -0.02em;
-            overflow: hidden;
-        }
-        
-        .user-badge-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .user-badge-name {
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .user-badge-login {
-            padding: 0.45rem 0.95rem;
-            background: #3b82f6;
-            border-color: #3b82f6;
-            color: white;
-        }
-        
-        .user-badge-login:hover {
-            background: #60a5fa;
-            border-color: #60a5fa;
-        }
-        
-        @media (max-width: 640px) {
-            .nav-back-text { display: none; }
-            .user-badge-name { display: none; }
-            .nav-context { display: none; }
-        }
-        
-        .lumoship-nav-link {
-            display: none;
-        }
-        .lumoship-nav-link:hover { color: #f8fafc; }
-        .lumoship-breadcrumb {
-            background: #0f141f;
-            border-bottom: 1px solid #1e2536;
-            padding: 0.75rem 1.5rem;
-        }
-        .lumoship-breadcrumb-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-        }
-        .breadcrumb-link {
-            color: #64748b;
-            text-decoration: none;
-            transition: color 200ms;
-        }
-        .breadcrumb-link:hover { color: #60a5fa; }
-        .breadcrumb-separator { color: #475569; }
-        .breadcrumb-current {
-            color: #3b82f6;
-            font-weight: 500;
-        }
-        @media (max-width: 768px) {
-            .lumoship-breadcrumb { display: none; }
-        }
-
-    
-        
-    </style>
+    <link rel="stylesheet" href="lumoship-nav.css">
 </head>
 <body>
 <!-- ========== LUMOSHIP UNIFIED NAVIGATION ========== -->
@@ -456,8 +262,8 @@
               </label>
             </div>
           </div>
-          <div class="ea-field"><label class="ea-label" id="FB_label" title="F_B (bottom) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.">F_B <span id="FB_modeTag" style="color:#fbbf24;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">· manual</span></label><input type="number" step="0.01" class="ea-input" id="FB" value="0.8" style="border-color:#fbbf24;background:rgba(251,191,36,0.05)" onchange="recalcAll()"></div>
-          <div class="ea-field"><label class="ea-label" id="FD_label" title="F_D (deck) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.">F_D <span id="FD_modeTag" style="color:#fbbf24;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">· manual</span></label><input type="number" step="0.01" class="ea-input" id="FD" value="1" style="border-color:#fbbf24;background:rgba(251,191,36,0.05)" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" id="FB_label" title="F_B (bottom) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.">F_B <span id="FB_modeTag" style="color:#d97706;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">· manual</span></label><input type="number" step="0.01" class="ea-input" id="FB" value="0.8" style="border-color:#d97706;background:rgba(251,191,36,0.05)" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" id="FD_label" title="F_D (deck) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.">F_D <span id="FD_modeTag" style="color:#d97706;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">· manual</span></label><input type="number" step="0.01" class="ea-input" id="FD" value="1" style="border-color:#d97706;background:rgba(251,191,36,0.05)" onchange="recalcAll()"></div>
           <div class="ea-field"><label class="ea-label">l_e (m) — web frame</label><input type="number" step="0.01" class="ea-input" id="le" value="1.452" onchange="recalcAll()"></div>
           <div class="ea-field"><label class="ea-label" title="Transverse frame/stiffener spacing — short-direction plate support">s_trans (mm)</label><input type="number" step="10" class="ea-input" id="transFrameSpacing" value="726" onchange="recalcAll()"></div>
         </div>
@@ -1080,7 +886,7 @@
           </button>
           <button id="assignMaterialGradesBtn" class="opt-tool-btn" onclick="assignMaterialGrades()"
                   title="Assign LR material grades (A/AH/B/D/DH/E/EH/FH) to every plate based on Setup inputs: ship type, x/L position, design air temperature, steel family. Applies LR Pt 3 Ch 2 Tables 2.2.1 / 2.2.2 / 2.2.3. Run this LAST, after plate thicknesses are final.">
-            <span class="opt-tool-icon" style="font-family:var(--font-mono);font-weight:700;color:#22c55e">Gr</span>
+            <span class="opt-tool-icon" style="font-family:var(--font-mono);font-weight:700;color:#16a34a">Gr</span>
             <span class="opt-tool-label">Material Grades</span>
           </button>
         </div>
@@ -1203,8 +1009,8 @@
             <!-- Floating INFO overlay — mirrors #ruleMinInfoPanel content into the empty drawing space -->
             <div id="infoOverlay"
                  style="position:absolute;left:14px;top:14px;width:280px;max-height:calc(100% - 28px);
-                        background:rgba(15,23,42,0.94);border:1px solid var(--border);border-radius:var(--radius-md);
-                        padding:10px 12px;font-size:0.7rem;box-shadow:0 6px 18px rgba(0,0,0,0.45);
+                        background:rgba(255,255,255,0.94);border:1px solid var(--border);border-radius:var(--radius-md);
+                        padding:10px 12px;font-size:0.7rem;box-shadow:0 6px 18px rgba(15,23,42,0.18);
                         z-index:9;overflow-y:auto;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
                         font-family:var(--font-mono)">
               <div id="infoOverlayHeader"
@@ -1226,13 +1032,13 @@
             <!-- Small "show overlay" pill, visible only when overlay is hidden -->
             <button id="infoOverlayShowBtn"
                     style="display:none;position:absolute;left:14px;top:14px;z-index:9;
-                           background:rgba(15,23,42,0.94);border:1px solid var(--border);
+                           background:rgba(255,255,255,0.94);border:1px solid var(--border);
                            border-radius:var(--radius-sm);padding:5px 9px;color:var(--accent);
                            font-family:var(--font-mono);font-size:0.62rem;letter-spacing:0.5px;
                            text-transform:uppercase;cursor:pointer;font-weight:700"
                     title="Show INFO overlay">● Info</button>
             <!-- Color Scale Legend (UC gradient) — visible only in Analysis mode -->
-            <div id="colorScaleLegend" style="display:none;position:absolute;left:12px;top:12px;background:rgba(15,23,42,0.92);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;font-family:var(--font-mono);font-size:0.68rem;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:10;min-width:140px">
+            <div id="colorScaleLegend" style="display:none;position:absolute;left:12px;top:12px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;font-family:var(--font-mono);font-size:0.68rem;box-shadow:0 4px 12px rgba(15,23,42,0.18);z-index:10;min-width:140px">
               <div style="font-weight:700;color:var(--text-primary);font-size:0.7rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px">Utilization (UC)</div>
               <div style="height:14px;border-radius:3px;background:linear-gradient(to right, hsl(130,70%,55%) 0%, hsl(80,70%,55%) 57%, hsl(50,70%,55%) 71%, hsl(10,85%,50%) 86%, hsl(0,85%,50%) 100%);margin-bottom:4px;border:1px solid rgba(255,255,255,0.15)"></div>
               <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:0.6rem">
@@ -1278,7 +1084,7 @@
       <div class="editor-body" id="resultPanelBody" style="padding:12px;overflow-y:auto;flex:1;min-height:0">
         <div id="resultPanelPlaceholder" style="color:var(--text-muted);text-align:center;padding:30px 20px;font-size:0.8rem">
           <div style="color:var(--text-primary);font-weight:600;margin-bottom:6px;font-size:0.95rem">Analysis Result Panel</div>
-          <div style="line-height:1.5">Click any plate / strake / stiffener for LR rule details.<br>Click a stiffener to see <span style="color:#c4b5fd;font-weight:600">Local Optimize</span> options.</div>
+          <div style="line-height:1.5">Click any plate / strake / stiffener for LR rule details.<br>Click a stiffener to see <span style="color:#6d28d9;font-weight:600">Local Optimize</span> options.</div>
         </div>
       </div>
     </div>
@@ -1337,7 +1143,7 @@
     </div>
 
     <!-- Element Inspection Panel — floating right side, shown when user clicks an element in Analysis Mode -->
-    <div id="elemInspectPanel" style="display:none;position:fixed;right:24px;top:140px;width:400px;max-height:calc(100vh - 180px);background:var(--bg-secondary);border:1.5px solid var(--accent);border-radius:var(--radius-lg);box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(59,130,246,0.3);z-index:500;overflow:hidden;display:none;flex-direction:column">
+    <div id="elemInspectPanel" style="display:none;position:fixed;right:24px;top:140px;width:400px;max-height:calc(100vh - 180px);background:var(--bg-secondary);border:1.5px solid var(--accent);border-radius:var(--radius-lg);box-shadow:0 12px 40px rgba(15,23,42,0.18),0 0 0 1px rgba(59,130,246,0.3);z-index:500;overflow:hidden;display:none;flex-direction:column">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-tertiary);display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:0.85rem" id="eipTitle">Element Inspection</div>
@@ -1556,7 +1362,7 @@
 </footer>
 
 <!-- PROFILE SUGGESTION MODAL -->
-<div id="profileSuggestModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+<div id="profileSuggestModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center">
   <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:720px;width:92%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
     <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -1614,7 +1420,7 @@
 </div>
 
 <!-- Add Stiffener Modal — manual insertion with coord + profile + spacing helper -->
-<div id="addStiffModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+<div id="addStiffModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center">
   <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:440px;width:92%;overflow:hidden;display:flex;flex-direction:column">
     <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -1668,13 +1474,13 @@
 </div>
 
 <!-- Context Menu (right-click on midship drawing) -->
-<div id="drawContextMenu" style="display:none;position:fixed;z-index:10000;min-width:200px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 10px 32px rgba(0,0,0,0.6);overflow:hidden;font-family:var(--font-mono);font-size:0.74rem">
+<div id="drawContextMenu" style="display:none;position:fixed;z-index:10000;min-width:200px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 10px 32px rgba(15,23,42,0.18);overflow:hidden;font-family:var(--font-mono);font-size:0.74rem">
   <div id="drawContextMenuHeader" style="padding:6px 12px;background:var(--bg-tertiary);border-bottom:1px solid var(--border);color:var(--text-muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px">—</div>
   <div id="drawContextMenuBody"></div>
 </div>
 
 <!-- Equal Spacing Modal — distribute stiffeners evenly in a zone -->
-<div id="eqSpacingModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+<div id="eqSpacingModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center">
   <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:440px;width:92%;overflow:hidden;display:flex;flex-direction:column">
     <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -1717,11 +1523,11 @@
       <!-- Live preview -->
       <div id="esmPreview" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-family:var(--font-mono);font-size:0.66rem;color:var(--text-secondary);min-height:24px;max-height:100px;overflow-y:auto">—</div>
 
-      <div style="font-size:0.6rem;color:#fbbf24;padding:0 2px">⚠ Existing stiffeners in this group will be replaced.</div>
+      <div style="font-size:0.6rem;color:#d97706;padding:0 2px">⚠ Existing stiffeners in this group will be replaced.</div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
         <button onclick="closeEqualSpacing()" class="ea-btn ea-btn-secondary" style="padding:6px 14px;font-size:0.74rem">Cancel</button>
-        <button onclick="confirmEqualSpacing()" class="ea-btn ea-btn-primary" style="padding:6px 14px;font-size:0.74rem;background:#a855f7">Apply</button>
+        <button onclick="confirmEqualSpacing()" class="ea-btn ea-btn-primary" style="padding:6px 14px;font-size:0.74rem;background:#7c3aed">Apply</button>
       </div>
     </div>
   </div>
@@ -1733,8 +1539,8 @@
 <!-- Lets user pick a profile type and enter dimensions; HP has EN 10067     -->
 <!-- catalog fallback. Computed Z_cm3 with attached plate is shown live.     -->
 <!-- ====================================================================== -->
-<div id="customProfileModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);align-items:center;justify-content:center">
-  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:640px;width:94%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+<div id="customProfileModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:640px;width:94%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,23,42,0.18)">
     <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg-tertiary)">
       <div>
         <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:var(--fs-md)">Custom Profile</div>

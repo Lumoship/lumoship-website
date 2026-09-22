@@ -87,21 +87,21 @@ function onFBFDModeChange() {
   if (mode === 'manual') {
     if (FBtag) {
       FBtag.textContent = '· manual';
-      FBtag.style.color = '#fbbf24';
+      FBtag.style.color = '#d97706';
       FBtag.style.fontWeight = '600';
       FBtag.style.textTransform = 'uppercase';
       FBtag.style.letterSpacing = '0.05em';
     }
     if (FDtag) {
       FDtag.textContent = '· manual';
-      FDtag.style.color = '#fbbf24';
+      FDtag.style.color = '#d97706';
       FDtag.style.fontWeight = '600';
       FDtag.style.textTransform = 'uppercase';
       FDtag.style.letterSpacing = '0.05em';
     }
     // Visual cue: amber border on inputs in manual mode
-    if (FBin) { FBin.style.borderColor = '#fbbf24'; FBin.style.background = 'rgba(251,191,36,0.05)'; }
-    if (FDin) { FDin.style.borderColor = '#fbbf24'; FDin.style.background = 'rgba(251,191,36,0.05)'; }
+    if (FBin) { FBin.style.borderColor = '#d97706'; FBin.style.background = 'rgba(251,191,36,0.05)'; }
+    if (FDin) { FDin.style.borderColor = '#d97706'; FDin.style.background = 'rgba(251,191,36,0.05)'; }
     if (FBlbl) FBlbl.title = 'F_B (bottom) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.';
     if (FDlbl) FDlbl.title = 'F_D (deck) — MANUAL MODE: your typed value is used as-is, no auto-sync from section modulus. Switch to Auto in the F_B / F_D Mode selector to re-enable live SM-based computation.';
   } else {

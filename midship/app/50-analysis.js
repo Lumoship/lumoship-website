@@ -728,7 +728,7 @@ function showElemInspect(elemType, opts) {
   // it derives from the structural role.
   if (data.positionCode) {
     titleEl.innerHTML = `<span>${data.title || 'Element'}</span>` +
-      `<span style="margin-left:auto;background:#1e3a8a;color:#dbeafe;padding:2px 8px;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;font-weight:600;letter-spacing:0.5px" title="Position code (auto-generated from structural role)">${data.positionCode}</span>`;
+      `<span style="margin-left:auto;background:#dbeafe;color:#1e3a8a;padding:2px 8px;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;font-weight:600;letter-spacing:0.5px" title="Position code (auto-generated from structural role)">${data.positionCode}</span>`;
     titleEl.style.display = 'flex';
     titleEl.style.alignItems = 'center';
     titleEl.style.justifyContent = 'space-between';
@@ -4501,8 +4501,8 @@ function renderRuleMinInfoPanel() {
   // Row style: green if pass with margin, yellow if tight, red if fail.
   const rowStyle = (pass, ratio) => {
     if (!pass) return { col:'#ef4444', bg:'rgba(239,68,68,0.14)' };
-    if (ratio >= 1.20) return { col:'#22c55e', bg:'rgba(34,197,94,0.10)' };
-    if (ratio >= 1.05) return { col:'#84cc16', bg:'rgba(132,204,22,0.10)' };
+    if (ratio >= 1.20) return { col:'#16a34a', bg:'rgba(34,197,94,0.10)' };
+    if (ratio >= 1.05) return { col:'#65a30d', bg:'rgba(132,204,22,0.10)' };
     return { col:'#f97316', bg:'rgba(249,115,22,0.12)' };  // tight
   };
 
@@ -4648,19 +4648,19 @@ function renderRuleMinInfoPanel() {
       <div style="display:grid;grid-template-columns:40px 1fr 50px 50px;gap:3px;padding:3px 5px;font-size:0.62rem;background:${FB_bg};border-radius:3px;margin-top:6px;margin-bottom:2px;font-family:var(--font-mono);border-left:2px solid ${FB_borderCol}">
         <span style="color:var(--text-primary);font-weight:700">F_B</span>
         <span style="text-align:right;color:var(--text-secondary)">raw ${FB_raw.toFixed(3)} <span style="color:${FB_tagCol};font-size:0.56rem;font-weight:700">(${FB_tag})</span></span>
-        <span style="text-align:right;color:#a5b4fc;font-weight:700" title="Longitudinal floor 0.75; plating relaxes to ${FB_plating.toFixed(3)} (floor 0.67)">${FB_used.toFixed(3)}</span>
+        <span style="text-align:right;color:#4f46e5;font-weight:700" title="Longitudinal floor 0.75; plating relaxes to ${FB_plating.toFixed(3)} (floor 0.67)">${FB_used.toFixed(3)}</span>
         <span style="text-align:right;color:${okCol};font-weight:600" title="Setup input (auto-synced)">in:${isFinite(FB_input) ? FB_input.toFixed(3) : '—'}</span>
       </div>
       <div style="display:grid;grid-template-columns:40px 1fr 50px 50px;gap:3px;padding:3px 5px;font-size:0.62rem;background:${FD_bg};border-radius:3px;margin-bottom:2px;font-family:var(--font-mono);border-left:2px solid ${FD_borderCol}">
         <span style="color:var(--text-primary);font-weight:700">F_D</span>
         <span style="text-align:right;color:var(--text-secondary)">raw ${FD_raw.toFixed(3)} <span style="color:${FD_tagCol};font-size:0.56rem;font-weight:700">(${FD_tag})</span></span>
-        <span style="text-align:right;color:#a5b4fc;font-weight:700" title="Longitudinal floor 0.75; plating relaxes to ${FD_plating.toFixed(3)} (floor 0.67)">${FD_used.toFixed(3)}</span>
+        <span style="text-align:right;color:#4f46e5;font-weight:700" title="Longitudinal floor 0.75; plating relaxes to ${FD_plating.toFixed(3)} (floor 0.67)">${FD_used.toFixed(3)}</span>
         <span style="text-align:right;color:${okCol};font-weight:600" title="Setup input (auto-synced)">in:${isFinite(FD_input) ? FD_input.toFixed(3) : '—'}</span>
       </div>
       <div style="font-size:0.54rem;color:var(--text-muted);padding:1px 5px 4px;font-family:var(--font-mono);line-height:1.3">
         ${_fbfdMode_panel === 'manual'
-          ? `<span style="color:#fbbf24;font-weight:700">MODE: MANUAL</span> — Setup F_B/F_D inputs used as-is. <span style="color:#a5b4fc;font-weight:700">used</span> column shows what AUTO would compute (for reference only).`
-          : `<span style="color:#a5b4fc;font-weight:700">used</span> = max(raw, 0.75) — long. stiffener floor (LR Sec 5.7.2). Plating may relax to 0.67. <span style="color:${okCol};font-weight:700">in</span> = current Setup input (auto-synced).`}
+          ? `<span style="color:#d97706;font-weight:700">MODE: MANUAL</span> — Setup F_B/F_D inputs used as-is. <span style="color:#4f46e5;font-weight:700">used</span> column shows what AUTO would compute (for reference only).`
+          : `<span style="color:#4f46e5;font-weight:700">used</span> = max(raw, 0.75) — long. stiffener floor (LR Sec 5.7.2). Plating may relax to 0.67. <span style="color:${okCol};font-weight:700">in</span> = current Setup input (auto-synced).`}
         ${(FB_overstressed || FD_overstressed)
           ? `<br><span style="color:#ef4444;font-weight:700">⚠ Hull girder OVERSTRESSED — σ_actual > σ_perm; section modulus inadequate.</span>`
           : ''}
@@ -4731,7 +4731,7 @@ function renderRuleMinInfoPanel() {
       sortedGroups.forEach(([lbl, g]) => {
         const zmid = g.Az / g.A;
         const sideMark = zmid >= NA_mm ? '▲' : '▼';
-        const sideColor = zmid >= NA_mm ? '#22c55e' : '#3b82f6';
+        const sideColor = zmid >= NA_mm ? '#16a34a' : '#3b82f6';
         tblRows += `<tr style="border-bottom:1px solid var(--border-faint)">
           <td style="padding:2px 4px;color:var(--text-primary)">${lbl}</td>
           <td style="padding:2px 4px;text-align:right;color:var(--text-secondary)">${g.n}</td>
@@ -4815,9 +4815,9 @@ function renderHullGirderStrengthPanel() {
   
   // Ratio → color (green 0 → yellow 0.6 → orange 0.85 → red 1.0+)
   const colorFor = (r) => {
-    if (r < 0.5) return '#22c55e';    // green
-    if (r < 0.70) return '#84cc16';   // lime
-    if (r < 0.85) return '#eab308';   // yellow
+    if (r < 0.5) return '#16a34a';    // green
+    if (r < 0.70) return '#65a30d';   // lime
+    if (r < 0.85) return '#ca8a04';   // yellow
     if (r < 1.00) return '#f97316';   // orange
     return '#ef4444';                  // red (>1 fail)
   };
@@ -4945,9 +4945,9 @@ function renderHullGirderStrengthPanel() {
   
   // Color legend
   html += `<div style="display:flex;align-items:center;gap:3px;margin-bottom:6px;font-size:0.55rem;color:var(--text-muted);font-family:var(--font-mono);flex-wrap:wrap">
-    <span style="padding:1px 5px;background:rgba(34,197,94,0.12);color:#22c55e;border-radius:2px">0 – 0.5</span>
-    <span style="padding:1px 5px;background:rgba(132,204,22,0.12);color:#84cc16;border-radius:2px">0.5 – 0.7</span>
-    <span style="padding:1px 5px;background:rgba(234,179,8,0.14);color:#eab308;border-radius:2px">0.7 – 0.85</span>
+    <span style="padding:1px 5px;background:rgba(34,197,94,0.12);color:#16a34a;border-radius:2px">0 – 0.5</span>
+    <span style="padding:1px 5px;background:rgba(132,204,22,0.12);color:#65a30d;border-radius:2px">0.5 – 0.7</span>
+    <span style="padding:1px 5px;background:rgba(234,179,8,0.14);color:#ca8a04;border-radius:2px">0.7 – 0.85</span>
     <span style="padding:1px 5px;background:rgba(249,115,22,0.14);color:#f97316;border-radius:2px">0.85 – 1.0</span>
     <span style="padding:1px 5px;background:rgba(239,68,68,0.18);color:#ef4444;border-radius:2px">&gt; 1.0 FAIL</span>
   </div>`;
@@ -4964,9 +4964,9 @@ function renderHullGirderStrengthPanel() {
       // so invert the color logic used for stress.
       let col, bg;
       if (pass) {
-        if (ratio >= 1.50)      { col = '#22c55e'; bg = 'rgba(34,197,94,0.10)'; }
-        else if (ratio >= 1.20) { col = '#84cc16'; bg = 'rgba(132,204,22,0.10)'; }
-        else if (ratio >= 1.05) { col = '#eab308'; bg = 'rgba(234,179,8,0.12)'; }
+        if (ratio >= 1.50)      { col = '#16a34a'; bg = 'rgba(34,197,94,0.10)'; }
+        else if (ratio >= 1.20) { col = '#65a30d'; bg = 'rgba(132,204,22,0.10)'; }
+        else if (ratio >= 1.05) { col = '#ca8a04'; bg = 'rgba(234,179,8,0.12)'; }
         else                    { col = '#f97316'; bg = 'rgba(249,115,22,0.14)'; }
       } else {
         col = '#ef4444'; bg = 'rgba(239,68,68,0.18)';

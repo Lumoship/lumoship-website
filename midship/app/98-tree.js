@@ -321,13 +321,13 @@
       var X = function (mm) { return pad + (mm - xMin) / (xMax - xMin) * (W - 2 * pad); };
       var yBase = 74; var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ft-svg" preserveAspectRatio="xMidYMid meet">';
       // hull line: keel + deck as a plain band, AP / FP
-      h += '<rect x="' + X(0) + '" y="' + (yBase - 34) + '" width="' + (X(L * 1000 || xMax) - X(0)) + '" height="34" fill="rgba(59,130,246,0.06)" stroke="#334155" stroke-width="1"/>';
+      h += '<rect x="' + X(0) + '" y="' + (yBase - 34) + '" width="' + (X(L * 1000 || xMax) - X(0)) + '" height="34" fill="rgba(59,130,246,0.06)" stroke="#cbd5e1" stroke-width="1"/>';
       h += '<text x="' + X(0) + '" y="' + (yBase + 26) + '" class="ft-lbl" text-anchor="middle">AP</text>';
       if (L) h += '<text x="' + X(L * 1000) + '" y="' + (yBase + 26) + '" class="ft-lbl" text-anchor="middle">FP · L ' + L.toFixed(1) + ' m</text>';
       // zones as bands with the spacing written in
       t.rows.forEach(function (r, i) { var xa = FrameTable.xOf(r.from, t), xb = FrameTable.xOf(r.to, t); if (xa == null || xb == null) return; var a = X(xa), b = X(xb); h += '<rect x="' + a + '" y="' + (yBase - 34) + '" width="' + Math.max(0, b - a) + '" height="34" fill="rgba(34,197,94,' + (i % 2 ? 0.10 : 0.16) + ')"/><text x="' + ((a + b) / 2) + '" y="' + (yBase - 40) + '" class="ft-lbl" text-anchor="middle">' + r.s + ' mm</text>'; });
       // frame ticks (every frame; every 10th taller with its number)
-      if (rg) for (var f = rg.from; f <= rg.to; f++) { var xm = FrameTable.xOf(f, t); if (xm == null) continue; var x = X(xm); var big = f % 10 === 0; h += '<line x1="' + x + '" y1="' + yBase + '" x2="' + x + '" y2="' + (yBase - (big ? 12 : 6)) + '" stroke="' + (big ? '#94a3b8' : '#475569') + '" stroke-width="1"/>'; if (big) h += '<text x="' + x + '" y="' + (yBase + 12) + '" class="ft-lbl" text-anchor="middle">' + f + '</text>'; }
+      if (rg) for (var f = rg.from; f <= rg.to; f++) { var xm = FrameTable.xOf(f, t); if (xm == null) continue; var x = X(xm); var big = f % 10 === 0; h += '<line x1="' + x + '" y1="' + yBase + '" x2="' + x + '" y2="' + (yBase - (big ? 12 : 6)) + '" stroke="' + (big ? '#64748b' : '#94a3b8') + '" stroke-width="1"/>'; if (big) h += '<text x="' + x + '" y="' + (yBase + 12) + '" class="ft-lbl" text-anchor="middle">' + f + '</text>'; }
       // sections
       Object.keys(sf).forEach(function (f) { var xm = FrameTable.xOf(f, t); if (xm == null) return; var x = X(xm); h += '<line x1="' + x + '" y1="' + (yBase - 34) + '" x2="' + x + '" y2="' + yBase + '" stroke="#3b82f6" stroke-width="2"/><text x="' + x + '" y="' + (yBase - 40) + '" class="ft-lbl sec" text-anchor="middle">' + sf[f] + '</text>'; });
       h += '<line x1="' + X(xMin) + '" y1="' + yBase + '" x2="' + X(xMax) + '" y2="' + yBase + '" stroke="#64748b" stroke-width="1"/>';

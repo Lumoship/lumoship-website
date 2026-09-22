@@ -247,10 +247,10 @@ const HistoryManager = (function() {
       toastEl = document.createElement('div');
       toastEl.style.cssText = [
         'position:fixed', 'right:20px', 'bottom:20px', 'z-index:99999',
-        'background:rgba(20,20,28,0.92)', 'color:#e2e8f0',
+        'background:rgba(20,20,28,0.92)', 'color:#1e293b',
         'padding:8px 14px', 'border-radius:4px',
         'font-family:var(--font-mono, monospace)', 'font-size:0.72rem',
-        'border:1px solid var(--accent, #a855f7)',
+        'border:1px solid var(--accent, #7c3aed)',
         'pointer-events:none', 'opacity:0',
         'transition:opacity 0.15s'
       ].join(';');

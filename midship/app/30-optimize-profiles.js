@@ -1641,7 +1641,7 @@ function _showCandidatesPanel(group, id, mode, pref) {
 
   const overlay = document.createElement('div');
   overlay.id = 'candidatesPanel';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.18);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
 
   const bandInfo = (mode === 'band') ? window.BAND_ASSIGNMENTS[group]?.[id] : null;
   const target = (mode === 'band')
@@ -1655,18 +1655,18 @@ function _showCandidatesPanel(group, id, mode, pref) {
     const slotLabel = cand.slot === 'optimum' ? 'OPTIMUM' :
                       cand.slot === 'smaller' ? 'ONE SIZE SMALLER' :
                       cand.slot === 'larger' ? 'ONE SIZE LARGER' : 'OPTION';
-    const slotColor = cand.slot === 'optimum' ? '#10b981' :
-                      cand.slot === 'smaller' ? '#f59e0b' :
+    const slotColor = cand.slot === 'optimum' ? '#059669' :
+                      cand.slot === 'smaller' ? '#d97706' :
                       cand.slot === 'larger' ? '#3b82f6' : '#6b7280';
-    const passColor = cand.all_pass ? '#10b981' : '#ef4444';
+    const passColor = cand.all_pass ? '#059669' : '#ef4444';
     const bg = cand.slot === 'optimum' ? 'rgba(16,185,129,0.12)' :
                cand.all_pass ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.08)';
-    const border = cand.slot === 'optimum' ? '2.5px solid #10b981' :
+    const border = cand.slot === 'optimum' ? '2.5px solid #059669' :
                    cand.all_pass ? '1.5px solid rgba(16,185,129,0.4)' : '1.5px solid rgba(239,68,68,0.4)';
     const checkRow = (label, pass, val) => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.72rem;border-bottom:1px dashed var(--border)">
         <span style="color:var(--text-muted)">${label}</span>
-        <span style="color:${pass ? '#10b981' : '#ef4444'};font-family:var(--font-mono);font-weight:600">${val} ${pass ? 'OK' : 'FAIL'}</span>
+        <span style="color:${pass ? '#059669' : '#ef4444'};font-family:var(--font-mono);font-weight:600">${val} ${pass ? 'OK' : 'FAIL'}</span>
       </div>`;
     return `<div style="flex:1;min-width:0;background:${bg};border:${border};border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px">
       <div style="font-size:0.62rem;font-weight:800;color:${slotColor};text-transform:uppercase;letter-spacing:0.6px;text-align:center">${slotLabel}</div>
@@ -1678,23 +1678,23 @@ function _showCandidatesPanel(group, id, mode, pref) {
         ${checkRow('HG stress', cand.hg_pass, `${cand.hg_ratio.toFixed(2)}`)}
       </div>
       ${cand.fail_reasons.length ? `
-        <div style="font-size:0.6rem;color:#fca5a5;background:rgba(239,68,68,0.1);border-left:2px solid #ef4444;padding:6px 8px;border-radius:3px;margin-top:4px">
+        <div style="font-size:0.6rem;color:#b91c1c;background:rgba(239,68,68,0.1);border-left:2px solid #ef4444;padding:6px 8px;border-radius:3px;margin-top:4px">
           <strong>Why fail:</strong><br>${cand.fail_reasons.join('<br>')}
         </div>
       ` : `
-        <div style="font-size:0.62rem;color:#86efac;text-align:center;padding:4px;background:rgba(16,185,129,0.08);border-radius:3px;margin-top:4px">
+        <div style="font-size:0.62rem;color:#15803d;text-align:center;padding:4px;background:rgba(16,185,129,0.08);border-radius:3px;margin-top:4px">
           All checks pass
         </div>
       `}
       <button class="apply-cand-btn" data-name="${cand.name}" ${cand.all_pass ? '' : 'disabled'}
-              style="margin-top:6px;padding:8px;background:${cand.all_pass ? (cand.slot === 'optimum' ? 'linear-gradient(135deg,#10b981,#059669)' : 'var(--accent)') : 'var(--bg-tertiary)'};color:${cand.all_pass ? '#fff' : 'var(--text-muted)'};border:none;border-radius:4px;font-size:0.74rem;font-weight:700;cursor:${cand.all_pass ? 'pointer' : 'not-allowed'};font-family:var(--font-display)">
+              style="margin-top:6px;padding:8px;background:${cand.all_pass ? (cand.slot === 'optimum' ? 'linear-gradient(135deg,#059669,#059669)' : 'var(--accent)') : 'var(--bg-tertiary)'};color:${cand.all_pass ? '#fff' : 'var(--text-muted)'};border:none;border-radius:4px;font-size:0.74rem;font-weight:700;cursor:${cand.all_pass ? 'pointer' : 'not-allowed'};font-family:var(--font-display)">
         ${cand.all_pass ? 'Apply' : 'Cannot Apply (FAIL)'}
       </button>
     </div>`;
   };
 
   overlay.innerHTML = `
-    <div style="background:var(--bg-secondary);border:2px solid var(--accent);border-radius:10px;padding:22px;max-width:880px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+    <div style="background:var(--bg-secondary);border:2px solid var(--accent);border-radius:10px;padding:22px;max-width:880px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(15,23,42,0.18)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
         <div>
           <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:1.05rem">Local Optimize — ${typeLabel}</div>
@@ -1702,7 +1702,7 @@ function _showCandidatesPanel(group, id, mode, pref) {
         </div>
         <button id="candPanelClose" style="background:transparent;color:var(--text-muted);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.78rem">Close</button>
       </div>
-      ${result.note ? `<div style="padding:10px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.4);border-radius:6px;margin-bottom:12px;color:#fbbf24;font-size:0.74rem">${result.note}</div>` : ''}
+      ${result.note ? `<div style="padding:10px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.4);border-radius:6px;margin-bottom:12px;color:#d97706;font-size:0.74rem">${result.note}</div>` : ''}
       <div style="display:flex;gap:12px;align-items:stretch">
         ${result.candidates.map(cardHTML).join('')}
       </div>
@@ -1737,15 +1737,15 @@ function _showOptimizeModal(callback) {
 
   const overlay = document.createElement('div');
   overlay.id = 'optimizeModal';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.18);z-index:10000;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:var(--bg-secondary);border:2px solid var(--accent);border-radius:8px;padding:24px;min-width:340px;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,0.6)">
+    <div style="background:var(--bg-secondary);border:2px solid var(--accent);border-radius:8px;padding:24px;min-width:340px;max-width:420px;box-shadow:0 16px 48px rgba(15,23,42,0.18)">
       <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:1rem;margin-bottom:4px">Local Optimize</div>
       <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:18px">Choose preferred profile type. Will find the smallest profile that passes Z_req + HG + Buckling.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-        <button class="opt-mod-btn" data-pref="L"   style="padding:12px;background:rgba(74,222,128,0.15);color:#86efac;border:1.5px solid rgba(74,222,128,0.5);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">L Angle</button>
-        <button class="opt-mod-btn" data-pref="HP"  style="padding:12px;background:rgba(167,139,250,0.15);color:#c4b5fd;border:1.5px solid rgba(167,139,250,0.5);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">HP Bulb</button>
-        <button class="opt-mod-btn" data-pref="FB"  style="padding:12px;background:rgba(251,191,36,0.15);color:#fcd34d;border:1.5px solid rgba(251,191,36,0.5);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">FB Flat</button>
+        <button class="opt-mod-btn" data-pref="L"   style="padding:12px;background:rgba(74,222,128,0.15);color:#15803d;border:1.5px solid rgba(74,222,128,0.5);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">L Angle</button>
+        <button class="opt-mod-btn" data-pref="HP"  style="padding:12px;background:rgba(167,139,250,0.15);color:#6d28d9;border:1.5px solid rgba(167,139,250,0.5);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">HP Bulb</button>
+        <button class="opt-mod-btn" data-pref="FB"  style="padding:12px;background:rgba(251,191,36,0.15);color:#b45309;border:1.5px solid rgba(251,191,36,0.5);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">FB Flat</button>
         <button class="opt-mod-btn" data-pref="any" style="padding:12px;background:var(--bg-tertiary);color:var(--text-primary);border:1.5px solid var(--border);border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:var(--font-display)">Any (Smallest)</button>
       </div>
       <button id="optModalCancel" style="width:100%;padding:8px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:4px;font-size:0.74rem;cursor:pointer">Cancel</button>
@@ -1965,7 +1965,7 @@ function _showOptimizationReport(report, pref) {
 
   const overlay = document.createElement('div');
   overlay.id = 'optReportModal';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.18);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
 
   const typeLabel = pref === 'L' ? 'L Angle' : pref === 'HP' ? 'HP Bulb' : pref === 'FB' ? 'FB Flat' : 'Any (smallest)';
 
@@ -1979,7 +1979,7 @@ function _showOptimizationReport(report, pref) {
     const border = allOK ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.4)';
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 10px;font-family:var(--font-mono);font-size:0.72rem;color:var(--text-primary)">${g}</td>
-      <td style="padding:8px 10px;text-align:center;font-family:var(--font-mono);font-size:0.72rem;color:${allOK ? '#10b981' : '#f59e0b'}">${d.ok}</td>
+      <td style="padding:8px 10px;text-align:center;font-family:var(--font-mono);font-size:0.72rem;color:${allOK ? '#059669' : '#d97706'}">${d.ok}</td>
       <td style="padding:8px 10px;text-align:center;font-family:var(--font-mono);font-size:0.72rem;color:${d.fail > 0 ? '#ef4444' : 'var(--text-muted)'}">${d.fail}</td>
       <td style="padding:8px 10px;font-size:0.68rem;font-family:var(--font-mono)">${profCounts || '—'}</td>
     </tr>`;
@@ -1987,21 +1987,21 @@ function _showOptimizationReport(report, pref) {
 
   const failedList = report.failedStiffs.length
     ? `<div style="margin-top:14px;padding:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:5px">
-        <div style="font-size:0.72rem;font-weight:700;color:#fca5a5;margin-bottom:4px">Failed (${report.failedStiffs.length}):</div>
+        <div style="font-size:0.72rem;font-weight:700;color:#b91c1c;margin-bottom:4px">Failed (${report.failedStiffs.length}):</div>
         <div style="font-size:0.66rem;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6">${report.failedStiffs.join(', ')}</div>
         <div style="font-size:0.66rem;color:var(--text-muted);margin-top:6px;font-style:italic">No profile in the selected family passed all checks. Try a different type (HP if you chose L, or "Any"), or accept these stiffs remain at their current profile.</div>
       </div>`
     : '';
 
   overlay.innerHTML = `
-    <div style="background:var(--bg-secondary);border:2px solid var(--accent);border-radius:10px;padding:22px;max-width:720px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+    <div style="background:var(--bg-secondary);border:2px solid var(--accent);border-radius:10px;padding:22px;max-width:720px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(15,23,42,0.18)">
       <div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
         <div style="font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:1.05rem">Auto-Optimize — Report</div>
         <div style="font-size:0.74rem;color:var(--text-muted);margin-top:4px">Type preference: <span style="color:var(--text-secondary);font-weight:600">${typeLabel}</span> · Each stiff checked against Z_req + HG + Buckling</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
         <div style="padding:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:5px;text-align:center">
-          <div style="font-size:1.4rem;font-weight:700;color:#10b981;font-family:var(--font-mono)">${report.totalOK}</div>
+          <div style="font-size:1.4rem;font-weight:700;color:#059669;font-family:var(--font-mono)">${report.totalOK}</div>
           <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.3px">Optimized</div>
         </div>
         <div style="padding:10px;background:${report.totalFail > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(100,116,139,0.1)'};border:1px solid ${report.totalFail > 0 ? 'rgba(239,68,68,0.3)' : 'var(--border)'};border-radius:5px;text-align:center">

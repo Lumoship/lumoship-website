@@ -855,10 +855,10 @@ window.showOptimizeMenu = function(evt, kind) {
     top: ${rect.bottom + 4}px;
     left: ${rect.left}px;
     min-width: ${Math.max(rect.width, 180)}px;
-    background: var(--bg-secondary, #1a1f2e);
+    background: var(--bg-secondary, #f1f5f9);
     border: 1px solid var(--accent, #3b82f6);
     border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.18);
     padding: 4px;
     z-index: 99999;
     font-family: var(--font-display, system-ui);
@@ -891,7 +891,7 @@ window.showOptimizeMenu = function(evt, kind) {
       <span style="font-family:var(--font-mono);font-weight:700;color:var(--accent,#3b82f6);font-size:0.78rem;line-height:1.4;min-width:14px">${icon}</span>
       <div>
         <div style="color:var(--text-primary,#fff);font-size:0.78rem;font-weight:600;line-height:1.3">${label}</div>
-        <div style="color:var(--text-muted,#94a3b8);font-size:0.66rem;margin-top:2px;line-height:1.3">${desc}</div>
+        <div style="color:var(--text-muted,#64748b);font-size:0.66rem;margin-top:2px;line-height:1.3">${desc}</div>
       </div>
     `;
     item.addEventListener('mouseenter', () => item.style.background = 'var(--bg-tertiary, rgba(59,130,246,0.1))');
@@ -1194,19 +1194,19 @@ function showOptimizeResultsModal(title, changes) {
     const map = {
       shell:       { name: '1. Shell',              color: PALETTE.shell       || '#ef4444' },
       innerBottom: { name: '2. Inner Bottom',       color: PALETTE.ib          || '#3b82f6' },
-      innerSide:   { name: '3. Inner Side',         color: PALETTE.is          || '#22c55e' },
-      sideGirder0: { name: '5. Side Girder I',      color: PALETTE.sideGirder  || '#a855f7' },
-      sideGirder1: { name: '6. Side Girder II',     color: PALETTE.sideGirder  || '#a855f7' },
-      sideGirder2: { name: '7. Side Girder III',    color: PALETTE.sideGirder  || '#a855f7' },
-      upperDeck:   { name: '10. Upper Deck',        color: PALETTE.upperDeck   || '#94a3b8' },
-      coamingTop:  { name: '11. Hatch Coaming Top', color: PALETTE.coamingTop  || '#f59e0b' },
-      coamingWall: { name: '12. Hatch Coaming Wall',color: PALETTE.coamingWall || '#d946ef' },
+      innerSide:   { name: '3. Inner Side',         color: PALETTE.is          || '#16a34a' },
+      sideGirder0: { name: '5. Side Girder I',      color: PALETTE.sideGirder  || '#7c3aed' },
+      sideGirder1: { name: '6. Side Girder II',     color: PALETTE.sideGirder  || '#7c3aed' },
+      sideGirder2: { name: '7. Side Girder III',    color: PALETTE.sideGirder  || '#7c3aed' },
+      upperDeck:   { name: '10. Upper Deck',        color: PALETTE.upperDeck   || '#64748b' },
+      coamingTop:  { name: '11. Hatch Coaming Top', color: PALETTE.coamingTop  || '#d97706' },
+      coamingWall: { name: '12. Hatch Coaming Wall',color: PALETTE.coamingWall || '#a21caf' },
     };
     if (map[pk]) return map[pk];
-    if (/^stringer\d+$/.test(pk)) return { name: '8. Stringer Deck ' + (pk.slice(8) || ''), color: PALETTE.stringer || '#a855f7' };
-    if (/^tween\d+$/.test(pk))    return { name: '9. Tween Deck ' + (pk.slice(5) || ''),    color: PALETTE.tween    || '#06b6d4' };
-    if (pk === 'stringer') return { name: '8. Stringer Deck', color: PALETTE.stringer || '#a855f7' };
-    if (pk === 'tween')    return { name: '9. Tween Deck',    color: PALETTE.tween    || '#06b6d4' };
+    if (/^stringer\d+$/.test(pk)) return { name: '8. Stringer Deck ' + (pk.slice(8) || ''), color: PALETTE.stringer || '#7c3aed' };
+    if (/^tween\d+$/.test(pk))    return { name: '9. Tween Deck ' + (pk.slice(5) || ''),    color: PALETTE.tween    || '#0891b2' };
+    if (pk === 'stringer') return { name: '8. Stringer Deck', color: PALETTE.stringer || '#7c3aed' };
+    if (pk === 'tween')    return { name: '9. Tween Deck',    color: PALETTE.tween    || '#0891b2' };
     return { name: pk, color: '#64748b' };
   };
 
@@ -1221,7 +1221,7 @@ function showOptimizeResultsModal(title, changes) {
     tableHtml = `<div style="padding:32px;text-align:center;color:#64748b;font-size:0.85rem">
       <div style="font-size:2.4rem;margin-bottom:8px">✓</div>
       <div>Every strake already matches its required thickness.</div>
-      <div style="margin-top:6px;font-size:0.72rem;color:#475569">No changes made.</div>
+      <div style="margin-top:6px;font-size:0.72rem;color:#94a3b8">No changes made.</div>
     </div>`;
   } else {
     panels.forEach(pk => {
@@ -1240,12 +1240,12 @@ function showOptimizeResultsModal(title, changes) {
             <div style="padding:4px 8px;color:#64748b;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.4px">To</div>`;
       list.forEach(c => {
         const dir = c.to > c.from ? '↑' : '↓';
-        const dirColor = c.to > c.from ? '#ef4444' : '#22c55e';
+        const dirColor = c.to > c.from ? '#ef4444' : '#16a34a';
         tableHtml += `
-            <div style="padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:3px;color:${meta.color};font-weight:600">#${c.idx + 1}</div>
-            <div style="padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:3px;color:#94a3b8">${(+c.req).toFixed(1)} mm</div>
-            <div style="padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:3px;color:#64748b">${c.from} mm</div>
-            <div style="padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:3px;color:#e2e8f0;font-weight:700">${c.to} mm <span style="color:${dirColor};margin-left:4px">${dir}</span></div>`;
+            <div style="padding:6px 8px;background:rgba(15,23,42,0.02);border-radius:3px;color:${meta.color};font-weight:600">#${c.idx + 1}</div>
+            <div style="padding:6px 8px;background:rgba(15,23,42,0.02);border-radius:3px;color:#64748b">${(+c.req).toFixed(1)} mm</div>
+            <div style="padding:6px 8px;background:rgba(15,23,42,0.02);border-radius:3px;color:#64748b">${c.from} mm</div>
+            <div style="padding:6px 8px;background:rgba(15,23,42,0.02);border-radius:3px;color:#1e293b;font-weight:700">${c.to} mm <span style="color:${dirColor};margin-left:4px">${dir}</span></div>`;
       });
       tableHtml += `</div></div>`;
     });
@@ -1255,7 +1255,7 @@ function showOptimizeResultsModal(title, changes) {
   const modal = document.createElement('div');
   modal.id = 'optResultsModal';
   modal.style.cssText = `
-    position:fixed;inset:0;z-index:10000;background:rgba(2,6,23,0.78);
+    position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,0.45);
     backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;
     font-family:var(--font-body,system-ui);animation:optFadeIn 0.18s ease-out;
   `;
@@ -1263,23 +1263,23 @@ function showOptimizeResultsModal(title, changes) {
     <style>
       @keyframes optFadeIn { from { opacity:0; transform:scale(0.96) } to { opacity:1; transform:scale(1) } }
       #optResultsModal .opt-close-btn { transition:all 0.15s }
-      #optResultsModal .opt-close-btn:hover { background:#1e40af; transform:translateY(-1px) }
+      #optResultsModal .opt-close-btn:hover { background:#bfdbfe; transform:translateY(-1px) }
     </style>
     <div style="
-      background:linear-gradient(180deg,#0f172a 0%,#0b1220 100%);
-      border:1px solid #1e293b;border-radius:12px;
-      box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(148,163,184,0.06) inset;
+      background:linear-gradient(180deg,#f1f5f9 0%,#f8fafc 100%);
+      border:1px solid #e2e8f0;border-radius:12px;
+      box-shadow:0 20px 60px rgba(15,23,42,0.18),0 0 0 1px rgba(100,116,139,0.06) inset;
       width:min(640px,90vw);max-height:85vh;display:flex;flex-direction:column;
       animation:optFadeIn 0.22s ease-out">
       <!-- Header -->
-      <div style="padding:16px 22px;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:12px">
-        <div style="width:8px;height:8px;background:#22c55e;border-radius:50%;box-shadow:0 0 8px #22c55e"></div>
+      <div style="padding:16px 22px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px">
+        <div style="width:8px;height:8px;background:#16a34a;border-radius:50%;box-shadow:0 0 8px #16a34a"></div>
         <div style="flex:1">
-          <div style="font-family:var(--font-display,system-ui);font-weight:700;font-size:0.92rem;color:#e2e8f0;letter-spacing:0.3px">${title}</div>
+          <div style="font-family:var(--font-display,system-ui);font-weight:700;font-size:0.92rem;color:#1e293b;letter-spacing:0.3px">${title}</div>
           <div style="font-size:0.68rem;color:#64748b;margin-top:2px">${totalChanges > 0 ? totalChanges + ' strake(s) updated to meet rule-required thickness' : 'No updates needed'}</div>
         </div>
         <button onclick="document.getElementById('optResultsModal').remove()" style="
-          background:transparent;border:1px solid #1e293b;color:#64748b;
+          background:transparent;border:1px solid #e2e8f0;color:#64748b;
           width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:1rem;
           display:flex;align-items:center;justify-content:center">×</button>
       </div>
@@ -1288,7 +1288,7 @@ function showOptimizeResultsModal(title, changes) {
         ${tableHtml}
       </div>
       <!-- Footer -->
-      <div style="padding:12px 22px;border-top:1px solid #1e293b;display:flex;justify-content:flex-end;gap:8px">
+      <div style="padding:12px 22px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px">
         <button class="opt-close-btn" onclick="document.getElementById('optResultsModal').remove()" style="
           background:#2563eb;color:#fff;border:none;padding:8px 18px;
           border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:600;

@@ -2904,14 +2904,14 @@ function adjustStrakeWidthsForClearance(strakes, startOffset, obstacles, label) 
 const EDITOR_GROUPS = [
   { key:'bottomShell',   label:'Bottom Shell',             coord:'y', color:'#ef4444', prefix:'BS',   link:'linkBS_IB',        linkWith:'innerBottom' },
   { key:'innerBottom',   label:'Inner Bottom',             coord:'y', color:'#3b82f6', prefix:'IB',   link:'linkBS_IB',        linkWith:'bottomShell' },
-  { key:'stringerStiff', label:'Stringer Deck Stiff.',     coord:'y', color:'#a855f7', prefix:'SD'   },
-  { key:'tweenStiff',    label:'Tween Deck Stiff.',        coord:'y', color:'#06b6d4', prefix:'TD'   },
-  { key:'coamingStiff',  label:'Coaming Top Stiff.',       coord:'y', color:'#f59e0b', prefix:'CT'   },
+  { key:'stringerStiff', label:'Stringer Deck Stiff.',     coord:'y', color:'#7c3aed', prefix:'SD'   },
+  { key:'tweenStiff',    label:'Tween Deck Stiff.',        coord:'y', color:'#0891b2', prefix:'TD'   },
+  { key:'coamingStiff',  label:'Coaming Top Stiff.',       coord:'y', color:'#d97706', prefix:'CT'   },
   { key:'sideShell',     label:'Side Shell',               coord:'z', color:'#ef4444', prefix:'SS',   link:'linkSS_IS',        linkWith:'innerSide'   },
-  { key:'innerSide',     label:'Inner Side',               coord:'z', color:'#22c55e', prefix:'IS',   link:'linkSS_IS',        linkWith:'sideShell'   },
-  { key:'stringer',      label:'Stringer Plate',           coord:'z', color:'#a855f7', prefix:'STRP' },
-  { key:'tweenDeck',     label:'Tween Deck Plate',         coord:'z', color:'#06b6d4', prefix:'TDP'  },
-  { key:'upperDeck',     label:'Upper Deck',               coord:'y', color:'#94a3b8', prefix:'UD'   }
+  { key:'innerSide',     label:'Inner Side',               coord:'z', color:'#16a34a', prefix:'IS',   link:'linkSS_IS',        linkWith:'sideShell'   },
+  { key:'stringer',      label:'Stringer Plate',           coord:'z', color:'#7c3aed', prefix:'STRP' },
+  { key:'tweenDeck',     label:'Tween Deck Plate',         coord:'z', color:'#0891b2', prefix:'TDP'  },
+  { key:'upperDeck',     label:'Upper Deck',               coord:'y', color:'#64748b', prefix:'UD'   }
 ];
 
 // =========================================================================
@@ -3320,7 +3320,7 @@ function renderWTBlock() {
   let h = '';
   // === WT / NON-WT classification panel ===
   h += `<div class="ed-group">`;
-  h += `<div class="ed-group-header"><span style="color:#22c55e">WT / Non-WT</span></div>`;
+  h += `<div class="ed-group-header"><span style="color:#16a34a">WT / Non-WT</span></div>`;
   const wtOptions = (key) => `
     <select class="ed-input wt-select" data-wt-key="${key}" style="width:90px">
       <option value="WT"     ${WT_FLAGS[key] === 'WT'     ? 'selected':''}>WT</option>
@@ -3398,8 +3398,8 @@ function renderEditor() {
   html += `<div class="ed-tab-pane ${EDITOR_TAB === 'geometry' ? 'active' : ''}" data-tab-pane="geometry">`;
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header">
-    <span style="color:#f59e0b">Ship Geometry</span>
-    <button class="ed-add-btn" id="geomReset" style="color:#94a3b8">↺ reset</button>
+    <span style="color:#d97706">Ship Geometry</span>
+    <button class="ed-add-btn" id="geomReset" style="color:#64748b">↺ reset</button>
   </div>`;
   GEOMETRY_META.forEach(meta => {
     const v = GEOMETRY[meta.key];
@@ -3407,14 +3407,14 @@ function renderEditor() {
     html += `<div class="ed-row" ${off ? 'style="opacity:.45"' : ''}>
       <span class="ed-id" style="min-width:150px;font-size:0.68rem">${meta.label}</span>
       <input class="ed-input geom-input" type="number" value="${v == null ? '' : v}" data-geom-key="${meta.key}" min="${meta.min}" max="${meta.max}" step="${meta.step}" ${off ? 'disabled title="Element switched off below"' : ''}>
-      <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span>
+      <span class="ed-label" style="color:#94a3b8;font-size:0.65rem">mm</span>
     </div>`;
   });
   html += `</div>`;
 
   // Optional elements. Off = the element does not exist in this section:
   // no levels, no strakes, no stiffeners, no rule rows.
-  html += `<div class="ed-group"><div class="ed-group-header"><span style="color:#f59e0b">Elements</span></div>`;
+  html += `<div class="ed-group"><div class="ed-group-header"><span style="color:#d97706">Elements</span></div>`;
   [
     { key:'tween',    label:'Tween deck',      hint:'Horizontal deck between the inner sides. Off: single-deck hold from inner bottom to upper deck.' },
     { key:'stringer', label:'Side stringer',   hint:'Horizontal stringer plate in the double side. Off: side longitudinals run from inner bottom to the next level.' },
@@ -3442,12 +3442,12 @@ function renderEditor() {
     </div>
   </div>`;
   html += `<div class="ed-group">`;
-  html += `<div class="ed-group-header"><span style="color:#f59e0b">Design Parameters</span></div>`;
+  html += `<div class="ed-group-header"><span style="color:#d97706">Design Parameters</span></div>`;
   PARAMS_META.forEach(meta => {
     html += `<div class="ed-row" title="${meta.tip || ''}">
       <span class="ed-id" style="min-width:110px;font-size:0.68rem;white-space:nowrap">${meta.label}</span>
       <input class="ed-input param-input" type="number" value="${PARAMS[meta.key]}" data-param-key="${meta.key}" min="${meta.min}" max="${meta.max}" step="${meta.step}">
-      <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span>
+      <span class="ed-label" style="color:#94a3b8;font-size:0.65rem">mm</span>
     </div>`;
   });
   // Profile type dropdowns per surface
@@ -3560,7 +3560,7 @@ function renderEditor() {
       <span style="color:${grp.color}">${grp.label} <span class="ed-count">(${arr.length})</span></span>
       <span style="display:flex;gap:4px;align-items:center">
         ${linkBadge}
-        <button class="ed-add-btn" data-eq-spacing="${grp.key}" title="Distribute stiffeners evenly between two coordinates" style="color:#a855f7">⚖ equal</button>
+        <button class="ed-add-btn" data-eq-spacing="${grp.key}" title="Distribute stiffeners evenly between two coordinates" style="color:#7c3aed">⚖ equal</button>
         <button class="ed-add-btn" data-add="${grp.key}" title="Add a new stiffener at a specific coordinate">+ add</button>
       </span>
     </div>`;
@@ -3576,7 +3576,7 @@ function renderEditor() {
         defaultOpts += `<option value="${escapeXml(o.value)}"${sel}>${escapeXml(o.textContent || o.value)}</option>`;
       }
       html += `<div class="ed-row" style="padding:3px 6px;background:rgba(168,85,247,0.06);border-radius:4px;margin-bottom:4px">
-        <span class="ed-id" style="min-width:52px;color:#a855f7;font-size:0.62rem;font-weight:600;letter-spacing:0.5px;white-space:nowrap" title="Default profile for every stiffener in this group that has no custom profile">Default</span>
+        <span class="ed-id" style="min-width:52px;color:#7c3aed;font-size:0.62rem;font-weight:600;letter-spacing:0.5px;white-space:nowrap" title="Default profile for every stiffener in this group that has no custom profile">Default</span>
         <select class="ed-group-default-select" data-default-sel-id="${selId}" title="Group default profile" style="flex:1;min-width:0;font-family:var(--font-mono);font-size:0.7rem;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);padding:3px 5px;border-radius:3px">
           ${defaultOpts}
         </select>
@@ -3618,7 +3618,7 @@ function renderEditor() {
       const rowOptsHtml = buildOptionsHtml(rowProfName);
       const hasOptions = rowOptsHtml.length > 0;
       const customMark = p.profileName
-        ? `<span title="Custom profile (override group default)" style="color:#fbbf24;font-size:0.65rem">•</span>`
+        ? `<span title="Custom profile (override group default)" style="color:#d97706;font-size:0.65rem">•</span>`
         : `<span style="width:6px;display:inline-block"></span>`;
 
       // ─── BRACKET EFFECT BADGE ─────────────────────────────────────────
@@ -3640,7 +3640,7 @@ function renderEditor() {
             if (eff && eff.count > 0) {
               const baseLe = parseFloat(document.getElementById('le')?.value) || 0;
               const newLe = Math.max(baseLe - eff.reduction_m, 1.5);
-              bracketBadge = `<span title="Bracket-reduced l_e: ${baseLe.toFixed(2)}m → ${newLe.toFixed(2)}m (Δ=${eff.reduction_m.toFixed(2)}m, ${eff.count} bracket${eff.count>1?'s':''})" style="color:#a855f7;font-size:0.55rem;padding:1px 4px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:3px;font-family:var(--font-mono);font-weight:600">BR×${eff.count}</span>`;
+              bracketBadge = `<span title="Bracket-reduced l_e: ${baseLe.toFixed(2)}m → ${newLe.toFixed(2)}m (Δ=${eff.reduction_m.toFixed(2)}m, ${eff.count} bracket${eff.count>1?'s':''})" style="color:#7c3aed;font-size:0.55rem;padding:1px 4px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:3px;font-family:var(--font-mono);font-weight:600">BR×${eff.count}</span>`;
             }
           }
         }
@@ -3704,7 +3704,7 @@ function renderEditor() {
         <input class="ed-input" type="number" value="${p[grp.coord]}" data-group="${grp.key}" data-idx="${p._idx}" data-coord="${grp.coord}" step="10" style="width:78px" title="${grp.coord.toUpperCase()} coordinate in mm">
         ${spacingText}
         ${hasOptions
-          ? `<select class="ed-profile-row-select" data-edit-group="${grp.key}" data-edit-idx="${p._idx}" data-sel-id="${selId}" style="flex:1;min-width:0;font-family:var(--font-mono);font-size:0.67rem;background:var(--bg-tertiary);border:1px solid var(--border);color:${p.profileName ? '#fbbf24' : 'var(--text-primary)'};padding:3px 5px;border-radius:3px">${rowOptsHtml}</select>`
+          ? `<select class="ed-profile-row-select" data-edit-group="${grp.key}" data-edit-idx="${p._idx}" data-sel-id="${selId}" style="flex:1;min-width:0;font-family:var(--font-mono);font-size:0.67rem;background:var(--bg-tertiary);border:1px solid var(--border);color:${p.profileName ? '#d97706' : 'var(--text-primary)'};padding:3px 5px;border-radius:3px">${rowOptsHtml}</select>`
           : `<span style="flex:1;color:var(--text-muted);font-size:0.65rem;font-style:italic">—</span>`
         }
         ${sMfSel}
@@ -3725,7 +3725,7 @@ function renderEditor() {
   // Auto/manual toggle + reset button
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header">
-    <span style="color:#06b6d4;white-space:nowrap">Strakes <span class="ed-count">(${(STRAKES.shell.length + STRAKES.innerBottom.length + STRAKES.innerSide.length)})</span></span>
+    <span style="color:#0891b2;white-space:nowrap">Strakes <span class="ed-count">(${(STRAKES.shell.length + STRAKES.innerBottom.length + STRAKES.innerSide.length)})</span></span>
     <span style="display:flex;gap:4px">
       <button class="ed-link-btn ${STRAKES_AUTO ? 'on' : ''}" id="strakeAutoToggle" title="When ON, strakes regenerate on auto-recalculate">${STRAKES_AUTO ? icon('lock','11px')+' Auto' : icon('pencil','11px')+' Manual'}</button>
       <button class="ed-add-btn" id="strakeResetAll" title="Regenerate all strakes from defaults">↺ reset</button>
@@ -3759,7 +3759,7 @@ function renderEditor() {
           const n = new Set(crossings.map(c => c.ts)).size;
           const globalTS = parseFloat(document.getElementById('transFrameSpacing')?.value) || 700;
           const localTS = Math.round(globalTS / (n + 1));
-          transBadge = `<span title="Local trans spacing reduced by ${n} user stiff${n>1?'s':''}: ${globalTS}/${n+1}=${localTS} mm" style="color:#ec4899;font-size:0.55rem;padding:1px 4px;background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.4);border-radius:3px;font-family:var(--font-mono);font-weight:600">TS×${n}</span>`;
+          transBadge = `<span title="Local trans spacing reduced by ${n} user stiff${n>1?'s':''}: ${globalTS}/${n+1}=${localTS} mm" style="color:#db2777;font-size:0.55rem;padding:1px 4px;background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.4);border-radius:3px;font-family:var(--font-mono);font-weight:600">TS×${n}</span>`;
         }
       }
     } catch (_) {}
@@ -3994,8 +3994,8 @@ function renderEditor() {
 
   // -- Horizontal levels between inner bottom and upper deck
   [
-    { key: 'stringer',  label: 'Stringer Plates', color: '#a855f7', hint: 'side stringer (between shell and inner side)' },
-    { key: 'tweenDeck', label: 'Tween Decks',     color: '#06b6d4', hint: 'deck between inner sides' }
+    { key: 'stringer',  label: 'Stringer Plates', color: '#7c3aed', hint: 'side stringer (between shell and inner side)' },
+    { key: 'tweenDeck', label: 'Tween Decks',     color: '#0891b2', hint: 'deck between inner sides' }
   ].forEach(lv => {
     const rows = (profiles[lv.key] || []).map((p, i) => ({ ...p, _idx: i })).sort((a, b) => a.z - b.z);
     html += `<div class="ed-group"><div class="ed-group-header"><span style="color:${lv.color}">${lv.label} <span class="ed-count">(${rows.length})</span></span>
@@ -4022,7 +4022,7 @@ function renderEditor() {
   //    density) stays in its own tab; duplicating it would double the pick flow.
   {
     const n = COMPARTMENTS.length;
-    html += `<div class="ed-group"><div class="ed-group-header"><span style="color:#06b6d4">Compartments <span class="ed-count">(${n})</span></span>
+    html += `<div class="ed-group"><div class="ed-group-header"><span style="color:#0891b2">Compartments <span class="ed-count">(${n})</span></span>
       <button class="ed-add-btn" data-goto-tab="compartments" title="Open the compartment editor">edit →</button></div>`;
     COMPARTMENTS.slice(0, 12).forEach(c => {
       html += `<div class="ed-row" style="font-size:0.68rem"><span class="ed-id" style="min-width:140px">${c.name || c.id || '—'}</span><span style="color:var(--text-muted)">${c.type || c.contents || ''}</span></div>`;
@@ -4048,7 +4048,7 @@ function renderEditor() {
     html += `<div class="ed-hint ed-hint-active">
       <strong>${verb} nodes…</strong> ${n} selected. Click each corner <em>once</em> — don't re-click the first node (the boundary auto-closes). L-shaped Ballast = 6 corners.
       <div style="margin-top:6px;display:flex;gap:4px">
-        ${n >= 3 ? `<button class="ed-add-btn" id="compPickDone" style="background:rgba(34,197,94,0.18);border-color:#22c55e;color:#22c55e">Done (${n} nodes)</button>` : ''}
+        ${n >= 3 ? `<button class="ed-add-btn" id="compPickDone" style="background:rgba(34,197,94,0.18);border-color:#16a34a;color:#16a34a">Done (${n} nodes)</button>` : ''}
         <button class="ed-add-btn" id="compPickCancel">Cancel</button>
       </div>
     </div>`;
@@ -4058,7 +4058,7 @@ function renderEditor() {
 
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header">
-    <span style="color:#06b6d4">Compartments <span class="ed-count">(${COMPARTMENTS.length})</span></span>
+    <span style="color:#0891b2">Compartments <span class="ed-count">(${COMPARTMENTS.length})</span></span>
     <div style="display:flex;gap:4px">
       <button class="ed-add-btn" id="compAddByNodes" title="Pick 4 nodes on the drawing">+ by nodes</button>
       <button class="ed-add-btn" id="compAdd" title="Add compartment with numeric coords">+ coords</button>
@@ -4074,11 +4074,11 @@ function renderEditor() {
     // Type color coding
     const typeColors = {
       ballast:    '#3b82f6',
-      cargo:      '#eab308',
+      cargo:      '#ca8a04',
       fuel:       '#f97316',
-      freshwater: '#06b6d4',
+      freshwater: '#0891b2',
       void:       '#64748b',
-      cofferdam:  '#a78bfa'
+      cofferdam:  '#6d28d9'
     };
     const tCol = typeColors[type] || '#64748b';
     
@@ -4107,7 +4107,7 @@ function renderEditor() {
       // fresh full re-pick session on the drawing.
       html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="font-size:0.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0">Nodes</span>
-        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:0.65rem;color:#22c55e;font-family:var(--font-mono);padding:3px 6px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:3px;letter-spacing:0.3px">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:0.65rem;color:#16a34a;font-family:var(--font-mono);padding:3px 6px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:3px;letter-spacing:0.3px">
           ${ids.map(id => 'N'+id).join(' · ')}
         </span>
         <button class="ed-add-btn ${isOpen ? 'comp-edit-active' : ''}" data-comp-editnodes="${i}"
@@ -4134,7 +4134,7 @@ function renderEditor() {
             <input type="text" class="ed-input comp-nodes-line" value="${idsStr}"
                    data-comp-idx="${i}"
                    placeholder="e.g. 2 3 4 5 6"
-                   style="flex:1;min-width:0;font-size:0.78rem;padding:5px 8px;font-family:var(--font-mono);letter-spacing:1px;${isPicking ? 'border-color:#a855f7' : ''}"
+                   style="flex:1;min-width:0;font-size:0.78rem;padding:5px 8px;font-family:var(--font-mono);letter-spacing:1px;${isPicking ? 'border-color:#7c3aed' : ''}"
                    title="Type node IDs separated by spaces or commas. Press Enter to apply.">
             <button class="ed-add-btn ${isPicking ? 'comp-edit-active' : ''}"
                     data-comp-pick-append="${i}"
@@ -4247,10 +4247,10 @@ function renderEditor() {
     const tsCount = TRANSVERSE_STIFFS.length;
     const brCount = BRACKETS.length;
     html += `<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25);border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:0.7rem;line-height:1.5">
-      <div style="font-weight:600;color:#a855f7;margin-bottom:4px">Local effects on scantling</div>
+      <div style="font-weight:600;color:#7c3aed;margin-bottom:4px">Local effects on scantling</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px">
-        <div><span style="color:#ec4899">${tsCount}</span> trans stiff${tsCount!==1?'s':''} → <span style="color:var(--text-secondary)">${strakesAffected}/${totalStrakesScanned}</span> strakes with reduced s</div>
-        <div><span style="color:#a855f7">${brCount}</span> bracket${brCount!==1?'s':''} → <span style="color:var(--text-secondary)">${longsAffected}/${totalLongsScanned}</span> longs with reduced l<sub>e</sub></div>
+        <div><span style="color:#db2777">${tsCount}</span> trans stiff${tsCount!==1?'s':''} → <span style="color:var(--text-secondary)">${strakesAffected}/${totalStrakesScanned}</span> strakes with reduced s</div>
+        <div><span style="color:#7c3aed">${brCount}</span> bracket${brCount!==1?'s':''} → <span style="color:var(--text-secondary)">${longsAffected}/${totalLongsScanned}</span> longs with reduced l<sub>e</sub></div>
       </div>
       <div style="font-size:0.62rem;color:var(--text-muted);margin-top:5px;font-style:italic">
         Effects propagate: trans stiff lowers s in plate t formulas (LR Tables 1.4.1 / 1.5.2 / 1.7.1 etc.); bracket lowers l<sub>e</sub> in stiffener Z formulas (LR Tables 1.4.3 / 1.6.1 / 1.6.3 etc.).
@@ -4265,7 +4265,7 @@ function renderEditor() {
     html += `<div class="ed-hint ed-hint-active">
       <strong>Picking ${kindLabel}…</strong> ${n}/${need} node${n===1?'':'s'}. Switch to <em>Trans</em> view and click nodes.
       <div style="margin-top:6px;display:flex;gap:4px">
-        ${TRANSVERSE_PICK.kind === 'bracket' && n >= 3 ? `<button class="ed-add-btn" id="transPickDone" style="background:rgba(34,197,94,0.18);border-color:#22c55e;color:#22c55e">Done (${n} nodes)</button>` : ''}
+        ${TRANSVERSE_PICK.kind === 'bracket' && n >= 3 ? `<button class="ed-add-btn" id="transPickDone" style="background:rgba(34,197,94,0.18);border-color:#16a34a;color:#16a34a">Done (${n} nodes)</button>` : ''}
         <button class="ed-add-btn" id="transPickCancel">Cancel</button>
       </div>
     </div>`;
@@ -4276,7 +4276,7 @@ function renderEditor() {
   // Transverse stiffs list
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header">
-    <span style="color:#ec4899">Transverse Stiffeners <span class="ed-count">(${TRANSVERSE_STIFFS.length})</span></span>
+    <span style="color:#db2777">Transverse Stiffeners <span class="ed-count">(${TRANSVERSE_STIFFS.length})</span></span>
     <button class="ed-add-btn" id="transAddStiff" title="Pick 2 nodes">+ stiff</button>
   </div>`;
   // Inline CSS — hide number-input spinners (kept tight so all controls fit one row).
@@ -4298,13 +4298,13 @@ function renderEditor() {
     .ts-row .ts-node-input {
       width: 36px; padding: 3px 4px;
       font-size: 0.7rem; font-family: var(--font-mono, monospace);
-      color: #ec4899; text-align: center;
+      color: #db2777; text-align: center;
       background: rgba(236,72,153,0.08);
       border: 1px solid rgba(236,72,153,0.3); border-radius: 3px;
     }
-    .ts-row .ts-node-input:focus { outline: 1px solid #ec4899; }
+    .ts-row .ts-node-input:focus { outline: 1px solid #db2777; }
     .ts-row .ts-node-label {
-      font-size: 0.65rem; color: #ec4899; font-family: var(--font-mono, monospace);
+      font-size: 0.65rem; color: #db2777; font-family: var(--font-mono, monospace);
       font-weight: 600; padding: 0 1px;
     }
   </style>`;
@@ -4364,7 +4364,7 @@ function renderEditor() {
   // Brackets list
   html += `<div class="ed-group">`;
   html += `<div class="ed-group-header">
-    <span style="color:#a855f7">Brackets / Floors <span class="ed-count">(${BRACKETS.length})</span></span>
+    <span style="color:#7c3aed">Brackets / Floors <span class="ed-count">(${BRACKETS.length})</span></span>
     <button class="ed-add-btn" id="transAddBracket" title="Pick 3+ nodes, then Done">+ bracket</button>
   </div>`;
   // Inline CSS — bracket row styling (matches the trans-stiff styling above
@@ -4379,20 +4379,20 @@ function renderEditor() {
     .br-row .br-node-input {
       width: 36px; padding: 3px 4px;
       font-size: 0.7rem; font-family: var(--font-mono, monospace);
-      color: #a855f7; text-align: center;
+      color: #7c3aed; text-align: center;
       background: rgba(168,85,247,0.08);
       border: 1px solid rgba(168,85,247,0.3); border-radius: 3px;
     }
-    .br-row .br-node-input:focus { outline: 1px solid #a855f7; }
+    .br-row .br-node-input:focus { outline: 1px solid #7c3aed; }
     .br-row .br-node-sep {
-      color: #a855f7; font-family: var(--font-mono, monospace);
+      color: #7c3aed; font-family: var(--font-mono, monospace);
       font-size: 0.7rem; padding: 0 1px;
     }
     .br-row .br-add-node {
       padding: 2px 6px; font-size: 0.7rem; font-weight: 600;
       background: rgba(168,85,247,0.1);
       border: 1px solid rgba(168,85,247,0.4);
-      color: #a855f7; border-radius: 3px; cursor: pointer;
+      color: #7c3aed; border-radius: 3px; cursor: pointer;
       line-height: 1;
     }
     .br-row .br-add-node:hover { background: rgba(168,85,247,0.2); }
@@ -5710,7 +5710,7 @@ function drawL_onBottom(x, isPortOfCL, type, color, group, stiff) {
   const h = dims.h, fl = dims.fl;
   // type override: if dims has HP/FB, use it; otherwise respect passed `type`
   const useType = dims.type || type;
-  const c = color || '#4ade80';
+  const c = color || '#16a34a';
   const isAtCL = Math.abs(x - X(0)) < 0.5;
   let out = '';
   if (useType === 'FB') {
@@ -5738,7 +5738,7 @@ function drawL_onIB(x, type, color, group, stiff) {
   const h = dims.h, fl = dims.fl;
   const useType = dims.type || type;
   const svgIB = Y(GEOMETRY.IB);
-  const c = color || '#4ade80';
+  const c = color || '#16a34a';
   const isAtCL = Math.abs(x - X(0)) < 0.5;
   let out = '';
   if (useType === 'FB') {
@@ -5764,7 +5764,7 @@ function drawL_onSide(y_svg, type, color, group, stiff) {
   const h = dims.h, fl = dims.fl;
   const useType = dims.type || type;
   const xShell = X(GEOMETRY.B_half);
-  const c = color || '#4ade80';
+  const c = color || '#16a34a';
   let out = '';
   if (useType === 'FB') {
     out += `<line x1="${xShell}" y1="${y_svg}" x2="${xShell - h}" y2="${y_svg}" stroke="${c}" stroke-width="2" fill="none"/>`;
@@ -5786,7 +5786,7 @@ function drawL_onInnerSide(y_svg, type, color, group, stiff) {
   const h = dims.h, fl = dims.fl;
   const useType = dims.type || type;
   const xIS = X(GEOMETRY.IS);
-  const c = color || '#4ade80';
+  const c = color || '#16a34a';
   let out = '';
   if (useType === 'FB') {
     out += `<line x1="${xIS}" y1="${y_svg}" x2="${xIS + h}" y2="${y_svg}" stroke="${c}" stroke-width="2" fill="none"/>`;
@@ -5808,7 +5808,7 @@ function drawL_onDeck(x, type, color, group, stiff) {
   const h = dims.h, fl = dims.fl;
   const useType = dims.type || type;
   const svgUD = Y(GEOMETRY.UD);
-  const c = color || '#4ade80';
+  const c = color || '#16a34a';
   let out = '';
   if (useType === 'FB') {
     out += `<line x1="${x}" y1="${svgUD}" x2="${x}" y2="${svgUD + h}" stroke="${c}" stroke-width="2" fill="none"/>`;
@@ -5830,7 +5830,7 @@ function drawL_onHorizontalPlate(x, plate_z, type, color, group, stiff) {
   const h = dims.h, fl = dims.fl;
   const useType = dims.type || type;
   const y0 = Y(plate_z);
-  const c = color || '#4ade80';
+  const c = color || '#16a34a';
   let out = '';
   if (useType === 'FB') {
     // Real-scale FB: just h, no 1.5x amplification (the old factor doubled
@@ -5944,8 +5944,8 @@ function drawNodesOverlay(showLines) {
       const nx = -dy / len * 9;
       const ny = dx / len * 9;
       const w = label.length * 5 + 6;
-      html += `<rect x="${mx + nx - w/2}" y="${my + ny - 6}" width="${w}" height="11" rx="2" fill="rgba(15,23,42,0.95)" stroke="#06b6d4" stroke-width="0.4"/>`;
-      html += `<text x="${mx + nx}" y="${my + ny + 3}" text-anchor="middle" style="fill:#06b6d4;font-family:monospace;font-size:8px;font-weight:600">${label}</text>`;
+      html += `<rect x="${mx + nx - w/2}" y="${my + ny - 6}" width="${w}" height="11" rx="2" fill="rgba(255,255,255,0.95)" stroke="#0891b2" stroke-width="0.4"/>`;
+      html += `<text x="${mx + nx}" y="${my + ny + 3}" text-anchor="middle" style="fill:#0891b2;font-family:monospace;font-size:8px;font-weight:600">${label}</text>`;
     };
     let lineCounter = 1;
     const bilgeStartY = g.B_half - g.R_B;
@@ -5995,11 +5995,11 @@ function drawNodesOverlay(showLines) {
       else { lx = 8; ly = -6; }
     }
     if (isSel) {
-      html += `<circle cx="${n.x}" cy="${n.y}" r="9" fill="none" stroke="#06b6d4" stroke-width="2"/>`;
+      html += `<circle cx="${n.x}" cy="${n.y}" r="9" fill="none" stroke="#0891b2" stroke-width="2"/>`;
     }
-    html += `<circle cx="${n.x}" cy="${n.y}" r="5" fill="#fbbf24" stroke="#111827" stroke-width="1.2"/>`;
+    html += `<circle cx="${n.x}" cy="${n.y}" r="5" fill="#d97706" stroke="#f6f8fb" stroke-width="1.2"/>`;
     const anchor = lx < 0 ? 'end' : 'start';
-    html += `<text x="${n.x + lx}" y="${n.y + ly}" text-anchor="${anchor}" style="fill:#fbbf24;font-family:monospace;font-size:9.5px;font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:2.5;stroke-linejoin:round;pointer-events:none">N${id}</text>`;
+    html += `<text x="${n.x + lx}" y="${n.y + ly}" text-anchor="${anchor}" style="fill:#d97706;font-family:monospace;font-size:9.5px;font-weight:700;paint-order:stroke;stroke:#f1f5f9;stroke-width:2.5;stroke-linejoin:round;pointer-events:none">N${id}</text>`;
     // Invisible hit area — bigger when picking so it's easier to hit
     const _hitR = (typeof TRANSVERSE_PICK !== 'undefined' && TRANSVERSE_PICK) ||
                   (typeof COMPARTMENT_PICK !== 'undefined' && COMPARTMENT_PICK)
@@ -6580,7 +6580,7 @@ function renderSectionProps() {
       const keys = Object.keys(tallyDict).sort();
       if (!keys.length) return '';
       const pills = keys.map(k => {
-        const col = FAM_COLORS[k] || '#9ca3af';
+        const col = FAM_COLORS[k] || '#6b7280';
         return `<span style="display:inline-block;background:${col};color:#fff;padding:1px 6px;border-radius:3px;font-size:0.62rem;font-weight:600;margin-right:4px;font-family:monospace">${k}<span style="opacity:0.85;margin-left:3px">×${tallyDict[k]}</span></span>`;
       }).join('');
       return `<div style="display:flex;gap:6px;align-items:center;margin-top:3px">
@@ -6707,8 +6707,8 @@ window.snapToStructure = snapToStructure;
 function drawMeasureOverlay() {
   if (VIEW_MODE !== 'measure') return '';
   let out = '';
-  const markerColor = '#22d3ee';   // cyan
-  const lineColor = '#22d3ee';
+  const markerColor = '#0891b2';   // cyan
+  const lineColor = '#0891b2';
 
   // Hover snap marker (crosshair)
   if (MEASURE.hover) {
@@ -6755,7 +6755,7 @@ function drawMeasureOverlay() {
     const boxH = 28;
     out += `<g pointer-events="none">
       <rect x="${mx - boxW/2}" y="${my - boxH/2}" width="${boxW}" height="${boxH}" rx="3"
-            fill="rgba(15,23,42,0.95)" stroke="${markerColor}" stroke-width="1"/>
+            fill="rgba(255,255,255,0.95)" stroke="${markerColor}" stroke-width="1"/>
       <text x="${mx}" y="${my-2}" fill="#fff" font-size="10" font-family="ui-monospace,monospace" font-weight="700" text-anchor="middle">${labelMain}</text>
       <text x="${mx}" y="${my+9}" fill="${markerColor}" font-size="8" font-family="ui-monospace,monospace" text-anchor="middle">${labelSub}</text>
     </g>`;
@@ -6945,47 +6945,47 @@ function render() {
 
       // 1) Frame Ice Strengthening band — wider, lighter
       html += `<rect x="${xL}" y="${yFrameTop}" width="${w}" height="${yFrameBot - yFrameTop}" `
-            + `fill="#06b6d4" fill-opacity="0.05" stroke="#06b6d4" stroke-width="0.5" `
+            + `fill="#0891b2" fill-opacity="0.05" stroke="#0891b2" stroke-width="0.5" `
             + `stroke-dasharray="4 3" stroke-opacity="0.55" pointer-events="none"/>`;
       // 2) Plate Ice Belt band — narrower, denser tint, on top of the frame band
       html += `<rect x="${xL}" y="${yPlateTop}" width="${w}" height="${yPlateBot - yPlateTop}" `
-            + `fill="#06b6d4" fill-opacity="0.10" stroke="#06b6d4" stroke-width="0.7" `
+            + `fill="#0891b2" fill-opacity="0.10" stroke="#0891b2" stroke-width="0.7" `
             + `stroke-dasharray="2 2" stroke-opacity="0.85" pointer-events="none"/>`;
 
       // 3) UIWL — solid cyan
       html += `<line x1="${xL}" y1="${yUIWL}" x2="${xR}" y2="${yUIWL}" `
-            + `stroke="#22d3ee" stroke-width="1.3" pointer-events="none"/>`;
+            + `stroke="#0891b2" stroke-width="1.3" pointer-events="none"/>`;
       // 4) LIWL — solid amber
       html += `<line x1="${xL}" y1="${yLIWL}" x2="${xR}" y2="${yLIWL}" `
-            + `stroke="#f59e0b" stroke-width="1.3" pointer-events="none"/>`;
+            + `stroke="#d97706" stroke-width="1.3" pointer-events="none"/>`;
 
       // === LABELS — placed on the LEFT side, away from AB stack ===
       const labelX = xL - 4;   // text right-anchored
       // UIWL label
       html += `<text x="${labelX}" y="${yUIWL - 3}" text-anchor="end" `
-            + `fill="#22d3ee" font-size="9" font-family="var(--font-mono)" font-weight="600" `
+            + `fill="#0891b2" font-size="9" font-family="var(--font-mono)" font-weight="600" `
             + `pointer-events="none">UIWL ${T_uiwl_mm.toFixed(0)}</text>`;
       // LIWL label
       html += `<text x="${labelX}" y="${yLIWL - 3}" text-anchor="end" `
-            + `fill="#f59e0b" font-size="9" font-family="var(--font-mono)" font-weight="600" `
+            + `fill="#d97706" font-size="9" font-family="var(--font-mono)" font-weight="600" `
             + `pointer-events="none">LIWL ${T_liwl_mm.toFixed(0)}</text>`;
       // Plate ice belt extents — left labels (top + bot)
       html += `<text x="${labelX}" y="${yPlateTop - 2}" text-anchor="end" `
-            + `fill="#06b6d4" font-size="8" font-family="var(--font-mono)" `
+            + `fill="#0891b2" font-size="8" font-family="var(--font-mono)" `
             + `pointer-events="none">Plate IB top ${ctxFS.z_top_plate.toFixed(0)}</text>`;
       html += `<text x="${labelX}" y="${yPlateBot + 8}" text-anchor="end" `
-            + `fill="#06b6d4" font-size="8" font-family="var(--font-mono)" `
+            + `fill="#0891b2" font-size="8" font-family="var(--font-mono)" `
             + `pointer-events="none">Plate IB bot ${ctxFS.z_bot_plate.toFixed(0)}</text>`;
       // Frame ice strengthening extents — left labels (top + bot)
       html += `<text x="${labelX}" y="${yFrameTop - 2}" text-anchor="end" `
-            + `fill="#06b6d4" font-size="8" font-family="var(--font-mono)" opacity="0.75" `
+            + `fill="#0891b2" font-size="8" font-family="var(--font-mono)" opacity="0.75" `
             + `pointer-events="none">Frame top ${ctxFS.z_top_frame.toFixed(0)}</text>`;
       html += `<text x="${labelX}" y="${yFrameBot + 8}" text-anchor="end" `
-            + `fill="#06b6d4" font-size="8" font-family="var(--font-mono)" opacity="0.75" `
+            + `fill="#0891b2" font-size="8" font-family="var(--font-mono)" opacity="0.75" `
             + `pointer-events="none">Frame bot ${ctxFS.z_bot_frame.toFixed(0)}</text>`;
       // Ice class chip — top-left of the band
       html += `<text x="${labelX}" y="${yFrameTop - 14}" text-anchor="end" `
-            + `fill="#22d3ee" font-size="9" font-family="var(--font-mono)" font-weight="700" `
+            + `fill="#0891b2" font-size="9" font-family="var(--font-mono)" font-weight="700" `
             + `pointer-events="none">FSICR ${ctxFS.iceClass}</text>`;
     }
   } catch (_) { /* if anything fails, just skip the overlay */ }
@@ -7042,7 +7042,7 @@ function render() {
   const SEAM_COLOR = '#64748b';
   const SEAM_TICK = 14;
   const seamStyle = `stroke="${SEAM_COLOR}" stroke-width="1" stroke-dasharray="3,2" fill="none"`;
-  const SEL_COLOR = '#fbbf24';
+  const SEL_COLOR = '#d97706';
 
   // Shell seam ticks
   {
@@ -7105,7 +7105,7 @@ function render() {
     if (p.y >= 0 && p.y < bottomEnd) {
       html += drawL_onBottom(X(p.y), false, PARAMS.profTypeBottom, colorForStiff('bottomShell', PARAMS.profTypeBottom), 'bottomShell', p);
       if (SELECTED_STIFF && SELECTED_STIFF.group === 'bottomShell' && SELECTED_STIFF.index === i) {
-        html += drawL_onBottom(X(p.y), false, PARAMS.profTypeBottom, '#fbbf24', 'bottomShell', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+        html += drawL_onBottom(X(p.y), false, PARAMS.profTypeBottom, '#d97706', 'bottomShell', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
       }
       stiffHits += drawStiffHit(X(p.y), BASELINE_Y, 'vertical', 'bottomShell', i);
     }
@@ -7121,7 +7121,7 @@ function render() {
     if (p.y >= 0 && p.y < g.B_half) {
       html += drawL_onIB(X(p.y), PARAMS.profTypeIB, colorForStiff('innerBottom', PARAMS.profTypeIB), 'innerBottom', p);
       if (SELECTED_STIFF && SELECTED_STIFF.group === 'innerBottom' && SELECTED_STIFF.index === i) {
-        html += drawL_onIB(X(p.y), PARAMS.profTypeIB, '#fbbf24', 'innerBottom', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+        html += drawL_onIB(X(p.y), PARAMS.profTypeIB, '#d97706', 'innerBottom', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
       }
       stiffHits += drawStiffHit(X(p.y), svgIB, 'vertical', 'innerBottom', i);
     }
@@ -7142,7 +7142,7 @@ function render() {
       if (p.y > g.IS && p.y < g.B_half) {
         html += drawL_onHorizontalPlate(X(p.y), plate.z, PARAMS.profTypeStringer, colorForStiff('stringerStiff', PARAMS.profTypeStringer), 'stringerStiff', p);
         if (SELECTED_STIFF && SELECTED_STIFF.group === 'stringerStiff' && SELECTED_STIFF.index === i) {
-          html += drawL_onHorizontalPlate(X(p.y), plate.z, PARAMS.profTypeStringer, '#fbbf24', 'stringerStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+          html += drawL_onHorizontalPlate(X(p.y), plate.z, PARAMS.profTypeStringer, '#d97706', 'stringerStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
         }
         stiffHits += drawStiffHit(X(p.y), Y(plate.z), 'vertical', 'stringerStiff', i, plate.z);
       }
@@ -7164,7 +7164,7 @@ function render() {
       if (p.y > g.IS && p.y < g.B_half) {
         html += drawL_onHorizontalPlate(X(p.y), plate.z, PARAMS.profTypeTween, colorForStiff('tweenStiff', PARAMS.profTypeTween), 'tweenStiff', p);
         if (SELECTED_STIFF && SELECTED_STIFF.group === 'tweenStiff' && SELECTED_STIFF.index === i) {
-          html += drawL_onHorizontalPlate(X(p.y), plate.z, PARAMS.profTypeTween, '#fbbf24', 'tweenStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+          html += drawL_onHorizontalPlate(X(p.y), plate.z, PARAMS.profTypeTween, '#d97706', 'tweenStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
         }
         stiffHits += drawStiffHit(X(p.y), Y(plate.z), 'vertical', 'tweenStiff', i, plate.z);
       }
@@ -7186,12 +7186,12 @@ function render() {
         const svgEdgeBottom = Y(g.HC - edgeH);
         const xEdge = X(p.y);
         // FB color — yellow since it's a flat bar
-        const edgeColor = (VIEW_MODE === 'profile') ? '#fbbf24'
+        const edgeColor = (VIEW_MODE === 'profile') ? '#d97706'
                           : (VIEW_MODE === 'wt' || VIEW_MODE === 'compartment' || VIEW_MODE === 'thickness') ? '#64748b'
-                          : '#fbbf24';
+                          : '#d97706';
         const isSelected = SELECTED_STIFF && SELECTED_STIFF.group === 'coamingStiff' && SELECTED_STIFF.index === i;
         const strokeW = isSelected ? 4 : 2.5;
-        const col = isSelected ? '#fbbf24' : edgeColor;
+        const col = isSelected ? '#d97706' : edgeColor;
         html += `<g pointer-events="none"><line x1="${xEdge}" y1="${svgHC}" x2="${xEdge}" y2="${svgEdgeBottom}" stroke="${col}" stroke-width="${strokeW}" fill="none"/></g>`;
         // Hit area
         stiffHits += `<rect x="${xEdge - 8}" y="${Math.min(svgHC, svgEdgeBottom) - 2}" width="16" height="${Math.abs(svgEdgeBottom - svgHC) + 4}" fill="#000" fill-opacity="0" pointer-events="all" style="cursor:pointer" data-stiff-group="coamingStiff" data-stiff-idx="${i}"><title>Coaming Edge FB #${i+1}</title></rect>`;
@@ -7202,7 +7202,7 @@ function render() {
         // now the most loaded point of the cantilever.
         html += drawL_onHorizontalPlate(X(p.y), g.HC, PARAMS.profTypeCoaming, colorForStiff('coamingStiff', PARAMS.profTypeCoaming), 'coamingStiff', p);
         if (SELECTED_STIFF && SELECTED_STIFF.group === 'coamingStiff' && SELECTED_STIFF.index === i) {
-          html += drawL_onHorizontalPlate(X(p.y), g.HC, PARAMS.profTypeCoaming, '#fbbf24', 'coamingStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+          html += drawL_onHorizontalPlate(X(p.y), g.HC, PARAMS.profTypeCoaming, '#d97706', 'coamingStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
         }
         stiffHits += drawStiffHit(X(p.y), Y(g.HC), 'vertical', 'coamingStiff', i);
       }
@@ -7215,7 +7215,7 @@ function render() {
     if (clashesWithHorizontal(p.z)) return;
     html += drawL_onSide(Y(p.z), PARAMS.profTypeSide, colorForStiff('sideShell', PARAMS.profTypeSide), 'sideShell', p);
     if (SELECTED_STIFF && SELECTED_STIFF.group === 'sideShell' && SELECTED_STIFF.index === i) {
-      html += drawL_onSide(Y(p.z), PARAMS.profTypeSide, '#fbbf24', 'sideShell', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+      html += drawL_onSide(Y(p.z), PARAMS.profTypeSide, '#d97706', 'sideShell', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
     }
     stiffHits += drawStiffHit(svgShell, Y(p.z), 'horizontal', 'sideShell', i);
   });
@@ -7229,7 +7229,7 @@ function render() {
     if (clashesWithHorizontal(p.z)) return;
     html += drawL_onInnerSide(Y(p.z), PARAMS.profTypeIS, colorForStiff('innerSide', PARAMS.profTypeIS), 'innerSide', p);
     if (SELECTED_STIFF && SELECTED_STIFF.group === 'innerSide' && SELECTED_STIFF.index === i) {
-      html += drawL_onInnerSide(Y(p.z), PARAMS.profTypeIS, '#fbbf24', 'innerSide', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+      html += drawL_onInnerSide(Y(p.z), PARAMS.profTypeIS, '#d97706', 'innerSide', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
     }
     stiffHits += drawStiffHit(svgIS, Y(p.z), 'horizontal', 'innerSide', i);
   });
@@ -7239,7 +7239,7 @@ function render() {
     if (p.y > g.IS && p.y < g.B_half) {
       html += drawL_onDeck(X(p.y), PARAMS.profTypeDeck, colorForStiff('upperDeck', PARAMS.profTypeDeck), 'upperDeckStiff', p);
       if (SELECTED_STIFF && SELECTED_STIFF.group === 'upperDeck' && SELECTED_STIFF.index === i) {
-        html += drawL_onDeck(X(p.y), PARAMS.profTypeDeck, '#fbbf24', 'upperDeckStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
+        html += drawL_onDeck(X(p.y), PARAMS.profTypeDeck, '#d97706', 'upperDeckStiff', p).replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"');
       }
       stiffHits += drawStiffHit(X(p.y), svgUD, 'vertical', 'upperDeck', i);
     }
@@ -7272,7 +7272,7 @@ function render() {
     return { family: _globalMatKey, inherited: true };
   };
   const colorForFamily = (fam, inherited) => {
-    const base = YIELD_COLORS[fam] || '#9ca3af';
+    const base = YIELD_COLORS[fam] || '#6b7280';
     if (inherited) {
       // Mute the colour to signal "default / inherited" rather than overridden
       return base + '66';   // alpha ~40% via 8-digit hex
@@ -7326,7 +7326,7 @@ function render() {
         if (midSample) {
           // Offset away from the hull in the "outboard" direction
           const lblW = ef.family.length * 5 + 8;
-          html += `<rect x="${midSample.x - lblW/2}" y="${midSample.y - 6}" width="${lblW}" height="11" rx="2" fill="rgba(15,23,42,0.92)" stroke="${labelCol}" stroke-width="0.8" pointer-events="none"/>`;
+          html += `<rect x="${midSample.x - lblW/2}" y="${midSample.y - 6}" width="${lblW}" height="11" rx="2" fill="rgba(255,255,255,0.92)" stroke="${labelCol}" stroke-width="0.8" pointer-events="none"/>`;
           html += `<text x="${midSample.x}" y="${midSample.y + 2}" text-anchor="middle" style="fill:${labelCol};font-family:monospace;font-size:8px;font-weight:700;pointer-events:none">${ef.family}</text>`;
         }
       }
@@ -7360,7 +7360,7 @@ function render() {
         const cx = (x1 + x2) / 2;
         const cy = svgIB - 8;
         const lblW = ef.family.length * 5 + 8;
-        html += `<rect x="${cx - lblW/2}" y="${cy - 6}" width="${lblW}" height="11" rx="2" fill="rgba(15,23,42,0.92)" stroke="${labelCol}" stroke-width="0.8" pointer-events="none"/>`;
+        html += `<rect x="${cx - lblW/2}" y="${cy - 6}" width="${lblW}" height="11" rx="2" fill="rgba(255,255,255,0.92)" stroke="${labelCol}" stroke-width="0.8" pointer-events="none"/>`;
         html += `<text x="${cx}" y="${cy + 2}" text-anchor="middle" style="fill:${labelCol};font-family:monospace;font-size:8px;font-weight:700;pointer-events:none">${ef.family}</text>`;
       }
       if (isSel) {
@@ -7568,7 +7568,7 @@ function render() {
         html += `<g pointer-events="none">${stiffOut}</g>`;
         // Selection highlight
         if (SELECTED_STIFF && SELECTED_STIFF.group === sgKey && SELECTED_STIFF.index === sIdx) {
-          html += `<g pointer-events="none">${stiffOut.replace(/stroke="[^"]+"/g, 'stroke="#fbbf24"').replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"')}</g>`;
+          html += `<g pointer-events="none">${stiffOut.replace(/stroke="[^"]+"/g, 'stroke="#d97706"').replace(/stroke-width="[\d.]+"/g, 'stroke-width="3"')}</g>`;
         }
         // Hit area — geniş, tıklanabilir
         stiffHits += drawStiffHit(sx + dir*h/2, sy, 'horizontal', sgKey, sIdx);
@@ -7587,7 +7587,7 @@ function render() {
 
   // --- Compartment labels (only in 'compartment' mode, editable list) ---
   if (VIEW_MODE === 'compartment') {
-    const PALETTE = ['#06b6d4','#a855f7','#f59e0b','#22c55e','#ef4444','#3b82f6','#94a3b8','#fbbf24'];
+    const PALETTE = ['#0891b2','#7c3aed','#d97706','#16a34a','#ef4444','#3b82f6','#64748b','#d97706'];
     // Pre-compute nodes so compartments defined by node IDs can resolve their bounds
     if (VIEW_MODE === 'compartment') computeNodes();
 
@@ -7647,8 +7647,8 @@ function render() {
       let lx = 0, ly = -14;
       if (orient === 'horizontal') { lx = 16; ly = 3; }
       const w = String(name).length * 5.5 + 6;
-      html += `<rect x="${sx + lx - w/2}" y="${sy + ly - 7}" width="${w}" height="11" rx="2" fill="rgba(15,23,42,0.92)" stroke="#a855f7" stroke-width="0.5" pointer-events="none"/>`;
-      html += `<text x="${sx + lx}" y="${sy + ly + 2}" text-anchor="middle" style="fill:#a855f7;font-family:monospace;font-size:8px;font-weight:700;pointer-events:none">${escapeXml(String(name))}</text>`;
+      html += `<rect x="${sx + lx - w/2}" y="${sy + ly - 7}" width="${w}" height="11" rx="2" fill="rgba(255,255,255,0.92)" stroke="#7c3aed" stroke-width="0.5" pointer-events="none"/>`;
+      html += `<text x="${sx + lx}" y="${sy + ly + 2}" text-anchor="middle" style="fill:#7c3aed;font-family:monospace;font-size:8px;font-weight:700;pointer-events:none">${escapeXml(String(name))}</text>`;
     };
     const bottomEnd = g.B_half - g.R_B;
     profiles.bottomShell.forEach(p => {
@@ -7719,7 +7719,7 @@ function render() {
       const isSel = SELECTED_BRACKET != null && SELECTED_BRACKET === i;
       const resolvedNodes = b.nodes.map(id => NODES_CACHE.find(n => n.id === id)).filter(Boolean);
       if (resolvedNodes.length < 3) return;
-      const fill = b.kind === 'floor' ? '#8b5cf6' : '#a855f7';
+      const fill = b.kind === 'floor' ? '#8b5cf6' : '#7c3aed';
 
       // Build path: use quarter-arc for segments that cross the bilge,
       // straight line for all other segments. Closed shape (Z command).
@@ -7764,7 +7764,7 @@ function render() {
       const n2 = NODES_CACHE.find(n => n.id === s.n2);
       if (!n1 || !n2) return;
       const isSel = SELECTED_TRANSVERSE != null && SELECTED_TRANSVERSE === i;
-      const col = '#ec4899';   // pink — easy to distinguish from longitudinals
+      const col = '#db2777';   // pink — easy to distinguish from longitudinals
 
       // Parse web height (mm). Prefer the canonical profileName ("FB 120x10",
       // "L 75x50x6", "HP 60x4"); the FIRST number after the family is always
@@ -7809,8 +7809,8 @@ function render() {
     COMPARTMENT_PICK.picks.forEach((id, idx) => {
       const node = NODES_CACHE.find(n => n.id === id);
       if (!node) return;
-      html += `<circle cx="${node.x}" cy="${node.y}" r="11" fill="none" stroke="#22c55e" stroke-width="2.5"/>`;
-      html += `<text x="${node.x}" y="${node.y + 2}" text-anchor="middle" style="fill:#22c55e;font-family:monospace;font-size:9px;font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:2">${idx+1}</text>`;
+      html += `<circle cx="${node.x}" cy="${node.y}" r="11" fill="none" stroke="#16a34a" stroke-width="2.5"/>`;
+      html += `<text x="${node.x}" y="${node.y + 2}" text-anchor="middle" style="fill:#16a34a;font-family:monospace;font-size:9px;font-weight:700;paint-order:stroke;stroke:#f1f5f9;stroke-width:2">${idx+1}</text>`;
     });
   }
 
@@ -7819,8 +7819,8 @@ function render() {
     TRANSVERSE_PICK.picks.forEach((id, idx) => {
       const node = NODES_CACHE.find(n => n.id === id);
       if (!node) return;
-      html += `<circle cx="${node.x}" cy="${node.y}" r="11" fill="none" stroke="#ec4899" stroke-width="2.5"/>`;
-      html += `<text x="${node.x}" y="${node.y + 2}" text-anchor="middle" style="fill:#ec4899;font-family:monospace;font-size:9px;font-weight:700;paint-order:stroke;stroke:#0f172a;stroke-width:2">${idx+1}</text>`;
+      html += `<circle cx="${node.x}" cy="${node.y}" r="11" fill="none" stroke="#db2777" stroke-width="2.5"/>`;
+      html += `<text x="${node.x}" y="${node.y + 2}" text-anchor="middle" style="fill:#db2777;font-family:monospace;font-size:9px;font-weight:700;paint-order:stroke;stroke:#f1f5f9;stroke-width:2">${idx+1}</text>`;
     });
     // Pick-mode banner at the top of the SVG. For brackets with ≥3 nodes,
     // the banner doubles as a clickable "Done" button. For 1–2 nodes, it
@@ -7833,7 +7833,7 @@ function render() {
     const bannerW = 360;
     const bannerH = 38;
     const bannerX = 30;
-    const bannerColor = ready ? '#22c55e' : '#ec4899';
+    const bannerColor = ready ? '#16a34a' : '#db2777';
     const bgColor = ready ? 'rgba(34,197,94,0.18)' : 'rgba(236,72,153,0.18)';
     const labelText = isBr
       ? (ready ? `✓ ${n} nodes — click here or press Enter to FINISH bracket` : `Picking bracket… ${n}/${needMin}+ nodes — click ${needMin - n} more node${needMin - n > 1 ? 's' : ''}`)
@@ -7861,10 +7861,10 @@ function render() {
     if (sp_for_na && isFinite(sp_for_na.NA) && sp_for_na.NA > 0 && sp_for_na.NA < g.HC) {
       const naY = Y(sp_for_na.NA);
       // Line spans from just outside CL to just past shell, so it reads clearly
-      const naColor = '#60a5fa';   // soft blue
+      const naColor = '#2563eb';   // soft blue
       html += `<line x1="-40" y1="${naY}" x2="${X(g.B_half) + 80}" y2="${naY}" stroke="${naColor}" stroke-width="1.1" stroke-dasharray="8,4" fill="none" opacity="0.85" pointer-events="none"/>`;
       // Label on the right side
-      html += `<text x="${X(g.B_half) + 85}" y="${naY + 3}" style="fill:${naColor};font-family:monospace;font-size:9px;font-weight:600;pointer-events:none;paint-order:stroke;stroke:#0f172a;stroke-width:2">NA · ${Math.round(sp_for_na.NA)}</text>`;
+      html += `<text x="${X(g.B_half) + 85}" y="${naY + 3}" style="fill:${naColor};font-family:monospace;font-size:9px;font-weight:600;pointer-events:none;paint-order:stroke;stroke:#f1f5f9;stroke-width:2">NA · ${Math.round(sp_for_na.NA)}</text>`;
     }
   } catch (e) { /* safe no-op if section compute not ready */ }
 
@@ -8591,7 +8591,7 @@ function render() {
       showDrawContextMenu(x, y, headerText, [
         {
           label: `+ Add stiffener here (${coord.toUpperCase()}=${cursorValue} mm)${neighbourProf ? ' · ' + neighbourProf : ''}`,
-          color: '#22c55e',
+          color: '#16a34a',
           action: () => {
             const newItem = { [coord]: cursorValue };
             if (neighbourProf) newItem.profileName = neighbourProf;
@@ -8902,22 +8902,22 @@ function renderWarnBar() {
 // Plate thickness → color map (for 'thickness' mode)
 // Common shipbuilding thicknesses 7-25 mm.
 const THICKNESS_COLORS = {
-  7:  '#67e8f9',   // very light cyan
-  8:  '#22d3ee',   // light cyan
-  9:  '#06b6d4',   // cyan
+  7:  '#0e7490',   // very light cyan
+  8:  '#0891b2',   // light cyan
+  9:  '#0891b2',   // cyan
   10: '#0891b2',   // dark cyan
-  11: '#22c55e',   // green
+  11: '#16a34a',   // green
   12: '#16a34a',   // dark green
   13: '#3b82f6',   // blue
   14: '#2563eb',   // dark blue
   15: '#8b5cf6',   // violet
-  16: '#f59e0b',   // orange
+  16: '#d97706',   // orange
   17: '#ea580c',   // darker orange
   18: '#dc2626',   // red
   19: '#b91c1c',   // darker red
   20: '#ef4444',   // bright red
   22: '#be185d',   // pink
-  25: '#831843',   // deep pink
+  25: '#fce7f3',   // deep pink
 };
 
 // Auto-generate a color for any thickness not in the map (hash-based fallback)
@@ -8937,14 +8937,14 @@ function colorForThickness(t) {
 //   FH       — purple                (low-temp extreme)
 function colorForGrade(grade) {
   const map = {
-    'A':  '#9ca3af',  // mild, basic
-    'AH': '#22c55e',  // HT, basic
-    'B':  '#a3a860',  // mild, cold-service minimum bumped
+    'A':  '#6b7280',  // mild, basic
+    'AH': '#16a34a',  // HT, basic
+    'B':  '#a16207',  // mild, cold-service minimum bumped
     'D':  '#f97316',  // mild, medium toughness
     'DH': '#ea580c',  // HT, medium toughness
     'E':  '#ef4444',  // mild, high toughness
     'EH': '#b91c1c',  // HT, high toughness
-    'FH': '#a855f7',  // extreme low-T
+    'FH': '#7c3aed',  // extreme low-T
   };
   return map[grade] || '#6b7280';  // grey if unknown / not yet assigned
 }
@@ -8982,31 +8982,31 @@ window.colorForUC = colorForUC;
 
 // Profile type → color (for 'profile' mode)
 const PROFILE_TYPE_COLORS = {
-  L:  '#4ade80',   // light green
-  HP: '#a78bfa',   // purple
-  FB: '#fbbf24',   // yellow
+  L:  '#16a34a',   // light green
+  HP: '#6d28d9',   // purple
+  FB: '#d97706',   // yellow
 };
 
 // WT flag → color (for 'wt' mode)
 const WT_COLORS = {
-  'WT':     '#06b6d4',   // cyan (watertight)
-  'Non-WT': '#f59e0b',   // orange (non-watertight)
+  'WT':     '#0891b2',   // cyan (watertight)
+  'Non-WT': '#d97706',   // orange (non-watertight)
 };
 
 // Default structural palette (general / position / compartment fallback)
 const DEFAULT_PALETTE = {
   shell:       '#ef4444',
   ib:          '#3b82f6',
-  is:          '#22c55e',
-  stringer:    '#a855f7',   // stringer plate
-  tween:       '#06b6d4',   // tween deck plate
-  upperDeck:   '#94a3b8',
-  coaming:     '#f59e0b',   // legacy alias (kept for compat = coamingTop)
-  coamingTop:  '#f59e0b',   // hatch coaming TOP plate (horizontal at Z=HC)
-  coamingWall: '#d946ef',   // hatch coaming WALL (vertical UD→HC, distinct magenta)
-  sideGirder:  '#a855f7',
-  keel:        '#f59e0b',
-  duct:        '#a855f7',
+  is:          '#16a34a',
+  stringer:    '#7c3aed',   // stringer plate
+  tween:       '#0891b2',   // tween deck plate
+  upperDeck:   '#64748b',
+  coaming:     '#d97706',   // legacy alias (kept for compat = coamingTop)
+  coamingTop:  '#d97706',   // hatch coaming TOP plate (horizontal at Z=HC)
+  coamingWall: '#a21caf',   // hatch coaming WALL (vertical UD→HC, distinct magenta)
+  sideGirder:  '#7c3aed',
+  keel:        '#d97706',
+  duct:        '#7c3aed',
 };
 
 // Plate thickness values — editable state. Used for plates without strake subdivision
@@ -9114,7 +9114,7 @@ function buildPaletteForMode() {
   }
   if (mode === 'wt') {
     // Only WT-flagged elements get colored by flag; others stay muted gray
-    const MUTED = '#475569';
+    const MUTED = '#94a3b8';
     const out = {
       shell:     MUTED,
       ib:        MUTED,
@@ -9171,7 +9171,7 @@ function colorForStiff(surfaceKey, profileType) {
     return '#64748b';
   }
   // general / position — default green (original L color)
-  return '#4ade80';
+  return '#16a34a';
 }
 
 
@@ -9277,7 +9277,7 @@ function buildLegendItems() {
       break;
     }
     case 'compartment': {
-      const PALETTE = ['#06b6d4','#a855f7','#f59e0b','#22c55e','#ef4444','#3b82f6','#94a3b8','#fbbf24'];
+      const PALETTE = ['#0891b2','#7c3aed','#d97706','#16a34a','#ef4444','#3b82f6','#64748b','#d97706'];
       COMPARTMENTS.forEach((c, i) => {
         items.push({ color: PALETTE[i % PALETTE.length], label: c.name, swatch:'box' });
       });
@@ -9285,10 +9285,10 @@ function buildLegendItems() {
     }
     case 'transverse': {
       items.push({ section:'Legend' });
-      items.push({ color:'#ec4899', label:'Transverse stiff',  swatch:'line' });
-      items.push({ color:'#a855f7', label:'Bracket',           swatch:'box'  });
+      items.push({ color:'#db2777', label:'Transverse stiff',  swatch:'line' });
+      items.push({ color:'#7c3aed', label:'Bracket',           swatch:'box'  });
       items.push({ color:'#8b5cf6', label:'Floor',             swatch:'box'  });
-      items.push({ color:'#fbbf24', label:'Nodes',             swatch:'dot'  });
+      items.push({ color:'#d97706', label:'Nodes',             swatch:'dot'  });
       if (TRANSVERSE_STIFFS.length > 0) {
         items.push({ section:`Stiffeners (${TRANSVERSE_STIFFS.length})` });
         TRANSVERSE_STIFFS.forEach((s, i) => {
@@ -9296,32 +9296,32 @@ function buildLegendItems() {
           if (s.profile && s.size) parts.push(`${s.profile} ${s.size}`);
           else if (s.size) parts.push(s.size);
           if (s.name) parts.push(s.name);
-          items.push({ color:'#ec4899', label: parts.join(' · '), swatch:'line' });
+          items.push({ color:'#db2777', label: parts.join(' · '), swatch:'line' });
         });
       }
       if (BRACKETS.length > 0) {
         items.push({ section:`Brackets / Floors (${BRACKETS.length})` });
         BRACKETS.forEach((b, i) => {
           const label = `${b.name || b.kind} · ${b.nodes.map(n => 'N'+n).join('-')}`;
-          items.push({ color: b.kind === 'floor' ? '#8b5cf6' : '#a855f7', label, swatch:'box' });
+          items.push({ color: b.kind === 'floor' ? '#8b5cf6' : '#7c3aed', label, swatch:'box' });
         });
       }
       if (TRANSVERSE_PICK) {
         items.push({ section:'Active pick' });
         const need = TRANSVERSE_PICK.kind === 'stiff' ? '2' : '3+';
-        items.push({ color:'#ec4899', label:`${TRANSVERSE_PICK.kind}: ${TRANSVERSE_PICK.picks.length}/${need}`, swatch:'dot' });
+        items.push({ color:'#db2777', label:`${TRANSVERSE_PICK.kind}: ${TRANSVERSE_PICK.picks.length}/${need}`, swatch:'dot' });
       }
       break;
     }
     case 'nodes': {
       items.push({ section:'Reference labels' });
-      items.push({ color:'#fbbf24', label:'N# — Nodes (intersections)', swatch:'dot' });
-      items.push({ color:'#06b6d4', label:'L# — Line elements',          swatch:'line' });
+      items.push({ color:'#d97706', label:'N# — Nodes (intersections)', swatch:'dot' });
+      items.push({ color:'#0891b2', label:'L# — Line elements',          swatch:'line' });
       items.push({ section:'Node types' });
-      items.push({ color:'#94a3b8', label:'Shell × girders/decks',       swatch:'dot' });
-      items.push({ color:'#94a3b8', label:'IB × girders / IB × IS',      swatch:'dot' });
-      items.push({ color:'#94a3b8', label:'IS × decks / IS × coaming',   swatch:'dot' });
-      items.push({ color:'#94a3b8', label:'Bilge start / Bilge end',     swatch:'dot' });
+      items.push({ color:'#64748b', label:'Shell × girders/decks',       swatch:'dot' });
+      items.push({ color:'#64748b', label:'IB × girders / IB × IS',      swatch:'dot' });
+      items.push({ color:'#64748b', label:'IS × decks / IS × coaming',   swatch:'dot' });
+      items.push({ color:'#64748b', label:'Bilge start / Bilge end',     swatch:'dot' });
       break;
     }
     case 'material': {
@@ -10069,7 +10069,7 @@ function renderTransverseInspector(el) {
 
   let h = '';
   h += `<div class="strake-inspector-title">
-    <span style="color:#ec4899">Transverse Stiff #${idx+1}</span>
+    <span style="color:#db2777">Transverse Stiff #${idx+1}</span>
     <button class="strake-inspector-close" id="inspectorClose" title="Close">${icon('close','12px')}</button>
   </div>`;
   h += `<div class="strake-inspector-body">`;
@@ -10120,12 +10120,12 @@ function renderBracketInspector(el) {
 
   let h = '';
   h += `<div class="strake-inspector-title">
-    <span style="color:#a855f7">Bracket / Floor #${idx+1}</span>
+    <span style="color:#7c3aed">Bracket / Floor #${idx+1}</span>
     <button class="strake-inspector-close" id="inspectorClose" title="Close">${icon('close','12px')}</button>
   </div>`;
   h += `<div class="strake-inspector-body">`;
   h += `<div class="strake-inspector-section">Nodes (${b.nodes.length})</div>`;
-  h += `<div style="font-family:monospace;font-size:0.72rem;color:#a855f7;padding:2px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:3px;letter-spacing:0.5px;margin:4px 0">
+  h += `<div style="font-family:monospace;font-size:0.72rem;color:#7c3aed;padding:2px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:3px;letter-spacing:0.5px;margin:4px 0">
     ${b.nodes.map(id => 'N'+id).join(' · ')}
   </div>`;
   h += `<div class="strake-inspector-section">Properties</div>`;
@@ -10360,9 +10360,9 @@ function renderStiffInspector(el) {
     } catch(e) {}
   }
   if (hasDropdownOptions) {
-    const color = isCustom ? '#fbbf24' : 'var(--text-primary)';
+    const color = isCustom ? '#d97706' : 'var(--text-primary)';
     h += `<div class="strake-inspector-field">
-      <label>Profile${isCustom ? ' <span title="Custom override for this stiffener" style="color:#fbbf24;font-size:0.7rem">•</span>' : ''}</label>
+      <label>Profile${isCustom ? ' <span title="Custom override for this stiffener" style="color:#d97706;font-size:0.7rem">•</span>' : ''}</label>
       <select id="inspProfileSelect" data-group="${group}" data-sel-id="${selId}" style="flex:1;min-width:0;font-family:var(--font-mono);font-size:0.7rem;background:var(--bg-tertiary);border:1px solid var(--border);color:${color};padding:3px 6px;border-radius:3px">
         ${inspOpts}
       </select>

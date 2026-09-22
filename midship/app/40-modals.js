@@ -252,7 +252,7 @@ function _esmUpdatePreview() {
   const { coords, actualSp, n } = info;
   const sampleList = coords.slice(0, 10).join(', ') + (coords.length > 10 ? ` … (+${coords.length-10} more)` : '');
   out.innerHTML = `
-    <div><strong style="color:#a855f7">${n}</strong> stiffeners · spacing <strong>${actualSp} mm</strong></div>
+    <div><strong style="color:#7c3aed">${n}</strong> stiffeners · spacing <strong>${actualSp} mm</strong></div>
     <div style="margin-top:3px;font-size:0.62rem;color:var(--text-muted);line-height:1.4">${sampleList}</div>
   `;
 }

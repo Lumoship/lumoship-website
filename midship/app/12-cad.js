@@ -59,7 +59,7 @@
     { code: 'custom',        label: 'Custom',                   p: null },
   ];
   const DECK_POS = ['upperDeck', 'deck', 'tweenDeck', 'stringer', 'coamingTop'];
-  const COMP_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#eab308', '#14b8a6'];
+  const COMP_COLORS = ['#3b82f6', '#16a34a', '#7c3aed', '#f97316', '#0891b2', '#db2777', '#ca8a04', '#0d9488'];
   const compColor = (s, id) => COMP_COLORS[Math.max(0, (window.ShipComps ? ShipComps.list() : []).findIndex(c => c.id === id)) % COMP_COLORS.length];
   const CS = () => window.ShipComps;
   const compsHere = s => CS() ? CS().forSection(s) : [];
@@ -102,9 +102,9 @@
   function inStiffs() { return mode === 'stiffeners'; }
   function inComps() { return mode === 'compartments'; }
   // Muted colour per position, used only in the Positions view.
-  const POS_COLOR = { bottom:'#f97316', bilge:'#fb923c', side:'#ef4444', innerBottom:'#3b82f6', innerSide:'#22c55e',
-    centreGirder:'#a78bfa', sideGirder:'#a855f7', stringer:'#06b6d4', tweenDeck:'#14b8a6', upperDeck:'#eab308',
-    coaming:'#84cc16', coamingTop:'#facc15', longBhd:'#ec4899', deck:'#e879f9', other:'#94a3b8' };
+  const POS_COLOR = { bottom:'#f97316', bilge:'#ea580c', side:'#ef4444', innerBottom:'#3b82f6', innerSide:'#16a34a',
+    centreGirder:'#6d28d9', sideGirder:'#7c3aed', stringer:'#0891b2', tweenDeck:'#0d9488', upperDeck:'#ca8a04',
+    coaming:'#65a30d', coamingTop:'#ca8a04', longBhd:'#db2777', deck:'#c026d3', other:'#64748b' };
   let sel = { panel: null, node: null, group: null };   // group: highlighted panel (Section step)
   let hover = null;          // { y, z, kind:'node'|'panel'|'free', nodeId, panelId }
   let hoverSg = null;        // stiffener group under the pointer (Stiffeners view): { gid, sg }
@@ -306,8 +306,8 @@
     const ex = extents();
     let h = '';
     // Reference lines: baseline and centreline
-    h += `<line x1="${X(-300)}" y1="${Y(0)}" x2="${X(ex.yMax + 1200)}" y2="${Y(0)}" stroke="#334155" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
-    h += `<line x1="${X(0)}" y1="${Y(-300)}" x2="${X(0)}" y2="${Y(ex.zMax + 600)}" stroke="#334155" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
+    h += `<line x1="${X(-300)}" y1="${Y(0)}" x2="${X(ex.yMax + 1200)}" y2="${Y(0)}" stroke="#cbd5e1" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
+    h += `<line x1="${X(0)}" y1="${Y(-300)}" x2="${X(0)}" y2="${Y(ex.zMax + 600)}" stroke="#cbd5e1" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
 
     const pathOf = pl => {
       const ln = M().panelLine(pl, s.nodes);
@@ -326,13 +326,13 @@
         const dim = cur && pl.group !== cur;
         const hasRun = inStrakes() && (M().panelData(s, pl.group).strakes || []).length;
         if (!hasRun) h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
-        if (!inStrakes() || dim) h += `${pathOf(pl)} stroke="${dim ? '#475569' : (pl.group === cur ? '#93c5fd' : '#94a3b8')}" stroke-width="${pl.group === cur && !inStrakes() ? 2.5 : 1.5}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+        if (!inStrakes() || dim) h += `${pathOf(pl)} stroke="${dim ? '#94a3b8' : (pl.group === cur ? '#3b82f6' : '#64748b')}" stroke-width="${pl.group === cur && !inStrakes() ? 2.5 : 1.5}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
         return;
       }
       const inGrp = !!(sel.group && pl.group === sel.group && !inPositions());
-      let col = isSel ? '#3b82f6' : isHov ? '#93c5fd' : inGrp ? '#60a5fa' : (pl.wt ? '#cbd5e1' : '#94a3b8');
-      if (inPositions() && !isSel && !isHov) col = pl.position ? (POS_COLOR[pl.position] || '#94a3b8') : '#f59e0b';
-      if (sel.group && !inGrp && !isSel && !isHov && !inPositions()) col = pl.wt ? '#64748b' : '#475569';   // dim the rest
+      let col = isSel ? '#3b82f6' : isHov ? '#3b82f6' : inGrp ? '#2563eb' : (pl.wt ? '#334155' : '#64748b');
+      if (inPositions() && !isSel && !isHov) col = pl.position ? (POS_COLOR[pl.position] || '#64748b') : '#d97706';
+      if (sel.group && !inGrp && !isSel && !isHov && !inPositions()) col = pl.wt ? '#64748b' : '#94a3b8';   // dim the rest
       const w = isSel ? 3.5 : isHov ? 3 : inGrp ? 3 : (inPositions() ? 2.5 : 2);
       h += `${pathOf(pl)} stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke" data-panel="${pl.id}" style="cursor:pointer"/>`;
       h += `${pathOf(pl)} stroke="${col}" stroke-width="${w}" ${pl.wt ? '' : 'stroke-dasharray="10 5"'} vector-effect="non-scaling-stroke" pointer-events="none"/>`;
@@ -346,7 +346,7 @@
         // boundary panels
         compPanels(s, c).forEach(id => { const pl = s.panels.find(p => p.id === id); if (pl) h += `${pathOf(pl)} stroke="${col}" stroke-width="${isSel ? 4 : 2.5}" vector-effect="non-scaling-stroke" pointer-events="none" opacity="${isSel ? 1 : 0.8}"/>`; });
         // corner handles of the selected box
-        if (isSel) loop.forEach(q => { h += `<rect x="${X(q.y) - 3.5}" y="${Y(q.z) - 3.5}" width="7" height="7" fill="#0f172a" stroke="${col}" stroke-width="1.5" pointer-events="none"/>`; });
+        if (isSel) loop.forEach(q => { h += `<rect x="${X(q.y) - 3.5}" y="${Y(q.z) - 3.5}" width="7" height="7" fill="#f1f5f9" stroke="${col}" stroke-width="1.5" pointer-events="none"/>`; });
         // label inside the box: horizontal when the room allows, else along the longer side
         const spot = labelSpot(loop); const m = spot.p; const sc = Math.abs(X(1000) - X(0)) / 1000 || 1e-3;
         const name = c.name || c.id, sub = compType(c.type).label + (c.rho ? ' · ρ ' + c.rho : '');
@@ -376,7 +376,7 @@
         const d = M().panelData(s, gid); const ci = M().chainInfo(s, gid); if (!ci.L) return;
         const isCur = gid === cur;
         if (inStrakes()) {
-          if (!d.strakes.length) { h += `<polyline points="${chainPts(gid, 0, ci.L)}" fill="none" stroke="${isCur ? '#f59e0b' : '#7c5a1a'}" stroke-width="${isCur ? 2.5 : 1.5}" stroke-dasharray="8 5" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
+          if (!d.strakes.length) { h += `<polyline points="${chainPts(gid, 0, ci.L)}" fill="none" stroke="${isCur ? '#d97706' : '#fef3c7'}" stroke-width="${isCur ? 2.5 : 1.5}" stroke-dasharray="8 5" vector-effect="non-scaling-stroke" pointer-events="none"/>`; }
           else {
             let x = 0;
             d.strakes.forEach((sk, i) => {
@@ -387,18 +387,18 @@
               h += `<polyline points="${pts}" fill="none" stroke="transparent" stroke-width="16" vector-effect="non-scaling-stroke" data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"/>`;
               h += `<polyline points="${pts}" fill="none" stroke="${selS ? '#3b82f6' : tColor(sk.t)}" stroke-width="${selS ? 6 : isCur ? 4 : 2.5}" opacity="${selS ? 1 : isCur ? (i % 2 ? 0.75 : 1) : 0.5}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
               // boundary tick at the start of every strake but the first
-              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); const cl = seamClearance(s, gid, x0); const cc = cl < 100 ? '#f59e0b' : (isCur ? '#e2e8f0' : '#64748b');
+              if (x0 > 0.5) { const b = M().chainPointAt(s, gid, x0); const cl = seamClearance(s, gid, x0); const cc = cl < 100 ? '#d97706' : (isCur ? '#1e293b' : '#64748b');
                 if (b) h += `<line x1="${X(b.y - b.tz * (cl < 100 ? 240 : 160))}" y1="${Y(b.z + b.ty * (cl < 100 ? 240 : 160))}" x2="${X(b.y + b.tz * (cl < 100 ? 240 : 160))}" y2="${Y(b.z - b.ty * (cl < 100 ? 240 : 160))}" stroke="${cc}" stroke-width="${cl < 100 ? 2.2 : 1.4}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
                 // seam too close to a member: a red (cannot be built) / amber (below recommended) badge on the outer side, picking the strake
                 if (b && cl < 100 && isCur) { const sg = interiorSide(b.seg, s) * (chainFwd(s, gid, b.seg) ? 1 : -1); const bx = X(b.y - b.tz * sg * 560 + b.ty * 330), by = Y(b.z + b.ty * sg * 560 + b.tz * 330);
-                  h += `<g data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"><title>seam ${i}|${i + 1} at ${fmt(x0)} mm is ${Math.round(cl)} mm from a member — ${cl < 50 ? 'under the 50 mm minimum' : 'below the recommended 100'}</title><circle cx="${bx}" cy="${by}" r="6.5" fill="${cc}" stroke="#0f172a" stroke-width="1.5"/><text x="${bx}" y="${by + 3.2}" font-size="9" font-weight="700" fill="#0f172a" text-anchor="middle" font-family="var(--font-mono)" pointer-events="none">!</text></g>`; } }
+                  h += `<g data-panel="${segId}" data-strake="${i}" data-gid="${gid}" style="cursor:pointer"><title>seam ${i}|${i + 1} at ${fmt(x0)} mm is ${Math.round(cl)} mm from a member — ${cl < 50 ? 'under the 50 mm minimum' : 'below the recommended 100'}</title><circle cx="${bx}" cy="${by}" r="6.5" fill="${cc}" stroke="#f1f5f9" stroke-width="1.5"/><text x="${bx}" y="${by + 3.2}" font-size="9" font-weight="700" fill="#f1f5f9" text-anchor="middle" font-family="var(--font-mono)" pointer-events="none">!</text></g>`; } }
               const at = M().chainPointAt(s, gid, (x0 + x1) / 2); if (at && (isCur || (x1 - x0) > 900)) {
                 // thickness label on the interior side of the plate, clear of the AB / CL dimension labels
                 const sg = interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1); const nx = -at.tz * sg, nz = at.ty * sg;
                 h += `<text x="${X(at.y + nx * 230)}" y="${Y(at.z + nz * 230) + 3}" class="cad-pos" fill="${selS ? '#3b82f6' : tColor(sk.t)}" text-anchor="middle" pointer-events="none">${sk.t != null ? sk.t : '?'}</text>`;
               }
             });
-            if (x < ci.L - 5) h += `<polyline points="${chainPts(gid, x, ci.L)}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+            if (x < ci.L - 5) h += `<polyline points="${chainPts(gid, x, ci.L)}" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
           }
         }
         if (inStrakes() && d.stiffGroups.length) {
@@ -409,7 +409,7 @@
               const at = M().chainPointAt(s, gid, x); if (!at) return;
               const sideSign = (g.side === 'out' ? -1 : 1) * interiorSide(at.seg, s) * (chainFwd(s, gid, at.seg) ? 1 : -1);
               const nx = -at.tz * sideSign, nz = at.ty * sideSign;
-              h += `<line x1="${X(at.y)}" y1="${Y(at.z)}" x2="${X(at.y + nx * 180)}" y2="${Y(at.z + nz * 180)}" stroke="${isCur ? '#3f6b4a' : '#2f4a38'}" stroke-width="1.2" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+              h += `<line x1="${X(at.y)}" y1="${Y(at.z)}" x2="${X(at.y + nx * 180)}" y2="${Y(at.z + nz * 180)}" stroke="${isCur ? '#dcfce7' : '#bbf7d0'}" stroke-width="1.2" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
             });
           });
         }
@@ -418,7 +418,7 @@
           d.stiffGroups.forEach(g => {
             const r = M().groupPositions(s, gid, g, prevEnd); if (r.placed.length) prevEnd = Math.max(...r.placed);
             const gSel = isCur && st.group === g.id; const gHov = hoverSg && hoverSg.gid === gid && hoverSg.sg === g.id;
-            const col = gSel ? '#3b82f6' : gHov ? '#93c5fd' : g.dir === 'trans' ? '#a855f7' : (isCur ? '#22c55e' : '#3f6b4a');
+            const col = gSel ? '#3b82f6' : gHov ? '#3b82f6' : g.dir === 'trans' ? '#7c3aed' : (isCur ? '#16a34a' : '#dcfce7');
             const tick = 260;
             r.placed.forEach(x => {
               const at = M().chainPointAt(s, gid, x); if (!at) return;
@@ -435,12 +435,12 @@
                 if (g.type === 'T') h += `<line x1="${X(at.y + nx * tick - at.ty * 70)}" y1="${Y(at.z + nz * tick - at.tz * 70)}" x2="${X(at.y + nx * tick + at.ty * 70)}" y2="${Y(at.z + nz * tick + at.tz * 70)}" stroke="${col}" stroke-width="${gSel ? 2.5 : 1.6}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
               }
             });
-            r.dropped.forEach(x => { const at = M().chainPointAt(s, gid, x); if (at) h += `<text x="${X(at.y)}" y="${Y(at.z) + 3}" class="cad-pos" fill="#f59e0b" text-anchor="middle" pointer-events="none">✕</text>`; });
+            r.dropped.forEach(x => { const at = M().chainPointAt(s, gid, x); if (at) h += `<text x="${X(at.y)}" y="${Y(at.z) + 3}" class="cad-pos" fill="#d97706" text-anchor="middle" pointer-events="none">✕</text>`; });
           });
         }
         if (inSupports() && isCur) {
           // exception areas as amber bands, span text at the panel middle
-          (d.supports.exceptions || []).forEach((e, i) => { const x0 = Math.min(e.from, e.to), x1 = Math.max(e.from, e.to); if (x1 > x0) h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${st.exc === i ? '#3b82f6' : '#f59e0b'}" stroke-width="7" opacity="0.55" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
+          (d.supports.exceptions || []).forEach((e, i) => { const x0 = Math.min(e.from, e.to), x1 = Math.max(e.from, e.to); if (x1 > x0) h += `<polyline points="${chainPts(gid, x0, x1)}" fill="none" stroke="${st.exc === i ? '#3b82f6' : '#d97706'}" stroke-width="7" opacity="0.55" vector-effect="non-scaling-stroke" pointer-events="none"/>`; });
 
         }
       });
@@ -448,7 +448,7 @@
     // Nodes
     s.nodes.forEach(n => {
       const isSel = sel.node === n.id, isHov = hover && hover.nodeId === n.id;
-      h += `<circle cx="${X(n.y)}" cy="${Y(n.z)}" r="${isSel || isHov ? 5 : 3.2}" fill="${isSel ? '#3b82f6' : '#0f172a'}" stroke="${isSel || isHov ? '#3b82f6' : '#cbd5e1'}" stroke-width="1.6" vector-effect="non-scaling-stroke" data-node="${n.id}" style="cursor:pointer"/>`;
+      h += `<circle cx="${X(n.y)}" cy="${Y(n.z)}" r="${isSel || isHov ? 5 : 3.2}" fill="${isSel ? '#3b82f6' : '#f1f5f9'}" stroke="${isSel || isHov ? '#3b82f6' : '#334155'}" stroke-width="1.6" vector-effect="non-scaling-stroke" data-node="${n.id}" style="cursor:pointer"/>`;
     });
     // Dimension labels live in the HTML overlay (placeLabels), not in the SVG
     dimLabels = [{ y: -160, z: -40, text: 'BL 0', anchor: 'end', cls: 'axis' }, { y: 60, z: ex.zMax + 480, text: 'CL', anchor: 'start', cls: 'axis' }];
@@ -467,7 +467,7 @@
         const ln = M().panelLine(pl, s.nodes); const m = M().pointAt(ln, 0.5);
         const vert = Math.abs(ln.a.y - ln.b.y) < 1;
         const txt = pl.position ? shortPos(pl.position) : '?';
-        const col = pl.position ? (POS_COLOR[pl.position] || '#94a3b8') : '#f59e0b';
+        const col = pl.position ? (POS_COLOR[pl.position] || '#64748b') : '#d97706';
         const dx = vert ? 6 : 0, dy = vert ? 3 : -6;
         h += `<text x="${X(m.y) + dx}" y="${Y(m.z) + dy}" class="cad-pos" fill="${col}" ${vert ? '' : 'text-anchor="middle"'} data-panel="${pl.id}" style="cursor:pointer">${txt}</text>`;
       });
@@ -487,12 +487,12 @@
     // Rubber band for the line / arc tool
     if (pending.length && hover) {
       const a = pending[0];
-      h += `<line x1="${X(a.y)}" y1="${Y(a.z)}" x2="${X(hover.y)}" y2="${Y(hover.z)}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
-      h += `<text x="${X(hover.y) + 10}" y="${Y(hover.z) - 10}" class="cad-sel" fill="#f59e0b">${fmt(Math.hypot(hover.y - a.y, hover.z - a.z))} mm</text>`;
+      h += `<line x1="${X(a.y)}" y1="${Y(a.z)}" x2="${X(hover.y)}" y2="${Y(hover.z)}" stroke="#d97706" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+      h += `<text x="${X(hover.y) + 10}" y="${Y(hover.z) - 10}" class="cad-sel" fill="#d97706">${fmt(Math.hypot(hover.y - a.y, hover.z - a.z))} mm</text>`;
     }
     // Cursor marker + coordinates next to it (the point that will be placed)
     if (hover && tool !== 'select' && mode === 'section') {
-      const c = hover.kind === 'node' ? '#22c55e' : hover.kind === 'panel' ? '#f59e0b' : '#64748b';
+      const c = hover.kind === 'node' ? '#16a34a' : hover.kind === 'panel' ? '#d97706' : '#64748b';
       h += `<rect x="${X(hover.y) - 5}" y="${Y(hover.z) - 5}" width="10" height="10" fill="none" stroke="${c}" stroke-width="1.5" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
       h += `<text x="${X(hover.y) + 9}" y="${Y(hover.z) + 14}" class="cad-cursor" fill="${c}" pointer-events="none">${fmt(hover.y)}, ${fmt(hover.z)}${hover.kind === 'node' ? ' · ' + hover.nodeId : ''}</text>`;
     }
@@ -585,8 +585,8 @@
   }
   // Thickness colour ramp (mm → colour), shared by the drawing and the list.
   function tColor(t) {
-    if (t == null || !(t > 0)) return '#f59e0b';
-    const stops = [[8, '#22d3ee'], [12, '#22c55e'], [16, '#eab308'], [20, '#f97316'], [26, '#ef4444']];
+    if (t == null || !(t > 0)) return '#d97706';
+    const stops = [[8, '#0891b2'], [12, '#16a34a'], [16, '#ca8a04'], [20, '#f97316'], [26, '#ef4444']];
     for (const [v, c] of stops) if (t <= v) return c;
     return '#dc2626';
   }
@@ -784,8 +784,8 @@
 
     // Section identity: frame + midship flag. The parametric Ship Geometry only
     // describes a general-cargo midship; elsewhere the section is drawn.
-    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#f59e0b">Section</span></div>
-      <div class="ed-row"><span class="ed-id" style="min-width:96px">Frame</span><input class="ed-input cad-sec" data-k="frame" type="text" value="${s.frame != null ? s.frame : ''}" placeholder="e.g. 70" style="width:72px"><span class="ed-label" style="color:#475569;margin-left:4px">Fr.</span></div>
+    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#d97706">Section</span></div>
+      <div class="ed-row"><span class="ed-id" style="min-width:96px">Frame</span><input class="ed-input cad-sec" data-k="frame" type="text" value="${s.frame != null ? s.frame : ''}" placeholder="e.g. 70" style="width:72px"><span class="ed-label" style="color:#94a3b8;margin-left:4px">Fr.</span></div>
       <div class="ed-row"><span class="ed-id" style="min-width:96px">Midship</span><span class="cad-seg"><button class="${s.isMidship !== false ? 'on' : ''}" data-cad="mid-on">Midship</button><button class="${s.isMidship === false ? 'on' : ''}" data-cad="mid-off">Other</button></span></div>
     </div>`;
 
@@ -799,34 +799,34 @@
 
     // Ship geometry (general-cargo midship only)
     if (parametric) {
-    h += `<div class="ed-group" data-cad-group="geom"><div class="ed-group-header"><span style="color:#f59e0b">Ship Geometry</span>${s.manual ? '<span class="ed-count" title="The section is hand-edited; parameters only apply after Regenerate">locked</span>' : ''}</div>`;
+    h += `<div class="ed-group" data-cad-group="geom"><div class="ed-group-header"><span style="color:#d97706">Ship Geometry</span>${s.manual ? '<span class="ed-count" title="The section is hand-edited; parameters only apply after Regenerate">locked</span>' : ''}</div>`;
     meta.forEach(m => {
       const v = g[m.key];
       h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${m.label}</span>
         <input class="ed-input cad-geom" type="number" value="${v == null ? '' : v}" data-key="${m.key}" min="${m.min}" max="${m.max}" step="${m.step}" ${s.manual ? 'disabled' : ''}>
-        <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
+        <span class="ed-label" style="color:#94a3b8;font-size:0.65rem">mm</span></div>`;
     });
     h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap" title="Hatch coaming top plate width (0 = no coaming)">Coaming top width</span>
         <input class="ed-input cad-param" type="number" value="${B().PARAMS().coamingTop || 0}" data-key="coamingTop" min="0" max="2000" step="50" ${s.manual ? 'disabled' : ''}>
-        <span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
+        <span class="ed-label" style="color:#94a3b8;font-size:0.65rem">mm</span></div>`;
     // Centre girder or duct keel (with its half-width)
     const duct = g.duct_half > 0;
     h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">Centre structure</span>
         <select class="ed-input cad-centre" style="flex:1" ${s.manual ? 'disabled' : ''}><option value="cg" ${duct ? '' : 'selected'}>Centre girder</option><option value="duct" ${duct ? 'selected' : ''}>Duct keel</option></select></div>`;
     if (duct) h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">Duct keel half-width</span>
-        <input class="ed-input cad-geom" type="number" value="${g.duct_half}" data-key="duct_half" min="200" max="3000" step="50" ${s.manual ? 'disabled' : ''}><span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>`;
+        <input class="ed-input cad-geom" type="number" value="${g.duct_half}" data-key="duct_half" min="200" max="3000" step="50" ${s.manual ? 'disabled' : ''}><span class="ed-label" style="color:#94a3b8;font-size:0.65rem">mm</span></div>`;
     h += `</div>`;
     }
 
     // Add panel
-    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#22c55e">Add panel</span></div><div class="cad-add-btns">`;
+    h += `<div class="ed-group"><div class="ed-group-header"><span style="color:#16a34a">Add panel</span></div><div class="cad-add-btns">`;
     Object.keys(ADD_TYPES).forEach(k => { h += `<button class="ed-add-btn ${addForm === k ? 'on' : ''}" data-cad-add="${k}">+ ${ADD_TYPES[k].label}</button>`; });
     h += `</div>`;
     if (addForm && ADD_TYPES[addForm]) {
       const d = addDefaults(addForm);
       h += `<div class="cad-form" data-cad-form="${addForm}">`;
       ADD_TYPES[addForm].fields.forEach(([k, label, unit]) => {
-        h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${label}</span><input class="ed-input" type="number" data-f="${k}" value="${d[k] != null ? d[k] : ''}" step="10"><span class="ed-label" style="color:#475569;font-size:0.65rem">${unit}</span></div>`;
+        h += `<div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem;white-space:nowrap">${label}</span><input class="ed-input" type="number" data-f="${k}" value="${d[k] != null ? d[k] : ''}" step="10"><span class="ed-label" style="color:#94a3b8;font-size:0.65rem">${unit}</span></div>`;
       });
       h += `<div class="ed-row" style="justify-content:flex-end;gap:6px"><button class="ed-link-btn on" data-cad="add-go">Add</button><button class="ed-link-btn" data-cad="add-cancel">Cancel</button></div></div>`;
     }
@@ -875,7 +875,7 @@
         const isSel = q ? q.id === sel.panel : (sel.node === nid && !sel.panel);
         h += `<div class="mb-tr ${isSel ? 'is-sel' : ''}" data-mb-node="${nid}" ${q ? `data-mb-seg="${q.id}"` : ''}>
           <span>${nid}</span><span>${n ? n.y : ''}</span><span>${n ? n.z : ''}</span>
-          <span>${q ? `<button class="mb-pos-inline" data-seg="${q.id}" style="color:${q.position ? (POS_COLOR[q.position] || '#94a3b8') : '#f59e0b'}" title="${q.position ? posLabel(q.position) : 'Undefined — click to set'}">${q.position ? shortPos(q.position) : '—'} <i>▾</i></button>` : ''}</span>
+          <span>${q ? `<button class="mb-pos-inline" data-seg="${q.id}" style="color:${q.position ? (POS_COLOR[q.position] || '#64748b') : '#d97706'}" title="${q.position ? posLabel(q.position) : 'Undefined — click to set'}">${q.position ? shortPos(q.position) : '—'} <i>▾</i></button>` : ''}</span>
           <span>${q ? `<input type="checkbox" class="mb-wt" data-seg="${q.id}" ${q.wt ? 'checked' : ''} title="Watertight">` : ''}</span></div>`;
       });
       h += `</div>`;
@@ -903,9 +903,9 @@
     // Arc radius prompt
     if (arcAsk) {
       const d = Math.hypot(arcAsk.b.y - arcAsk.a.y, arcAsk.b.z - arcAsk.a.z);
-      h += `<div class="ed-group cad-form"><div class="ed-group-header"><span style="color:#f59e0b">Arc radius</span></div>
+      h += `<div class="ed-group cad-form"><div class="ed-group-header"><span style="color:#d97706">Arc radius</span></div>
         <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Chord ${fmt(d)} mm · R ≥ ${fmt(d / 2)}</span></div>
-        <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Radius</span><input class="ed-input" type="number" id="cadArcR" value="${fmt(d / Math.SQRT2)}" step="50"><span class="ed-label" style="color:#475569;font-size:0.65rem">mm</span></div>
+        <div class="ed-row"><span class="ed-id" style="min-width:150px;font-size:0.68rem">Radius</span><input class="ed-input" type="number" id="cadArcR" value="${fmt(d / Math.SQRT2)}" step="50"><span class="ed-label" style="color:#94a3b8;font-size:0.65rem">mm</span></div>
         <div class="ed-row" style="justify-content:flex-end;gap:6px"><button class="ed-link-btn on" data-cad="arc-go">Add arc</button><button class="ed-link-btn" data-cad="arc-cancel">Cancel</button></div></div>`;
     }
 
@@ -942,7 +942,7 @@
     ec.querySelectorAll('.mb-pos-inline').forEach(el => el.addEventListener('click', e => {
       e.stopPropagation();
       const segId = el.dataset.seg; const q0 = S().panels.find(x => x.id === segId);
-      const items = [{ value: '', label: 'Undefined', color: '#f59e0b' }].concat(M().POSITIONS.map(o => ({ value: o.code, label: o.label, short: shortPos(o.code), color: POS_COLOR[o.code] || '#94a3b8' })));
+      const items = [{ value: '', label: 'Undefined', color: '#d97706' }].concat(M().POSITIONS.map(o => ({ value: o.code, label: o.label, short: shortPos(o.code), color: POS_COLOR[o.code] || '#64748b' })));
       popupMenu(el, items, q0 ? q0.position : null, v => { const m = JSON.parse(JSON.stringify(S())); const q = m.panels.find(x => x.id === segId); if (q) { q.position = v || null; const def = M().POS[q.position]; if (def) q.wt = def.wt; commit(m); } });
     }));
     const radI = ec.querySelector('.mb-radius'); if (radI) radI.addEventListener('change', e => { const m = JSON.parse(JSON.stringify(S())); const r = parseFloat(e.target.value); const q = m.panels.find(x => x.id === sel.panel); if (!q) return; const ok = M().setCurve(m, q.id, r); if (!ok) { toast('Radius must be at least half the chord.'); return; } const nq = m.panels.find(x => x.from === q.from && x.to === q.to) || m.panels.find(x => x.curve && Math.abs(x.curve.r - r) < 1); sel.panel = nq ? nq.id : null; commit(m); });
@@ -1062,11 +1062,11 @@
     const decks = s.panels.filter(p => DECK_POS.includes(p.position));
     if (decks.length) {
       const nLoaded = decks.filter(p => p.deckLoad && p.deckLoad.type && p.deckLoad.type !== 'none').length;
-      h += `<div class="ed-group ${nLoaded ? '' : 'collapsed'}"><div class="ed-group-header"><span style="color:#eab308">Deck loads <span class="ed-count">(${nLoaded}/${decks.length})</span></span></div>
+      h += `<div class="ed-group ${nLoaded ? '' : 'collapsed'}"><div class="ed-group-header"><span style="color:#ca8a04">Deck loads <span class="ed-count">(${nLoaded}/${decks.length})</span></span></div>
         <div class="ed-row st-head"><span style="width:34px">Panel</span><span style="flex:1">Type</span><span style="width:60px">kN/m²</span></div>`;
       decks.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).forEach(p => {
         const dl = p.deckLoad || { type: 'none', p: null }; const T = DECK_LOAD_TYPES.find(t => t.code === dl.type) || DECK_LOAD_TYPES[0];
-        h += `<div class="ed-row" style="gap:6px"><span class="ed-id" style="width:34px;min-width:34px;color:${POS_COLOR[p.position] || '#94a3b8'}" title="${posLabel(p.position)}">${p.id}</span>
+        h += `<div class="ed-row" style="gap:6px"><span class="ed-id" style="width:34px;min-width:34px;color:${POS_COLOR[p.position] || '#64748b'}" title="${posLabel(p.position)}">${p.id}</span>
           <select class="ed-input dl-type" data-panel="${p.id}" style="flex:1">${DECK_LOAD_TYPES.map(t => `<option value="${t.code}" ${t.code === dl.type ? 'selected' : ''}>${t.label}</option>`).join('')}</select>
           <input class="ed-input dl-p" data-panel="${p.id}" type="number" step="0.5" min="0" value="${dl.p != null ? dl.p : ''}" placeholder="${T.p != null ? T.p : '—'}" style="width:56px" ${dl.type === 'none' || dl.type === 'weather' ? 'disabled' : ''}></div>`;
       });
@@ -1131,10 +1131,10 @@
       const un = segs.filter(p => !p.position).length;
       const hasSel = segs.some(p => p.id === sel.panel);
       const posSet = [...new Set(segs.map(p => p.position).filter(Boolean))];
-      h += `<div class="ed-group ${hasSel || un ? '' : 'collapsed'}" data-pos-group="${gid}"><div class="ed-group-header"><span style="color:${un ? '#f59e0b' : 'var(--text-primary)'}">${gName(s, gid)} <span class="ed-count">(${segs.length}${un ? ' · ' + un + ' unnamed' : ''})</span></span>
+      h += `<div class="ed-group ${hasSel || un ? '' : 'collapsed'}" data-pos-group="${gid}"><div class="ed-group-header"><span style="color:${un ? '#d97706' : 'var(--text-primary)'}">${gName(s, gid)} <span class="ed-count">(${segs.length}${un ? ' · ' + un + ' unnamed' : ''})</span></span>
         <select class="ed-input pos-setall" data-gid="${gid}" title="Set every segment of this panel" style="width:112px;font-size:0.6rem"><option value="">set all…</option>${opts}</select></div>`;
       segs.forEach(p => {
-        const a = nodeById(s, p.from), b = nodeById(s, p.to); const col = p.position ? (POS_COLOR[p.position] || '#94a3b8') : '#f59e0b';
+        const a = nodeById(s, p.from), b = nodeById(s, p.to); const col = p.position ? (POS_COLOR[p.position] || '#64748b') : '#d97706';
         h += `<div class="ed-row pos-row ${sel.panel === p.id ? 'is-sel' : ''}" data-row="${p.id}" style="border-left:3px solid ${col};cursor:pointer" title="${a.y},${a.z} → ${b.y},${b.z}">
           <span class="ed-id" style="min-width:28px;color:${col}">${p.id}</span>
           <span style="color:var(--text-muted);white-space:nowrap">${fmt(M().panelLength(p, s.nodes))} mm</span>
