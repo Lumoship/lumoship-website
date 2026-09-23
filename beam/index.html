@@ -12,9 +12,195 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='50' y='72' font-family='JetBrains Mono, monospace' font-weight='700' font-size='66' text-anchor='middle' fill='white'%3EL%3C/text%3E%3C/svg%3E">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Online Marine Beam Calculator | BeamCore by Lumoship</title>
+    <!-- SEO - TEK KAYNAK: Lumoship/seo-yay.py yazar, elle duzenleme -->
+    <title>Marine Beam Calculator - Bulb Flat, T, L Profiles | BeamCore</title>
+    <meta name="description" content="Free beam analysis for ship structures. Direct-stiffness solver in your browser, EN 10067 bulb flats, T / L / flat bar, AH32-AH36 grades, attached plating, PDF sheet.">
+    <meta name="keywords" content="marine beam calculator, ship beam analysis, bulb flat calculator, HP profile beam, EN 10067 beam calculator, stiffener section modulus, continuous beam calculator, naval architecture software, shear moment deflection diagram, AH36 beam calculator">
+    <meta name="author" content="Ebubekir Akarsu, Lumoship">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://www.lumoship.org/beam/">
+    <meta name="theme-color" content="#ffffff">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Lumoship">
+    <meta property="og:url" content="https://www.lumoship.org/beam/">
+    <meta property="og:title" content="Marine Beam Calculator - Bulb Flat, T, L Profiles | BeamCore">
+    <meta property="og:description" content="Free beam analysis for ship structures. Direct-stiffness solver in your browser, EN 10067 bulb flats, T / L / flat bar, AH32-AH36 grades, attached plating, PDF sheet.">
+    <meta property="og:image" content="https://www.lumoship.org/lumoship-og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="BeamCore, the Lumoship marine beam calculator">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Marine Beam Calculator - Bulb Flat, T, L Profiles | BeamCore">
+    <meta name="twitter:description" content="Free beam analysis for ship structures. Direct-stiffness solver in your browser, EN 10067 bulb flats, T / L / flat bar, AH32-AH36 grades, attached plating, PDF sheet.">
+    <meta name="twitter:image" content="https://www.lumoship.org/lumoship-og.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "BeamCore",
+    "url": "https://www.lumoship.org/beam/",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "Any (runs in a web browser)",
+    "softwareVersion": "1.1",
+    "description": "Free beam analysis for ship structures. Direct-stiffness solver in your browser, EN 10067 bulb flats, T / L / flat bar, AH32-AH36 grades, attached plating, PDF sheet.",
+    "isAccessibleForFree": true,
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "featureList": [
+        "Direct stiffness method, Euler-Bernoulli beam elements",
+        "Statically indeterminate and multi-span continuous beams",
+        "Pinned, roller and fixed supports at any position",
+        "Point loads, distributed loads and applied moments",
+        "L, T, flat bar and EN 10067 bulb flat profiles",
+        "Shipbuilding steel grades A, AH32, AH36",
+        "Attached plating combined with the profile",
+        "Shear force, bending moment and deflection diagrams",
+        "PDF calculation sheet"
+    ],
+    "creator": {
+        "@type": "Person",
+        "name": "Ebubekir Akarsu",
+        "jobTitle": "Naval Architect"
+    },
+    "publisher": {
+        "@type": "Organization",
+        "name": "Lumoship",
+        "url": "https://www.lumoship.org/"
+    }
+}
+    </script>
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Lumoship",
+            "item": "https://www.lumoship.org/"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Products",
+            "item": "https://www.lumoship.org/products.html"
+        },
+        {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Structural Analysis",
+            "item": "https://www.lumoship.org/products.html#structural-analysis"
+        },
+        {
+            "@type": "ListItem",
+            "position": 4,
+            "name": "BeamCore",
+            "item": "https://www.lumoship.org/beam/"
+        }
+    ]
+}
+    </script>
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "Is BeamCore really free?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, BeamCore is completely free during 2026. No sign-up required, no usage limits, no hidden charges. Starting 2027, paid plans will become available for advanced features, but the core calculator will remain accessible."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "What calculation method does BeamCore use?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BeamCore implements the Direct Stiffness Method based on Euler-Bernoulli beam theory, solved in your browser — nothing is sent to a server. A node is placed at every support and load, elements are no longer than L/40, and deflections come from the Hermite shape functions. Internal forces are taken by direct equilibrium at each station, so a continuous or otherwise statically indeterminate beam is handled exactly, not approximated."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I analyze multi-span continuous beams?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. BeamCore handles any number of supports at any position along the beam. Two-span, three-span, or more continuous beams are supported. The solver automatically handles statically indeterminate structures."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Which profile types are supported?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BeamCore supports four profile types: Flat Bar (FB), L-Profile (angle), T-Profile, and Holland Profile (HP) per the EN 10067 catalog. The complete HP range from HP 60×4 to HP 400×16 is available with tabulated section properties."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "What steel grades are available?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Three shipbuilding steel grades are pre-loaded with their correct yield strengths (ReH) per classification society requirements: Grade A (ReH = 235 N/mm²), AH32 (315 N/mm²), and AH36 (355 N/mm²). The elastic modulus is set to 206 GPa (per IACS standards)."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I export results as PDF?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. BeamCore generates a complete PDF calculation sheet including project information, geometry, loads, supports, analysis results, and diagrams. The PDF is suitable for design submittals and project records."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "How accurate are the results?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BeamCore uses high-precision numerical methods. Results match analytical solutions to within machine precision for standard cases (simply supported, cantilever, etc.). The solver has been validated against textbook examples and finite element references."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Does BeamCore work offline?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The calculation does — it runs in the page, so once BeamCore has loaded you can work without a connection and nothing you enter is transmitted anywhere. The page itself still fetches its webfonts and the PDF library from a CDN on first load, so that first load needs a connection."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I save and load my projects?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Within a single session, you can save and load beam cases using the \"Saved Cases\" feature. Browser refresh clears these. Future versions will support persistent project storage with user accounts."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Who is BeamCore for?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BeamCore is designed for naval architects, marine structural engineers, ship designers, and shipbuilding draftsmen. It's also useful for academic purposes — marine engineering students learning beam analysis on real-world ship profiles."
+            }
+        }
+    ]
+}
+    </script>
+    <!-- SEO sonu -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF is only read inside exportPDF(), on a click, so deferring it keeps
+         ~350 kB off the critical path and out of the first paint. -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="lumoship-nav.css">
     <style>
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}

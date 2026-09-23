@@ -1,53 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://lumoship.org/</loc>
+        <loc>https://www.lumoship.org/</loc>
         <lastmod>2026-05-31</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://lumoship.org/products.html</loc>
+        <loc>https://www.lumoship.org/products.html</loc>
         <lastmod>2026-05-31</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://lumoship.org/pricing.html</loc>
+        <loc>https://www.lumoship.org/pricing.html</loc>
         <lastmod>2026-05-31</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://lumoship.org/about.html</loc>
+        <loc>https://www.lumoship.org/about.html</loc>
         <lastmod>2026-05-31</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://lumoship.org/contact.html</loc>
+        <loc>https://www.lumoship.org/contact.html</loc>
         <lastmod>2026-05-31</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://lumoship.org/sectionpro/</loc>
-        <lastmod>2026-05-31</lastmod>
+        <loc>https://www.lumoship.org/sectionpro/</loc>
+        <lastmod>2026-09-23</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://lumoship.org/beam/</loc>
-        <lastmod>2026-05-31</lastmod>
+        <loc>https://www.lumoship.org/beam/</loc>
+        <lastmod>2026-09-23</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url><loc>https://www.lumoship.org/lumostruct/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/lumocad/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/nr467/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/nr615/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/loadpoint/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/dxftrace/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/midship/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://www.lumoship.org/shipstruct/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url>
+        <loc>https://www.lumoship.org/psm-opening/</loc>
+        <lastmod>2026-09-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
-    <url><loc>https://lumoship.org/lumostruct/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/lumocad/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/nr467/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/nr615/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/loadpoint/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/dxftrace/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/midship/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://lumoship.org/shipstruct/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>
