@@ -1,6 +1,6 @@
 <!--
 ================================================================================
-    PSM OPENING CHECKER  v2.7  —  Lumoship / EA Engineering Tools
+    PSM OPENING CHECKER  v2.8  —  Lumoship / EA Engineering Tools
 ================================================================================
     Openings (manholes, lightening holes) in primary supporting member webs.
     Rule basis, DNV-RU-SHIP July 2026 edition:
@@ -25,6 +25,14 @@
          alpha/beta, displayed them, and then used Cs-max.
       2. The geometric limits of [7.2.3] are checked; v1.0's "max opening"
          could reach the full web depth.
+
+    v2.7 -> v2.8, one finding:
+      The [7.2.3] end region was laid on both ends of every beam. A span ends
+      where the member is supported - Ch.3 Sec.7 [1.1.8]-[1.1.11] define the
+      effective span between supports / effective bracket toes - so the band now
+      follows the end mode (support points from the model, or members meeting at
+      that end). A crossing with another deep member that does not support the
+      beam is mid-span; the shear diagram is what settles it.
       3. Opening length enters the checks and drives the layout page.
       4. Bending is taken on the net section through the opening.
       5. All stress components are read and the material is taken per beam.
@@ -631,7 +639,7 @@ body{font-family:var(--font-body);font-size:var(--fs-base);color:var(--text-prim
               </select>
               <div id="zoneGeomBox">
                 <input type="number" class="ea-input" id="layoutEndZone" value="0.2" step="0.05" min="0" max="0.45" onchange="renderLayout()" style="margin-top:6px">
-                <p class="ea-info-text">[7.2.3] separates "mid-span" from "ends of the span" without giving a number; 0.2&#8467; is the support region of Ch.6 Sec.6 Table 1 notes 1 and 2.</p>
+                <p class="ea-info-text">[7.2.3] separates "mid-span" from "ends of the span" without giving a number; 0.2&#8467; is the support region of Ch.6 Sec.6 Table 1 notes 1 and 2. The band is applied only at the ends counted below in "Keep clear of each end" &mdash; a span ends where the member is supported (Ch.3 Sec.7 [1.1.8]&ndash;[1.1.11]), not wherever it crosses another deep member.</p>
               </div>
               <div id="zoneShearBox" style="display:none">
                 <input type="number" class="ea-input" id="layoutZoneTau" value="60" step="5" min="10" max="100" onchange="renderLayout()" style="margin-top:6px">
@@ -1620,7 +1628,13 @@ function computeLayout(r, L, wo, hoMode) {
     const v = tauAtPar(r.name, x / L);
     return v == null ? r.tau : v;
   };
-  let zA = endFrac * L, zB = (1 - endFrac) * L;
+  /* An end region belongs to a REAL span end. The "ends of the span" of
+     [7.2.3] is the end of the effective span of Ch.3 Sec.7 [1.1.8]-[1.1.11],
+     i.e. a support or an effective bracket toe - not every node where the
+     member happens to cross another deep member. The band is therefore applied
+     only at the ends the end mode counts, and the shear diagram is the check
+     on that reading. */
+  let zA = useA ? endFrac * L : 0, zB = useB ? (1 - endFrac) * L : L;
   if (zoneMode === 'none') { zA = 0; zB = L; }
   else if (zoneMode === 'shear') {
     const thr = Math.max(0.05, num('layoutZoneTau', 60) / 100) * r.allow.tau;
