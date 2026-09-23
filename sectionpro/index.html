@@ -17,6 +17,7 @@
     <title>Marine Section Properties Calculator | SectionPro by Lumoship</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="lumoship-nav.css">
     <style>
         /* ============================================
            EA ENGINEERING TOOLS — DESIGN SYSTEM v1.0
@@ -27,22 +28,22 @@
 
         /* --- Design Tokens --- */
         :root {
-            --bg-primary:    #0a0e17;
-            --bg-secondary:  #111827;
-            --bg-tertiary:   #1a2236;
-            --bg-input:      #0d1321;
+            --bg-primary:    #ffffff;
+            --bg-secondary:  #f6f8fb;
+            --bg-tertiary:   #eef2f7;
+            --bg-input:      #ffffff;
             --accent:        #3b82f6;
             --accent-hover:  #2563eb;
-            --accent-glow:   rgba(59, 130, 246, 0.15);
-            --accent-subtle: rgba(59, 130, 246, 0.08);
-            --text-primary:  #f1f5f9;
-            --text-secondary:#94a3b8;
+            --accent-glow:   rgba(37, 99, 235, 0.12);
+            --accent-subtle: rgba(37, 99, 235, 0.06);
+            --text-primary:  #0f172a;
+            --text-secondary:#475569;
             --text-muted:    #64748b;
-            --success:       #22c55e;
-            --warning:       #f59e0b;
-            --error:         #ef4444;
-            --border:        #1e293b;
-            --border-accent: rgba(59, 130, 246, 0.3);
+            --success:       #16a34a;
+            --warning:       #d97706;
+            --error:         #dc2626;
+            --border:        #e2e8f0;
+            --border-accent: rgba(37, 99, 235, 0.3);
             --font-display:  'JetBrains Mono', 'Fira Code', monospace;
             --font-body:     'Inter', 'Segoe UI', system-ui, sans-serif;
             --font-mono:     'JetBrains Mono', monospace;
@@ -51,9 +52,9 @@
             --spacing-xs: 4px; --spacing-sm: 8px; --spacing-md: 16px;
             --spacing-lg: 24px; --spacing-xl: 32px; --spacing-2xl: 48px;
             --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+            --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+            --shadow-md: 0 4px 12px rgba(15,23,42,0.08);
+            --shadow-lg: 0 8px 30px rgba(15,23,42,0.12);
             --shadow-glow: 0 0 20px var(--accent-glow);
         }
 
@@ -82,11 +83,15 @@
         /* ============================================
            HEADER
            ============================================ */
+        /* the tool name lives in the top bar now, so the header is just the
+           actions; kept for the PDF / self-check buttons and the version. */
+        .ea-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+            overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
         .ea-header {
             position: relative; z-index: 10;
-            padding: var(--spacing-lg) var(--spacing-xl);
+            padding: 6px var(--spacing-xl);
             border-bottom: 1px solid var(--border);
-            background: linear-gradient(180deg, rgba(17,24,39,0.95), rgba(10,14,23,0.95));
+            background: linear-gradient(180deg, rgba(246,248,251,0.95), rgba(255,255,255,0.95));
             backdrop-filter: blur(10px);
         }
         .ea-header::after {
@@ -97,7 +102,7 @@
         }
         .ea-header-inner {
             max-width: 1600px; margin: 0 auto;
-            display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);
+            display: flex; align-items: center; justify-content: flex-end; gap: var(--spacing-md);
         }
         .ea-brand { display: flex; align-items: center; gap: var(--spacing-md); }
         .ea-logo {
@@ -445,17 +450,19 @@
         .ea-dim-popup .ea-dim-ok { background: var(--accent); color: white; }
         .ea-dim-popup .ea-dim-close { background: var(--error); color: white; }
 
-        /* SVG styles */
-        .profile-fill { fill: #2a3654; stroke: #6b7fa8; stroke-width: 1.8; }
-        .plate-fill { fill: #1e2d48; stroke: #6b7fa8; stroke-width: 1.8; }
-        .dimension-line { stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 4,3; }
+        /* SVG styles - the SAME palette the PNG export injects (sectionDrawingPNG),
+           so what is on screen and what lands in the PDF are one drawing. Until
+           2026-09-23 the screen used a dark set and the export a light one. */
+        .profile-fill { fill: #cbd5e1; stroke: #334155; stroke-width: 1.8; }
+        .plate-fill { fill: #e2e8f0; stroke: #334155; stroke-width: 1.8; }
+        .dimension-line { stroke: #2563eb; stroke-width: 1.2; stroke-dasharray: 4,3; }
         .dimension-label {
-            font-size: 12px; font-weight: 600; fill: #f1f5f9;
+            font-size: 12px; font-weight: 600; fill: #1e293b;
             font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: fill 0.2s;
         }
         .dimension-label:hover { fill: var(--accent); }
-        .axis-line { stroke: var(--error); stroke-width: 1; stroke-dasharray: 6,4; }
-        .centroid-marker { fill: var(--error); }
+        .axis-line { stroke: #dc2626; stroke-width: 1; stroke-dasharray: 6,4; }
+        .centroid-marker { fill: #dc2626; }
 
         /* ============================================
            RESULTS
@@ -548,191 +555,13 @@
             .ea-footer-row { flex-direction: column; text-align: center; }
         }
     
-        /* ============ LUMOSHIP UNIFIED NAVIGATION ============ */
-        :root {
-            --lumoship-bg-primary: #0a0e17;
-            --lumoship-bg-secondary: #0f141f;
-            --lumoship-bg-tertiary: #161c2a;
-            --lumoship-bg-card: #0d1220;
-            --lumoship-accent: #3b82f6;
-            --lumoship-accent-bright: #60a5fa;
-            --lumoship-text-primary: #f8fafc;
-            --lumoship-text-secondary: #94a3b8;
-            --lumoship-text-muted: #64748b;
-            --lumoship-text-dim: #475569;
-            --lumoship-border: #1e2536;
-            --lumoship-border-accent: rgba(59, 130, 246, 0.25);
-            --lumoship-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .lumoship-nav {
-            position: sticky;
-            top: 0;
-            background: rgba(10, 14, 23, 0.85);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid var(--lumoship-border);
-            z-index: 1000;
-            padding: clamp(0.875rem, 1.5vw, 1.125rem) clamp(1.25rem, 4vw, 3rem);
-        }
-        
-        .lumoship-nav-inner {
-            /* Altindaki uygulamanin icerik genisligi ile ayni, yoksa cubuk
-               uygulamadan dar/genis kalip hizasiz gorunuyor. */
-            max-width: 1600px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .lumoship-nav-logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            gap: 0.6rem;
-            transition: opacity var(--lumoship-transition);
-        }
-        
-        .lumoship-nav-logo:hover {
-            opacity: 0.85;
-        }
-        
-        .lumoship-nav-logo-mark {
-            width: clamp(24px, 2.5vw, 28px);
-            height: clamp(24px, 2.5vw, 28px);
-            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
-            border-radius: 7px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-weight: 700;
-            font-size: clamp(0.85rem, 1vw, 0.95rem);
-            color: white;
-            letter-spacing: -0.02em;
-        }
-        
-        .lumoship-nav-logo-text {
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
-            font-weight: 600;
-            color: var(--lumoship-text-primary);
-            letter-spacing: 0.06em;
-        }
-        
-        .lumoship-nav-links {
-            display: none;
-        }
-        
-        .lumoship-nav-link {
-            display: none;
-        }
-        
-        /* NEW MINIMAL NAVBAR */
-        .nav-left {
-            display: flex;
-            align-items: center;
-        }
-        
-        .nav-context {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: clamp(0.7rem, 0.8vw, 0.75rem);
-            color: var(--lumoship-text-muted);
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            padding-left: clamp(0.75rem, 1.5vw, 1rem);
-            margin-left: clamp(0.75rem, 1.5vw, 1rem);
-            border-left: 1px solid var(--lumoship-border);
-        }
-        
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: clamp(0.75rem, 1.5vw, 1.25rem);
-        }
-        
-        .nav-back {
-            color: var(--lumoship-text-secondary);
-            text-decoration: none;
-            font-family: 'Inter', sans-serif;
-            font-size: clamp(0.8rem, 0.9vw, 0.875rem);
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: color var(--lumoship-transition);
-        }
-        
-        .nav-back:hover { color: var(--lumoship-text-primary); }
-        .nav-back-arrow { font-size: 1em; }
-        
-        .user-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.75rem 0.35rem 0.35rem;
-            background: rgba(59, 130, 246, 0.06);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            border-radius: 999px;
-            text-decoration: none;
-            color: var(--lumoship-text-primary);
-            font-family: 'Inter', sans-serif;
-            font-size: 0.825rem;
-            font-weight: 500;
-            transition: all var(--lumoship-transition);
-        }
-        
-        .user-badge:hover {
-            background: rgba(59, 130, 246, 0.12);
-            border-color: rgba(59, 130, 246, 0.4);
-        }
-        
-        .user-badge-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 0.75rem;
-            color: white;
-            letter-spacing: -0.02em;
-            overflow: hidden;
-        }
-        
-        .user-badge-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .user-badge-name {
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .user-badge-login {
-            padding: 0.45rem 0.95rem;
-            background: var(--lumoship-accent);
-            border-color: var(--lumoship-accent);
-            color: white;
-        }
-        
-        .user-badge-login:hover {
-            background: var(--lumoship-accent-bright);
-            border-color: var(--lumoship-accent-bright);
-        }
-        
-        /* Breadcrumb */
+        /* Lumoship ust bari: Apps/_standart/lumoship-nav.css (yandaki
+           lumoship-nav.css bu dosyanin kopyasi). Sayfa ici kopya 2026-09-23'te
+           kaldirildi - iki yerde durunca biri koyu kaliyordu. Standart bar
+           breadcrumb'i gizliyor; kurallari SEO icin duruyor. */
         .lumoship-breadcrumb {
-            background: var(--lumoship-bg-secondary);
-            border-bottom: 1px solid var(--lumoship-border);
+            background: #f6f8fb;
+            border-bottom: 1px solid #e2e8f0;
             padding: 0.75rem clamp(1.25rem, 4vw, 3rem);
         }
         
@@ -748,23 +577,23 @@
         }
         
         .breadcrumb-link {
-            color: var(--lumoship-text-muted);
+            color: #64748b;
             text-decoration: none;
-            transition: color var(--lumoship-transition);
+            transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1);
             letter-spacing: 0.02em;
         }
         
         .breadcrumb-link:hover {
-            color: var(--lumoship-accent-bright);
+            color: #2563eb;
         }
         
         .breadcrumb-separator {
-            color: var(--lumoship-text-dim);
+            color: #94a3b8;
             font-size: 0.85em;
         }
         
         .breadcrumb-current {
-            color: var(--lumoship-accent);
+            color: #3b82f6;
             font-weight: 500;
             letter-spacing: 0.02em;
         }
@@ -780,7 +609,36 @@
         }
         
 
-</style>
+
+        /* ---- how-to panel ---- */
+        .ea-help-box{width:min(760px,95vw);max-height:90vh;display:flex;flex-direction:column;
+            background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);
+            box-shadow:var(--shadow-lg)}
+        .ea-help-head{display:flex;align-items:center;justify-content:space-between;
+            padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--border)}
+        .ea-help-head span{font-family:var(--font-display);font-size:var(--fs-sm);font-weight:600;
+            color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px}
+        .ea-help-head button{background:none;border:none;color:var(--text-muted);font-size:1.3rem;
+            line-height:1;cursor:pointer;padding:0 4px}
+        .ea-help-head button:hover{color:var(--text-primary)}
+        .ea-help-body{padding:var(--spacing-lg);overflow-y:auto}
+        .ea-help-body h4{font-family:var(--font-display);font-size:var(--fs-xs);font-weight:600;
+            color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;
+            margin:var(--spacing-lg) 0 var(--spacing-sm)}
+        .ea-help-body h4:first-child{margin-top:0}
+        .ea-help-steps{list-style:none;counter-reset:hstep;display:flex;flex-direction:column;gap:10px;padding:0}
+        .ea-help-steps li{counter-increment:hstep;display:grid;grid-template-columns:22px 1fr;gap:10px;
+            font-size:var(--fs-sm);color:var(--text-secondary);line-height:1.55}
+        .ea-help-steps li::before{content:counter(hstep);display:flex;align-items:center;justify-content:center;
+            width:22px;height:22px;border-radius:50%;background:var(--accent-subtle);border:1px solid var(--border);
+            font-family:var(--font-mono);font-size:0.68rem;color:var(--accent-hover);font-weight:600}
+        .ea-help-steps b{color:var(--text-primary);font-weight:600}
+        .ea-help-key{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px 18px}
+        .ea-help-key div{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);color:var(--text-secondary)}
+        .ea-help-sw{width:14px;height:4px;border-radius:2px;flex:0 0 auto}
+        .ea-help-note{font-size:var(--fs-xs);color:var(--text-muted);line-height:1.6;margin-top:var(--spacing-sm)}
+        .ea-help-note b{color:var(--text-secondary);font-weight:600}
+    </style>
 </head>
 <body>
 
@@ -827,22 +685,70 @@
     <!-- ========== HEADER ========== -->
     <header class="ea-header">
         <div class="ea-header-inner">
-            <div class="ea-brand">
-                <div class="ea-logo">L</div>
-                <div class="ea-title-group">
-                    <h1 class="ea-tool-name">SectionPro</h1>
-                    <p class="ea-tool-subtitle">Steel Profile Section Properties Calculator</p>
-                </div>
-            </div>
+            <h1 class="ea-sr-only">SectionPro — steel profile section properties calculator</h1>
             <div class="ea-header-actions">
                 <!-- Self-check runs at load against the live code (not a copy) and shows its count;
                      a green badge that never ran would prove nothing. -->
+                <button class="ea-test-btn" onclick="openHelp()" title="How to use SectionPro">?</button>
                 <button class="ea-test-btn" id="selfCheckBtn" onclick="openTestPanel()" title="Built-in validation cases - click for the list">⚗ self-check…</button>
                 <button class="ea-test-btn primary" onclick="exportPDF()" title="Calculation sheet (A4 PDF)">⤓ PDF</button>
                 <div class="ea-header-badge">v1.1</div>
             </div>
         </div>
     </header>
+
+
+    <!-- ========== HOW TO USE ========== -->
+    <div class="ea-test-overlay" id="help-overlay" onclick="if(event.target===this)closeHelp()">
+        <div class="ea-help-box">
+            <div class="ea-help-head">
+                <span>How to use SectionPro</span>
+                <button onclick="closeHelp()" title="Close">&times;</button>
+            </div>
+            <div class="ea-help-body">
+                <h4>Four steps</h4>
+                <ol class="ea-help-steps">
+                    <li><span><b>Profile.</b> L, T, flat bar, or a bulb flat. For HP pick a catalogue size;
+                        off-catalogue dimensions are interpolated within the same b family, and outside the
+                        family SectionPro falls back to the BV NR467 Pt B Ch 4 Sec 6 [1.4.1] equivalent
+                        built-up section (about ±10 %). The Calculation Basis panel says which of the three
+                        was used. In a T, <b>h is the web height</b>, flange excluded.</span></li>
+                    <li><span><b>Attached plate.</b> The plate goes on the profile foot — the web tip on a T
+                        or an L, the flat back face on an HP. You enter the width:
+                        <b>effective breadth is not computed</b>.</span></li>
+                    <li><span><b>Angle.</b> A profile not square to the plate is handled by rotating the
+                        centroidal inertias (Mohr, with the product of inertia I<sub>xy</sub>); the effective
+                        height becomes h·sin α. Approximate for a bulb.</span></li>
+                    <li><span><b>Corrosion.</b> Pick the compartment on each face of the plate; t_c comes from
+                        BV NR467 Pt B Ch 4 Sec 3 Table 1. Gross and net properties are then shown
+                        side by side.</span></li>
+                </ol>
+
+                <h4>Reading the drawing</h4>
+                <div class="ea-help-key">
+                    <div><span class="ea-help-sw" style="background:#334155"></span>Profile and plate outline</div>
+                    <div><span class="ea-help-sw" style="background:#2563eb"></span>Dimension lines</div>
+                    <div><span class="ea-help-sw" style="background:#dc2626"></span>Neutral axis and centroid</div>
+                </div>
+                <p class="ea-help-note">Click a dimension on the drawing to edit it. The screen drawing and the
+                    one in the PDF are the same palette, so the sheet looks like what you checked.</p>
+
+                <h4>Corrosion: what the rule adds on top</h4>
+                <p class="ea-help-note">The table gives one value per face. These are conditions, not list
+                    entries, and SectionPro does <b>not</b> apply them for you:
+                    <b>+1,0 mm</b> on the plate surface within 3 m above the chain locker bottom (Tab 1 fn 2);
+                    <b>+0,50 mm</b> on dry bulk hold frames, ordinary stiffeners and primary supporting members
+                    within 3 m above the hold bottom (fn 9); a coated chemical tank may be taken at
+                    <b>0</b> (fn 3, IBC Code Ch. 6). Where a member sees more than one value,
+                    <b>[1.2.5]</b> puts the most onerous one on the whole strake.</p>
+
+                <h4>What it does not do</h4>
+                <p class="ea-help-note">Section properties only — no stress, buckling or strength check, and no
+                    effective breadth. The <b>self-check</b> button in the header runs the built-in cases
+                    against the live code and shows the count; click it for the list.</p>
+            </div>
+        </div>
+    </div>
 
     <!-- ========== TEST PANEL MODAL ========== -->
     <div class="ea-test-overlay" id="test-overlay" onclick="if(event.target===this)closeTestPanel()">
@@ -1008,47 +914,55 @@
                     <div class="ea-field">
                         <label class="ea-label">Plate Inner / Stiffener (tk₁)</label>
                         <select class="ea-select ea-select-sm" id="plate-compartment-inner" onchange="updateCorrosionValues()">
+                            <!-- KOROZYON_TABLOSU - TEK KAYNAK: Apps/NR467Local/app/data/corrosion.json (korozyon-yay.py yazar, elle duzenleme) -->
                             <option value="1.00">Ballast tank / Bilge / Chain locker (1.00)</option>
                             <option value="1.00">Exposed to atmosphere (1.00)</option>
                             <option value="1.00">Exposed to seawater (1.00)</option>
-                            <option value="0.50">Cargo oil tank / Fuel oil tank (0.50)</option>
-                            <option value="0.00">Chemical tank with coating (0.00)</option>
-                            <option value="0.00">LNG tank (0.00)</option>
-                            <option value="1.00">Dry bulk cargo hold (1.00)</option>
-                            <option value="1.75">Dry bulk - Inner bottom/Side plate (1.75)</option>
-                            <option value="1.00">Dry bulk - Frames & PSM (1.00)</option>
+                            <option value="0.50">Cargo oil / Fuel / Chemical tank (0.50)</option>
+                            <option value="0.00">Liquefied gas tank (0.00)</option>
+                            <option value="1.00">Dry bulk hold - general (1.00)</option>
+                            <option value="1.75">Dry bulk - inner bottom / side / t.bhd (1.75)</option>
+                            <option value="1.00">Dry bulk - frames, stiffeners, PSM (1.00)</option>
                             <option value="0.50">Fresh water tank (0.50)</option>
                             <option value="1.75">Moonpool (1.75)</option>
-                            <option value="1.25">Mud/brine tank (1.25)</option>
+                            <option value="1.25">Mud / brine tank (1.25)</option>
                             <option value="2.00">Hopper well - dredging (2.00)</option>
-                            <option value="0.50">Cofferdam / Void space (0.50)</option>
-                            <option value="0.50" selected>Dry space - machinery/store (0.50)</option>
-                            <option value="0.50">Container hold - Trans. bhd (0.50)</option>
-                            <option value="1.00">Container hold - Elsewhere (1.00)</option>
+                            <option value="1.00">Asphalt carrier - tank / inner side gap (1.00)</option>
+                            <option value="0.50">Cofferdam / void space (0.50)</option>
+                            <option value="0.50" selected>Dry space - machinery / store (0.50)</option>
+                            <option value="0.50">Container hold - transverse bhd (0.50)</option>
+                            <option value="1.00">Container hold - elsewhere (1.00)</option>
                             <option value="0.00">Accommodation (0.00)</option>
+                            <option value="0.50">Other compartments (0.50)</option>
+                            <option value="0.00">Coated chemical tank (IBC Ch.6) - fn (3)</option>
+                        <!-- KOROZYON_TABLOSU sonu -->
                         </select>
                     </div>
                     <div class="ea-field">
                         <label class="ea-label">Plate Outer (tk₂)</label>
                         <select class="ea-select ea-select-sm" id="plate-compartment-outer" onchange="updateCorrosionValues()">
+                            <!-- KOROZYON_TABLOSU - TEK KAYNAK: Apps/NR467Local/app/data/corrosion.json (korozyon-yay.py yazar, elle duzenleme) -->
                             <option value="1.00">Ballast tank / Bilge / Chain locker (1.00)</option>
                             <option value="1.00">Exposed to atmosphere (1.00)</option>
                             <option value="1.00">Exposed to seawater (1.00)</option>
-                            <option value="0.50">Cargo oil tank / Fuel oil tank (0.50)</option>
-                            <option value="0.00">Chemical tank with coating (0.00)</option>
-                            <option value="0.00">LNG tank (0.00)</option>
-                            <option value="1.00">Dry bulk cargo hold (1.00)</option>
-                            <option value="1.75">Dry bulk - Inner bottom/Side plate (1.75)</option>
-                            <option value="1.00">Dry bulk - Frames & PSM (1.00)</option>
+                            <option value="0.50">Cargo oil / Fuel / Chemical tank (0.50)</option>
+                            <option value="0.00">Liquefied gas tank (0.00)</option>
+                            <option value="1.00">Dry bulk hold - general (1.00)</option>
+                            <option value="1.75">Dry bulk - inner bottom / side / t.bhd (1.75)</option>
+                            <option value="1.00">Dry bulk - frames, stiffeners, PSM (1.00)</option>
                             <option value="0.50">Fresh water tank (0.50)</option>
                             <option value="1.75">Moonpool (1.75)</option>
-                            <option value="1.25">Mud/brine tank (1.25)</option>
+                            <option value="1.25">Mud / brine tank (1.25)</option>
                             <option value="2.00">Hopper well - dredging (2.00)</option>
-                            <option value="0.50">Cofferdam / Void space (0.50)</option>
-                            <option value="0.50" selected>Dry space - machinery/store (0.50)</option>
-                            <option value="0.50">Container hold - Trans. bhd (0.50)</option>
-                            <option value="1.00">Container hold - Elsewhere (1.00)</option>
+                            <option value="1.00">Asphalt carrier - tank / inner side gap (1.00)</option>
+                            <option value="0.50">Cofferdam / void space (0.50)</option>
+                            <option value="0.50" selected>Dry space - machinery / store (0.50)</option>
+                            <option value="0.50">Container hold - transverse bhd (0.50)</option>
+                            <option value="1.00">Container hold - elsewhere (1.00)</option>
                             <option value="0.00">Accommodation (0.00)</option>
+                            <option value="0.50">Other compartments (0.50)</option>
+                            <option value="0.00">Coated chemical tank (IBC Ch.6) - fn (3)</option>
+                        <!-- KOROZYON_TABLOSU sonu -->
                         </select>
                     </div>
                     <div class="ea-corr-box">
@@ -1576,9 +1490,10 @@
             if (Math.abs(c.angle-90) > 1e-9)
                 L.push(['Inclination', `Profile at ${c.angle}° to the plate: centroidal inertias rotated by Mohr transformation (Ixx·sin² + Iyy·cos² − 2·Ixy·sin·cos); effective height = h·sin(angle). Approximate for the bulb shape.`]);
             L.push(['Corrosion', c.corrOn
-                ? `BV NR467 Pt B Ch 4 Sec 3 [1.2.1]: t_c = t_c1 + t_c2 + t_res (0.5 mm), capped at 0.2·t_gross for t ≤ 10 mm → plate ${c.ptCorr.toFixed(2)} mm. Stiffener [1.2.4]: internal member 2·t_c1 + t_res on the thinner part, applied to web and flange → ${c.stCorr.toFixed(2)} mm.`
+                ? `BV NR467 Pt B Ch 4 Sec 3 [1.2.1]: t_c = t_c1 + t_c2 + t_res (0.5 mm) for both faces, and for a gross thickness ≤ 10 mm the smaller of that and 0.2·t_gross — the cap is on the member, not on plating alone. Plate → ${c.ptCorr.toFixed(2)} mm. Stiffener [1.2.4] runs through [1.2.1] on the thinner part, as an internal member (2·t_c1 + t_res), and the result goes on both web and flange → ${c.stCorr.toFixed(2)} mm.`
                   + (c.pd.type==='HP' ? ' Bulb flat: Sec 6 [1.4.1] equivalent section built gross and net, the ratio applied to the catalogue values.' : '')
                 : 'Gross section - corrosion not applied.']);
+            if (c.corrOn) L.push(['Corrosion, local adds', 'Tab 1 footnotes are not applied automatically: add 1,0 mm to the plate surface within 3 m above the chain locker bottom (fn 2), and 0,50 mm to dry bulk hold frames, ordinary stiffeners and primary supporting members within 3 m above the hold bottom (fn 9). Coated chemical tanks may be taken at 0 (fn 3). Where a member sees more than one compartment value, [1.2.5] puts the most onerous one on the whole strake.']);
             L.push(['Units', 'Input mm; output cm² / cm³ / cm⁴ / cm. Unit weight with ρ = 7850 kg/m³.']);
             L.push(['Not covered', 'Effective breadth of attached plating is not computed - the entered plate width is used as given. No stress, buckling or strength check; results are section properties only, to be verified by a qualified engineer.', 'no']);
             return L;
@@ -1784,9 +1699,9 @@ const DEJAVU_BOLD_B64="AAEAAAAOAIAAAwBgR0RFRgJwAtEAADZIAAAANEdQT1MnaSc1AAA2fAAAC
             const aLen=Math.max(pw,pd.maxWidth*10)*scale*0.8;
             s+=`<line x1="${cx-aLen}" y1="${aCY}" x2="${cx+aLen}" y2="${aCY}" class="axis-line"/>`;
             s+=`<circle cx="${cx}" cy="${aCY}" r="5" class="centroid-marker"/>`;
-            s+=`<text x="${cx+aLen+5}" y="${aCY+4}" class="dimension-label" fill="#ef4444" style="cursor:default;pointer-events:none;">N.A.</text>`;
+            s+=`<text x="${cx+aLen+5}" y="${aCY+4}" class="dimension-label" fill="#dc2626" style="cursor:default;pointer-events:none;">N.A.</text>`;
             if(angle!==90){s+=`<line x1="${cx}" y1="${pbY}" x2="${cx}" y2="${pbY+60}" stroke="#334155" stroke-width="1" stroke-dasharray="3,3"/>`;
-                s+=`<text x="${cx+50}" y="${pbY+40}" class="dimension-label" fill="#f59e0b" style="cursor:default;pointer-events:none;">${angle}°</text>`;}
+                s+=`<text x="${cx+50}" y="${pbY+40}" class="dimension-label" fill="#b45309" style="cursor:default;pointer-events:none;">${angle}°</text>`;}
             svg.innerHTML=s;
         }
         function drawLDown(d,cx,tY,sc,ang){const{a,b,t}=d.dimensions;const ar=ang*Math.PI/180,aS=a*sc,bS=b*sc,tS=t*sc;
@@ -1864,6 +1779,14 @@ const DEJAVU_BOLD_B64="AAEAAAAOAIAAAwBgR0RFRgJwAtEAADZIAAAANEdQT1MnaSc1AAA2fAAAC
         // Golden reference values computed by independent hand calculation in Python,
         // then cross-checked against the formulas. Tolerance defaults to 0.5% relative.
         // ============================================
+
+
+        // ---- how-to panel ----------------------------------------------------
+        // The tool had no guidance at all; the corrosion footnotes in particular
+        // had nowhere to live.
+        function openHelp(){ document.getElementById('help-overlay').classList.add('active'); }
+        function closeHelp(){ document.getElementById('help-overlay').classList.remove('active'); }
+        document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeHelp(); });
 
         function openTestPanel() { el('test-overlay').classList.add('active'); runAllTests(); }
         function closeTestPanel() { el('test-overlay').classList.remove('active'); }
