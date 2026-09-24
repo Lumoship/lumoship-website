@@ -5371,7 +5371,7 @@ function handleLogoUpload(e) {
 }
 
 function updateVariantParticulars() {
-  // Built-in example only: the two variants describe the Baltic Laker. Any other
+  // Built-in example only: the two variants describe the example ship. Any other
   // project (the empty one included) replays this change event on restore and
   // must keep its own particulars.
   if (!(window.Draw && window.Draw.isExampleGeometry && window.Draw.isExampleGeometry())) return;

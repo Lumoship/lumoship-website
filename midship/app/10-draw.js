@@ -1358,7 +1358,7 @@ let spacingWarnings = [];  // Populated by computeProfiles, displayed in the edi
 // =========================================================================
 window._SKIP_EXCEL_DEFAULTS = false;
 
-// The Excel pin is the Baltic Laker's as-built layout. It only makes sense on
+// The Excel pin is the example ship's as-built layout. It only makes sense on
 // the Laker's own geometry; on any other ship it would plant the Laker's
 // stiffener positions and coaming on a hull they do not belong to. Detect the
 // example by its signature dimensions instead of asking the caller to remember
@@ -1611,7 +1611,7 @@ function applyExcelDefaultStrakes() {
 // -------------------------------------------------------------------------
 // PARAMS.stringerZs / PARAMS.tweenZs are the source of truth. An empty list
 // means the ship has none of that element. Projects saved before the field
-// existed fall back to GEOMETRY.TT (tween) and to the Baltic Laker seed
+// existed fall back to GEOMETRY.TT (tween) and to the example seed
 // (stringer), which is what they were getting anyway.
 // =========================================================================
 function levelZs(kind) {
@@ -3539,7 +3539,7 @@ function renderEditor() {
     // option itself before setting .value, so a one-option select is all this
     // needs to hold state.
     //
-    // Measured on the Baltic Laker project: 195 000 DOM nodes before, and a
+    // Measured on a real project: 195 000 DOM nodes before, and a
     // project load that blocked the main thread for 22 s.
     //
     // The one thing this gives up: arrow-keying through the catalog on a
@@ -11371,7 +11371,7 @@ function exportDXF() {
   // variables like $HANDSEED, $CLAYER, $CECOLOR, etc., and a BLOCKS
   // section with $Model_Space and $Paper_Space block definitions.
   //
-  // Layers in the template (UY175-2010 Conoship standard):
+  // Layers in the template (taken from the yard CAD layer standard):
   //   STEEL CONTINUOUS (1/red), STEEL DASHED (1),
   //   STIFFENERS CONTINUOUS (2/yellow), STIFFENERS DASHED (2),
   //   FLANGE (2), TEXT & POINTERS (7), Plate seam (8)
@@ -11379,7 +11379,7 @@ function exportDXF() {
   const pad = (n) => String(n).padStart(3, ' ');    // group-code alignment
   const g2 = (code, val) => { dxf += `${pad(code)}\n${val}\n`; };
 
-  // Layer mapping: internal names → UY175 standard layer names.
+  // Layer mapping: internal names → yard standard layer names.
   const LAYER_MAP = {
     'BASELINE':       'STEEL_CONTINUOUS',
     'CENTERLINE':     'STEEL_CONTINUOUS',
@@ -11883,7 +11883,7 @@ function exportDXF() {
   });
 
   // ====================================================================
-  // ANNOTATIONS — UY175-style labels on 'TEXT_POINTERS' layer
+  // ANNOTATIONS — yard-standard labels on 'TEXT_POINTERS' layer
   //   Plate thickness:  "-t- (MAT)"           (ör. "-14- (AH36)")
   //   Stiffener:        "Profile (MAT)"       (ör. "HP 200x10 (AH36)")
   //   Both use text height 80 mm so they are legible at typical plot scales.

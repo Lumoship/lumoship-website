@@ -1005,7 +1005,7 @@ const Bridge = {
       // GEOMETRY - only the fields the scantling page actually owns.
       //
       // R_B, duct_half and IS used to be written here as the literals 1800,
-      // 900 and 10030 ("project convention" / Baltic Laker's drawing). The
+      // 900 and 10030 ("project convention" / the example drawing). The
       // scantling page has no inputs for any of them, so hardcoding them meant
       // this sync silently reverted whatever the geometry editor held, and made
       // it impossible to set up a ship whose inner side is not at 10030.
@@ -1040,7 +1040,7 @@ const Bridge = {
       // SIDE_GIRDERS - owned by the geometry editor, not by this page.
       //
       // This used to rebuild the list as a fixed [3700, 6500, IS] layout
-      // "that matches Baltic Laker", which meant every trip back to the
+      // "that matches the example", which meant every trip back to the
       // Geometry page threw away girders the user had added or moved.
       // The scantling page has no girder-position inputs, so it pushes none.
 

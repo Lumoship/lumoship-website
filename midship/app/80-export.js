@@ -655,7 +655,7 @@ function exportPDF() {
   doc.setDrawColor(59, 130, 246); doc.setLineWidth(1.5); doc.line(lm, y, pw-rm, y); y += 10;
   doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.text('Midship Scantling Summary', lm, y); y += 6;
   doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
-  // Was hardcoded to 'Baltic Laker GC', so every report printed that ship's
+  // Was hardcoded to one ship's name, so every report printed that ship's
   // name whatever project was open. `v` is the live vessel name.
   doc.text((v || 'Midship Section') + ' — LR Pt 4 Ch 1', lm, y); y += 10;
   

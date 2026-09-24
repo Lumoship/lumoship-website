@@ -15,11 +15,23 @@
 // uretilen XML'i BV'nin KENDI semasiyla dogruluyor (PowerShell System.Xml).
 // Tarayicida ayri, testte ayri bir uretici olsaydi "gecerli" sozu tahmin olurdu.
 //
-// BIRIMLER (varsayim; 2e adiminda Mars'ta acilarak dogrulanacak):
-//   ana boyutlar, kompartimanlar        m / m3   (sema gemi olceginde tutuyor)
-//   kesit geometrisi, egri apsisi (S / SEnd), cerceve araligi, levha kalinligi,
-//     profil olculeri                   mm       (Midship de mm tutuyor)
-//   Yanlissa tek carpan degisir; donusum tek yerde yapilir.
+// BIRIMLER - MARS'IN KENDI PROJE DOSYASINDAN OLCULDU (23 Eylul 2026)
+//   Ice aktarma semasi (MarineSoftwareImport 1.9) birim SOYLEMIYOR - tek atifi
+//   "positivefloat". Bu yuzden Mars'in kendi yazdigi .xma proje dosyasindaki
+//   degerler olculdu (dosya musteri verisi oldugu icin burada aktarilmiyor):
+//     Node Y / Z, Node Radius                              -> METRE
+//     Strake DistanceOffset (DistanceType = S_Distance)    -> METRE
+//     LongitudinalStiffenersGroup Start / Spacing          -> METRE
+//     CrossSection Bredth / DepDeck / DepTop               -> METRE
+//     Strake Thickness, profil WebHeight / WebThickness    -> MM
+//     MainParticulars StandardFrameSpacing                 -> MM
+//   Capraz kontrol: bir panelin dugum zincirinden elle hesaplanan egri apsisi
+//   dosyadaki DistanceOffset ile ve Mars ekraninin "s = ... m" yazisiyla ayni
+//   cikti. Yani kesit GEOMETRISI metre, KALINLIK / PROFIL OLCUSU / CERCEVE
+//   ARALIGI mm.
+//   Midship her ikisini de mm tutuyor; donusum TEK yerde, metre() islevinde.
+//   Onceki surum dugumleri mm yaziyordu - o dosya Mars'ta 1000 kat buyuk bir
+//   kesit olurdu.
 //
 // MARS PANEL = MIDSHIP GROUP. Midship'in "panel" dedigi sey dugumden dugume TEK
 // parcadir (Mars'ta Segment). Mars'in Panel'i bir parca ZINCIRI ve strake /
@@ -113,6 +125,14 @@
     return String(s === undefined || s === null ? '' : s)
       .split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;')
       .split('"').join('&quot;');
+  }
+  // mm -> m: kesit geometrisi Mars tarafinda metre (yukaridaki BIRIMLER notu).
+  // Basamak varsayilani 4: metrede 1 ondalik 100 mm olurdu, 4 ondalik 0.1 mm.
+  function metre(v, basamak) {
+    if (v === '' || v === null || v === undefined) return null;
+    var x = Number(v);
+    if (!isFinite(x)) return null;
+    return say(x / 1000, basamak === undefined ? 4 : basamak);
   }
   function say(v, basamak) {
     // BOS ALAN SAYI DEGILDIR: Number('') === 0 oldugu icin bos bir girdi
@@ -329,7 +349,7 @@
       var eksikDugum = [];
 
       var dugumXml = ks.dugumler.map(function (d, i) {
-        return '          <Node ' + nitelik({ ID: i + 1, Y: say(d.y, 1), Z: say(d.z, 1) }) + '/>';
+        return '          <Node ' + nitelik({ ID: i + 1, Y: metre(d.y), Z: metre(d.z) }) + '/>';
       }).join(NL);
 
       var panelXml = ks.paneller.map(function (p, pi) {
@@ -342,7 +362,7 @@
           if (dugumNo[s.bitisDugum] === undefined) eksikDugum.push(String(s.bitisDugum));
           return '              <Segment ' + nitelik({
             EndNodeID: dugumNo[s.bitisDugum], SegmentType: (s.tur === 'Arc' ? 'Arc' : 'Line'),
-            Radius: say(s.tur === 'Arc' ? (s.r || 0) : 0, 1), PositionCode: pk
+            Radius: metre(s.tur === 'Arc' ? (s.r || 0) : 0), PositionCode: pk
           }) + '/>';
         }).join(NL);
 
@@ -352,15 +372,15 @@
         var strakeXml = (p.strakeler || []).map(function (s, si) {
           apsis += Number(s.uzunluk) || 0;
           return '              <Strake ' + nitelik({
-            STID: s.id || ('S' + (pi + 1) + '_' + (si + 1)), SEnd: say(apsis, 1),
+            STID: s.id || ('S' + (pi + 1) + '_' + (si + 1)), SEnd: metre(apsis),
             MaterialID: malzemeNo(s.malzeme), StrakePropertyID: strakeNo(s.kalinlik),
-            SHoleStart: say(s.delikBas || 0, 1), SHoleEnd: say(s.delikSon || 0, 1)
+            SHoleStart: metre(s.delikBas || 0), SHoleEnd: metre(s.delikSon || 0)
           }) + '/>';
         }).join(NL);
 
         var stiffXml = (p.stiffenerlar || []).map(function (s, si) {
           return '              <Stiffener ' + nitelik({
-            STID: s.id || ('T' + (pi + 1) + '_' + (si + 1)), UserLabel: s.etiket, S: say(s.s, 1),
+            STID: s.id || ('T' + (pi + 1) + '_' + (si + 1)), UserLabel: s.etiket, S: metre(s.s),
             // Midship kesidi bir ORTA KESIT: uzerindeki takviyeler boyunadir,
             // yani kesit duzlemine DIK (Perpendicular). Enine cerceveler bu
             // modelde yok; gelirse yon alani modelden gelir.
@@ -371,7 +391,10 @@
 
         return '          <Panel ' + nitelik({
           ID: pi + 1, Name: p.ad || ('P' + (pi + 1)),
-          StartNodeID: dugumNo[p.baslangicDugum], PrimaryStructureSpacing: say(p.psAralik, 1), Beff: p.beff
+          // PrimaryStructureSpacing: gruptaki EN AZ emin olunan alan. .xma'da dogrudan
+          // karsiligi yok; panelin tasiyici araligi SuppAftX/SuppForeX farkindan
+          // (36.7 -> 38.1 = 1.4) yani METRE olarak cikiyor, o kabul edildi.
+          StartNodeID: dugumNo[p.baslangicDugum], PrimaryStructureSpacing: metre(p.psAralik), Beff: p.beff
         }) + '>' + NL +
           '            <Segments>' + NL + segXml + NL + '            </Segments>' + NL +
           (strakeXml ? ('            <Strakes>' + NL + strakeXml + NL + '            </Strakes>' + NL) : '') +
@@ -647,7 +670,7 @@
     return r;
   }
 
-  var API = { uret: uret, topla: topla, indir: indir, calistir: calistir, pencere: pencere, marsProfil: marsProfil,
+  var API = { uret: uret, topla: topla, indir: indir, calistir: calistir, pencere: pencere, marsProfil: marsProfil, metre: metre,
               POZISYON: null, NOTASYON: null, KOMPARTIMAN: null };
   // esleme tablolari disa da acilir (test ve arayuz etiketleri icin)
   try { API.POZISYON = POZISYON; API.NOTASYON = NOTASYON; API.KOMPARTIMAN = KOMPARTIMAN; } catch (e) { /* esleme henuz yazilmadi */ }

@@ -72,7 +72,7 @@
   };
 
   // ── Fields with no safe generic default ──────────────────────────────
-  // These describe one specific ship. Carrying Baltic Laker's numbers into
+  // These describe one specific ship. Carrying the example ship's numbers into
   // a new project would produce plausible-looking but wrong results, so they
   // are cleared and the user is told which ones still need input.
   //
@@ -705,7 +705,7 @@
   //  EXAMPLE PROJECT
   // =====================================================================
 
-  // The original Baltic Laker data still lives in the code defaults, so
+  // The original example data still lives in the code defaults, so
   // "load the example" is just: forget the autosave and start over.
   var EXAMPLE_FLAG = LS_KEY + ':example';
   function loadExample() {
@@ -916,12 +916,22 @@
     // ESKI ORNEK KAYDI: eski surumler ornek gemiyle aciliyordu ve otomatik
     // kayit onu diske yaziyordu; o tarayicilarda her acilista ayni gemi geri
     // geliyor (olculdu 23 Eylul 2026: lumoship.org/midship'te 55 KB'lik kayit,
-    // vesselName = eski ornek adi). Tam ADINA bakip yalnizca o kaydi atiyoruz -
+    // vesselName = eski ornek adi). Yalnizca o kaydi atiyoruz -
     // kullanicinin kendi projesi (baska bir ad) dokunulmadan durur.
-    var ESKI_ORNEK_ADI = 'Wagenborg Baltic Laker GC';
+    // Ad burada DUZ METIN durmuyor: yayinlanan kaynak musteri proje adi
+    // tasimasin. Ad yalnizca eski kaydi TANIMAK icin gerekiyor, gostermek icin
+    // degil - o yuzden karsilastirma basit bir toplamla yapiliyor. (Cakisma
+    // riski onemsiz: eslesen kayit zaten yalnizca silinir, kullanici bos
+    // projeye duser ve toast ne oldugunu soyler.)
+    function adImzasi(s) {
+      var h = 0;
+      for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+      return h;
+    }
+    var ESKI_ORNEK_IMZA = 1415813504;
     var kayitliAd = null;
     try { kayitliAd = saved && saved.formValues ? saved.formValues.vesselName : null; } catch (e) {}
-    if (kayitliAd === ESKI_ORNEK_ADI) {
+    if (kayitliAd && adImzasi(kayitliAd) === ESKI_ORNEK_IMZA) {
       dropSaved();
       blankStart();
       console.log('[Project] retired example autosave dropped - starting empty');

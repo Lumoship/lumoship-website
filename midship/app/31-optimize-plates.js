@@ -419,7 +419,7 @@ function autoOptimizePlatesBuckling() {
     // v35: stringer + tween strakes carry their actual z in `z_level` set up
     // when the level was created. Use that — the old `(IB+TT)/2` formula
     // returned ~7.35 m for every tween strake (which sits at 12.9 m in the
-    // Baltic Laker geometry), and `G.TT = 12900` for every stringer strake
+    // example geometry), and `G.TT = 12900` for every stringer strake
     // (which sits at ~8.59 m). Both wrong → buckling optimizer was solving
     // for the wrong σ_face above 12.9 m AB.
     if (plateKey === 'stringer') {

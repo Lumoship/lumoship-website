@@ -19,7 +19,7 @@ document.getElementById('analysisDate').valueAsDate = new Date();
 //                    and UD (Variant 2A is taller so it needs more).
 const VARIANTS = {
   '1B': {
-    L: 192, D: 15.3, Cb: 0.881,    // Baltic Laker Var 1B
+    L: 192, D: 15.3, Cb: 0.881,    // example ship Var 1B
     geom: { UD: 15300, HC: 16350 },
     tweenUDProfiles: 3,             // current 1B layout (3 internal stiffs)
     // Still-water bending moments (LR Pt 3 Ch 4 Sec 5.3.1):
@@ -42,7 +42,7 @@ const VARIANTS = {
     },
   },
   '2A': {
-    L: 216, D: 15.5, Cb: 0.878,    // Baltic Laker Var 2A
+    L: 216, D: 15.5, Cb: 0.878,    // example ship Var 2A
     geom: { UD: 15500, HC: 16350 },
     tweenUDProfiles: 3,             // match 1B layout (Excel defaults pin
                                     //  the actual z's; this is the fallback

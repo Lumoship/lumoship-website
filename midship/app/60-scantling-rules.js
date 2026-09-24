@@ -421,7 +421,7 @@ function populateFilteredDropdown(selectId, Z_req, s_mm, t_plate_mm, kL, safetyL
   const currentValue = sel.value;
   const viable = getViableProfiles(Z_req, s_mm, t_plate_mm, kL, safetyLimitOverride);
 
-  // Default profile preferences (Baltic Laker). Used when no value is set yet
+  // Default profile preferences (example ship). Used when no value is set yet
   // AND the default passes the filter. Falls back to lightest otherwise.
   const DEFAULT_PROFILES = {
     bottomLongProfile: 'L 250x90x12',
