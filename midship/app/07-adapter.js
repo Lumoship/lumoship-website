@@ -142,7 +142,9 @@
   }
 
   // ---------------------------------------------------------------- compartments / WT
-  const LEGACY_TYPE = { ballast: 'ballast', fuel: 'fuel', freshwater: 'freshwater', cargo: 'cargo', liquidCargo: 'fuel', void: 'void', machinery: 'void', accommodation: 'void' };
+  // Not: burada tur -> kural motoru eslemesinin bir KOPYASI duruyordu ama hic
+  // cagrilmiyordu; donusumu ShipComps.toEngine yapiyor (09-compartments.js) ve
+  // o da tek kaynak olan SectionCAD.compLegacy'yi kullaniyor.
   function applyCompartments(s, COMPARTMENTS) {
     if (!window.ShipComps) return;
     const here = ShipComps.forSection(s).filter(c => ShipComps.hasSize(c));

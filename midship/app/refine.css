@@ -278,7 +278,6 @@
 .ea-logo{
   box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -8px rgba(59,130,246,0.9);
 }
-.ea-title-group p{color:var(--text-muted);letter-spacing:0.01em}
 .ea-header-badge{border-color:var(--border-soft)}
 
 /* ── 9. Scrollbars ────────────────────────────────────────────────────── */
@@ -780,9 +779,6 @@ body.geometry-active .lumoship-nav-inner{height:44px;padding:0}
 body.geometry-active .ea-header{display:none}
 body.geometry-active .ea-header-inner{padding:4px var(--spacing-md)}
 body.geometry-active .ea-header-top{margin-bottom:2px;gap:var(--spacing-md)}
-body.geometry-active .ea-logo{width:26px;height:26px;border-radius:var(--radius-sm);font-size:0.8rem}
-body.geometry-active .ea-title-group h1{font-size:var(--fs-base)}
-body.geometry-active .ea-title-group p{display:none}
 body.geometry-active .ea-header-btn{padding:4px 9px;font-size:0.68rem}
 body.geometry-active .ea-header-badge{display:none}
 
@@ -972,9 +968,7 @@ body.cad-mode .cad-status .ed-link-btn{white-space:nowrap}
 /* ── Quiet chrome — one type scale, nothing shouting (19.09.2026) ─────────────
    Scale: 11px mono for data, 12px for controls, 13px for the one title.
    Primary actions are the same size as the rest; colour carries the emphasis. */
-.ea-title-group h1{font-size:0.82rem;font-weight:600;letter-spacing:0.2px}
-.ea-title-group p{font-size:0.66rem}
-.ea-logo{width:26px;height:26px;font-size:0.8rem}
+.ea-project-line{font-size:0.7rem;font-weight:500}
 .ea-header-badge{font-size:0.6rem;padding:2px 7px}
 .ea-header-btn{font-size:0.68rem;padding:4px 9px;font-weight:500}
 .ea-header-btn svg{width:12px;height:12px}

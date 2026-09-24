@@ -75,16 +75,33 @@
     'other': 'General cargo ship',
     'tanker': 'Oil tanker',
   };
-  // Midship kompartiman turu -> BV MainDestination
+  // Midship kompartiman turu -> BV MainDestination (sema 1.9 enum yazimi birebir).
+  // uret() SAF kalmak zorunda (node'da tarayicisiz kosuyor), bu yuzden liste
+  // burada da duruyor; 12-cad.js COMP_TYPES ile ayrisirsa _standart/mars/
+  // verify-mars.js duser - iki taraf elle senkron tutulmaz, denetlenir.
   var KOMPARTIMAN = {
-    'accommodation': 'Accommodation space',
     'ballast': 'Ballast water tank',
-    'cargo': 'Dry bulk cargo hold',
-    'freshwater': 'Fresh water tank',
-    'fuel': 'Fuel and lube oil tank',
+    // Midship'te 'cargo' = "General cargo hold", genel kuru yuk (istif yuku t/m2).
+    // "Dry bulk cargo hold" BV'de dokme yuk gemisi ambaridir: ayri kural seti ve
+    // semanin CompartmentBulkData blogu. Ikisi ARTIK ayri tur.
+    'cargo': 'General cargo hold',
+    'dryBulk': 'Dry bulk cargo hold',
+    'container': 'Container cargo hold',
+    'holdIndepTank': 'Hold containing independent tank',
     'liquidCargo': 'Cargo oil tank',
+    'liquidCargoHeated': 'Heated cargo oil tank',
+    'lngMembrane': 'Membrane liquefied gas tank',
+    'lngIndependent': 'Independent liquefied gas tank',
+    'fuel': 'Fuel and lube oil tank',
+    'fuelHeated': 'Heated fuel and lube oil tank',
+    'freshwater': 'Fresh water tank',
     'machinery': 'Machinery space',
+    'accommodation': 'Accommodation space',
+    'cofferdamGas': 'Cofferdam gas carrier',
+    'hopperWell': 'Hopper well',
     'void': 'Void space',
+    'drySpace': 'Dry space',
+    'other': 'Other',
   };
   // <<< MARS_ESLEME
 
@@ -325,9 +342,31 @@
     var komp = (model && model.kompartimanlar) || [];
     var kompXml = komp.map(function (c) {
       var hedef = KOMPARTIMAN[c.tur] || 'Other';
+      // MARS "Loads" sekmesi: sivi yogunlugu, hava borusu ve test yuku. Midship
+      // bunlari zaten kompartiman kaydinda tutuyor (rho / airpipe_mm / testHead_m);
+      // onceki surum yazmiyordu ve kullanici hepsini Mars'ta elle dolduruyordu.
+      // Sema hava borusunu IKIYE bolmus: AirPipeDeckFromBL (borunun ciktigi guverte)
+      // + TopOfAirPipeFromDeck (o guverteden yukarisi). Midship tek deger tutuyor
+      // (BL'den yukseklik), bu yuzden guverte = tank tavani kabul edilir.
+      // Ikisi de positivefloat: sifir/negatif yazilamaz, o durumda ALAN ATLANIR
+      // ve uyari birakilir - sessiz sifir gitmez.
       var L = Math.abs((c.xSon || 0) - (c.xBas || 0));
       var B = Math.abs((c.yMax || 0) - (c.yMin || 0));
       var H = Math.abs((c.zMax || 0) - (c.zMin || 0));
+      var sivi = /^(ballast|fuel|fuelHeated|freshwater|liquidCargo|liquidCargoHeated|lngMembrane|lngIndependent)$/.test(c.tur);
+      var ad = c.ad || c.id;
+      var yogunluk = say(c.yogunluk, 3);
+      if (sivi && yogunluk === null) uyarilar.push('Kompartiman "' + ad + '": sivi yogunlugu verilmedi, LiquidDensity yazilmadi.');
+      var apGuverte = null, apUst = null;
+      var apZ = say(c.havaBorusuZ);                       // BL'den, m
+      if (apZ !== null && +apZ > (c.zMax || 0)) { apGuverte = say(c.zMax); apUst = say(+apZ - (c.zMax || 0)); }
+      else if (sivi) uyarilar.push('Kompartiman "' + ad + '": hava borusu tepesi ' +
+        (apZ === null ? 'verilmedi' : 'tank tavaninin (' + say(c.zMax) + ' m) altinda') + ', hava borusu alanlari yazilmadi.');
+      // Mars ekraninda "Load test height" m/BL olarak gosteriliyor; Midship ise
+      // tank tavanindan YUKSEKLIK tutuyor (IACS 2.4 m gibi), o yuzden BL'ye tasinir.
+      var testSeviyesi = (c.testYuku === null || c.testYuku === undefined || c.testYuku === '')
+        ? null : say((c.zMax || 0) + Number(c.testYuku));
+      if (sivi && testSeviyesi === null) uyarilar.push('Kompartiman "' + ad + '": test yuku verilmedi, LoadTestHeight yazilmadi.');
       return '    <Compartment ' + nitelik({
         ID: c.id, Name: c.ad || c.id, MainDestination: hedef,
         Length: say(L), Breadth: say(B), Height: say(H),
@@ -335,7 +374,9 @@
         ZG: say(((c.zMin || 0) + (c.zMax || 0)) / 2),
         XStartFromFr0: say(c.xBas), XEndFromFr0: say(c.xSon),
         ZTopFromBL: say(c.zMax), ZMinFromBL: say(c.zMin),
-        VTot: say(c.hacim !== undefined ? c.hacim : L * B * H)
+        VTot: say(c.hacim !== undefined ? c.hacim : L * B * H),
+        LiquidDensity: yogunluk, AirPipeDeckFromBL: apGuverte, TopOfAirPipeFromDeck: apUst,
+        LoadTestHeight: testSeviyesi
       }) + '/>';
     }).join(NL);
 
@@ -579,7 +620,10 @@
           id: c.id, ad: c.name || c.id, tur: c.type,
           xBas: c.xStart_m, xSon: c.xEnd_m,
           yMin: (c.y0 || 0) / 1000, yMax: (c.y1 || 0) / 1000,
-          zMin: (c.z0 || 0) / 1000, zMax: (c.z1 || 0) / 1000
+          zMin: (c.z0 || 0) / 1000, zMax: (c.z1 || 0) / 1000,
+          // MARS Loads sekmesi icin: yogunluk t/m3, hava borusu mm -> m, test yuku m
+          yogunluk: c.rho, havaBorusuZ: (c.airpipe_mm || c.airpipe_mm === 0) ? c.airpipe_mm / 1000 : null,
+          testYuku: c.testHead_m
         };
       }) : [],
       kesit: kesitTopla(),

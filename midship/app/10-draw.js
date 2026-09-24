@@ -4088,12 +4088,12 @@ function renderEditor() {
     html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <input class="ed-input comp-name" type="text" value="${c.name}" data-comp-idx="${i}" style="flex:1;min-width:0;font-size:0.75rem;font-weight:600;padding:4px 6px" placeholder="Name">
       <select class="ed-input comp-type" data-comp-idx="${i}" title="Compartment type" style="width:100px;font-size:0.7rem;font-weight:600;color:${tCol};padding:4px 4px">
-        <option value="ballast"    ${type==='ballast'?'selected':''}>Ballast</option>
-        <option value="cargo"      ${type==='cargo'?'selected':''}>Cargo</option>
-        <option value="fuel"       ${type==='fuel'?'selected':''}>Fuel Oil</option>
-        <option value="freshwater" ${type==='freshwater'?'selected':''}>Fresh Water</option>
-        <option value="void"       ${type==='void'?'selected':''}>Void</option>
-        <option value="cofferdam"  ${type==='cofferdam'?'selected':''}>Cofferdam</option>
+        ${/* Liste TEK KAYNAKTAN: SectionCAD.COMP_TYPES. Elle yazilmisti ve icinde
+             COMP_TYPES'ta HIC OLMAYAN bir kod vardi ('cofferdam'): secilince
+             compType() listenin ilk satirina, yani ballast'a dusuyordu - sessizce
+             yanlis tur. */
+          (window.SectionCAD && SectionCAD.COMP_TYPES || []).map(T =>
+            `<option value="${T.code}" ${type===T.code?'selected':''}>${T.label}</option>`).join('')}
       </select>
       <button class="ed-del" data-comp-del="${i}" title="Delete compartment" style="flex-shrink:0">${icon('close','11px')}</button>
     </div>`;

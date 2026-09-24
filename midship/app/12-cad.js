@@ -34,17 +34,60 @@
   // rule engine (60-scantling-rules.js): tanks use the air pipe / overflow height
   // (LR Pt 4 Ch 1 Table 1.9.1 deep-tank formula, Sec 8.4.4 for a DB common with a
   // tank), holds use the cargo stowage load on the inner bottom (Sec 8.4).
+  // Kompartiman turleri. Liste BV MARS 4.5'in "Main Destination" acilir
+  // menusune gore genisletildi; her satir kendi eslemesini TASIR:
+  //   mars   -> MarineSoftwareImport 1.9 MainDestination degeri (birebir yazim)
+  //   legacy -> kural motorunun tanidigi dort tur (ballast/fuel/freshwater/
+  //             cargo/void). Motor sivi yukunu buna gore koyar.
+  // NEDEN satirda: legacy eslemesinin iki ayri kopyasi vardi (07-adapter.js ve
+  // 09-compartments.js) ve ikisi de yeni bir turu tanimadan 'void'e dusuruyordu
+  // - yani yeni bir tank SESSIZCE sivi yukunu kaybederdi. Artik tek kaynak bu
+  // liste; _standart/mars/verify-mars.js her kodun eslemesi var mi diye bakiyor.
   const COMP_TYPES = [
-    { code: 'ballast',    label: 'Ballast tank',     rho: 1.025, tank: true,  hint: 'Sea water. Head to the air pipe / overflow top; test head 2.4 m above tank top (IACS).' },
-    { code: 'fuel',       label: 'Fuel oil tank',    rho: 0.90,  tank: true,  hint: 'Heavy fuel. Head to the air pipe top; test head per tank top / overflow.' },
-    { code: 'freshwater', label: 'Fresh water tank', rho: 1.00,  tank: true,  hint: 'Fresh / drinking water.' },
-    { code: 'cargo',      label: 'Cargo hold',       rho: 0.80,  tank: false, hint: 'Dry cargo: stowage load on the inner bottom (t/m²) drives the IB plating; bulk density for the hopper / bulkheads.' },
-    { code: 'liquidCargo',label: 'Liquid cargo',     rho: 0.85,  tank: true,  hint: 'Cargo oil / chemicals: deep-tank head with the cargo density.' },
-    { code: 'void',       label: 'Void / cofferdam', rho: 0,     tank: false, hint: 'No liquid head; only the adjacent compartments load its boundaries.' },
-    { code: 'machinery',  label: 'Machinery space',  rho: 0,     tank: false, hint: 'Engine room: deck loads and machinery casing rules, no tank head.' },
-    { code: 'accommodation', label: 'Accommodation / stores', rho: 0, tank: false, hint: 'Deck loads only.' },
+    { code: 'ballast',    label: 'Ballast water tank', rho: 1.025, tank: true,  legacy: 'ballast',    mars: 'Ballast water tank',              hint: 'Sea water. Head to the air pipe / overflow top; test head 2.4 m above tank top (IACS).' },
+    { code: 'cargo',      label: 'General cargo hold', rho: 0.80,  tank: false, legacy: 'cargo',      mars: 'General cargo hold',              hint: 'Dry cargo: stowage load on the inner bottom (t/m2) drives the IB plating.' },
+    { code: 'dryBulk',    label: 'Dry bulk cargo hold', rho: 1.00, tank: false, legacy: 'cargo',      mars: 'Dry bulk cargo hold',             hint: 'Bulk carrier hold: bulk density for the hopper / bulkheads. BV asks for extra hold data.' },
+    { code: 'container',  label: 'Container cargo hold', rho: 0,   tank: false, legacy: 'cargo',      mars: 'Container cargo hold',            hint: 'Container stack loads, not a distributed stowage load.' },
+    { code: 'holdIndepTank', label: 'Hold for independent tank', rho: 0, tank: false, legacy: 'void', mars: 'Hold containing independent tank', hint: 'The hold itself carries no liquid head; the tank inside does.' },
+    { code: 'liquidCargo',label: 'Cargo oil tank',     rho: 0.85,  tank: true,  legacy: 'fuel',       mars: 'Cargo oil tank',                  hint: 'Cargo oil / chemicals: deep-tank head with the cargo density.' },
+    { code: 'liquidCargoHeated', label: 'Heated cargo oil tank', rho: 0.85, tank: true, legacy: 'fuel', mars: 'Heated cargo oil tank',         hint: 'Heated cargo: BV applies a temperature allowance.' },
+    { code: 'lngMembrane', label: 'Liquefied gas tank (membrane)', rho: 0.50, tank: true, legacy: 'fuel', mars: 'Membrane liquefied gas tank', hint: 'Membrane containment.' },
+    { code: 'lngIndependent', label: 'Liquefied gas tank (independent)', rho: 0.50, tank: true, legacy: 'fuel', mars: 'Independent liquefied gas tank', hint: 'Independent (type A/B/C) tank.' },
+    { code: 'fuel',       label: 'Fuel & lube oil tank', rho: 0.90, tank: true, legacy: 'fuel',       mars: 'Fuel and lube oil tank',          hint: 'Heavy fuel. Head to the air pipe top; test head per tank top / overflow.' },
+    { code: 'fuelHeated', label: 'Heated fuel & lube oil tank', rho: 0.90, tank: true, legacy: 'fuel', mars: 'Heated fuel and lube oil tank',  hint: 'Heated bunker tank.' },
+    { code: 'freshwater', label: 'Fresh water tank',   rho: 1.00,  tank: true,  legacy: 'freshwater', mars: 'Fresh water tank',                hint: 'Fresh / drinking water.' },
+    { code: 'machinery',  label: 'Machinery space',    rho: 0,     tank: false, legacy: 'void',       mars: 'Machinery space',                 hint: 'Engine room / pump room / casing: deck loads, no tank head.' },
+    { code: 'accommodation', label: 'Accommodation space', rho: 0, tank: false, legacy: 'void',       mars: 'Accommodation space',             hint: 'Deck loads only.' },
+    { code: 'cofferdamGas', label: 'Cofferdam (gas carrier)', rho: 0, tank: false, legacy: 'void',    mars: 'Cofferdam gas carrier',           hint: 'Cofferdam separating gas tanks.' },
+    { code: 'hopperWell', label: 'Hopper well',        rho: 0,     tank: false, legacy: 'void',       mars: 'Hopper well',                     hint: 'Dredger hopper well.' },
+    { code: 'void',       label: 'Void space',         rho: 0,     tank: false, legacy: 'void',       mars: 'Void space',                      hint: 'No liquid head; only the adjacent compartments load its boundaries.' },
+    { code: 'drySpace',   label: 'Other dry space',    rho: 0,     tank: false, legacy: 'void',       mars: 'Dry space',                       hint: 'Stores, duct keel, chain locker and similar dry spaces.' },
+    { code: 'other',      label: 'Other',              rho: 0,     tank: false, legacy: 'void',       mars: 'Other',                           hint: 'Anything the list above does not cover.' },
   ];
-  const compType = code => COMP_TYPES.find(t => t.code === code) || COMP_TYPES[0];
+  // ESKI KODLAR. Kayitli projelerde artik listede olmayan kodlar var. Karsiligi
+  // yoksa compType() listenin ILK satirina duser - o da 'ballast', yani bir
+  // kuru hacim sessizce TANK olur ve sivi yuku kazanir. Bu yuzden eski kodlar
+  // burada acikca cevrilir. ('cofferdam' cizim editorunun eski listesinde vardi
+  // ama COMP_TYPES'ta hic olmadi.)
+  const ESKI_KOD = { cofferdam: 'void' };
+  const kodCevir = code => ESKI_KOD[code] || code;
+
+  // Kural motorunun turu: liste disi bir kod gelirse 'void' degil, SOYLENIR.
+  function compLegacy(code) {
+    const T = COMP_TYPES.find(x => x.code === kodCevir(code));
+    if (T) return T.legacy;
+    if (code) console.warn('[Compartments] bilinmeyen tur "' + code + '" - void sayildi, sivi yuku konmaz');
+    return 'void';
+  }
+  function compType(code) {
+    const c = kodCevir(code);
+    const T = COMP_TYPES.find(t => t.code === c);
+    if (T) return T;
+    // Listenin ILKI 'ballast' - bilinmeyen bir kodu oraya dusurmek kuru bir
+    // hacmi TANK gosterirdi. 'other' yuksuz ve tanksiz, guvenli taraf.
+    if (code) console.warn('[Compartments] bilinmeyen tur "' + code + '" - Other sayildi');
+    return COMP_TYPES.find(x => x.code === 'other') || COMP_TYPES[0];
+  }
   // Deck loads (kN/m²) per deck panel. 60-scantling-rules.js turns them into the
   // Pt 3 Ch 3 Table 3.5.1 design heads for the deck longitudinal checks
   // (SectionAdapter.deckLoadFor).
@@ -1090,7 +1133,9 @@
     ec.querySelectorAll('.cp-f').forEach(i => i.addEventListener('change', e => {
       if (!c) return; const k = e.target.dataset.k; let v = e.target.value; const patch = {};
       if (['rho', 'airpipe_mm', 'testHead_m', 'cargoLoad', 'frFrom', 'frTo', 'y0', 'y1', 'z0', 'z1'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = null; }
-      if (k === 'type') { const T = compType(v); patch.rho = T.rho || null; if (!T.tank) { patch.airpipe_mm = null; patch.testHead_m = null; } if (v !== 'cargo') patch.cargoLoad = null; }
+      if (k === 'type') { const T = compType(v); patch.rho = T.rho || null; if (!T.tank) { patch.airpipe_mm = null; patch.testHead_m = null; } // Istif yuku artik UC ambar turunde anlamli (cargo / dryBulk / container);
+        // kod adina bakmak yeni turlerde kullanicinin girdigi degeri SILERDI.
+        if (T.legacy !== 'cargo') patch.cargoLoad = null; }
       patch[k] = v; CS().update(c.id, patch); after();
     }));
     ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { selComp = r.dataset.row; compPick = false; compPickA = null; renderSvg(); renderPanel(); }));
@@ -1366,5 +1411,5 @@
   function leave() { if (!document.body.classList.contains('cad-mode')) return; show(false); document.body.classList.remove('has-info-card'); const dv = document.getElementById('cadDims'); if (dv) dv.innerHTML = ''; const ic = document.getElementById('cadInfoCard'); if (ic) ic.style.display = 'none'; const mp = document.getElementById('cadMsgPane'); if (mp) mp.style.display = 'none'; const hd = document.querySelector('.editor-header-title'); if (hd) hd.textContent = 'Profile Editor'; pending = []; arcAsk = null; hover = null; const svg = B() && B().svg(); if (svg) svg.style.cursor = ''; }
 
   function resetSelection() { sel = { panel: null, node: null, group: null }; selComp = null; compPick = false; compPickA = null; pending = []; hover = null; hoverSg = null; hoverComp = null; }
-  window.SectionCAD = { COMP_TYPES, render, renderPanel, leave, setTool, scaleLabels, placeLabels, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
+  window.SectionCAD = { COMP_TYPES, compLegacy, compType, kodCevir, render, renderPanel, leave, setTool, scaleLabels, placeLabels, seedCompsInto, resetSelection, isClosed: (s, c) => !!compLoop(s, c), loopOf: compLoop, compPanels, get tool() { return tool; }, get selection() { return sel; } };
 })();

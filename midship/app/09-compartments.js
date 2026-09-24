@@ -67,8 +67,11 @@
   }
   // the engine's compartment record (07-adapter pushes these into COMPARTMENTS)
   function toEngine(c) {
-    const LEGACY_TYPE = { ballast: 'ballast', fuel: 'fuel', freshwater: 'freshwater', cargo: 'cargo', liquidCargo: 'fuel', void: 'void', machinery: 'void', accommodation: 'void' };
-    return { name: c.name || c.id, type: LEGACY_TYPE[c.type] || 'void', rho: c.rho || 0, airpipeZ_mm: c.airpipe_mm || null, testHead_m: c.testHead_m || null, cargoLoad: c.cargoLoad || 0,
+    // Tur -> kural motoru eslemesi TEK KAYNAK: SectionCAD.COMP_TYPES satirlari
+    // (12-cad.js). Burada kopyasi vardi; yeni bir tur eklenince bu kopya onu
+    // tanimaz ve tank SESSIZCE 'void' olurdu - sivi yuku kaybolurdu.
+    const legacyType = c => (window.SectionCAD && SectionCAD.compLegacy) ? SectionCAD.compLegacy(c) : 'void';
+    return { name: c.name || c.id, type: legacyType(c.type), rho: c.rho || 0, airpipeZ_mm: c.airpipe_mm || null, testHead_m: c.testHead_m || null, cargoLoad: c.cargoLoad || 0,
       yMin: c.y0, yMax: c.y1, zMin: c.z0, zMax: c.z1, sectionId: c.id };
   }
 
@@ -104,7 +107,11 @@
       if (lc.yMin != null) box = { y0: lc.yMin, y1: lc.yMax, z0: lc.zMin, z1: lc.zMax };
       else if (Array.isArray(lc.nodes) && nodesL) { const pts = lc.nodes.map(i => nodesL.find(q => q.id === i)).filter(Boolean); if (pts.length >= 2) box = { y0: Math.min(...pts.map(p => p.realY)), y1: Math.max(...pts.map(p => p.realY)), z0: Math.min(...pts.map(p => p.realZ)), z1: Math.max(...pts.map(p => p.realZ)) }; }
       if (!box) return;
-      const type = ['ballast', 'fuel', 'freshwater', 'liquidCargo', 'cargo', 'void', 'machinery', 'accommodation'].includes(lc.type) ? lc.type : 'void';
+      // Eski projeden gelen tur: listede varsa korunur. Liste TEK KAYNAKTAN
+      // gelir, elle yazilmaz - yoksa yeni bir tur ice aktarimda 'void'e duser.
+      const kodlar = (window.SectionCAD && SectionCAD.COMP_TYPES || []).map(x => x.code);
+      const cevrik = (window.SectionCAD && SectionCAD.kodCevir) ? SectionCAD.kodCevir(lc.type) : lc.type;
+      const type = kodlar.includes(cevrik) ? cevrik : 'void';
       read().push(Object.assign({ id: nextId(), name: lc.name || '', type, rho: lc.rho || null, airpipe_mm: lc.airpipeZ_mm || null, testHead_m: lc.testHead_m || null, cargoLoad: lc.cargoLoad || null, frFrom: null, frTo: null }, box)); n++;
     });
     if (n) save();
