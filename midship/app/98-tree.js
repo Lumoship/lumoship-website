@@ -251,6 +251,20 @@
     write: function (t) { var el = $('frameTableJson'); if (el) { el.value = JSON.stringify(t); el.dispatchEvent(new Event('change', { bubbles: true })); } },
     // spacing of the bay that starts at frame k, or null where no zone defines it
     spacingAt: function (k, t) { for (var i = 0; i < t.rows.length; i++) { var r = t.rows[i]; if (k >= r.from && k < r.to) return r.s; } return null; },
+    // web frame (primary support) aralığı, mm — zonun "her N çerçevede bir web frame" değeri × posta aralığı; hiçbiri tanımsızsa null
+    zoneAt: function (k, t) { for (var i = 0; i < t.rows.length; i++) { var r = t.rows[i]; if (k >= r.from && k < r.to) return r; } return null; },
+    webSpacingOf: function (r) { return (r && r.wf > 0) ? r.wf * r.s : null; },
+    // gemi boyunca bir x konumunun (mm) hangi zonda olduğunu bulup o zonun web frame aralığını döndürür
+    webSpacingAtX: function (xMm, t) {
+      t = t || FrameTable.read(); if (!t.rows.length) return null;
+      for (var i = 0; i < t.rows.length; i++) {
+        var r = t.rows[i]; if (!(r.wf > 0)) continue;
+        var xa = FrameTable.xOf(r.from, t), xb = FrameTable.xOf(r.to, t); if (xa == null || xb == null) continue;
+        var lo = Math.min(xa, xb), hi = Math.max(xa, xb);
+        if (xMm >= lo - 0.5 && xMm <= hi + 0.5) return r.wf * r.s;
+      }
+      return null;
+    },
     // x (mm) of a frame, walking from f0 through the zones; null when a bay on the way is undefined
     xOf: function (frame, t) {
       t = t || FrameTable.read(); var f = parseFloat(frame); if (isNaN(f) || !t.rows.length) return null;
@@ -285,10 +299,10 @@
       // zones (left) · frames (right)
       h += '<div class="ft-split"><div class="mb"><div class="mb-title">Frame spacing zones <em class="mb-em">' + t.rows.length + '</em></div>' +
         '<div class="mb-tools"><button class="mb-tool" data-ft="add" title="Add a zone after the last">＋</button><button class="mb-tool" data-ft="del" title="Remove the selected zone" ' + (FrameTable.sel == null ? 'disabled' : '') + '>✕</button></div>' +
-        '<div class="mb-table ft-table"><div class="mb-th ft-th"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span>x at end</span></div>';
+        '<div class="mb-table ft-table"><div class="mb-th ft-th ft-th6"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span title="Web frame — primary support — every N ordinary frames; blank = none defined here">Web fr. /N</span><span>x at end</span></div>';
       t.rows.forEach(function (r, i) {
         var xe = FrameTable.xOf(r.to, t);
-        h += '<div class="mb-tr ft-th ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span class="ft-x">' + (xe != null ? (xe / 1000).toFixed(3) : '—') + '</span></div>';
+        h += '<div class="mb-tr ft-th ft-th6 ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span><input class="ed-input ft-in" data-k="wf" type="number" step="1" min="0" value="' + (r.wf || '') + '" placeholder="—" title="Her N çerçevede bir birincil taşıyıcı (web frame) — boyuna posta/PSM açıklığı buradan türer"></span><span class="ft-x">' + (xe != null ? (xe / 1000).toFixed(3) : '—') + '</span></div>';
       });
       if (!t.rows.length) h += '<div class="mb-empty-row">no zones yet — ＋ adds one (e.g. frames 0 → 25 at 726 mm)</div>';
       h += '</div>';
@@ -303,7 +317,10 @@
       h += '<div class="mb"><div class="mb-title">Longitudinal view</div><div class="ft-longi">' + FrameTable.longiSvg(t, L, sf, rg) + '</div></div>';
       host.innerHTML = h;
       host.querySelectorAll('.ft-p').forEach(function (inp) { inp.addEventListener('change', function () { var tt = FrameTable.read(); var v = parseFloat(inp.value); if (isNaN(v)) return; tt[inp.dataset.k] = inp.dataset.k === 'f0' ? Math.round(v) : v; FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); }); });
-      host.querySelectorAll('.ft-in').forEach(function (inp) { inp.addEventListener('change', function () { var i = +inp.closest('.mb-tr').dataset.i; var tt = FrameTable.read(); var v = parseFloat(inp.value); if (!isNaN(v)) tt.rows[i][inp.dataset.k] = inp.dataset.k === 's' ? Math.max(1, v) : Math.round(v); FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); }); inp.addEventListener('focus', function () { FrameTable.sel = +inp.closest('.mb-tr').dataset.i; host.querySelectorAll('.ft-table .mb-tr').forEach(function (r) { r.classList.toggle('is-sel', +r.dataset.i === FrameTable.sel); }); var d = host.querySelector('[data-ft="del"]'); if (d) d.disabled = false; }); });
+      host.querySelectorAll('.ft-in').forEach(function (inp) { inp.addEventListener('change', function () { var i = +inp.closest('.mb-tr').dataset.i; var tt = FrameTable.read(); var v = parseFloat(inp.value);
+        if (inp.dataset.k === 'wf' && inp.value.trim() === '') { delete tt.rows[i].wf; }
+        else if (!isNaN(v)) tt.rows[i][inp.dataset.k] = inp.dataset.k === 's' ? Math.max(1, v) : Math.round(v);
+        FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); }); inp.addEventListener('focus', function () { FrameTable.sel = +inp.closest('.mb-tr').dataset.i; host.querySelectorAll('.ft-table .mb-tr').forEach(function (r) { r.classList.toggle('is-sel', +r.dataset.i === FrameTable.sel); }); var d = host.querySelector('[data-ft="del"]'); if (d) d.disabled = false; }); });
       host.querySelectorAll('.ft-table .mb-tr').forEach(function (r) { r.addEventListener('click', function () { FrameTable.sel = +r.dataset.i; host.querySelectorAll('.ft-table .mb-tr').forEach(function (q) { q.classList.toggle('is-sel', q === r); }); var d = host.querySelector('[data-ft="del"]'); if (d) d.disabled = false; }); });
       var add = host.querySelector('[data-ft="add"]'); if (add) add.addEventListener('click', FrameTable.add);
       var del = host.querySelector('[data-ft="del"]'); if (del) del.addEventListener('click', function () { if (FrameTable.sel == null) return; var tt = FrameTable.read(); tt.rows.splice(FrameTable.sel, 1); FrameTable.sel = null; FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); });

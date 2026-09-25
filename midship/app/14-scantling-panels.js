@@ -42,16 +42,22 @@
   function renderSupports(ec, s, ctx) {
     const gid = currentGid(s, ctx); if (!gid) { ec.innerHTML = '<div class="mb-empty">No panels yet.</div>'; return; }
     const d = M().panelData(s, gid); const sup = d.supports; const ci = M().chainInfo(s, gid);
-    const frSp = parseFloat((document.getElementById('transFrameSpacing') || {}).value) || null;   // standard frame spacing, mm
-    const leShip = parseFloat((document.getElementById('le') || {}).value); const shipSpan = leShip > 0 ? Math.round(leShip * 1000) : null;
+    const frSp = parseFloat((document.getElementById('transFrameSpacing') || {}).value) || null;   // standard frame spacing, mm (yalnız "from frames" düğmesi için)
+    // "from ship" zinciri: Frame Table (Web fr. /N, bu kesitin x'ine göre) > l_e (Ana Particulars, son çare) — DNV tarafındaki AYNI zincir
+    const L_ = parseFloat((document.getElementById('L') || {}).value) || 0;
+    const secX = s.frame != null && window.ProjectTree && window.ProjectTree.FrameTable ? window.ProjectTree.FrameTable.xOf(s.frame) : null;
+    const xMm = secX != null ? secX : (parseFloat((document.getElementById('sectionXL') || {}).value) || 0.5) * L_ * 1000;
+    const ftWf = window.ProjectTree && window.ProjectTree.FrameTable && window.ProjectTree.FrameTable.webSpacingAtX ? window.ProjectTree.FrameTable.webSpacingAtX(xMm) : null;
+    const leShip = parseFloat((document.getElementById('le') || {}).value);
+    const shipSpan = ftWf || (leShip > 0 ? Math.round(leShip * 1000) : null);
     const eff = sup.span > 0 ? sup.span : shipSpan;
     let h = header(s, ctx, gid, 'Supports');
     h += `<div class="mb"><div class="mb-title">Primary supports <em class="mb-em">longitudinal</em></div>
       <div class="mb-note">Plating and longitudinals of <b>${gName(s, gid)}</b> are supported by transverse primary members at:</div>
       <div class="mb-row"><span>Aft at</span><span class="pc-inline"><input class="ed-input sp-f" data-k="aftFr" type="number" step="1" value="${sup.aftFr != null ? sup.aftFr : ''}" placeholder="Fr."><em>frame</em></span></div>
       <div class="mb-row"><span>Fore at</span><span class="pc-inline"><input class="ed-input sp-f" data-k="foreFr" type="number" step="1" value="${sup.foreFr != null ? sup.foreFr : ''}" placeholder="Fr."><em>frame</em></span></div>
-      <div class="mb-row"><span>Span</span><span class="pc-inline"><input class="ed-input sp-f" data-k="span" type="number" step="10" value="${sup.span != null ? sup.span : ''}" placeholder="${shipSpan || ''}"><em>mm${sup.span ? '' : shipSpan ? ' · ship l_e' : ''}</em></span></div>
-      <div class="mb-actions"><button class="ed-link-btn" data-sp="from-frames" ${frSp && sup.aftFr != null && sup.foreFr != null ? '' : 'disabled'} title="Span = (fore − aft) × standard frame spacing ${frSp || '—'} mm">from frames</button><button class="ed-link-btn" data-sp="from-ship" title="Web frame spacing l_e from the Ship page">from ship</button><button class="ed-link-btn" data-sp="to-all" title="Give every panel this span">to all panels</button></div>
+      <div class="mb-row"><span>Span</span><span class="pc-inline"><input class="ed-input sp-f" data-k="span" type="number" step="10" value="${sup.span != null ? sup.span : ''}" placeholder="${shipSpan || ''}"><em>mm${sup.span ? '' : shipSpan ? (ftWf ? ' · Frame Table' : ' · l_e') : ''}</em></span></div>
+      <div class="mb-actions"><button class="ed-link-btn" data-sp="from-frames" ${frSp && sup.aftFr != null && sup.foreFr != null ? '' : 'disabled'} title="Span = (fore − aft) × standard frame spacing ${frSp || '—'} mm">from frames</button><button class="ed-link-btn" data-sp="from-ship" ${shipSpan ? '' : 'disabled'} title="${ftWf ? 'Web frame spacing from the Frame Table at this section (' + (ftWf / 1000).toFixed(3) + ' m)' : leShip > 0 ? 'Web frame spacing l_e from Main Particulars (Frame Table has no web frames defined here)' : 'Define web frames in the Frame Table, or l_e in Main Particulars'}">from ship</button><button class="ed-link-btn" data-sp="to-all" title="Give every panel this span">to all panels</button></div>
     </div>`;
     // exceptions
     const ex = sup.exceptions || [];

@@ -17,9 +17,10 @@
     if ($('dnvInputs')) return;
     const anchor = $('bvBilgeKeel'); const host = anchor && anchor.closest('.ea-field') && anchor.closest('.ea-field').parentElement; if (!host) return;
     const div = document.createElement('div'); div.id = 'dnvInputs'; div.className = 'dnv-inputs'; div.style.cssText = 'display:contents';
-    const F = (id, label, val, step, title, unit) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label} <span class="bv-tag">DNV</span></label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()">${unit ? '<em>' + unit + '</em>' : ''}</div>`;
-    const Sel = (id, label, opts, val, title) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label} <span class="bv-tag">DNV</span></label><select class="ea-select" id="${id}" onchange="recalcAll()">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+    const F = (id, label, val, step, title, unit) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()">${unit ? '<em>' + unit + '</em>' : ''}</div>`;
+    const Sel = (id, label, opts, val, title) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><select class="ea-select" id="${id}" onchange="recalcAll()">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
     div.innerHTML =
+      '<div class="ea-field dnv-only" title="Kural motoru ClauseFinder harvest\'inden DNV RU-SHIP Pt 3/4/5/6, 2026 Temmuz sürümü kullanıyor. Sürüm seçimi yok — tek metin kaynağı. Farklı bir baskıyla (ör. Nauticus Temmuz 2022) karşılaştırırken bazı sapmalar bu yüzden olabilir (bilinen fark: profil berthing gerekliliği 2023\'te kaldırıldı)."><label class="ea-label">Rule edition</label><input type="text" class="ea-input" id="dnv_ruleEdition" readonly value="RU-SHIP 2026-07"></div>' +
       Sel('dnv_iceRegion', 'Ice region', [['bow', 'Bow'], ['midbody', 'Midbody'], ['stern', 'Stern']], 'midbody', 'Pt 6 Ch 6 Sec 3 Table 8/10/11: c_1 ve buz kuşağı düşey uzanımı bölgeye göre değişir (bu kesitin gemi boyundaki konumu); Framing system ve m_o alanları (Buz paneli) DNV boyuna/enine posta seçimini de besler') +
       F('dnv_TBAL', 'Ballast draught T_BAL', '', 0.01, 'DNV Pt 3 Ch 4 Sec 6 / Ch 6 Sec 2 Table 1: WB-1/WB-4 setleri T_BAL ile; boş = 0.58·T_SC', 'm') +
       F('dnv_holdRho', 'Bulk cargo density ρ_C', 0.7, 0.05, 'Pt 5 Ch 1 Sec 2 [3.3.3]: M_H/V_Full, en az 0.7 t/m³ (homojen tam yük)', 't/m³') +
@@ -28,6 +29,25 @@
     host.appendChild(div);
   }
   const TBAL = () => { const v = num('dnv_TBAL', NaN); return isNaN(v) || v <= 0 ? 0.58 * num('T', 7) : v; };
+
+  // ------------------------------------------------------------ M_sw kılavuz değeri (Pt 3 Ch 4 Sec 4 [2.2.1]): girilen M_s hog/sag ile karşılaştırma amaçlı, zorunlu sınır değil
+  function ensureMswGuidance() {
+    if ($('dnvMswGuide')) return;
+    const anchor = $('MsSag'); const host = anchor && anchor.closest('.ea-field') && anchor.closest('.ea-field').parentElement; if (!host) return;
+    const div = document.createElement('div');
+    div.className = 'ea-field dnv-only';
+    div.title = 'DNV Pt 3 Ch 4 Sec 4 [2.2.1]: ön tasarım M_sw kılavuz değerleri, kesitin x konumuna göre — girilen M_s hog/sag ile karşılaştırma içindir, kural motoru daima yukarıdaki girilen değeri kullanır';
+    div.innerHTML = '<label class="ea-label">DNV kılavuz M<sub>sw</sub> (hog / sag)</label><input type="text" class="ea-input" id="dnvMswGuide" readonly value="—">';
+    host.appendChild(div);
+  }
+  function updateMswGuidance() {
+    const el = $('dnvMswGuide'); if (!el) return;
+    const L = num('L', 0), B = num('B', 0), CB = num('Cb', 0.8), x = num('sectionXL', 0.5) * L;
+    if (!(L > 0 && B > 0) || !window.DNV || !window.DNV.MswMin) { el.value = '—'; return; }
+    const g = window.DNV.MswMin(x, L, B, CB);
+    const fmt = v => Math.round(v).toLocaleString('tr-TR');
+    el.value = fmt(g.hog) + ' / ' + fmt(g.sag) + ' kN·m';
+  }
 
   // ------------------------------------------------------------ profil adı → boyutlar
   function parseProfile(name) {
@@ -60,8 +80,11 @@
       lamOST: 0.45, LLL: num('bvLoadLineLength', L) || L, freeboardType: (($('bvFreeboardType') || {}).value || 'B'),
       ice: iceOn ? { iceClass: iceCls, deltaF: num('ice_Disp', 0), PS: num('ice_P0', 0), UIWL: num('ice_T_uiwl', T), LIWL: num('ice_T_liwl', TBAL()),
         region: (($('dnv_iceRegion') || {}).value || 'midbody'), framing: (($('ice_framing') || {}).value === 'TRANS' ? 'trans' : 'long'), m0: num('ice_mo', 7), tc: num('ice_tc', 2) } : null };
-    const leM = num('le', NaN), frameSp = num('transFrameSpacing', isNaN(leM) ? 700 : leM * 1000);   // transFrameSpacing boşsa Ana Particulars l_e (web frame aralığı) — aynı büyüklük, tek girişte tutarlı
     const xL = num('sectionXL', 0.5), x = xL * L;
+    // web frame (PSM/boyuna posta) aralığı — TEK zincir, üç kaynak yarışmıyor: Frame Table (Web fr. /N, x'e göre) > transFrameSpacing (elle override) > l_e (Ana Particulars, son çare)
+    const leM = num('le', NaN);
+    const ftWf = (window.ProjectTree && window.ProjectTree.FrameTable && window.ProjectTree.FrameTable.webSpacingAtX) ? window.ProjectTree.FrameTable.webSpacingAtX(x) : null;
+    const frameSp = ftWf || num('transFrameSpacing', isNaN(leM) ? 700 : leM * 1000);
     const xLcpOffset = num('dnv_xLcpOffset', frameSp / 2000);   // boş: PSM aralığının yarısı — EPP orta boyu, komşu döşek/web frame ortası varsayımı
     const xLCP = x + xLcpOffset;
     const grFull = num('bvGMfull', NaN), krFull = num('bvKr', NaN), grBal = num('bvGMbal', NaN), krBal = num('bvKrBal', NaN);   // Ch 4 Sec 3 [2.1.1] / Pt 5 Ch 1 [5.1.2]: yükleme kitapçığından biliniyorsa gerçek GM/Kr, yoksa kural varsayılan tablosu
@@ -346,9 +369,10 @@
   let last = null;
   let lastError = null;
   function refresh() {
-    ensureInputs();
+    ensureInputs(); ensureMswGuidance();
     const on = isDNV();
     document.querySelectorAll('.dnv-only').forEach(el => { el.style.display = on ? '' : 'none'; });
+    if (on) updateMswGuidance();
     const p = $('dnvPanel'); if (!on) { if (p) p.style.display = 'none'; return null; }
     if (!window.DNVCheck) return null;
     try {
@@ -356,7 +380,7 @@
       const out = window.DNVCheck.run(model); last = { model, out }; render(model, out); return last;
     } catch (e) { console.warn('[DNV] check failed', e); lastError = String(e && e.stack || e); return null; }
   }
-  document.addEventListener('DOMContentLoaded', () => { ensureInputs(); const sel = $('classificationSociety'); if (sel) sel.addEventListener('change', () => setTimeout(refresh, 0)); setTimeout(refresh, 500); });
+  document.addEventListener('DOMContentLoaded', () => { ensureInputs(); ensureMswGuidance(); const sel = $('classificationSociety'); if (sel) sel.addEventListener('change', () => setTimeout(refresh, 0)); setTimeout(refresh, 500); });
   // headless test kancasi: ?dnvsetexample=1 → ornek gemi bayragi ; ?dnvtest=1 → DNV modu + sonucu #dnvTestOut'a JSON yaz
   try {
     const q = new URLSearchParams(location.search);
@@ -484,6 +508,37 @@
       });
       const pre = document.createElement('pre'); pre.id = 'dnvUiTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
     }, 1500);
+    if (q.get('dnvftshot')) setTimeout(() => {
+      window.ProjectTree.goTo(1, 'frames');
+      const FT = window.ProjectTree.FrameTable;
+      const t = FT.read();
+      if (!t.rows.length) { t.rows = [{ from: t.f0 || 0, to: (t.f0 || 0) + 40, s: 749, wf: 4 }, { from: (t.f0 || 0) + 40, to: (t.f0 || 0) + 200, s: 726, wf: 3 }]; FT.write(t); }
+      FT.render();
+      document.title = 'ftshot-ready';
+    }, 3500);
+    if (q.get('dnvfttest')) setTimeout(() => {
+      const before = window.DNVUI.refresh();
+      const beforeSp = before ? before.out.epps.find(e => e.buckling)?.tBucNet : null;
+      const FT = window.ProjectTree.FrameTable;
+      const t = FT.read();
+      t.rows = [{ from: t.f0 || 0, to: (t.f0 || 0) + 200, s: 749, wf: 4 }];
+      t.x0 = 0;
+      FT.write(t); FT.render(); FT.syncSection();
+      const after = window.DNVUI.refresh();
+      const out = { beforeSummary: before ? before.summary : null, afterSummary: after ? (document.getElementById('dnvSummary')||{}).textContent : null,
+        webSpacingAtX_before_wf: FT.webSpacingAtX(57490), status: (document.getElementById('dnvStatus')||{}).textContent, error: window.DNVUI.lastError };
+      const pre = document.createElement('pre'); pre.id = 'dnvFtTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }, 4500);
+    if (q.get('dnvmswtest')) setTimeout(() => {
+      const cs = document.getElementById('classificationSociety');
+      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, 'DNV');
+      cs.dispatchEvent(new Event('change', { bubbles: true }));
+      window.DNVUI.refresh();
+      const el = document.getElementById('dnvMswGuide');
+      const out = { value: el ? el.value : null, visible: el ? (el.closest('.ea-field').style.display !== 'none') : null,
+        L: document.getElementById('L').value, sectionXL: document.getElementById('sectionXL').value };
+      const pre = document.createElement('pre'); pre.id = 'dnvMswTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }, 3000);
     if (q.get('dnvcompshot')) setTimeout(() => {
       if (window.goToPage) window.goToPage(3);
       window.Draw.setViewMode('compartments');

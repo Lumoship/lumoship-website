@@ -1507,10 +1507,9 @@ body.chrome-form .ea-page-actions{display:none}
 .ea-sub-step{white-space:nowrap}
 .ea-subwizard{flex-wrap:nowrap}
 
-/* BV-only inputs: present, disabled, tagged */
+/* BV-only inputs: present, disabled */
 .ea-field.bv-only .ea-input,.ea-field.bv-only .ea-select{opacity:0.45;cursor:not-allowed;border-style:dashed}
 .ea-field.bv-only .ea-label{color:var(--text-muted)}
-.bv-tag{display:inline-block;margin-left:4px;padding:0 4px;border-radius:3px;font-size:0.5rem;font-weight:700;letter-spacing:0.06em;background:rgba(100,116,139,0.15);color:var(--text-muted);vertical-align:middle}
 .ea-input-unit{display:flex;align-items:center;gap:6px}
 .ea-input-unit .ea-input{flex:1;min-width:0}
 .ea-unit{font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted);white-space:nowrap}
