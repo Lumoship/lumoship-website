@@ -419,6 +419,18 @@
     step('fillPanelsFromEngine', function () {
       var D = window.Draw; var m = D && D.getSection && D.getSection();
       if (!m || !window.SectionAdapter || !SectionAdapter.legacyToPanelData) return;
+      // Elle girilmis strake / profil verisi olan bir kesit (SECTIONS ile kaydedilen
+      // proje) motordan YENIDEN doldurulmaz: eskiden her acilista panelData
+      // silinip parametrik yerlesimle degistiriliyordu (olculdu 25 Eylul 2026:
+      // Nauticus'tan uretilen ornek disi bir kesit yuklenince 49 profil -> 2, strake
+      // kalinliklari 12/10/15 -> 16/10/14). Yalnizca bos panelData doldurulur.
+      var dolu = Object.keys(m.panelData || {}).some(function (g) { var d = m.panelData[g] || {}; return (d.strakes && d.strakes.length) || (d.stiffGroups && d.stiffGroups.length); });
+      if (dolu) {
+        // Yalnizca BOS listeler motordan dolar (legacyToPanelData bos olmayan strake/profil listesine dokunmaz):
+        // parametrik ornek gemide profil gruplari var ama strake yok -> strake'ler motordan gelir, profiller kalir.
+        try { SectionAdapter.legacyToPanelData(m, D.STRAKES, D.profiles, D.GEOMETRY, D.PLATE_THICKNESS); SectionAdapter.apply(m); D.render(); } catch (e) { console.warn('[Project] apply panel data failed:', e); }
+        return;
+      }
       // let the parametric engine lay the section out once (a hand-edited model
       // would otherwise feed its empty panel data back), then take that layout
       m.manual = false; D.setSection(m);

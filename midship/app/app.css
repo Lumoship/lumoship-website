@@ -722,3 +722,6 @@ select.ed-input{cursor:pointer}
    Lifted from the second inline <style> block of the original file. */
   .cpm-tab.active { background: var(--accent) !important; color: #fff !important; box-shadow: 0 1px 4px rgba(59,130,246,0.4); }
   .cpm-tab:hover:not(.active) { background: var(--bg-tertiary); color: var(--text-primary); }
+/* DNV modu (68-dnv-ui.js) */
+#dnvPanel .ea-table td{font-size:.66rem;padding:3px 6px}#dnvPanel tr.fail td{background:rgba(239,68,68,.08)}#dnvPanel .rulecheck-drawer-status.ok{color:var(--success,#16a34a)}#dnvPanel .rulecheck-drawer-status.fail{color:var(--error)}
+

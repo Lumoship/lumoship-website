@@ -824,6 +824,8 @@ function recalcAll() {
   // ──────────────────────────────────────────────────────────────────
   // Refresh analysis panels so hull-girder σ and buckling UC reflect
   // current plate thicknesses / geometry. Only active in ANALYSIS mode.
+  // DNV modu (68-dnv-ui.js): toplum DNV ise EPP/profil kontrol panelini yenile
+  try { if (window.DNVUI && typeof window.DNVUI.refresh === 'function') window.DNVUI.refresh(); } catch (e) { console.warn('DNVUI.refresh failed:', e); }
   try {
     if (window.ANALYSIS_MODE) {
       if (typeof renderAnalysisStatusPanel === 'function')  renderAnalysisStatusPanel();
