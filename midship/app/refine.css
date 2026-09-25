@@ -1465,14 +1465,14 @@ body[data-ship-view] #page-1 .sp-view > .ea-section-title:first-child{margin-top
 #page-1 .ea-panel[data-views] + .ea-panel[data-views]{margin-top:var(--spacing-md) !important}
 /* frame table (MARS arrangement) */
 #frameTableHost .mb{margin-bottom:10px}
-.ft-top{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ft-top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .ft-fields{display:flex;flex-wrap:wrap;gap:6px 18px;padding:6px 10px 8px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
 .ft-f{display:inline-flex;align-items:center;gap:6px}
 .ft-f .ft-p{height:20px;padding:1px 6px;font-size:0.62rem;text-align:right}
 .ft-f em,.ft-table em{font-style:normal;color:var(--text-muted);font-size:0.58rem}
 .ft-ro{display:inline-flex;align-items:center;gap:6px}
 .ft-ro b{font-weight:600;color:var(--text-secondary)}
-.ft-split{display:grid;grid-template-columns:minmax(360px,1fr) minmax(300px,0.9fr);gap:10px;align-items:start}
+.ft-split{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:10px;align-items:start}
 .mb-th.ft-th,.mb-tr.ft-th{grid-template-columns:22px 82px 82px 110px 1fr}
 .ft-table .ft-in{width:64px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
 .ft-table .ft-x{color:var(--text-secondary)}
