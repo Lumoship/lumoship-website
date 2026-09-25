@@ -292,9 +292,9 @@
         </div>
         <div class="ea-form-row-4">
           <div class="ea-field bv-only" title="BV NR467 additional service features — not used by the LR rules"><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvGrabLoading" disabled> GRABLOADING</label><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
-          <div class="ea-field" title="FSICR (Finnish-Swedish Ice Class Rules) panelindeki 'Enable Ice Class Rules' anahtarını buradan da aç/kapat — aynı alan, tek kaynak. Ayrıntılar (Ice Class, T_UIWL/T_LIWL, Framing system…) Draughts &amp; Loading sayfasındaki Ice Class panelinde.">
+          <div class="ea-field" title="Aç/kapat kontrolü burada tekrarlanmıyor — tek kaynak Ice Class sayfası. Buradaki yazı yalnız durumu gösterir.">
             <label class="ea-label">Ice strengthening</label>
-            <div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="rulesIceToggle" onchange="(function(cb){document.getElementById(cb.checked?'iceEnabledOn':'iceEnabledOff').checked=true; if(window.onIceEnabledChange) onIceEnabledChange();})(this)"> Enable (FSICR)</label></div>
+            <div class="ea-input readonly" id="rulesIceStatus" style="cursor:pointer" onclick="window.ProjectTree && window.ProjectTree.goTo(1,'ice')">— see Ice Class page —</div>
           </div>
         </div>
         <div class="ea-section-title" style="margin-top:var(--spacing-md)">β<sub>s</sub> for Double Bottom Longitudinals / Steel Coil Loads</div>

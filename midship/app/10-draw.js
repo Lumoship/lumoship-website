@@ -354,6 +354,8 @@ function onIceEnabledChange() {
   if (status) status.textContent = enabled ? 'ENABLED · LR + FSICR governance' : 'DISABLED · click to expand';
   const icon = document.getElementById('iceClassIcon');
   if (icon) icon.style.background = enabled ? 'var(--success)' : 'var(--cyan)';
+  const rulesStatus = document.getElementById('rulesIceStatus');   // Applicable Rules sayfasındaki salt-okunur ayna — tek kaynak burası (Ice Class sayfası), orada input yok
+  if (rulesStatus) rulesStatus.textContent = enabled ? 'Enabled (FSICR) — see Ice Class page' : 'Disabled — see Ice Class page';
   if (typeof recalcAll === 'function') recalcAll();
   // Repaint section drawing so the ice waterline overlay appears/disappears
   if (window.Draw && typeof window.Draw.render === 'function') {

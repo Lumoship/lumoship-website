@@ -392,6 +392,8 @@
   let lastError = null;
   function refresh() {
     ensureInputs(); ensureMswGuidance();
+    const iceOnEl = $('iceEnabledOn'), rulesStatus = $('rulesIceStatus');   // Applicable Rules ayna metni — her recalc'ta taze (proje yüklendikten sonra da doğru)
+    if (rulesStatus) rulesStatus.textContent = (iceOnEl && iceOnEl.checked) ? 'Enabled (FSICR) — see Ice Class page' : 'Disabled — see Ice Class page';
     const on = isDNV();
     document.querySelectorAll('.dnv-only').forEach(el => { el.style.display = on ? '' : 'none'; });
     if (on) updateMswGuidance();
