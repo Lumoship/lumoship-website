@@ -13,7 +13,9 @@
   const isDNV = () => (($('classificationSociety') || {}).value || '') === 'DNV';
 
   // ------------------------------------------------------------ DNV girdi alanları (form; tam-durum kaydında otomatik saklanır)
-  const F = (id, label, val, step, title, unit) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()">${unit ? '<em>' + unit + '</em>' : ''}</div>`;
+  const F = (id, label, val, step, title, unit) => unit
+    ? `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><div class="ea-input-unit"><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()"><span class="ea-unit">${unit}</span></div></div>`
+    : `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()"></div>`;
   const Sel = (id, label, opts, val, title) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><select class="ea-select" id="${id}" onchange="recalcAll()">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
 
   function ensureInputs() {
@@ -396,6 +398,10 @@
     if (rulesStatus) rulesStatus.textContent = (iceOnEl && iceOnEl.checked) ? 'Enabled (FSICR) — see Ice Class page' : 'Disabled — see Ice Class page';
     const on = isDNV();
     document.querySelectorAll('.dnv-only').forEach(el => { el.style.display = on ? '' : 'none'; });
+    // Applicable Rules: hangi notasyon hangi kural setinde gerçekten var (ClauseFinder LR Ships / BV NR467 / DNV RU-SHIP taraması) — data-rules yoksa üçünde de geçerli, her zaman görünür
+    const socRaw = ($('classificationSociety') || {}).value || '';
+    const socKey = socRaw === 'DNV' ? 'dnv' : socRaw === 'Bureau Veritas' ? 'bv' : socRaw === "Lloyd's Register" ? 'lr' : null;
+    document.querySelectorAll('[data-rules]').forEach(el => { const list = (el.dataset.rules || '').split(/\s+/); el.style.display = (!socKey || list.indexOf(socKey) >= 0) ? '' : 'none'; });
     if (on) updateMswGuidance();
     const p = $('dnvPanel'); if (!on) { if (p) p.style.display = 'none'; return null; }
     if (!window.DNVCheck) return null;
@@ -572,7 +578,7 @@
     }, 2500);
     if (q.get('dnvrulesshot')) setTimeout(() => {
       const cs = document.getElementById('classificationSociety');
-      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, 'DNV');
+      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, q.get('dnvrulesshot') === 'lr' ? "Lloyd's Register" : q.get('dnvrulesshot') === 'bv' ? 'Bureau Veritas' : 'DNV');
       cs.dispatchEvent(new Event('change', { bubbles: true }));
       window.ProjectTree.goTo(1, 'rules');
       document.title = 'rules-ready';

@@ -274,34 +274,35 @@
               <option value="other">Other</option>
             </select>
           </div>
-          <div class="ea-field"><label class="ea-label" title="Longitudinal position of this section as a fraction of ship length. 0.5 = amidships. Within 0.3–0.7 = within 0.4L amidships (stricter grades apply).">Section x/L</label><input type="number" step="0.05" min="0" max="1" class="ea-input" id="sectionXL" value="0.5" onchange="recalcAll()"></div>
-          <div class="ea-field"><label class="ea-label" title="Steel family: HT = higher-tensile (AH/DH/EH etc.), Mild = A/B/D/E. Used as the default steel family when auto-assigning grades.">Steel Family (default)</label>
-            <select class="ea-select" id="steelFamily" onchange="recalcAll()">
-              <option value="HT" selected>HT (AH / DH / EH)</option>
-              <option value="Mild">Mild (A / B / D / E)</option>
-            </select>
-          </div>
-          <div class="ea-field">
-            <label class="ea-label" for="bulbStandard" title="Bulb flat catalogue. AFNOR sections are 4-6.5% larger than EN/DIN/BS for the same size (measured from the BV MARS2000 tables).">Bulb standard</label>
-            <select class="ea-select" id="bulbStandard" onchange="bulbStandardSecildi(this.value)">
-              <option value="EN" selected>EN 10067 / DIN / BS</option>
-              <option value="AFNOR">AFNOR</option>
-              <option value="JIS">JIS</option>
-            </select>
-          </div>
         </div>
         <div class="ea-form-row-4">
-          <div class="ea-field bv-only" title="BV NR467 additional service features — not used by the LR rules"><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvGrabLoading" disabled> GRABLOADING</label><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
+          <div class="ea-field ref-only" data-rules="bv dnv" title="ClauseFinder taramasında Open Hatch notasyonu BV NR467 ve DNV RU-SHIP metninde var, LR Ships metninde bulunamadı (LR seçiliyken bu alan gizlenir). Grab notasyonu artık burada değil — yukarıdaki 'Grab' alanı (gemi geneli, DNV formülüyle gerçekten hesaba giriyor) onun yerini aldı."><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
           <div class="ea-field" title="Aç/kapat kontrolü burada tekrarlanmıyor — tek kaynak Ice Class sayfası. Buradaki yazı yalnız durumu gösterir.">
             <label class="ea-label">Ice strengthening</label>
             <div class="ea-input readonly" id="rulesIceStatus" style="cursor:pointer" onclick="window.ProjectTree && window.ProjectTree.goTo(1,'ice')">— see Ice Class page —</div>
           </div>
         </div>
-        <div class="ea-section-title" style="margin-top:var(--spacing-md)">β<sub>s</sub> for Double Bottom Longitudinals / Steel Coil Loads</div>
-        <div class="ea-form-row-4" title="Nauticus 'Applicable Rules' ekranındaki değerler birebir — DNV RU-SHIP metninde (ClauseFinder 2026 taraması) bu tabloyla ve Steel Coil Loads yerel basıncıyla eşleşen ayrı bir formül bulunamadı. Bilgi amaçlı gösteriliyor; kural motoru bu değerleri HENÜZ kullanmıyor (uydurma formülle hesaba katılmadı).">
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Additional Notations (LR/BV/DNV ortak — henüz hesaba bağlı değil)</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field ref-only" title="ClauseFinder: LR Ships 'centre hold', BV NR467 'centre hold' ve DNV Pt 5 Ch 1'de geçiyor — üçünde de gerçek bir hüküm var, motor henüz kullanmıyor."><label class="ea-label">Long centre cargo hold</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notLongCentreHold" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="ClauseFinder: 'ballast hold' LR Ships'te ve BV NR467'de de var (BC-A/BC-B alternatif ambar yükleme notasyonları) — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">Holds may be empty</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notHoldsEmpty" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="ClauseFinder: 'ballast hold' LR Ships'te ve BV NR467'de de var — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">Holds as ballast (seagoing)</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notHoldsBallast" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="ClauseFinder: 'Enhanced Survey' LR Ships'te ve BV NR467'de de var (IACS ESP — sınıf kuruluşuna özel değil) — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">ESP notation</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notESP" disabled> yes</label></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field ref-only" title="ClauseFinder: 'self-unloading' LR Ships'te ve BV NR467'de de var (farklı isimle ama aynı kavram) — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">SBC notation</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notSBC" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="ClauseFinder: 'special purpose/service vessel' LR Ships'te ve BV NR467'de de var — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">Special operations applicable</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notSpecialOps" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="ClauseFinder: 'gas fuelled' (IGF Code) LR Ships'te ve BV NR467'de de var, sınıf kuruluşuna özel değil — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">Gas fuelled</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notGasFuelled" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="ClauseFinder: 'low flashpoint' (LFL, IGF Code) LR Ships'te ve BV NR467'de de var — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">LFL fuelled</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notLFL" disabled> yes</label></div></div>
+        </div>
+        <div class="ea-section-title dnv-only" style="margin-top:var(--spacing-md)">β<sub>s</sub> for Double Bottom Longitudinals / Steel Coil Loads</div>
+        <div class="ea-form-row-4 dnv-only" title="AC-I/AC-II: DNV'nin kendi 'Acceptance Criteria' terminolojisi — ClauseFinder taramasında yalnız DNV RU-SHIP'te geçiyor (49 dosya), BV NR467 ve LR Ships metninde hiç yok — gerçekten DNV'ye özel. Değerler Nauticus ekranındaki gösterimle birebir ama DNV metninde bu tabloyla eşleşen ayrı bir formül bulunamadı, kural motoru henüz kullanmıyor.">
           <div class="ea-field"><label class="ea-label">AC-I — inner / outer bottom</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" class="ea-input" id="betaAC1In" value="0.80" step="0.01" disabled><input type="number" class="ea-input" id="betaAC1Out" value="0.80" step="0.01" disabled></div></div>
           <div class="ea-field"><label class="ea-label">AC-II — inner / outer bottom</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" class="ea-input" id="betaAC2In" value="0.90" step="0.01" disabled><input type="number" class="ea-input" id="betaAC2Out" value="0.90" step="0.01" disabled></div></div>
-          <div class="ea-field"><label class="ea-label">Steel Coil Loads</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="steelCoilLoads" disabled> Enable</label></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field ref-only" title="ClauseFinder: 'steel coil' BV NR467'de (22 dosya) ve LR Ships'te (Pt 3 Ch 11 Sec 2) de var — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">Steel Coil Loads</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="steelCoilLoads" disabled> Enable</label></div></div>
+          <div class="ea-field dnv-only" title="Nauticus ekranında grayed/pasif görünüyor, tanımı ClauseFinder'da net bulunamadı ('MP' açık değil) — DNV'ye özel tutuldu, BV/LR'de gösterilmiyor."><label class="ea-label">No MP</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notNoMP" disabled> yes</label></div></div>
         </div>
       </div>
     </div>
@@ -322,7 +323,7 @@
           <div class="ea-field"><label class="ea-label" title="Length overall, for identification (LR Pt 3 Ch 1 Sec 6 uses the Rule length L for scantlings).">L<sub>OA</sub> (m)</label><input type="number" step="0.01" class="ea-input" id="LOA" placeholder="—"></div>
           <div class="ea-field"><label class="ea-label" title="Length between perpendiculars (LR Pt 3 Ch 1 Sec 6.1.7): F.P. at the stem, A.P. at the rudder post / stock.">L<sub>pp</sub> (m)</label><input type="number" step="0.01" class="ea-input" id="Lpp" placeholder="—"></div>
           <div class="ea-field"><label class="ea-label" title="Maximum ahead service speed (LR Pt 3 Ch 1 Sec 6.1.10). Used by the fore-end slamming and bow impact rules; informative for the midship.">V (knots)</label><input type="number" step="0.1" class="ea-input" id="serviceSpeed" placeholder="—"></div>
-          <div class="ea-field"><label class="ea-label" title="Longitudinal position of the active section as a fraction of L, from the Frame table when the section has a frame; 0,5 = amidships.">Section x/L</label><input type="number" step="0.005" min="0" max="1" class="ea-input" id="sectionXL_view" readonly title="set from the Frame table"></div>
+          <div class="ea-field"><label class="ea-label" title="Longitudinal position of the active section as a fraction of L, used for grade/x-dependent rule checks. Set automatically from the Frame table when the section has a frame number; editable otherwise. 0,5 = amidships.">Section x/L</label><input type="number" step="0.005" min="0" max="1" class="ea-input" id="sectionXL" value="0.5" onchange="recalcAll()"></div>
         </div>
         <div class="ea-form-row-4">
           <div class="ea-field bv-only" title="BV NR467 ve DNV Ch 4 Sec 3 [2.1.1] f_BK — sintine omurgası yoksa 1,2, varsa 1,0 (yalpa)"><label class="ea-label">Bilge keel</label><select class="ea-select" id="bvBilgeKeel" onchange="recalcAll()"><option>Yes</option><option>No</option></select></div>
@@ -380,6 +381,22 @@
               <option value="AH40">k = 0.68</option>
             </select>
           </div>
+          <div class="ea-field"><label class="ea-label" title="Steel family: HT = higher-tensile (AH/DH/EH etc.), Mild = A/B/D/E. Used as the default steel family when auto-assigning grades.">Steel Family (default)</label>
+            <select class="ea-select" id="steelFamily" onchange="recalcAll()">
+              <option value="HT" selected>HT (AH / DH / EH)</option>
+              <option value="Mild">Mild (A / B / D / E)</option>
+            </select>
+          </div>
+          <div class="ea-field">
+            <label class="ea-label" for="bulbStandard" title="Bulb flat catalogue. AFNOR sections are 4-6.5% larger than EN/DIN/BS for the same size (measured from the BV MARS2000 tables).">Bulb standard</label>
+            <select class="ea-select" id="bulbStandard" onchange="bulbStandardSecildi(this.value)">
+              <option value="EN" selected>EN 10067 / DIN / BS</option>
+              <option value="AFNOR">AFNOR</option>
+              <option value="JIS">JIS</option>
+            </select>
+          </div>
+        </div>
+        <div class="ea-form-row-4">
           <div class="ea-field" style="grid-column:span 2">
             <label class="ea-label" title="AUTO: F_B and F_D are recomputed live from the current section modulus on every recalc (LR Pt 3 Ch 4 Sec 5.7.2: F = σ_actual / σ_perm). Your manual edits to the F_B/F_D inputs will be overwritten.&#10;&#10;MANUAL: The values you type in F_B and F_D below are used as-is. Auto-sync from section modulus is disabled. Use this when you want to lock F_B/F_D for a what-if study or to enforce a target ratio.">F_B / F_D Mode</label>
             <div style="display:flex;gap:12px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.72rem">

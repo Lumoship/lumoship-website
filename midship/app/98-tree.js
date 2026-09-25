@@ -228,9 +228,6 @@
       mv.parentElement.insertBefore(tbl, mv.nextSibling);
       var views = big.getAttribute('data-views'); if (views.indexOf('materials') < 0) big.setAttribute('data-views', views + ' materials');
     }
-    // the section x/L mirror (read only, on Main Particulars) follows the real input (editable, on Applicable Rules)
-    var xl = $('sectionXL'), xv = $('sectionXL_view');
-    if (xl && xv) { var sync = function () { xv.value = xl.value; }; sync(); xl.addEventListener('change', sync); xl.addEventListener('input', sync); }
   }
 
   // ------------------------------------------------------------------ Frame table
