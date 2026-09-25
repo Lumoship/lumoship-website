@@ -1099,6 +1099,12 @@
         ${T.tank ? R('Air pipe top', num('airpipe_mm', c.airpipe_mm, 10, 62, c.z1 ? String(c.z1 + 760) : '') + '<em>mm AB</em>', 'Top of the air pipe / overflow — deep-tank head h4 (LR Pt 4 Ch 1 Table 1.9.1)') : ''}
         ${T.tank ? R('Test head', num('testHead_m', c.testHead_m, 0.1, 62, '2.4') + '<em>m above top</em>', 'Hydrostatic test head; blank = 2.4 m') : ''}
         ${c.type === 'cargo' ? R('Cargo load', num('cargoLoad', c.cargoLoad, 0.5, 62, '20') + '<em>t/m² on IB</em>', 'Stowage load on the inner bottom (LR Pt 4 Ch 1 Sec 8.4)') : ''}
+        ${['cargo', 'dryBulk', 'container'].includes(c.type) ? R('Fill level z_C', num('holdZc_mm', c.holdZc_mm, 10, 62, String(c.z1)) + '<em>mm AB · DNV LCP</em>', 'Bulk/cargo fill-surface height for the hold load calculation point (Pt 5 Ch 1); blank = box top') : ''}
+        ${c.type === 'dryBulk' ? R('Angle of repose ψ', num('psiDeg', c.psiDeg, 1, 62, '30') + '<em>° · DNV Pt 5 Ch 1 [3.4]</em>', 'ψ = 30° in general, 35° for iron ore, 25° for cement (rule text); boş = 30°') : ''}
+        ${c.type === 'dryBulk' ? `<div class="mb-row"><span>Grab notation</span><select class="ea-input cp-f" data-k="grabQualifier"><option value="" ${!c.grabQualifier ? 'selected' : ''}>— none —</option><option value="1-X" ${c.grabQualifier === '1-X' ? 'selected' : ''}>Grab(1-X) — inner bottom only</option><option value="2-X" ${c.grabQualifier === '2-X' ? 'selected' : ''}>Grab(2-X) — + bulkhead/hopper 1.5 m</option><option value="3-X" ${c.grabQualifier === '3-X' ? 'selected' : ''}>Grab(3-X) — + bulkhead/hopper 3.0 m</option></select></div>` : ''}
+        ${c.type === 'dryBulk' && c.grabQualifier ? R('Grab mass M_GR', num('grabMGR', c.grabMGR, 1, 62, String((window.DNV ? window.DNV.GRAB_DEFAULT_MGR(c.grabQualifier, parseFloat((document.getElementById('L') || {}).value) || 0) : 10))) + '<em>t · Pt 6 Ch 1 Sec 1 [3.1.2]/[3.1.3]</em>', 'Kepçe kütlesi; boş = kural varsayılanı (gemi tipi/uzunluğuna göre)') : ''}
+        ${c.type === 'dryBulk' ? `<div class="mb-row"><span>Heavy load (HD)</span><span class="pc-inline"><label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="cp-heavy" ${c.heavyLoaded ? 'checked' : ''}><span style="font-size:.8em">loaded in HD alternate condition</span></label></span></div>` : ''}
+        ${c.type === 'dryBulk' && c.heavyLoaded ? R('Heavy ρ', num('heavyRho', c.heavyRho, 0.1, 62, String(c.rho || 1.0)) + '<em>t/m³ · DNV Pt 5 Ch 1 BC-3/4</em>', 'Heavy cargo density for the HD alternate-hold condition (blank = same as loaded)') : ''}
       </div>`;
     }
     // Deck loads
@@ -1106,12 +1112,13 @@
     if (decks.length) {
       const nLoaded = decks.filter(p => p.deckLoad && p.deckLoad.type && p.deckLoad.type !== 'none').length;
       h += `<div class="ed-group ${nLoaded ? '' : 'collapsed'}"><div class="ed-group-header"><span style="color:#ca8a04">Deck loads <span class="ed-count">(${nLoaded}/${decks.length})</span></span></div>
-        <div class="ed-row st-head"><span style="width:34px">Panel</span><span style="flex:1">Type</span><span style="width:60px">kN/m²</span></div>`;
+        <div class="ed-row st-head"><span style="width:34px">Panel</span><span style="flex:1">Type</span><span style="width:56px">dyn kN/m²</span><span style="width:56px">stat kN/m²</span></div>`;
       decks.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).forEach(p => {
         const dl = p.deckLoad || { type: 'none', p: null }; const T = DECK_LOAD_TYPES.find(t => t.code === dl.type) || DECK_LOAD_TYPES[0];
         h += `<div class="ed-row" style="gap:6px"><span class="ed-id" style="width:34px;min-width:34px;color:${POS_COLOR[p.position] || '#64748b'}" title="${posLabel(p.position)}">${p.id}</span>
           <select class="ed-input dl-type" data-panel="${p.id}" style="flex:1">${DECK_LOAD_TYPES.map(t => `<option value="${t.code}" ${t.code === dl.type ? 'selected' : ''}>${t.label}</option>`).join('')}</select>
-          <input class="ed-input dl-p" data-panel="${p.id}" type="number" step="0.5" min="0" value="${dl.p != null ? dl.p : ''}" placeholder="${T.p != null ? T.p : '—'}" style="width:56px" ${dl.type === 'none' || dl.type === 'weather' ? 'disabled' : ''}></div>`;
+          <input class="ed-input dl-p" data-panel="${p.id}" type="number" step="0.5" min="0" value="${dl.p != null ? dl.p : ''}" placeholder="${T.p != null ? T.p : '—'}" style="width:56px" title="Dinamik tasarım basıncı (DNV UDL-1 P_dl-s): a_Z ile ölçeklenir" ${dl.type === 'none' || dl.type === 'weather' ? 'disabled' : ''}>
+          <input class="ed-input dl-p2" data-panel="${p.id}" type="number" step="0.5" min="0" value="${dl.p2 != null ? dl.p2 : ''}" placeholder="= dyn" style="width:56px" title="Statik tasarım basıncı (DNV UDL-2, Harbour): boş = dinamikle aynı" ${dl.type === 'none' || dl.type === 'weather' ? 'disabled' : ''}></div>`;
       });
       h += `</div>`;
     }
@@ -1132,15 +1139,18 @@
     const mutM = fn => { const m = JSON.parse(JSON.stringify(S())); fn(m); commitNames(m); };
     ec.querySelectorAll('.cp-f').forEach(i => i.addEventListener('change', e => {
       if (!c) return; const k = e.target.dataset.k; let v = e.target.value; const patch = {};
-      if (['rho', 'airpipe_mm', 'testHead_m', 'cargoLoad', 'frFrom', 'frTo', 'y0', 'y1', 'z0', 'z1'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = null; }
+      if (['rho', 'airpipe_mm', 'testHead_m', 'cargoLoad', 'heavyRho', 'holdZc_mm', 'psiDeg', 'grabMGR', 'frFrom', 'frTo', 'y0', 'y1', 'z0', 'z1'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = null; }
+      if (k === 'grabQualifier') v = v || null;
       if (k === 'type') { const T = compType(v); patch.rho = T.rho || null; if (!T.tank) { patch.airpipe_mm = null; patch.testHead_m = null; } // Istif yuku artik UC ambar turunde anlamli (cargo / dryBulk / container);
         // kod adina bakmak yeni turlerde kullanicinin girdigi degeri SILERDI.
         if (T.legacy !== 'cargo') patch.cargoLoad = null; }
       patch[k] = v; CS().update(c.id, patch); after();
     }));
+    ec.querySelectorAll('.cp-heavy').forEach(el => el.addEventListener('change', e => { if (!c) return; CS().update(c.id, { heavyLoaded: !!e.target.checked }); after(); }));
     ec.querySelectorAll('.pos-row').forEach(r => r.addEventListener('click', () => { selComp = r.dataset.row; compPick = false; compPickA = null; renderSvg(); renderPanel(); }));
     ec.querySelectorAll('.dl-type').forEach(el => el.addEventListener('change', e => mutM(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q) return; const T = DECK_LOAD_TYPES.find(t => t.code === e.target.value); q.deckLoad = { type: e.target.value, p: T && T.p != null ? T.p : (q.deckLoad ? q.deckLoad.p : null) }; })));
     ec.querySelectorAll('.dl-p').forEach(el => el.addEventListener('change', e => mutM(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q || !q.deckLoad) return; const v = parseFloat(e.target.value); q.deckLoad.p = isNaN(v) ? null : v; })));
+    ec.querySelectorAll('.dl-p2').forEach(el => el.addEventListener('change', e => mutM(m => { const q = m.panels.find(x => x.id === e.target.dataset.panel); if (!q || !q.deckLoad) return; const v = parseFloat(e.target.value); q.deckLoad.p2 = isNaN(v) ? null : v; })));
     ec.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', () => {
       const act = b.dataset.cp;
       if (act === 'add') { const f = CS().frameOf(S()); const id = CS().add({ frFrom: f, frTo: f }); selComp = id; compPick = true; compPickA = null; renderSvg(); renderPanel(); toast('Click two opposite corners of the space.'); return; }

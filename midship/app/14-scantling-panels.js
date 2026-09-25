@@ -225,6 +225,7 @@
         <div class="mb-row"><span>Direction</span><select class="ed-input sp-g" data-k="dir"><option value="long" ${g.dir !== 'trans' ? 'selected' : ''}>longitudinal</option><option value="trans" ${g.dir === 'trans' ? 'selected' : ''}>transverse</option></select></div>
         <div class="mb-row"><span>Side</span><select class="ed-input sp-g" data-k="side"><option value="in" ${g.side !== 'out' ? 'selected' : ''}>interior (hold side)</option><option value="out" ${g.side === 'out' ? 'selected' : ''}>other side (tank / outboard)</option></select></div>
         <div class="mb-row"><span>Span</span><span class="pc-inline"><input class="ed-input sp-g" data-k="span" type="number" step="10" value="${g.span != null ? g.span : ''}" placeholder="${M().spanAt(s, gid, r.placed[0] || 0) || defSpan || ''}"><em>mm · blank = supports</em></span></div>
+        <div class="mb-row"><span>Bracket</span><select class="ed-input sp-g" data-k="bracket"><option value="0" ${!g.bracket ? 'selected' : ''}>none (continuous beam, ice m1 = 11.0)</option><option value="1" ${g.bracket ? 'selected' : ''}>mid-span tripping bracket (ice m1 = 13.3)</option></select></div>
         <div class="mb-box" style="margin:6px 8px 2px"><div class="mb-box-title">Scantling</div>
           <div class="mb-row"><span>Profile</span><span class="pc-inline"><input class="ed-input sp-g" data-k="profile" list="spProfList" type="text" value="${g.profile || ''}" placeholder="${names[0] || 'size'}" style="flex:1"><datalist id="spProfList">${names.map(n => `<option value="${n}">`).join('')}</datalist></span></div>
           <div class="mb-row"><span>Material</span><select class="ed-input sp-g" data-k="grade"><option value="" ${!g.grade ? 'selected' : ''}>auto · ${ctx.defaultGrade(s, gid)}</option>${GRADES.map(x => `<option value="${x}" ${g.grade === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
@@ -241,6 +242,7 @@
     ec.querySelectorAll('[data-sg]').forEach(r => r.addEventListener('click', () => { state.group = state.group === r.dataset.sg ? null : r.dataset.sg; ctx.refresh(); }));
     ec.querySelectorAll('.sp-g').forEach(i => i.addEventListener('change', e => mut(dd => { const x = cur(dd); if (!x) return; const k = e.target.dataset.k; let v = e.target.value;
       if (['start', 'spacing', 'count', 'span'].includes(k)) { v = parseFloat(v); if (isNaN(v)) v = k === 'span' ? null : 0; if (k === 'count') v = Math.max(0, Math.round(v)); }
+      if (k === 'bracket') v = v === '1';
       if (k === 'id') { v = v.trim() || x.id; if (dd.stiffGroups.some(o => o !== x && o.id === v)) return; state.group = v; }
       if (k === 'grade') v = v || null;
       x[k] = v; })));

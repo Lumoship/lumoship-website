@@ -257,6 +257,16 @@
     return { A_mm2: A * f, zn_mm: zn, I_mm4: I * f };
   }
 
+  // ------------------------------------------------------------ Grab (Pt 6 Ch 1 Sec 1) — ek sınıf notasyonu, dökme yük ambarlarında kepçe darbesi
+  //   [3.1.2] iç dip: t_G = 0,62·√(b·k)·(M_GR/20)^0,25 ; [3.1.3] düşey/eğik ambar sınırı (hopper eğimi, iç gövde, perde alt bölgesi): 0,55 katsayı
+  //   M_GR (t): kullanıcı girmezse Grab(1-X)/(2-X) ≥ 10 ; Grab(3-X) OC(M)/OC(H)/HC(A)/HC(B*) L≥250→35, 200≤L<250→30, diğer 20 [1.5]
+  function tGrab(b_mm, k, MGR_t, vertical) {
+    const a = vertical ? 0.55 : 0.62;
+    return a * Math.sqrt(b_mm * k) * Math.pow(Math.max(MGR_t, 0.001) / 20, 0.25);
+  }
+  const GRAB_DEFAULT_MGR = (qualifier, L) => (qualifier === '3-X') ? (L >= 250 ? 35 : L >= 200 ? 30 : 20) : 10;   // [1.5]
+  const GRAB_EXTENT = { '1-X': 0, '2-X': 1.5, '3-X': 3.0 };                                                        // Table 2: iç dip her zaman; düşey/eğik sınır yalnız 2-X (1,5 m) / 3-X (3,0 m)
+
   return {
     T_RES, L1, L2, roundHalf,
     Cw, Cw0, fm, fsw, fqs, fq, fnlVs, Mwv, Qwv, MswMin, Zmin, Imin, sigmaPerm, Zreq, VD, sigmaHgPerm, tauPerm, zHts, sectionProps,
@@ -264,5 +274,6 @@
     COMP, tc1, plateCorrosion, internalCorrosion, stiffenerCorrosion,
     MIN_PLATE, sideBand, shellLoc, deckAdj, BOTTOM_TOP_Z, minPlateNet, minStiffNet, minPSMNet,
     plateC, slendernessPlate, slendernessStiffener, flangeBreadthMin, slendernessPSM, bracketEdge,
+    tGrab, GRAB_DEFAULT_MGR, GRAB_EXTENT,
   };
 });

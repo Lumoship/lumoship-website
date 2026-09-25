@@ -28,7 +28,7 @@
     const ship = model.ship, out = [];
     const y = el.y / 1000, z = el.z / 1000, x = model.x, xl = model.xLCP != null ? model.xLCP : model.x, Bx = model.Bx || ship.B;
     const conds = model.conditions || [{ name: 'LD', T: ship.TSC, rollType: ship.rollType }];
-    const shipOf = c => Object.assign({}, ship, { rollType: c.rollType || ship.rollType });
+    const shipOf = c => Object.assign({}, ship, { rollType: c.rollType || ship.rollType, kr: c.kr != null ? c.kr : ship.kr, GM: c.GM != null ? c.GM : ship.GM });
     const seaFace = el.faces.find(f => f.kind === 'sea');
     const push = (set, cond, lc, P, sw, extra) => out.push(Object.assign({ set, AC: AC_OF[set], T: cond ? cond.T : ship.TSC, cond: cond ? cond.name : '-', lc, P, sw }, extra || {}));
     // --- deniz
@@ -158,15 +158,30 @@
     } else res.tBucNet = 0;
     // buz
     if (e.ice && ship.ice) {
-      const h = ICE.hOf(ship.ice.iceClass)[1], pr = ICE.pressure(ship.ice, e.ice.region, 1.7 * e.ice.s1);
-      const pl = ICE.plate(pr.P, e.ice.s1, h, e.ReH, e.ice.tc != null ? e.ice.tc : 2, e.ice.longit !== false);
+      const longit = e.ice.longit !== false;                                       // Table 9: dış kaplama boyuna postalı → ℓ_a = 1.7 s1 ; enine postalı → ℓ_a = s1
+      const h = ICE.hOf(ship.ice.iceClass)[1], la = longit ? 1.7 * e.ice.s1 : e.ice.s1, pr = ICE.pressure(ship.ice, e.ice.region, la);
+      const pl = ICE.plate(pr.P, e.ice.s1, h, e.ReH, e.ice.tc != null ? e.ice.tc : 2, longit);
       res.ice = { P: pr.P, t: pl.t }; res.tIceGr = pl.t;
+    }
+    // Grab (Pt 6 Ch 1 Sec 1): iç dip her zaman ("excluding bilge wells"); düşey/eğik ambar sınırı yalnız Grab(2-X)/(3-X), ambar tabanından 1,5/3,0 m içinde
+    const holdFace = (e.faces || []).find(f => f.kind === 'hold');
+    const hold = holdFace && model.holds[holdFace.hold];
+    if (hold && hold.grab) {
+      const isIB = e.panel === 'innerBottom';
+      const ext = DNV.GRAB_EXTENT[hold.grab.qualifier] || 0;
+      const zMin = Math.min(e.z0, e.z1) / 1000, zMax = Math.max(e.z0, e.z1) / 1000;
+      const inExtent = ext > 0 && zMin <= hold.grab.z0 + ext + 1e-6 && zMax >= hold.grab.z0 - 1e-6;
+      if (isIB || inExtent) {
+        const tG = DNV.tGrab(e.b, k, hold.grab.MGR, !isIB);
+        res.grab = { MGR: hold.grab.MGR, t: tG, vertical: !isIB }; res.tGrabGr = tG;
+      }
     }
     // hükmeden (brüt)
     // brüt yuvarlama: min kalınlık en yakın 0,5 (Nauticus, Ch 3 Sec 2 [2.?]); diğerleri yukarı 0,5
     // brüt yuvarlama: Nauticus min/akma/narinlik en yakın 0,5 (Ch 3 Sec 2 [2.?]); burkulma t_buc yukarı 0,5 (fikstür)
     const cand = [['Minimum thickness', DNV.roundHalf(res.tMinNet + e.tc)], ['Yielding', DNV.roundHalf(res.tLocNet + e.tc)], ['Slenderness', DNV.roundHalf(res.tSlendNet + e.tc)], ['Buckling', r05(res.tBucNet + e.tc)]];
     if (res.tIceGr) cand.push(['Ice Class', r05(res.tIceGr)]);
+    if (res.tGrabGr) cand.push(['Grab', DNV.roundHalf(res.tGrabGr + e.tc)]);
     cand.sort((a, b) => b[1] - a[1]);
     res.tReqGr = cand[0][1]; res.governing = cand[0][0]; res.isOK = e.tGross + 1e-9 >= res.tReqGr;
     res.candidates = cand;
@@ -235,9 +250,10 @@
     }
     // buz (boyuna posta)
     if (st.ice && ship.ice) {
-      const h = ICE.hOf(ship.ice.iceClass)[1], pr = ICE.pressure(ship.ice, st.ice.region, st.ice.l);
-      const fr = ICE.longFrame(pr.P, h, st.ice.s1, st.ice.l, st.ice.l - st.ice.s1 / 2, st.ReH, { m1: st.ice.m1 });
-      const plReq = ICE.plate(ICE.pressure(ship.ice, st.ice.region, 1.7 * st.ice.s1).P, st.ice.s1, h, st.ReH, 2, true).t;
+      const trans = !!st.ice.trans;                                                // Table 9: enine posta ℓ_a = s1 (frame spacing) ; boyuna posta ℓ_a = açıklık ℓ
+      const h = ICE.hOf(ship.ice.iceClass)[1], la = trans ? st.ice.s1 : st.ice.l, pr = ICE.pressure(ship.ice, st.ice.region, la);
+      const fr = trans ? ICE.transFrame(pr.P, h, st.ice.s1, st.ice.l, st.ReH, st.ice.m0) : ICE.longFrame(pr.P, h, st.ice.s1, st.ice.l, st.ice.l - st.ice.s1 / 2, st.ReH, { m1: st.ice.m1 });
+      const plLa = trans ? st.ice.s1 : 1.7 * st.ice.s1, plReq = ICE.plate(ICE.pressure(ship.ice, st.ice.region, plLa).P, st.ice.s1, h, st.ReH, 2, !trans).t;
       res.ice = { P: pr.P, Z: fr.Z, A: fr.A, tw: ICE.twMin(plReq, 2, st.hw, st.ReH, st.type === 'FB') };
     }
     return res;

@@ -26,7 +26,7 @@
   function nextId() { let k = 1; while (read().some(c => c.id === 'C' + k)) k++; return 'C' + k; }
   function add(partial) {
     const T = (window.SectionCAD && SectionCAD.COMP_TYPES || []).find(t => t.code === (partial && partial.type)) || (window.SectionCAD && SectionCAD.COMP_TYPES || [])[0] || { code: 'ballast', rho: 1.025 };
-    const c = Object.assign({ id: nextId(), name: '', type: T.code, rho: T.rho || null, airpipe_mm: null, testHead_m: null, cargoLoad: null, frFrom: null, frTo: null, y0: 0, y1: 0, z0: 0, z1: 0 }, partial || {});
+    const c = Object.assign({ id: nextId(), name: '', type: T.code, rho: T.rho || null, airpipe_mm: null, testHead_m: null, cargoLoad: null, heavyRho: null, heavyLoaded: false, holdZc_mm: null, psiDeg: null, grabQualifier: null, grabMGR: null, frFrom: null, frTo: null, y0: 0, y1: 0, z0: 0, z1: 0 }, partial || {});
     if (!c.name) c.name = c.id;
     read().push(c); save(); return c.id;
   }

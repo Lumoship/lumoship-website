@@ -18,11 +18,13 @@
     const anchor = $('bvBilgeKeel'); const host = anchor && anchor.closest('.ea-field') && anchor.closest('.ea-field').parentElement; if (!host) return;
     const div = document.createElement('div'); div.id = 'dnvInputs'; div.className = 'dnv-inputs'; div.style.cssText = 'display:contents';
     const F = (id, label, val, step, title, unit) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label} <span class="bv-tag">DNV</span></label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()">${unit ? '<em>' + unit + '</em>' : ''}</div>`;
+    const Sel = (id, label, opts, val, title) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label} <span class="bv-tag">DNV</span></label><select class="ea-select" id="${id}" onchange="recalcAll()">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
     div.innerHTML =
+      Sel('dnv_iceRegion', 'Ice region', [['bow', 'Bow'], ['midbody', 'Midbody'], ['stern', 'Stern']], 'midbody', 'Pt 6 Ch 6 Sec 3 Table 8/10/11: c_1 ve buz kuşağı düşey uzanımı bölgeye göre değişir (bu kesitin gemi boyundaki konumu); Framing system ve m_o alanları (Buz paneli) DNV boyuna/enine posta seçimini de besler') +
       F('dnv_TBAL', 'Ballast draught T_BAL', '', 0.01, 'DNV Pt 3 Ch 4 Sec 6 / Ch 6 Sec 2 Table 1: WB-1/WB-4 setleri T_BAL ile; boş = 0.58·T_SC', 'm') +
       F('dnv_holdRho', 'Bulk cargo density ρ_C', 0.7, 0.05, 'Pt 5 Ch 1 Sec 2 [3.3.3]: M_H/V_Full, en az 0.7 t/m³ (homojen tam yük)', 't/m³') +
       F('dnv_holdZc', 'Cargo surface z_C', '', 0.01, 'Pt 5 Ch 1 Sec 2 [3.3.1]: dolu ambarda eşdeğer yatay yüzey (ambar ağzı mezarnası üstü); boş = ambar kutusunun üstü', 'm') +
-      F('dnv_xLcpOffset', 'LCP x offset', 0, 0.01, 'Ch 3 Sec 7 Table 2: LCP x = EPP orta boyu; kesitin EPP ortasından uzaklığı (m); Nauticus karşılaştırmasında +0.26', 'm');
+      F('dnv_xLcpOffset', 'LCP x offset', '', 0.01, 'Ch 3 Sec 7 Table 2: LCP x = EPP orta boyu; kesitin EPP ortasından uzaklığı (m); boş = posta aralığının yarısı (komşu PSM ortası varsayımı)', 'm');
     host.appendChild(div);
   }
   const TBAL = () => { const v = num('dnv_TBAL', NaN); return isNaN(v) || v <= 0 ? 0.58 * num('T', 7) : v; };
@@ -47,7 +49,7 @@
 
   // ------------------------------------------------------------ model kurucu
   function buildModel() {
-    const DNV = window.DNV, DL = window.DNVLoads, SEC = window.DNVSection, BK = window.DNVBuckling;
+    const DNV = window.DNV, DL = window.DNVLoads, SEC = window.DNVSection, BK = window.DNVBuckling, ICE = window.DNVIce;
     const s = D() && D().getSection && D().getSection(); if (!s || !s.panels || !s.panels.length) return null;
     const L = num('L', 0), B = num('B', 0), Dd = num('D', 0), T = num('T', 0), CB = num('Cb', 0.8); if (!(L > 0 && B > 0 && T > 0)) return null;
     const shipType = ($('shipType') || {}).value || 'other';
@@ -56,11 +58,16 @@
     const iceCls = (($('iceClass') || {}).value || '1C').replace('1AS', '1A*');
     const ship = { L, B, D: Dd, TSC: T, TBAL: TBAL(), CB, rollType: bulk ? 'bulkFull' : 'general', bilgeKeel: (($('bvBilgeKeel') || {}).value || 'Yes') !== 'No', v: num('serviceSpeed', undefined),
       lamOST: 0.45, LLL: num('bvLoadLineLength', L) || L, freeboardType: (($('bvFreeboardType') || {}).value || 'B'),
-      ice: iceOn ? { iceClass: iceCls, deltaF: num('ice_Disp', 0), PS: num('ice_P0', 0), UIWL: num('ice_T_uiwl', T), LIWL: num('ice_T_liwl', TBAL()) } : null };
-    const xL = num('sectionXL', 0.5), x = xL * L, xLCP = x + num('dnv_xLcpOffset', 0);
-    const frameSp = num('transFrameSpacing', 700);
-    const conds = bulk ? [{ name: 'LD', T, rollType: 'bulkFull' }, { name: 'HD', T, rollType: 'bulkHeavyPartial', hd: true }, { name: 'Ballast', T: ship.TBAL, rollType: 'bulkBallast' }]
-      : [{ name: 'LD', T, rollType: 'general' }, { name: 'Ballast', T: ship.TBAL, rollType: 'general' }];
+      ice: iceOn ? { iceClass: iceCls, deltaF: num('ice_Disp', 0), PS: num('ice_P0', 0), UIWL: num('ice_T_uiwl', T), LIWL: num('ice_T_liwl', TBAL()),
+        region: (($('dnv_iceRegion') || {}).value || 'midbody'), framing: (($('ice_framing') || {}).value === 'TRANS' ? 'trans' : 'long'), m0: num('ice_mo', 7), tc: num('ice_tc', 2) } : null };
+    const leM = num('le', NaN), frameSp = num('transFrameSpacing', isNaN(leM) ? 700 : leM * 1000);   // transFrameSpacing boşsa Ana Particulars l_e (web frame aralığı) — aynı büyüklük, tek girişte tutarlı
+    const xL = num('sectionXL', 0.5), x = xL * L;
+    const xLcpOffset = num('dnv_xLcpOffset', frameSp / 2000);   // boş: PSM aralığının yarısı — EPP orta boyu, komşu döşek/web frame ortası varsayımı
+    const xLCP = x + xLcpOffset;
+    const grFull = num('bvGMfull', NaN), krFull = num('bvKr', NaN), grBal = num('bvGMbal', NaN), krBal = num('bvKrBal', NaN);   // Ch 4 Sec 3 [2.1.1] / Pt 5 Ch 1 [5.1.2]: yükleme kitapçığından biliniyorsa gerçek GM/Kr, yoksa kural varsayılan tablosu
+    const ldGMKr = { GM: isNaN(grFull) ? undefined : grFull, kr: isNaN(krFull) ? undefined : krFull }, balGMKr = { GM: isNaN(grBal) ? undefined : grBal, kr: isNaN(krBal) ? undefined : krBal };
+    const conds = bulk ? [{ name: 'LD', T, rollType: 'bulkFull', ...ldGMKr }, { name: 'HD', T, rollType: 'bulkHeavyPartial', hd: true }, { name: 'Ballast', T: ship.TBAL, rollType: 'bulkBallast', ...balGMKr }]
+      : [{ name: 'LD', T, rollType: 'general', ...ldGMKr }, { name: 'Ballast', T: ship.TBAL, rollType: 'general', ...balGMKr }];
     // --- kompartımanlar
     const comps = (window.ShipComps ? window.ShipComps.forSection(s).filter(c => window.ShipComps.hasSize(c)) : []);
     const tanks = {}, holds = {};
@@ -69,12 +76,19 @@
       const half = 7.0, x0 = c.frFrom != null && c.frTo != null ? Math.min(c.frFrom, c.frTo) * frameSp / 1000 : x - half, x1 = c.frFrom != null && c.frTo != null ? Math.max(c.frFrom, c.frTo) * frameSp / 1000 : x + half;
       const yG = (c.y0 + c.y1) / 2000, zG = (c.z0 + c.z1) / 2000;
       if (isTank(c.type)) tanks[c.id] = { name: c.name, ztop: c.z1 / 1000, zair: (c.airpipe_mm || (c.z1 + 760)) / 1000, rho: c.rho || 1.025, P0: L <= 50 ? 10 : L < 100 ? 0.3 * L - 5 : 25, Pdrop2: 25, x0, x1, y0: c.y0 / 1000, y1: c.y1 / 1000, xG: (x0 + x1) / 2, yG, zG, compType: COMP_KEY[c.type] || 'ballast' };
-      else if (isHold(c.type)) holds[c.id] = { name: c.name, rhoC: Math.max(0.7, c.rho || num('dnv_holdRho', 0.7)), zC: !isNaN(zHoldDefault) && zHoldDefault > 0 ? zHoldDefault : c.z1 / 1000, xG: (x0 + x1) / 2, yG: 0, zG: zG, psi: 30, compType: c.type === 'dryBulk' ? 'holdGrab' : 'hold' };
+      else if (isHold(c.type)) {
+        const zC = c.holdZc_mm > 0 ? c.holdZc_mm / 1000 : (!isNaN(zHoldDefault) && zHoldDefault > 0 ? zHoldDefault : c.z1 / 1000);   // kompartıman başına z_C önce, sonra küresel dnv_holdZc, sonra kutu üstü
+        const psi = c.psiDeg > 0 ? c.psiDeg : 30;   // Pt 5 Ch 1 [3.4]: 30° genel, 35° demir cevheri, 25° çimento (kural metni) — kompartıman başına
+        holds[c.id] = { name: c.name, rhoC: Math.max(0.7, c.rho || num('dnv_holdRho', 0.7)), zC, xG: (x0 + x1) / 2, yG: 0, zG: zG, psi, compType: c.type === 'dryBulk' ? 'holdGrab' : 'hold', grab: c.grabQualifier ? { qualifier: c.grabQualifier, MGR: c.grabMGR > 0 ? c.grabMGR : DNV.GRAB_DEFAULT_MGR(c.grabQualifier, L), z0: c.z0 / 1000 } : null };   // Pt 6 Ch 1 Sec 1: kepçe darbesi
+        if (c.type === 'dryBulk' && c.heavyLoaded) holds[c.id].heavy = { rhoC: c.heavyRho || holds[c.id].rhoC, zC, xG: holds[c.id].xG, yG: 0, zG, psi };   // Pt 5 Ch 1 [BC-3/4]: dolu ambar HD alternatif durumu
+      }
     });
     const boxAt = (y, z) => comps.find(c => y >= c.y0 && y <= c.y1 && z >= c.z0 && z <= c.z1) || null;
     // --- plakalar (strake parçaları) ve profiller
     const plates = [], epps = [], stiffs = [];
     const gradeReH = g => DNV.ReHOf(g || s.defaultGrade || 'AH36', 355);
+    let dbZ = null; s.panels.forEach(pn => { if (pn.position !== 'innerBottom') return; const ln = M().panelLine(pn, s.nodes); const zz = Math.min(ln.a.z, ln.b.z); if (dbZ == null || zz < dbZ) dbZ = zz; }); dbZ = (dbZ || 0) / 1000;   // Table 10/11 'DB' (çift dip üstü) — buz kuşağı alt sınırı
+    const iceBelt = kind => ship.ice ? ICE.belt(ship.ice.iceClass, ship.ice.region, ship.ice.UIWL, ship.ice.LIWL, kind, dbZ) : null;
     // strake'i olmayan grup (parametrik örnek gemi: profil grupları var, strake yok) → BOŞ listeler motorun yerleşiminden dolar (dolu listelere dokunmaz)
     const tempStrakes = {};
     try {
@@ -127,7 +141,7 @@
         const faces = [], sideTypes = [];
         const faceOf = (box, inside) => { if (!box) return; if (isTank(box.type)) faces.push({ kind: 'tank', tank: box.id, inside, cond: 'Ballast' }); else if (isHold(box.type)) faces.push({ kind: 'hold', hold: box.id, alpha: Math.abs(dz) > Math.abs(dy) ? 90 : 0, inside, coaming: pos === 'coaming' || pos === 'coamingTop' }); };
         if (shell) { faces.push({ kind: 'sea' }); faceOf(inBox, true); sideTypes.push('external', inBox ? (COMP_KEY[inBox.type] || 'void') : 'void'); }
-        else if (deckPos && (!inBox || !outBox)) { const ub = inBox || outBox; faces.push({ kind: 'sea', deck: { zdk: mz / 1000, LLL: ship.LLL } }); faceOf(ub, true); sideTypes.push('external', ub ? (COMP_KEY[ub.type] || 'void') : 'void'); }   // açık güverte: kutusuz yüz deniz (yeşil deniz), öteki yüz tank/ambar
+        else if (deckPos && (!inBox || !outBox)) { const ub = inBox || outBox; faces.push({ kind: 'sea', deck: { zdk: mz / 1000, LLL: ship.LLL, freeboardType: ship.freeboardType } }); faceOf(ub, true); sideTypes.push('external', ub ? (COMP_KEY[ub.type] || 'void') : 'void'); }   // açık güverte: kutusuz yüz deniz (yeşil deniz), öteki yüz tank/ambar
         else if (inBox && outBox && inBox.id === outBox.id) { faces.push({ kind: 'internal' }); sideTypes.push(COMP_KEY[inBox.type] || 'void', COMP_KEY[inBox.type] || 'void'); }   // iki yüz de aynı kompartıman → net basınç 0, yalnız INT-1
         else { const aboveDeck = deckZ != null && mz >= deckZ - 5; faceOf(inBox, true); faceOf(outBox, false); sideTypes.push(inBox ? (COMP_KEY[inBox.type] || 'void') : (aboveDeck ? 'external' : 'void'), outBox ? (COMP_KEY[outBox.type] || 'void') : (aboveDeck ? 'external' : 'void')); }   // güverte üstü kutusuz yüz: dış ortam
         if (seg.deckLoad && seg.deckLoad.type && seg.deckLoad.type !== 'none' && seg.deckLoad.p > 0) faces.push({ kind: 'deck', Pdls: seg.deckLoad.p, Pdls2: seg.deckLoad.p2 != null ? seg.deckLoad.p2 : seg.deckLoad.p });
@@ -180,7 +194,9 @@
           buck: (() => { const plAt = xx => plates.find(q => q.gid === gid && xx >= q.x0 - 1 && xx <= q.x1 + 1) || plate;   // komşu EPP'lerin gerçek plakaları (Nauticus C_x1/C_x2 farklı t ile)
               const p1 = plAt(sp.x - gapA / 2), p2 = (gapB2 !== gapB) ? p1 : plAt(sp.x + gapB / 2);                  // serbest uç: ayna
               return { b1: gapA, b2: gapB2, tp: plate.t - plate.tc, ReHP: plate.ReH, epp1: { b: gapA, tp: p1.t - p1.tc, ReH: p1.ReH, Flong: 1.1 }, epp2: { b: gapB2, tp: p2.t - p2.tc, ReH: p2.ReH, Flong: 1.1 } }; })(),
-          ice: (ship.ice && ['side', 'bilge'].includes(plate.pos) && at.z >= (ship.ice.LIWL - 1.6) * 1000 && at.z <= (ship.ice.UIWL + 1.0) * 1000) ? { region: 'midbody', s1: spacing / 1000, l: lBdg, m1: 11.0 } : null, name: sp.name });
+          ice: (() => { if (!ship.ice || !['side', 'bilge'].includes(plate.pos)) return null; const bel = iceBelt('frame'); if (!(at.z >= bel.zBot * 1000 && at.z <= bel.zTop * 1000)) return null;
+          const trans = sp.g.dir === 'trans' || ship.ice.framing === 'trans';
+          return { region: ship.ice.region, s1: spacing / 1000, l: lBdg, m1: sp.g.bracket ? 13.3 : 11.0, trans, m0: ship.ice.m0, tc: ship.ice.tc }; })(), name: sp.name });   // FSICR [9.3]: braket yoksa 11.0, orta açıklık braketi varsa 13.3
       });
       // EPP'ler: profil / PSM kesişimi / yay-düz geçişi sınırlı bölgeler (strake dikişi EPP'yi bölmez);
       //   dikişle kesilen EPP her plaka parçası için ayrı değerlendirilir (kendi t, t_c, R_eH; boyutlar b×a tam EPP'nin) — Nauticus EPP1/EPP2 kopyaları
@@ -204,7 +220,8 @@
           const pa = M().chainPointAt(s, gid, Math.max(xa, p.x0)), pb = M().chainPointAt(s, gid, Math.min(xb, p.x1));
           epps.push({ id: p.id + '/E' + eppN, panel: p.pos, plate: p.id, y0: A0.y, z0: A0.z, y1: B0.y, z1: B0.z, py0: pa ? pa.y : A0.y, pz0: pa ? pa.z : A0.z, py1: pb ? pb.y : B0.y, pz1: pb ? pb.z : B0.z, b, a, kind, tGross: p.t, tc: p.tc, ReH: p.ReH, k: p.k, minLoc: p.minLoc, minAdj: p.minAdj, slC: DNV.plateC((p.slLoc === 'innerBottom' || p.slLoc === 'other') ? 'other' : 'outerShellOrStrengthDeck', L), faces: p.faces,
             Flong, curved: p.arc ? { R0: p.arc.R, d: b, single: true } : null, transverse: kind === 'transStiffened', S: 1, plateZ: [Math.min(p.z0, p.z1), Math.max(p.z0, p.z1)],
-            ice: (ship.ice && ['side', 'bilge'].includes(p.pos) && pa && pb && Math.max(pa.z, pb.z) >= (ship.ice.LIWL - 0.5) * 1000 && Math.min(pa.z, pb.z) <= (ship.ice.UIWL + 0.4) * 1000) ? { region: 'midbody', s1: b / 1000 } : null });   // buz kuşağı: plaka parçasının z aralığı (Nauticus: kuşak dışındaki plaka kopyasına buz uygulanmaz)
+            ice: (() => { if (!ship.ice || !['side', 'bilge'].includes(p.pos) || !pa || !pb) return null; const bel = iceBelt('plate'); if (!(Math.max(pa.z, pb.z) >= bel.zBot * 1000 && Math.min(pa.z, pb.z) <= bel.zTop * 1000)) return null;
+            return { region: ship.ice.region, s1: b / 1000, longit: kind !== 'transStiffened', tc: ship.ice.tc }; })() });   // buz kuşağı: plaka parçasının z aralığı (Nauticus: kuşak dışındaki plaka kopyasına buz uygulanmaz)
         });
       }
     });
@@ -253,7 +270,7 @@
       EPP: e.id, Panel: e.panel, y0: Math.round(m.y0), z0: Math.round(m.z0), y1: Math.round(m.y1), z1: Math.round(m.z1), py0: Math.round(m.py0 != null ? m.py0 : m.y0), pz0: Math.round(m.pz0 != null ? m.pz0 : m.z0), py1: Math.round(m.py1 != null ? m.py1 : m.y1), pz1: Math.round(m.pz1 != null ? m.pz1 : m.z1), b: Math.round(m.b), a: Math.round(m.a), t_gr: e.tGross, t_c: e.tc, ReH: m.ReH,
       t_min_gr: n2(e.tMinNet + e.tc), t_yield_gr: n2(e.tLocNet + e.tc), yield_set: e.yield ? e.yield.set + ' ' + e.yield.lc + ' ' + (e.yield.sw || '') : '', P_yield: e.yield ? n2(e.yield.P) : '', C_a: e.yield ? n2(e.yield.Ca) : '',
       t_slend_gr: n2(e.tSlendNet + e.tc), t_buck_gr: e.tBucNet != null ? n2(e.tBucNet + e.tc) : '', eta_buck: e.buckling ? n2(e.buckling.eta) : '', buck_lc: e.buckling ? e.buckling.lc + ' ' + e.buckling.sw + ' c' + e.buckling.comb : '', buck_sx: e.buckling && e.buckling.inp ? n2(e.buckling.inp.sx) : '', buck_sy: e.buckling && e.buckling.inp ? n2(e.buckling.inp.sy) : '', buck_tau: e.buckling && e.buckling.inp ? n2(e.buckling.inp.tau) : '', buck_psi: e.buckling && e.buckling.inp ? n2(e.buckling.inp.psi_x) : '',
-      t_ice_gr: e.tIceGr ? n2(e.tIceGr) : '', t_req_gr: e.tReqGr, governing: e.governing, OK: e.isOK ? 'Yes' : 'No' }; });
+      t_ice_gr: e.tIceGr ? n2(e.tIceGr) : '', t_grab_gr: e.tGrabGr ? n2(e.tGrabGr + e.tc) : '', t_req_gr: e.tReqGr, governing: e.governing, OK: e.isOK ? 'Yes' : 'No' }; });
   }
   function rowsStiff() {
     if (!last) return [];
@@ -344,6 +361,173 @@
   try {
     const q = new URLSearchParams(location.search);
     if (q.get('dnvsetexample')) { localStorage.setItem('midship_project_v1:example', '1'); localStorage.removeItem('midship_project_v1'); document.title = 'dnv-example-set'; }
+    if (q.get('dnvbuildlive')) setTimeout(() => {  // M15 elle çizim provası: referans kesiti SectionModel.addLine/addArc ile (çizim aracının kullandığı BİREBİR fonksiyonlar) kurar; _dev/dnv-ref/dnv-sample-project.json'dan tablo verisi alır
+    function setVal(id, v) {
+      const el = document.getElementById(id); if (!el) return false;
+      const proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v);
+      el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+    async function run() {
+    const out = { errors: [] };
+    try {
+      const j = await fetch('/_dev/dnv-ref/dnv-sample-project.json').then(r => r.json());
+      const fv = j.formValues, pdSrc = j.SECTIONS.items[0].panelData;
+
+      // 1) sınıflandırma DNV
+      setVal('classificationSociety', 'DNV');
+
+      // 2) geometri: çizim aracının addLine/addArc'ı — referans kesit, nokta nokta
+      let m = { id: 'S1', manual: true, nodes: [], panels: [], groups: {}, panelData: {}, frame: null, isMidship: true };
+      const SM = window.SectionModel;
+      const L = (a, b, opts) => { m = SM.addLine(m, a, b, opts || {}); };
+      const A = (a, b, r, opts) => { m = SM.addArc(m, a, b, r, opts || {}); };
+      L({ y: 0, z: 0 }, { y: 890, z: 0 }, { position: 'bottom' });
+      L({ y: 890, z: 0 }, { y: 3650, z: 0 }, { position: 'bottom' });
+      L({ y: 3650, z: 0 }, { y: 7100, z: 0 }, { position: 'bottom' });
+      A({ y: 7100, z: 0 }, { y: 8600, z: 1200 }, 2676, { position: 'bilge' });
+      L({ y: 8600, z: 1200 }, { y: 8600, z: 9800 }, { position: 'side' });
+      L({ y: 0, z: 1200 }, { y: 890, z: 1200 }, { position: 'innerBottom' });
+      L({ y: 890, z: 1200 }, { y: 3650, z: 1200 }, { position: 'innerBottom' });
+      L({ y: 3650, z: 1200 }, { y: 7100, z: 1200 }, { position: 'innerBottom' });
+      L({ y: 7100, z: 1200 }, { y: 8600, z: 1200 }, { position: 'innerBottom' });
+      L({ y: 7100, z: 0 }, { y: 7100, z: 1200 }, { position: 'innerSide' });
+      L({ y: 7100, z: 1200 }, { y: 7100, z: 9800 }, { position: 'innerSide' });
+      L({ y: 7100, z: 9800 }, { y: 7100, z: 12000 }, { position: 'coaming' });
+      L({ y: 890, z: 0 }, { y: 890, z: 1200 }, { position: 'centreGirder' });
+      L({ y: 3650, z: 0 }, { y: 3650, z: 1200 }, { position: 'sideGirder' });
+      L({ y: 7100, z: 9800 }, { y: 8600, z: 9800 }, { position: 'upperDeck' });
+      window.Draw.setSection(m);
+      m = window.Draw.getSection();
+      // iç dip ambar tarafı: yayılı yük UDL-1 P_dl-s 2,5 / UDL-2 statik 255,06 (dnv-sample-project.json'daki gibi, panel düzeyinde)
+      m.panels.forEach(pn => { if (pn.position !== 'innerBottom') return; const b1 = m.nodes.find(n => n.id === pn.from), b2 = m.nodes.find(n => n.id === pn.to); if (b1 && b2 && Math.max(b1.y, b2.y) <= 7100) pn.deckLoad = { type: 'udl', p: 2.5, p2: 255.06 }; });
+      window.Draw.setSection(m);
+      out.geometry = { panels: m.panels.length, nodes: m.nodes.length, groups: m.groups };
+
+      // 3) strakes + profiller: üretilen projeden (grup ID'leri role bazlı, örtüşüyor)
+      const M = SM;
+      Object.keys(pdSrc).forEach(gid => {
+        const d = M.panelData(m, gid); const ci = M.chainInfo(m, gid);
+        const strakes = pdSrc[gid].strakes.map(x => ({ len: x.len, t: x.t, grade: x.grade, type: 'ordinary', hole: null }));
+        const sum = strakes.reduce((a, x) => a + x.len, 0);
+        if (Math.abs(sum - ci.L) > 1 && strakes.length) strakes[strakes.length - 1].len += Math.round(ci.L - sum);
+        d.strakes = strakes;
+        d.stiffGroups = JSON.parse(JSON.stringify(pdSrc[gid].stiffGroups));
+      });
+      window.Draw.setSection(m);
+
+      // 4) form alanları + kompartımanlar
+      ['L', 'B', 'D', 'Cb', 'sectionXL', 'T', 'shipType', 'MsDesign', 'MsSag', 'QsPos', 'QsNeg', 'transFrameSpacing', 'dnv_TBAL', 'dnv_xLcpOffset',
+       'material', 'steelFamily', 'ice_T_uiwl', 'ice_T_liwl', 'ice_Disp', 'ice_P0', 'ice_framing', 'iceClass',
+       'bvLoadLineLength', 'bvFreeboardType', 'compartmentsJson'].forEach(id => { if (id in fv) setVal(id, fv[id]); });
+      const iceOn = document.getElementById('iceEnabledOn');
+      if (iceOn) { iceOn.checked = !!fv.iceEnabledOn; iceOn.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (window.ShipComps && window.ShipComps.reload) window.ShipComps.reload();
+
+      // 5) hesapla
+      const r = window.DNVUI.refresh();
+      out.hasResult = !!r; out.dnvError = window.DNVUI.lastError;
+      out.status = (document.getElementById('dnvStatus') || {}).textContent;
+      out.summary = (document.getElementById('dnvSummary') || {}).textContent;
+
+      // 6) CSV (gerçek #dnvCsvBtn akışı — Blob yakala)
+      let captured = null; const origCreate = URL.createObjectURL;
+      URL.createObjectURL = function (b) { captured = b; return origCreate.call(URL, b); };
+      const btn = document.getElementById('dnvCsvBtn'); if (btn) btn.click();
+      URL.createObjectURL = origCreate;
+      out.csv = captured ? await captured.text() : null;
+
+      if (q.get('dnvbuildshot')) { const p = document.getElementById('dnvPanel'); if (p) { document.body.prepend(p); p.style.cssText = 'display:block;position:relative;z-index:9999;background:#fff;max-width:1380px'; } }
+    } catch (e) { out.errors.push(String(e.stack || e)); }
+    const pre = document.createElement('pre'); pre.id = 'dnvLiveOut'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }
+    run();
+    }, 500);
+    if (q.get('dnvuitest')) setTimeout(() => {   // headless UI duman testi: kompartıman/profil/güverte editörlerinin yeni DNV alanları hatasız render oluyor mu (M14/M15)
+      const out = { errors: [] };
+      const tryStep = (name, fn) => { try { fn(); } catch (e) { out.errors.push(name + ': ' + (e.stack || e)); } };
+      const sec = D() && D().getSection ? D().getSection() : null;
+      tryStep('compartments-heavy', () => {
+        D().setViewMode('compartments');
+        let c = window.ShipComps.list().find(x => x.type === 'dryBulk');
+        const cid = c ? c.id : window.ShipComps.add({ type: 'dryBulk', frFrom: null, frTo: null, y0: 0, y1: 1000, z0: 1000, z1: 5000 });
+        window.ShipComps.update(cid, { heavyLoaded: true, heavyRho: 2.5, holdZc_mm: 4500 });
+        SectionCAD.renderPanel();
+        let ec = document.getElementById('edContent');
+        const row = ec && ec.querySelector('[data-row="' + cid + '"]'); if (row) row.click();
+        SectionCAD.renderPanel();
+        ec = document.getElementById('edContent');
+        out.compHtmlLen = ec ? ec.innerHTML.length : -1;
+        out.hasHeavyCheckbox = !!(ec && ec.querySelector('.cp-heavy'));
+        out.hasHoldZc = !!(ec && ec.querySelector('[data-k="holdZc_mm"]'));
+        const cb = ec && ec.querySelector('.cp-heavy');
+        if (cb) { out.heavyCheckedBefore = cb.checked; cb.checked = false; cb.dispatchEvent(new Event('change')); }
+        SectionCAD.renderPanel(); ec = document.getElementById('edContent');
+        const cb2 = ec && ec.querySelector('.cp-heavy'); out.heavyUncheckWorked = cb2 ? !cb2.checked : null;
+        out.heavyLoadedAfter = window.ShipComps.get(cid).heavyLoaded;
+      });
+      tryStep('deckload-p2', () => {
+        D().setViewMode('compartments');
+        SectionCAD.renderPanel();
+        const ec = document.getElementById('edContent');
+        out.hasDlP2 = !!(ec && ec.querySelector('.dl-p2'));
+      });
+      tryStep('stiffeners-bracket', () => {
+        D().setViewMode('stiffeners');
+        SectionCAD.renderPanel();
+        const ec = document.getElementById('edContent');
+        const sgRow = ec && ec.querySelector('[data-sg]');
+        if (sgRow) { sgRow.click(); }
+        SectionCAD.renderPanel();
+        out.hasBracket = !!(document.getElementById('edContent') && document.getElementById('edContent').querySelector('[data-k="bracket"]'));
+      });
+      const pre = document.createElement('pre'); pre.id = 'dnvUiTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }, 1500);
+    if (q.get('dnvcompshot')) setTimeout(() => {
+      if (window.goToPage) window.goToPage(3);
+      window.Draw.setViewMode('compartments');
+      const c = window.ShipComps.list().find(x => x.type === 'dryBulk');
+      if (c) { window.ShipComps.update(c.id, { grabQualifier: '3-X' }); }
+      SectionCAD.renderPanel();
+      const ec = document.getElementById('edContent');
+      const row = c && ec && ec.querySelector('[data-row="' + c.id + '"]'); if (row) row.click();
+      SectionCAD.renderPanel();
+      const p = document.getElementById('edContent'); if (p) { document.body.innerHTML = ''; document.body.appendChild(p); p.style.cssText = 'display:block;position:static;background:#fff;width:900px;padding:12px;font-size:13px'; }
+      document.title = 'compshot-ready';
+    }, 4500);
+    if (q.get('dnvgrabtest')) setTimeout(() => {
+      const c = window.ShipComps.list().find(x => x.type === 'dryBulk');
+      const out = { before: null, after: null };
+      let r = window.DNVUI.refresh();
+      const ibBefore = r.out.epps.find((e, i) => r.model.epps[i].panel === 'innerBottom' && !e.tGrabGr);
+      out.before = ibBefore ? { id: ibBefore.id, tReqGr: ibBefore.tReqGr, gov: ibBefore.governing } : null;
+      if (c) window.ShipComps.update(c.id, { grabQualifier: '3-X', grabMGR: null });
+      r = window.DNVUI.refresh();
+      const ibAfter = r.out.epps.find(e => ibBefore && e.id === ibBefore.id);
+      out.after = ibAfter ? { id: ibAfter.id, tReqGr: ibAfter.tReqGr, gov: ibAfter.governing, tGrabGr: ibAfter.tGrabGr } : null;
+      out.grabRows = r.out.epps.filter(e => e.tGrabGr).map(e => ({ id: e.id, tGrabGr: +e.tGrabGr.toFixed(2), gov: e.governing }));
+      const pre = document.createElement('pre'); pre.id = 'dnvGrabTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }, 4500);
+    if (q.get('dnvfbtest')) setTimeout(() => {
+      const setVal = (id, v) => { const el = document.getElementById(id); if (!el) return; const proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true })); };
+      setVal('sectionXL', '0.9');
+      const out = {};
+      ['A', 'B'].forEach(fb => { setVal('bvFreeboardType', fb); const r = window.DNVUI.refresh(); const m = r.model.epps.find(e => e.faces && e.faces.some(f => f.kind === 'sea' && f.deck)); out[fb] = m ? { panel: m.panel, tReqGr: r.out.epps[r.model.epps.indexOf(m)].tReqGr } : null; });
+      const pre = document.createElement('pre'); pre.id = 'dnvFbTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }, 4500);
+    if (q.get('dnviceregtest')) setTimeout(() => {
+      const sel = document.getElementById('dnv_iceRegion'); if (sel) { sel.value = q.get('dnviceregtest').replace(/-trans$/, ''); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (q.get('dnviceregtest').endsWith('-trans')) { const s0 = window.Draw.getSection(); Object.keys(s0.groups || {}).forEach(g => { const d = window.SectionModel.panelData(s0, g); (d.stiffGroups || []).forEach(sg => { sg.dir = 'trans'; }); }); window.Draw.setSection(s0); }
+      const r = window.DNVUI.refresh();
+      const out = { region: sel ? sel.value : null, status: (document.getElementById('dnvStatus')||{}).textContent, summary: (document.getElementById('dnvSummary')||{}).textContent, error: window.DNVUI.lastError };
+      if (r) {
+        const iceEpp = r.out.epps.filter(e => e.ice).map(e => ({ id: e.id, P: +e.ice.P.toFixed(1), t: +e.ice.t.toFixed(2) }));
+        const iceSt = r.out.stiffeners.filter(t => t.ice).map(t => ({ id: t.id, P: +t.ice.P.toFixed(1), Z: +t.ice.Z.toFixed(1) }));
+        out.iceEppCount = iceEpp.length; out.iceStCount = iceSt.length; out.iceEppSample = iceEpp.slice(0,3); out.iceStSample = iceSt.slice(0,3);
+      }
+      const pre = document.createElement('pre'); pre.id = 'dnvIceRegTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+    }, 4500);
     if (q.get('dnvdumpsec')) setTimeout(() => { const sec = D() && D().getSection ? D().getSection() : null; const pre = document.createElement('pre'); pre.id = 'dnvSec'; pre.textContent = JSON.stringify(sec ? { id: sec.id, manual: sec.manual, groups: sec.groups, panelData: sec.panelData, panels: sec.panels.map(p => [p.id, p.from, p.to, p.position, p.group, !!p.curve]), nodes: sec.nodes, sections: window.Sections ? Sections.list() : null, strakesKeys: Object.keys((D() && D().STRAKES) || {}).map(k => k + ':' + ((D().STRAKES[k] || []).length)), legacyKeys: Object.keys(sec.groups || {}).map(g => g + '=' + (window.SectionAdapter && SectionAdapter.legacyKeyOfGroup ? SectionAdapter.legacyKeyOfGroup(sec, g) : '?')) } : null); document.body.appendChild(pre); }, 4500);
     if (q.get('dnvdump')) setTimeout(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); o[k] = localStorage.getItem(k); } const pre = document.createElement('pre'); pre.id = 'dnvDump'; pre.textContent = JSON.stringify(o); document.body.appendChild(pre); }, 4500);
     if (q.get('dnvloadurl')) { fetch(q.get('dnvloadurl')).then(r => r.text()).then(t => { const o = JSON.parse(t); if (o.midship_project_v1) Object.keys(o).forEach(k => localStorage.setItem(k, typeof o[k] === 'string' ? o[k] : JSON.stringify(o[k]))); else localStorage.setItem('midship_project_v1', t); localStorage.removeItem('midship_project_v1:example'); document.title = 'dnv-loaded-url'; const pre = document.createElement('pre'); pre.id = 'dnvLoaded'; pre.textContent = 'loaded ' + t.length; document.body.appendChild(pre); }).catch(e => { const pre = document.createElement('pre'); pre.id = 'dnvLoaded'; pre.textContent = 'ERR ' + e; document.body.appendChild(pre); }); }
