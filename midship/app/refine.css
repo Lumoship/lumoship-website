@@ -1456,7 +1456,7 @@ body.chrome-form .ea-page#page-5 > .ea-main{padding-top:10px}
 .tree-node.leaf.current i{background:#3b82f6}
 /* Main particulars views */
 body[data-ship-view] #page-1 [data-views]{display:none}
-body[data-ship-view="identification"] #page-1 [data-views~="identification"],body[data-ship-view="main"] #page-1 [data-views~="main"],body[data-ship-view="frames"] #page-1 [data-views~="frames"],body[data-ship-view="draughts"] #page-1 [data-views~="draughts"],body[data-ship-view="stillwater"] #page-1 [data-views~="stillwater"],body[data-ship-view="materials"] #page-1 [data-views~="materials"]{display:block}
+body[data-ship-view="identification"] #page-1 [data-views~="identification"],body[data-ship-view="rules"] #page-1 [data-views~="rules"],body[data-ship-view="main"] #page-1 [data-views~="main"],body[data-ship-view="frames"] #page-1 [data-views~="frames"],body[data-ship-view="draughts"] #page-1 [data-views~="draughts"],body[data-ship-view="ice"] #page-1 [data-views~="ice"],body[data-ship-view="stillwater"] #page-1 [data-views~="stillwater"],body[data-ship-view="materials"] #page-1 [data-views~="materials"]{display:block}
 body[data-ship-view="identification"] #page-1 .ea-setup-grid[data-views]{display:grid}
 body[data-ship-view] #page-1 .sp-view{display:none}
 body[data-ship-view="main"] #page-1 .sp-view[data-view="main"],body[data-ship-view="stillwater"] #page-1 .sp-view[data-view="stillwater"],body[data-ship-view="materials"] #page-1 .sp-view[data-view="materials"]{display:block}

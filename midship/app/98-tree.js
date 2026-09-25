@@ -25,9 +25,11 @@
   var TREE = [
     { key: 'ship', label: 'Basic Ship Data', group: true, children: [
       { key: 'identification', label: 'Ship Identification',              short: 'Identification',     step: 1, view: 'identification' },
+      { key: 'rules',          label: 'Applicable Rules',                 short: 'Applicable rules',   step: 1, view: 'rules' },
       { key: 'main',           label: 'Main Particulars',                 short: 'Main particulars',   step: 1, view: 'main' },
       { key: 'frames',         label: 'Frame Table',                      short: 'Frame table',        step: 1, view: 'frames' },
       { key: 'draughts',       label: 'Draughts And Loading Conditions',  short: 'Draughts & loading', step: 1, view: 'draughts' },
+      { key: 'ice',            label: 'Ice Class',                        short: 'Ice class',          step: 1, view: 'ice' },
       { key: 'stillwater',     label: 'Still Water Loads',                short: 'Still water loads',  step: 1, view: 'stillwater' },
       { key: 'materials',      label: 'Materials',                        short: 'Materials',          step: 1, view: 'materials' } ] },
     { key: 'profiles',     label: 'Profiles',      step: 9 },
@@ -170,10 +172,9 @@
   // ------------------------------------------------------------------ bar (in-page transitions)
   function renderSubBar() {
     var s = stepNow(); var host = document.querySelector('.ea-subwizard'); if (!host) return;
+    if (s === 1) { host.innerHTML = ''; host.style.display = 'none'; return; }   // sol PROJECT ağacında zaten aynı liste var — üstte tekrar etmesin
     var h = '';
-    if (s === 1) {
-      TREE[0].children.forEach(function (c) { h += '<button class="ea-sub-step ' + (currentView === c.view ? 'active' : '') + '" data-step="1" data-view="' + c.view + '" title="' + c.label + '"><i></i>' + (c.short || c.label) + '</button>'; });
-    } else if (SECTION_STEPS.indexOf(s) >= 0) {
+    if (SECTION_STEPS.indexOf(s) >= 0) {
       SECTION_STEPS.forEach(function (k) { var oc = openCount(k); h += '<button class="ea-sub-step ' + (k === s ? 'active' : '') + (k < s ? ' completed' : '') + (oc && k < s ? ' incomplete' : '') + '" data-step="' + k + '" title="' + SECTION_LABELS[k] + (oc ? ' — ' + oc + ' open item(s)' : '') + '"><i></i>' + SECTION_LABELS[k] + '</button>'; });
     } else {
       h = '<span class="bar-page-title">' + labelOf(s) + '</span>';
@@ -196,7 +197,7 @@
   function carveShipViews() {
     var page = $('page-1'); if (!page || page.__carved) return; page.__carved = true;
     var grid = page.querySelector('.ea-setup-grid'); if (grid) grid.setAttribute('data-views', 'identification');
-    var ice = $('iceClassPanel'); if (ice) ice.setAttribute('data-views', 'draughts');
+    var ice = $('iceClassPanel'); if (ice) ice.setAttribute('data-views', 'ice');
     var big = null; page.querySelectorAll('.ea-panel').forEach(function (p) { var t = p.querySelector('.ea-panel-title'); if (t && /Ship Particulars/.test(t.textContent)) big = p; });
     if (!big) return;
     var body = big.querySelector('.ea-panel-body');
@@ -227,9 +228,9 @@
       mv.parentElement.insertBefore(tbl, mv.nextSibling);
       var views = big.getAttribute('data-views'); if (views.indexOf('materials') < 0) big.setAttribute('data-views', views + ' materials');
     }
-    // the section x/L mirror (read only) follows the real input
+    // the section x/L mirror (read only, on Main Particulars) follows the real input (editable, on Applicable Rules)
     var xl = $('sectionXL'), xv = $('sectionXL_view');
-    if (xl && xv) { var sync = function () { xv.value = xl.value; }; sync(); xl.addEventListener('change', sync); xl.addEventListener('input', sync); xl.closest('.ea-field') && xl.closest('.ea-field').classList.add('is-hidden-field'); }
+    if (xl && xv) { var sync = function () { xv.value = xl.value; }; sync(); xl.addEventListener('change', sync); xl.addEventListener('input', sync); }
   }
 
   // ------------------------------------------------------------------ Frame table
@@ -292,17 +293,23 @@
     render: function () {
       var host = $('frameTableHost'); if (!host) return; var t = FrameTable.read();
       var L = parseFloat(($('L') || {}).value) || 0; var sf = FrameTable.sectionFrames(); var rg = FrameTable.range(t);
+      var LL = parseFloat(($('bvLoadLineLength') || {}).value) || L;   // L_LL boş = L (Ch 1 tanımı)
       var num = function (id, v, step, w, unit) { return '<label class="ft-f"><span>' + id[1] + '</span><input class="ed-input ft-p" data-k="' + id[0] + '" type="number" step="' + step + '" value="' + v + '" style="width:' + w + 'px"><em>' + unit + '</em></label>'; };
       var h = '<div class="ft-top">' +
         '<div class="mb"><div class="mb-title">Frame positions</div><div class="ft-fields">' + num(['f0', 'First frame number'], t.f0, 1, 64, '') + num(['x0', 'First frame at x'], t.x0, 0.01, 72, 'm from AP') + '</div></div>' +
-        '<div class="mb"><div class="mb-title">Ship</div><div class="ft-fields"><span class="ft-ro"><span>Rule length L</span><b>' + (L ? L.toFixed(2) + ' m' : '—') + '</b></span><span class="ft-ro"><span>Frames defined</span><b>' + (rg ? rg.from + ' – ' + rg.to : 'none') + '</b></span><span class="ft-ro"><span>Sections</span><b>' + (Object.keys(sf).length ? Object.keys(sf).map(function (f) { return 'Fr. ' + f; }).join(', ') : 'none with a frame yet') + '</b></span></div></div></div>';
+        '<div class="mb"><div class="mb-title">Ship</div><div class="ft-fields"><span class="ft-ro"><span>Rule length L</span><b>' + (L ? L.toFixed(2) + ' m' : '—') + '</b></span><span class="ft-ro"><span>Frames defined</span><b>' + (rg ? rg.from + ' – ' + rg.to : 'none') + '</b></span><span class="ft-ro"><span>Sections</span><b>' + (Object.keys(sf).length ? Object.keys(sf).map(function (f) { return 'Fr. ' + f; }).join(', ') : 'none with a frame yet') + '</b></span></div></div>' +
+        '<div class="mb"><div class="mb-title">Frame converter</div><div class="ft-fields">' +
+        '<label class="ft-f"><span># frame</span><input class="ed-input" id="ftConvFrame" type="number" step="1" style="width:64px"></label>' +
+        '<span class="ft-ro"><span>x/L</span><b id="ftConvXL">—</b></span><span class="ft-ro"><span>x (rule L)</span><b id="ftConvXRules">—</b></span><span class="ft-ro" title="Aynı orijin, L_LL ile normalize — DNV\'nin ayrı freeboard AP/FP ofseti burada uygulanmıyor"><span>x<sub>LL</sub>/L<sub>LL</sub></span><b id="ftConvXLLoLL">—</b></span><span class="ft-ro"><span>x<sub>LL</sub></span><b id="ftConvXLL">—</b></span>' +
+        '</div></div></div>';
       // zones (left) · frames (right)
       h += '<div class="ft-split"><div class="mb"><div class="mb-title">Frame spacing zones <em class="mb-em">' + t.rows.length + '</em></div>' +
         '<div class="mb-tools"><button class="mb-tool" data-ft="add" title="Add a zone after the last">＋</button><button class="mb-tool" data-ft="del" title="Remove the selected zone" ' + (FrameTable.sel == null ? 'disabled' : '') + '>✕</button></div>' +
-        '<div class="mb-table ft-table"><div class="mb-th ft-th ft-th6"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span title="Web frame — primary support — every N ordinary frames; blank = none defined here">Web fr. /N</span><span>x at end</span></div>';
+        '<div class="mb-table ft-table"><div class="mb-th ft-th ft-th6"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span title="Web frame — primary support — every N ordinary frames; blank = none defined here">Web fr. /N</span><span>x [m]</span><span>x/L</span><span title="Aynı x, L_LL (Load-line length) ile normalize. Nauticus\'ta X_LL, freeboard AP/FP\'sine göre AYRI bir orijinden ölçülüyor olabilir (rule-length L\'nin AP\'sinden farklı) — bu tool aynı orijini kullanıyor, ayrı bir perpendicular offset uygulamıyor.">x<sub>LL</sub>/L<sub>LL</sub></span></div>';
       t.rows.forEach(function (r, i) {
         var xe = FrameTable.xOf(r.to, t);
-        h += '<div class="mb-tr ft-th ft-th6 ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span><input class="ed-input ft-in" data-k="wf" type="number" step="1" min="0" value="' + (r.wf || '') + '" placeholder="—" title="Her N çerçevede bir birincil taşıyıcı (web frame) — boyuna posta/PSM açıklığı buradan türer"></span><span class="ft-x">' + (xe != null ? (xe / 1000).toFixed(3) : '—') + '</span></div>';
+        var xM = xe != null ? xe / 1000 : null;
+        h += '<div class="mb-tr ft-th ft-th6 ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span><input class="ed-input ft-in" data-k="wf" type="number" step="1" min="0" value="' + (r.wf || '') + '" placeholder="—" title="Her N çerçevede bir birincil taşıyıcı (web frame) — boyuna posta/PSM açıklığı buradan türer"></span><span class="ft-x">' + (xM != null ? xM.toFixed(3) : '—') + '</span><span class="ft-x">' + (xM != null && L ? (xM / L).toFixed(4) : '—') + '</span><span class="ft-x">' + (xM != null && LL ? (xM / LL).toFixed(4) : '—') + '</span></div>';
       });
       if (!t.rows.length) h += '<div class="mb-empty-row">no zones yet — ＋ adds one (e.g. frames 0 → 25 at 726 mm)</div>';
       h += '</div>';
@@ -324,6 +331,13 @@
       host.querySelectorAll('.ft-table .mb-tr').forEach(function (r) { r.addEventListener('click', function () { FrameTable.sel = +r.dataset.i; host.querySelectorAll('.ft-table .mb-tr').forEach(function (q) { q.classList.toggle('is-sel', q === r); }); var d = host.querySelector('[data-ft="del"]'); if (d) d.disabled = false; }); });
       var add = host.querySelector('[data-ft="add"]'); if (add) add.addEventListener('click', FrameTable.add);
       var del = host.querySelector('[data-ft="del"]'); if (del) del.addEventListener('click', function () { if (FrameTable.sel == null) return; var tt = FrameTable.read(); tt.rows.splice(FrameTable.sel, 1); FrameTable.sel = null; FrameTable.write(tt); FrameTable.render(); FrameTable.syncSection(); });
+      var conv = host.querySelector('#ftConvFrame'); if (conv) conv.addEventListener('input', function () {
+        var xl = document.getElementById('ftConvXL'), xr = document.getElementById('ftConvXRules'), xll = document.getElementById('ftConvXLLoLL'), xllm = document.getElementById('ftConvXLL');
+        var x = FrameTable.xOf(conv.value, t);
+        if (x == null) { [xl, xr, xll, xllm].forEach(function (e) { if (e) e.textContent = '—'; }); return; }
+        if (xr) xr.textContent = (x / 1000).toFixed(3) + ' m'; if (xl) xl.textContent = L ? (x / 1000 / L).toFixed(4) : '—';
+        if (xllm) xllm.textContent = (x / 1000).toFixed(3) + ' m'; if (xll) xll.textContent = LL ? (x / 1000 / LL).toFixed(4) : '—';
+      });
     },
     add: function () {
       var t = FrameTable.read(); var lastRow = t.rows[t.rows.length - 1];

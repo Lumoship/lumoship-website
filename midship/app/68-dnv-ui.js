@@ -13,20 +13,40 @@
   const isDNV = () => (($('classificationSociety') || {}).value || '') === 'DNV';
 
   // ------------------------------------------------------------ DNV girdi alanları (form; tam-durum kaydında otomatik saklanır)
+  const F = (id, label, val, step, title, unit) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()">${unit ? '<em>' + unit + '</em>' : ''}</div>`;
+  const Sel = (id, label, opts, val, title) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><select class="ea-select" id="${id}" onchange="recalcAll()">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+
   function ensureInputs() {
+    ensureIceInputs(); ensureRulesInputs();
     if ($('dnvInputs')) return;
     const anchor = $('bvBilgeKeel'); const host = anchor && anchor.closest('.ea-field') && anchor.closest('.ea-field').parentElement; if (!host) return;
     const div = document.createElement('div'); div.id = 'dnvInputs'; div.className = 'dnv-inputs'; div.style.cssText = 'display:contents';
-    const F = (id, label, val, step, title, unit) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><input type="number" step="${step || 0.01}" class="ea-input" id="${id}" value="${val}" onchange="recalcAll()">${unit ? '<em>' + unit + '</em>' : ''}</div>`;
-    const Sel = (id, label, opts, val, title) => `<div class="ea-field dnv-only" title="${title || ''}"><label class="ea-label">${label}</label><select class="ea-select" id="${id}" onchange="recalcAll()">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
     div.innerHTML =
-      '<div class="ea-field dnv-only" title="Kural motoru ClauseFinder harvest\'inden DNV RU-SHIP Pt 3/4/5/6, 2026 Temmuz sürümü kullanıyor. Sürüm seçimi yok — tek metin kaynağı. Farklı bir baskıyla (ör. Nauticus Temmuz 2022) karşılaştırırken bazı sapmalar bu yüzden olabilir (bilinen fark: profil berthing gerekliliği 2023\'te kaldırıldı)."><label class="ea-label">Rule edition</label><input type="text" class="ea-input" id="dnv_ruleEdition" readonly value="RU-SHIP 2026-07"></div>' +
-      Sel('dnv_iceRegion', 'Ice region', [['bow', 'Bow'], ['midbody', 'Midbody'], ['stern', 'Stern']], 'midbody', 'Pt 6 Ch 6 Sec 3 Table 8/10/11: c_1 ve buz kuşağı düşey uzanımı bölgeye göre değişir (bu kesitin gemi boyundaki konumu); Framing system ve m_o alanları (Buz paneli) DNV boyuna/enine posta seçimini de besler') +
       F('dnv_TBAL', 'Ballast draught T_BAL', '', 0.01, 'DNV Pt 3 Ch 4 Sec 6 / Ch 6 Sec 2 Table 1: WB-1/WB-4 setleri T_BAL ile; boş = 0.58·T_SC', 'm') +
-      F('dnv_holdRho', 'Bulk cargo density ρ_C', 0.7, 0.05, 'Pt 5 Ch 1 Sec 2 [3.3.3]: M_H/V_Full, en az 0.7 t/m³ (homojen tam yük)', 't/m³') +
       F('dnv_holdZc', 'Cargo surface z_C', '', 0.01, 'Pt 5 Ch 1 Sec 2 [3.3.1]: dolu ambarda eşdeğer yatay yüzey (ambar ağzı mezarnası üstü); boş = ambar kutusunun üstü', 'm') +
       F('dnv_xLcpOffset', 'LCP x offset', '', 0.01, 'Ch 3 Sec 7 Table 2: LCP x = EPP orta boyu; kesitin EPP ortasından uzaklığı (m); boş = posta aralığının yarısı (komşu PSM ortası varsayımı)', 'm');
     host.appendChild(div);
+  }
+
+  // Applicable Rules sayfası: Nauticus'taki "Rule edition" ve "Maximum cargo density" ile aynı yerde
+  function ensureRulesInputs() {
+    if ($('dnv_ruleEdition')) return;
+    const row = $('dnvRulesHost'); if (!row) return;
+    row.innerHTML =
+      '<div class="ea-field dnv-only" title="Kural motoru ClauseFinder harvest\'inden DNV RU-SHIP Pt 3/4/5/6, 2026 Temmuz sürümü kullanıyor. Sürüm seçimi yok — tek metin kaynağı. Farklı bir baskıyla (ör. Nauticus Temmuz 2022) karşılaştırırken bazı sapmalar bu yüzden olabilir (bilinen fark: profil berthing gerekliliği 2023\'te kaldırıldı)."><label class="ea-label">Rule edition</label><input type="text" class="ea-input" id="dnv_ruleEdition" readonly value="RU-SHIP 2026-07"></div>' +
+      F('dnv_holdRho', 'Maximum cargo density ρ_C', 0.7, 0.05, 'Pt 5 Ch 1 Sec 2 [3.3.3]: M_H/V_Full, en az 0.7 t/m³ (homojen tam yük). Ambar bazında Compartments sayfasında override edilebilir; burası gemi geneli varsayılan.', 't/m³') +
+      Sel('dnv_shipGrab', 'Grab', [['', '— none —'], ['1-X', 'Grab(1-X)'], ['2-X', 'Grab(2-X)'], ['3-X', 'Grab(3-X)']], '',
+        'Pt 6 Ch 1 Sec 1: gemi geneli Grab ek sınıf notasyonu. Tüm kuru dökme yük ambarları için varsayılan; bir ambarın kendi Grab notasyonu (Compartments sayfası) varsa o öncelikli. Zorunlu: L_LL≥150 m ve kargo yoğunluğu≥1,0 t/m³.') +
+      F('dnv_shipGrabMGR', 'Weight of grab M_GR', '', 1, '[1.5]: boş = notasyona göre varsayılan (Grab(1-X)/(2-X)=10 t; Grab(3-X) 20-35 t, L\'ye göre)', 't');
+  }
+
+  // DNV buz kuşağı bölgesi — Ice sayfasında (FSICR paneliyle aynı yerde) render edilir; Framing system/m_o alanları
+  // yukarıdaki FSICR bölümüyle PAYLAŞILIR (aynı input, ikinci bir kopya değil — DNV buz kontrolü de ice_framing/ice_mo okur)
+  function ensureIceInputs() {
+    if ($('dnv_iceRegion')) return;
+    const row = $('dnvIceRow'); if (!row) return;
+    row.innerHTML = Sel('dnv_iceRegion', 'Ice region', [['bow', 'Bow'], ['midbody', 'Midbody'], ['stern', 'Stern']], 'midbody',
+      'Pt 6 Ch 6 Sec 3 Table 8/10/11: c_1 ve buz kuşağı düşey uzanımı bölgeye göre değişir (bu kesitin gemi boyundaki konumu). Framing system ve m_o (yukarıdaki FSICR bölümünde) DNV boyuna/enine posta hesabını da besler — aynı alan, iki ayrı kural setinde paylaşılıyor.');
   }
   const TBAL = () => { const v = num('dnv_TBAL', NaN); return isNaN(v) || v <= 0 ? 0.58 * num('T', 7) : v; };
 
@@ -95,6 +115,7 @@
     const comps = (window.ShipComps ? window.ShipComps.forSection(s).filter(c => window.ShipComps.hasSize(c)) : []);
     const tanks = {}, holds = {};
     const zHoldDefault = num('dnv_holdZc', NaN);
+    const shipGrabQ = (($('dnv_shipGrab') || {}).value) || '';   // Applicable Rules sayfası "Grab" — ambarın kendi grabQualifier'ı yoksa gemi geneli varsayılan
     comps.forEach(c => {
       const half = 7.0, x0 = c.frFrom != null && c.frTo != null ? Math.min(c.frFrom, c.frTo) * frameSp / 1000 : x - half, x1 = c.frFrom != null && c.frTo != null ? Math.max(c.frFrom, c.frTo) * frameSp / 1000 : x + half;
       const yG = (c.y0 + c.y1) / 2000, zG = (c.z0 + c.z1) / 2000;
@@ -102,7 +123,8 @@
       else if (isHold(c.type)) {
         const zC = c.holdZc_mm > 0 ? c.holdZc_mm / 1000 : (!isNaN(zHoldDefault) && zHoldDefault > 0 ? zHoldDefault : c.z1 / 1000);   // kompartıman başına z_C önce, sonra küresel dnv_holdZc, sonra kutu üstü
         const psi = c.psiDeg > 0 ? c.psiDeg : 30;   // Pt 5 Ch 1 [3.4]: 30° genel, 35° demir cevheri, 25° çimento (kural metni) — kompartıman başına
-        holds[c.id] = { name: c.name, rhoC: Math.max(0.7, c.rho || num('dnv_holdRho', 0.7)), zC, xG: (x0 + x1) / 2, yG: 0, zG: zG, psi, compType: c.type === 'dryBulk' ? 'holdGrab' : 'hold', grab: c.grabQualifier ? { qualifier: c.grabQualifier, MGR: c.grabMGR > 0 ? c.grabMGR : DNV.GRAB_DEFAULT_MGR(c.grabQualifier, L), z0: c.z0 / 1000 } : null };   // Pt 6 Ch 1 Sec 1: kepçe darbesi
+        const grabQ = c.grabQualifier || (c.type === 'dryBulk' ? shipGrabQ : '');   // kompartıman kendi notasyonunu istiyorsa öncelikli, yoksa Applicable Rules'daki gemi geneli
+        holds[c.id] = { name: c.name, rhoC: Math.max(0.7, c.rho || num('dnv_holdRho', 0.7)), zC, xG: (x0 + x1) / 2, yG: 0, zG: zG, psi, compType: c.type === 'dryBulk' ? 'holdGrab' : 'hold', grab: grabQ ? { qualifier: grabQ, MGR: c.grabMGR > 0 ? c.grabMGR : num('dnv_shipGrabMGR', 0) || DNV.GRAB_DEFAULT_MGR(grabQ, L), z0: c.z0 / 1000 } : null };   // Pt 6 Ch 1 Sec 1: kepçe darbesi
         if (c.type === 'dryBulk' && c.heavyLoaded) holds[c.id].heavy = { rhoC: c.heavyRho || holds[c.id].rhoC, zC, xG: holds[c.id].xG, yG: 0, zG, psi };   // Pt 5 Ch 1 [BC-3/4]: dolu ambar HD alternatif durumu
       }
     });
@@ -539,6 +561,20 @@
         L: document.getElementById('L').value, sectionXL: document.getElementById('sectionXL').value };
       const pre = document.createElement('pre'); pre.id = 'dnvMswTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
     }, 3000);
+    if (q.get('dnvviewshot')) setTimeout(() => {   // ?dnvviewshot=main gibi — istenen sekmeye gider, ekran görüntüsü için
+      const cs = document.getElementById('classificationSociety');
+      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, 'DNV');
+      cs.dispatchEvent(new Event('change', { bubbles: true }));
+      window.ProjectTree.goTo(1, q.get('dnvviewshot'));
+      document.title = 'view-ready';
+    }, 2500);
+    if (q.get('dnvrulesshot')) setTimeout(() => {
+      const cs = document.getElementById('classificationSociety');
+      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, 'DNV');
+      cs.dispatchEvent(new Event('change', { bubbles: true }));
+      window.ProjectTree.goTo(1, 'rules');
+      document.title = 'rules-ready';
+    }, 2500);
     if (q.get('dnvcompshot')) setTimeout(() => {
       if (window.goToPage) window.goToPage(3);
       window.Draw.setViewMode('compartments');

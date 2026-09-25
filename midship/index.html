@@ -205,74 +205,17 @@
   <main class="ea-main">
     <div class="ea-setup-grid">
       <div class="ea-panel">
-        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Project Information</span></div>
+        <div class="ea-panel-header"><div class="ea-panel-icon"></div><span class="ea-panel-title">Identification Data</span></div>
         <div class="ea-panel-body">
-          <div class="ea-field"><label class="ea-label">Vessel Name</label><input type="text" class="ea-input" id="vesselName" value="" placeholder="Vessel name"></div>
-          <div class="ea-form-row">
-            <div class="ea-field laker-only" title="Built-in example only: the example ship's two design variants"><label class="ea-label">Variant</label>
-              <select class="ea-select" id="variant" onchange="updateVariantParticulars()">
-                <option value="1B" selected>Variant 1B (L=192 m · 0.96·Lwl)</option>
-                <option value="2A">Variant 2A (L=216 m · 0.96·Lwl)</option>
-              </select>
-            </div>
-            <div class="ea-field"><label class="ea-label">Builder</label><input type="text" class="ea-input" id="builder" placeholder="shipyard"></div>
-              <div class="ea-field"><label class="ea-label">Hull number</label><input type="text" class="ea-input" id="hullNumber" placeholder="yard no."></div>
-              <div class="ea-field"><label class="ea-label">Class register number</label><input type="text" class="ea-input" id="classRegisterNo" placeholder="LR / IMO no."></div>
-              <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
-          </div>
-          <div class="ea-form-row">
-            <div class="ea-field"><label class="ea-label">Analysis Date</label><input type="date" class="ea-input" id="analysisDate"></div>
-            <div class="ea-field"><label class="ea-label">Classification Society</label>
-              <select class="ea-select" id="classificationSociety">
-                <option value="Lloyd's Register" selected>Lloyd's Register</option>
-                <option value="Bureau Veritas">Bureau Veritas</option>
-                <option value="DNV">DNV</option>
-                <option value="ABS">ABS</option>
-              </select>
-            </div>
-              <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 4 Sec 5.2: ship service factor f1 = 1,0 for unrestricted service; short voyages / sheltered water reduce the wave moment (5.2.3) and the wave shear (K2, 6.3.1); a restricted service is specially considered, f1 ≥ 0,5.">Service restriction</label>
-                <select class="ea-select" id="serviceRestriction" onchange="recalcAll()"><option value="unrestricted" selected>Unrestricted sea-going · f1 = 1,0</option><option value="short_voyage">Short voyages · M_w × 0,8 · K2 = 0,8</option><option value="sheltered">Sheltered water · M_w × 0,5 · K2 = 0,5</option><option value="restricted">Restricted service · f1 by agreement</option></select></div>
-              <div class="ea-field"><label class="ea-label" title="Ship service factor f1 (Pt 3 Ch 4 Sec 5.2.1). Editable for a restricted service; never less than 0,5.">f<sub>1</sub> service factor</label><input type="number" step="0.01" min="0.5" max="1" class="ea-input" id="f1" value="1.00" onchange="recalcAll()"></div>
-              <div class="ea-field bv-only" title="BV NR467 additional service features — not used by the LR rules"><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvGrabLoading" disabled> GRABLOADING</label><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
-              <div class="ea-field bv-only" title="BV NR467 ve DNV Ch 4 Sec 3 [2.1.1] f_BK — sintine omurgası yoksa 1,2, varsa 1,0 (yalpa)"><label class="ea-label">Bilge keel</label><select class="ea-select" id="bvBilgeKeel" onchange="recalcAll()"><option>Yes</option><option>No</option></select></div>
-              <div class="ea-field bv-only" title="BV NR467 ve DNV — Tip A (yalnız sıvı yük) / Tip B (diğer, genelde dökme yük/genel kargo)"><label class="ea-label">Freeboard type</label><select class="ea-select" id="bvFreeboardType" onchange="recalcAll()"><option value="A">A</option><option value="B" selected>B</option><option value="B-60">B-60</option><option value="B-100">B-100</option></select></div>
-          </div>
-          <!-- Ship-type + material-grade context — used by Assign Material Grades button
-               (LR Pt 3 Ch 2 Table 2.2.1 / 2.2.2 / 2.2.3). These don't drive the
-               LR strength formulas themselves, only the grade / toughness mapping. -->
-          <div class="ea-form-row">
-            <div class="ea-field"><label class="ea-label" title="Used by LR Pt 3 Ch 2 Table 2.2.1 to pick the right material class (C4, C6, C7 etc depend on ship type).">Ship Type</label>
-              <select class="ea-select" id="shipType" onchange="recalcAll()">
-                <option value="general_cargo" selected>General Cargo</option>
-                <option value="bulk_carrier">Bulk Carrier</option>
-                <option value="container">Container</option>
-                <option value="tanker">Tanker</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 2 Sec 2.1.4 design air temperature. Default −10°C = worldwide service. Colder → stricter grades (Table 2.2.3).">Design Air Temp (°C)</label><input type="number" step="1" class="ea-input" id="designAirTemp" value="-10" onchange="recalcAll()"></div>
-          </div>
-          <div class="ea-form-row">
-            <div class="ea-field"><label class="ea-label" title="Longitudinal position of this section as a fraction of ship length. 0.5 = amidships. Within 0.3–0.7 = within 0.4L amidships (stricter grades apply).">Section x/L</label><input type="number" step="0.05" min="0" max="1" class="ea-input" id="sectionXL" value="0.5" onchange="recalcAll()"></div>
-            <div class="ea-field"><label class="ea-label" title="Steel family: HT = higher-tensile (AH/DH/EH etc.), Mild = A/B/D/E. Used as the default steel family when auto-assigning grades.">Steel Family (default)</label>
-              <select class="ea-select" id="steelFamily" onchange="recalcAll()">
-                <option value="HT" selected>HT (AH / DH / EH)</option>
-                <option value="Mild">Mild (A / B / D / E)</option>
-              </select>
-            </div>
-            <div class="ea-field">
-              <label class="ea-label" for="bulbStandard" title="Bulb flat catalogue. AFNOR sections are 4-6.5% larger than EN/DIN/BS for the same size (measured from the BV MARS2000 tables).">Bulb standard</label>
-              <select class="ea-select" id="bulbStandard" onchange="bulbStandardSecildi(this.value)">
-                <option value="EN" selected>EN 10067 / DIN / BS</option>
-                <option value="AFNOR">AFNOR</option>
-                <option value="JIS">JIS</option>
-              </select>
-            </div>
-          </div>
+          <div class="ea-field"><label class="ea-label">Project name</label><input type="text" class="ea-input" id="vesselName" value="" placeholder="Project name"></div>
+          <div class="ea-field"><label class="ea-label">Id number of ship</label><input type="text" class="ea-input" id="idNumberOfShip" placeholder="Id number"></div>
+          <div class="ea-field"><label class="ea-label">Date</label><input type="date" class="ea-input" id="analysisDate"></div>
+          <div class="ea-field"><label class="ea-label">Signature</label><input type="text" class="ea-input" id="preparedBy" value="Ebubekir Akarsu"></div>
+          <div class="ea-field"><label class="ea-label">Comment</label><textarea class="ea-input" id="reportNotes" rows="6" placeholder="Additional notes" style="resize:vertical;font-family:inherit"></textarea></div>
         </div>
       </div>
       <div class="ea-panel">
-        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Report Assets</span></div>
+        <div class="ea-panel-header"><div class="ea-panel-icon warning"></div><span class="ea-panel-title">Report &amp; Documentation</span></div>
         <div class="ea-panel-body">
           <div class="ea-field">
             <label class="ea-label">Company Logo (PDF)</label>
@@ -282,14 +225,83 @@
             </label>
             <input type="file" id="logoInput" accept="image/*" class="hidden-input" onchange="handleLogoUpload(event)">
           </div>
-          <div class="ea-field">
-            <label class="ea-label">Prepared By</label>
-            <input type="text" class="ea-input" id="preparedBy" value="Ebubekir Akarsu">
+          <div class="ea-form-row">
+            <div class="ea-field laker-only" title="Built-in example only: the example ship's two design variants"><label class="ea-label">Variant</label>
+              <select class="ea-select" id="variant" onchange="updateVariantParticulars()">
+                <option value="1B" selected>Variant 1B (L=192 m · 0.96·Lwl)</option>
+                <option value="2A">Variant 2A (L=216 m · 0.96·Lwl)</option>
+              </select>
+            </div>
+            <div class="ea-field"><label class="ea-label">Builder</label><input type="text" class="ea-input" id="builder" placeholder="shipyard"></div>
+            <div class="ea-field"><label class="ea-label">Hull number</label><input type="text" class="ea-input" id="hullNumber" placeholder="yard no."></div>
+          </div>
+          <div class="ea-form-row">
+            <div class="ea-field"><label class="ea-label">Class register number</label><input type="text" class="ea-input" id="classRegisterNo" placeholder="LR / IMO no."></div>
+            <div class="ea-field"><label class="ea-label">Revision</label><input type="text" class="ea-input" id="revision" value="A"></div>
+            <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 2 Sec 2.1.4 design air temperature. Default −10°C = worldwide service. Colder → stricter grades (Table 2.2.3).">Design Air Temp (°C)</label><input type="number" step="1" class="ea-input" id="designAirTemp" value="-10" onchange="recalcAll()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Applicable Rules -->
+    <div class="ea-panel" style="margin-top:var(--spacing-xl)" data-views="rules" id="rulesPanel">
+      <div class="ea-panel-header"><div class="ea-panel-icon cyan"></div><span class="ea-panel-title">Applicable Rules</span></div>
+      <div class="ea-panel-body">
+        <div class="ea-section-title">Rule Set</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Kural motoru yalnız DNV RU-SHIP ve LR için tam kurulu; BV seçildiğinde BV-only alanlar görünür ama motor LR formülleriyle çalışır (MARS export ile dış doğrulama), ABS henüz kurulmadı (arayüzde seçenek olarak duruyor).">Rule set</label>
+            <select class="ea-select" id="classificationSociety">
+              <option value="Lloyd's Register" selected>Lloyd's Register</option>
+              <option value="Bureau Veritas">Bureau Veritas</option>
+              <option value="DNV">DNV</option>
+              <option value="ABS">ABS</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 4 Sec 5.2: ship service factor f1 = 1,0 for unrestricted service; short voyages / sheltered water reduce the wave moment (5.2.3) and the wave shear (K2, 6.3.1); a restricted service is specially considered, f1 ≥ 0,5.">Service restriction</label>
+            <select class="ea-select" id="serviceRestriction" onchange="recalcAll()"><option value="unrestricted" selected>Unrestricted sea-going · f1 = 1,0</option><option value="short_voyage">Short voyages · M_w × 0,8 · K2 = 0,8</option><option value="sheltered">Sheltered water · M_w × 0,5 · K2 = 0,5</option><option value="restricted">Restricted service · f1 by agreement</option></select></div>
+          <div class="ea-field"><label class="ea-label" title="Ship service factor f1 (Pt 3 Ch 4 Sec 5.2.1). Editable for a restricted service; never less than 0,5.">f<sub>1</sub> service factor</label><input type="number" step="0.01" min="0.5" max="1" class="ea-input" id="f1" value="1.00" onchange="recalcAll()"></div>
+        </div>
+        <div class="ea-form-row-4" id="dnvRulesHost"></div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Ship Type Notation</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="Used by LR Pt 3 Ch 2 Table 2.2.1 to pick the right material class (C4, C6, C7 etc depend on ship type).">Ship Type</label>
+            <select class="ea-select" id="shipType" onchange="recalcAll()">
+              <option value="general_cargo" selected>General Cargo</option>
+              <option value="bulk_carrier">Bulk Carrier</option>
+              <option value="container">Container</option>
+              <option value="tanker">Tanker</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="Longitudinal position of this section as a fraction of ship length. 0.5 = amidships. Within 0.3–0.7 = within 0.4L amidships (stricter grades apply).">Section x/L</label><input type="number" step="0.05" min="0" max="1" class="ea-input" id="sectionXL" value="0.5" onchange="recalcAll()"></div>
+          <div class="ea-field"><label class="ea-label" title="Steel family: HT = higher-tensile (AH/DH/EH etc.), Mild = A/B/D/E. Used as the default steel family when auto-assigning grades.">Steel Family (default)</label>
+            <select class="ea-select" id="steelFamily" onchange="recalcAll()">
+              <option value="HT" selected>HT (AH / DH / EH)</option>
+              <option value="Mild">Mild (A / B / D / E)</option>
+            </select>
           </div>
           <div class="ea-field">
-            <label class="ea-label">Notes</label>
-            <input type="text" class="ea-input" id="reportNotes" placeholder="Additional notes">
+            <label class="ea-label" for="bulbStandard" title="Bulb flat catalogue. AFNOR sections are 4-6.5% larger than EN/DIN/BS for the same size (measured from the BV MARS2000 tables).">Bulb standard</label>
+            <select class="ea-select" id="bulbStandard" onchange="bulbStandardSecildi(this.value)">
+              <option value="EN" selected>EN 10067 / DIN / BS</option>
+              <option value="AFNOR">AFNOR</option>
+              <option value="JIS">JIS</option>
+            </select>
           </div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="BV NR467 additional service features — not used by the LR rules"><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvGrabLoading" disabled> GRABLOADING</label><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
+          <div class="ea-field" title="FSICR (Finnish-Swedish Ice Class Rules) panelindeki 'Enable Ice Class Rules' anahtarını buradan da aç/kapat — aynı alan, tek kaynak. Ayrıntılar (Ice Class, T_UIWL/T_LIWL, Framing system…) Draughts &amp; Loading sayfasındaki Ice Class panelinde.">
+            <label class="ea-label">Ice strengthening</label>
+            <div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="rulesIceToggle" onchange="(function(cb){document.getElementById(cb.checked?'iceEnabledOn':'iceEnabledOff').checked=true; if(window.onIceEnabledChange) onIceEnabledChange();})(this)"> Enable (FSICR)</label></div>
+          </div>
+        </div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">β<sub>s</sub> for Double Bottom Longitudinals / Steel Coil Loads</div>
+        <div class="ea-form-row-4" title="Nauticus 'Applicable Rules' ekranındaki değerler birebir — DNV RU-SHIP metninde (ClauseFinder 2026 taraması) bu tabloyla ve Steel Coil Loads yerel basıncıyla eşleşen ayrı bir formül bulunamadı. Bilgi amaçlı gösteriliyor; kural motoru bu değerleri HENÜZ kullanmıyor (uydurma formülle hesaba katılmadı).">
+          <div class="ea-field"><label class="ea-label">AC-I — inner / outer bottom</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" class="ea-input" id="betaAC1In" value="0.80" step="0.01" disabled><input type="number" class="ea-input" id="betaAC1Out" value="0.80" step="0.01" disabled></div></div>
+          <div class="ea-field"><label class="ea-label">AC-II — inner / outer bottom</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" class="ea-input" id="betaAC2In" value="0.90" step="0.01" disabled><input type="number" class="ea-input" id="betaAC2Out" value="0.90" step="0.01" disabled></div></div>
+          <div class="ea-field"><label class="ea-label">Steel Coil Loads</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="steelCoilLoads" disabled> Enable</label></div></div>
         </div>
       </div>
     </div>
@@ -313,10 +325,32 @@
           <div class="ea-field"><label class="ea-label" title="Longitudinal position of the active section as a fraction of L, from the Frame table when the section has a frame; 0,5 = amidships.">Section x/L</label><input type="number" step="0.005" min="0" max="1" class="ea-input" id="sectionXL_view" readonly title="set from the Frame table"></div>
         </div>
         <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="BV NR467 ve DNV Ch 4 Sec 3 [2.1.1] f_BK — sintine omurgası yoksa 1,2, varsa 1,0 (yalpa)"><label class="ea-label">Bilge keel</label><select class="ea-select" id="bvBilgeKeel" onchange="recalcAll()"><option>Yes</option><option>No</option></select></div>
+          <div class="ea-field bv-only" title="BV NR467 ve DNV — Tip A (yalnız sıvı yük) / Tip B (diğer, genelde dökme yük/genel kargo)"><label class="ea-label">Freeboard type</label><select class="ea-select" id="bvFreeboardType" onchange="recalcAll()"><option value="A">A</option><option value="B" selected>B</option><option value="B-60">B-60</option><option value="B-100">B-100</option></select></div>
+          <div class="ea-field" title="Nauticus 'General ship data' alanı — DNV Ch 6 Sec 3 Table 1 Not 2/3: 5'ten az güverteli gemilerde en üst güverte minimum kalınlığı biraz artıyor. Bu sayı kaydediliyor ama tek güverteli/az güverteli tipik gemilerde motor şu an bu notu ayrıca uygulamıyor (etkisiz, bilgi amaçlı)."><label class="ea-label">Decks above 0,7D from baseline</label><input type="number" step="1" min="1" class="ea-input" id="numDecksAbove07D" value="1" onchange="recalcAll()"></div>
           <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Depth to freeboard deck</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDepthFreeboard" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Depth to bulkhead deck</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDepthBulkhead" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">A<sub>dk</sub> uppermost deck area [0,8L fore]</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAdk" disabled placeholder="—"><span class="ea-unit">m²</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">A<sub>wl</sub> waterplane area [0,8L fore]</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAwl" disabled placeholder="—"><span class="ea-unit">m²</span></div></div>
         </div>
         <div class="ea-form-row-4">
           <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">After peak bulkhead</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAftPeakBhd" disabled placeholder="—"><span class="ea-unit">Fr.</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Aftmost cargo bulkhead</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAftCargoBhd" disabled placeholder="—"><span class="ea-unit">Fr.</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Collision bulkhead</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvCollisionBhd" disabled placeholder="—"><span class="ea-unit">Fr.</span></div></div><div class="ea-field bv-only" title="BV NR467 ve DNV L_LL (Ch 1 tanımı, genelde ≈0,96·Lwl) — boş = L"><label class="ea-label">Load-line length L<sub>L</sub></label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvLoadLineLength" onchange="recalcAll()" placeholder="= L"><span class="ea-unit">m</span></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Height of freeboard deck</label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvHFreeboardDeck" placeholder="—"><span class="ea-unit">m</span></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Design draught T<sub>Design</sub></label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvTDesign" placeholder="—"><span class="ea-unit">m</span></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Heavy ballast draught T<sub>BAL-H</sub></label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvTBalHeavy" placeholder="—"><span class="ea-unit">m</span></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Height of bulkhead deck</label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvHBhdDeck" placeholder="—"><span class="ea-unit">m</span></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — DNV Ch 8 Sec 1 fore-end slamming; bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Slamming draught at FP (empty)</label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvTfEmpty" placeholder="—"><span class="ea-unit">m</span></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — DNV Ch 8 Sec 1 fore-end slamming; bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Slamming draught at FP (full)</label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvTfFull" placeholder="—"><span class="ea-unit">m</span></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — motor daima Mst=0 varsayıyor (kapalı çift gövdeli gemi tipik); bilgi amaçlı, girilen değer henüz hesaba katılmıyor."><label class="ea-label">Design still water torsion M<sub>st</sub></label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvMst" placeholder="0"><span class="ea-unit">kN·m</span></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Island design</label>
+            <select class="ea-select" id="dnvIslandDesign"><option value="single" selected>Single island design</option><option value="multi">Multi island design</option><option value="none">No island</option></select>
+          </div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Deadweight &lt; 50 000 t</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="dnvDwt50k" checked> yes</label></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — DNV Ch 10 Sec 1 [1.1.4]; bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Ship with large deck openings</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="dnvLargeDeckOpenings"> yes</label></div></div>
+          <div class="ea-field bv-only" title="Nauticus 'General ship data' alanı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Distance AP → engine room bhd</label><div class="ea-input-unit"><input type="number" class="ea-input" id="dnvApToErBhd" placeholder="—"><span class="ea-unit">mm</span></div></div>
         </div>
         <div class="ea-section-title" style="margin-top:var(--spacing-md)">Still-Water Bending Moment</div>
         <div class="ea-form-row-4">
@@ -531,6 +565,9 @@
           </div>
           <div class="ea-field"><label class="ea-label" title="FSICR 2021 Sec 3 minimum required engine power for the chosen ice class. Status auto-validates.">FSICR P_min req (kW)</label><input type="number" step="1" class="ea-input" id="ice_P0_required" value="4910" onchange="onIceInputChange()"></div>
         </div>
+
+        <div class="ea-section-title dnv-only" style="margin-top:var(--spacing-md)">DNV Ice Strengthening (Pt 6 Ch 6 Sec 3)</div>
+        <div class="ea-form-row-4" id="dnvIceRow"></div>
 
         <!-- COMPUTED EXTENTS DISPLAY -->
         <div class="ea-form-row" style="grid-template-columns:1fr 1fr;gap:var(--spacing-md);margin-top:var(--spacing-md)">
