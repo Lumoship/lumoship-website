@@ -341,7 +341,7 @@
     var fb = document.getElementById('formBar');
     if (!fb) {
       fb = document.createElement('div'); fb.id = 'formBar'; fb.className = 'chrome-bar form-bar';
-      fb.innerHTML = '<div class="form-bar-left"></div><div class="bridge-mid"></div><div class="form-bar-right"><div class="bridge-files"></div><span id="fbStepBadge" class="step-strip-badge sb-badge"></span></div>';
+      fb.innerHTML = '<div class="form-bar-left"></div><div class="bridge-mid"></div><div class="form-bar-right"><div class="bridge-files"></div></div>';   // durum rozeti kaldırıldı — alt bar'da (fsStepBadge) zaten aynısı var
       var header = document.querySelector('.ea-header'); if (header && header.parentElement) header.parentElement.insertBefore(fb, header);
     }
     var sb = document.getElementById('formStatusBar');
