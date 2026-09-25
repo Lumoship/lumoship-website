@@ -34,6 +34,13 @@ function recalcAll() {
     const sr = document.getElementById('serviceRestriction'), f1El = document.getElementById('f1');
     if (sr && f1El) { const restricted = sr.value === 'restricted'; f1El.disabled = !restricted; f1El.closest('.ea-field') && f1El.closest('.ea-field').classList.toggle('ref-only', !restricted); }
   })();
+  // Moulded displacement at Tsc — standart Arşimet: Δ = L·B·T·Cb·1,025 (deniz suyu). Nauticus'ta salt-okunur gösteriliyor.
+  (function () {
+    const el = document.getElementById('dnvDispCalc'); if (!el) return;
+    const L = parseFloat((document.getElementById('L') || {}).value), B = parseFloat((document.getElementById('B') || {}).value),
+          T = parseFloat((document.getElementById('T') || {}).value), Cb = parseFloat((document.getElementById('Cb') || {}).value);
+    el.value = (L > 0 && B > 0 && T > 0 && Cb > 0) ? Math.round(L * B * T * Cb * 1.025).toLocaleString('en-US') : '—';
+  })();
   const p = getParams();
   const Cw = calcCw(p.L);
 
