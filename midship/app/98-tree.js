@@ -99,7 +99,7 @@
             var lb = Sections.label(models[it.id] || it);
             h += '<button class="tree-node leaf sec ' + (it.active && inSections ? 'active' : it.active ? 'current' : '') + '" data-sec="' + it.id + '" title="' + lb.name + (lb.sub ? ' · ' + lb.sub : '') + ' — right-click for more"><i></i><span class="tl">' + lb.name + '</span><span class="ts">' + lb.sub + '</span></button>';
           });
-          if (!items.length) h += '<button class="tree-node leaf sec-new" data-newsec="1" title="Create the first cross section from the Main particulars (B, D)"><i></i><span class="tl">＋ New section</span></button>';
+          h += '<button class="tree-node leaf sec-new" data-newsec="1" title="' + (items.length ? 'Add another cross section (copies the current geometry parameters)' : 'Create the first cross section from the Main particulars (B, D)') + '"><i></i><span class="tl">＋ New section</span></button>';
         }
         h += '</div></div>';
       } else {

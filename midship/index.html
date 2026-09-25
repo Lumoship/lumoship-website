@@ -250,15 +250,14 @@
       <div class="ea-panel-body">
         <div class="ea-section-title">Rule Set</div>
         <div class="ea-form-row-4">
-          <div class="ea-field"><label class="ea-label" title="Kural motoru yalnız DNV RU-SHIP ve LR için tam kurulu; BV seçildiğinde BV-only alanlar görünür ama motor LR formülleriyle çalışır (MARS export ile dış doğrulama), ABS henüz kurulmadı (arayüzde seçenek olarak duruyor).">Rule set</label>
+          <div class="ea-field"><label class="ea-label" title="Kural motoru DNV RU-SHIP ve LR için tam kurulu; BV seçildiğinde BV-only alanlar görünür ama motor LR formülleriyle çalışır (MARS export ile dış doğrulama). ABS kurulmadığı için seçenek olarak yok.">Rule set</label>
             <select class="ea-select" id="classificationSociety">
               <option value="Lloyd's Register" selected>Lloyd's Register</option>
               <option value="Bureau Veritas">Bureau Veritas</option>
               <option value="DNV">DNV</option>
-              <option value="ABS">ABS</option>
             </select>
           </div>
-          <div class="ea-field"><label class="ea-label" title="LR Pt 3 Ch 4 Sec 5.2: ship service factor f1 = 1,0 for unrestricted service; short voyages / sheltered water reduce the wave moment (5.2.3) and the wave shear (K2, 6.3.1); a restricted service is specially considered, f1 ≥ 0,5.">Service restriction</label>
+          <div class="ea-field"><label class="ea-label" title="Kavram üçünde de var ama SAYILAR AYNI DEĞİL — bu alan yalnız LR'nin kendi f1 formülünü hesaplıyor. LR Pt 3 Ch 4 Sec 5.2: f1=1,0 unrestricted / 0,8 short voyage / 0,5 sheltered / by agreement restricted (4 kademe). DNV Pt 1 Ch 2 Sec 6 Table 1: R0-R4/RE servis alanı notasyonu, Cw dalga katsayısını 1,0/0,9/0,8/0,6/0,5/0,4 ile çarpar (6 kademe) — bu alan DNV hesabına henüz bağlı değil. BV Part B Ch 5 Sec 3 Table 1: navigation notation (unrestricted/summer zone/tropical zone/coastal area/sheltered area, 5 kademe) dalga parametresi H'yi TAMAMEN FARKLI bir formülle (A0/A1/e1/A2/e2 katsayıları) hesaplıyor, f1 gibi tek bir çarpan değil — bu alan BV hesabına da henüz bağlı değil.">Service restriction</label>
             <select class="ea-select" id="serviceRestriction" onchange="recalcAll()"><option value="unrestricted" selected>Unrestricted sea-going · f1 = 1,0</option><option value="short_voyage">Short voyages · M_w × 0,8 · K2 = 0,8</option><option value="sheltered">Sheltered water · M_w × 0,5 · K2 = 0,5</option><option value="restricted">Restricted service · f1 by agreement</option></select></div>
           <div class="ea-field"><label class="ea-label" title="Ship service factor f1 (Pt 3 Ch 4 Sec 5.2.1). Editable for a restricted service; never less than 0,5.">f<sub>1</sub> service factor</label><input type="number" step="0.01" min="0.5" max="1" class="ea-input" id="f1" value="1.00" onchange="recalcAll()"></div>
         </div>
@@ -276,13 +275,13 @@
           </div>
         </div>
         <div class="ea-form-row-4">
-          <div class="ea-field ref-only" data-rules="bv dnv" title="ClauseFinder taramasında Open Hatch notasyonu BV NR467 ve DNV RU-SHIP metninde var, LR Ships metninde bulunamadı (LR seçiliyken bu alan gizlenir). Grab notasyonu artık burada değil — yukarıdaki 'Grab' alanı (gemi geneli, DNV formülüyle gerçekten hesaba giriyor) onun yerini aldı."><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
           <div class="ea-field" title="Aç/kapat kontrolü burada tekrarlanmıyor — tek kaynak Ice Class sayfası. Buradaki yazı yalnız durumu gösterir.">
             <label class="ea-label">Ice strengthening</label>
             <div class="ea-input readonly" id="rulesIceStatus" style="cursor:pointer" onclick="window.ProjectTree && window.ProjectTree.goTo(1,'ice')">— see Ice Class page —</div>
           </div>
+          <div class="ea-field ref-only" data-rules="bv dnv" title="ClauseFinder taramasında Open Hatch notasyonu BV NR467 ve DNV RU-SHIP metninde var, LR Ships metninde bulunamadı (LR seçiliyken bu alan gizlenir). Grab notasyonu artık burada değil — yukarıdaki 'Grab' alanı (gemi geneli, DNV formülüyle gerçekten hesaba giriyor) onun yerini aldı."><label class="ea-label">Additional features</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="bvOpenHatch" disabled> OPEN-HATCH</label></div></div>
         </div>
-        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Additional Notations (LR/BV/DNV ortak — henüz hesaba bağlı değil)</div>
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Additional Notations (common to LR/BV/DNV — not yet wired into the rule engine)</div>
         <div class="ea-form-row-4">
           <div class="ea-field ref-only" title="ClauseFinder: LR Ships 'centre hold', BV NR467 'centre hold' ve DNV Pt 5 Ch 1'de geçiyor — üçünde de gerçek bir hüküm var, motor henüz kullanmıyor."><label class="ea-label">Long centre cargo hold</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notLongCentreHold" disabled> yes</label></div></div>
           <div class="ea-field ref-only" title="ClauseFinder: 'ballast hold' LR Ships'te ve BV NR467'de de var (BC-A/BC-B alternatif ambar yükleme notasyonları) — üçünde de gerçek, motor henüz kullanmıyor."><label class="ea-label">Holds may be empty</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="notHoldsEmpty" disabled> yes</label></div></div>
@@ -328,7 +327,7 @@
         <div class="ea-form-row-4">
           <div class="ea-field bv-only" title="BV NR467 ve DNV Ch 4 Sec 3 [2.1.1] f_BK — sintine omurgası yoksa 1,2, varsa 1,0 (yalpa)"><label class="ea-label">Bilge keel</label><select class="ea-select" id="bvBilgeKeel" onchange="recalcAll()"><option>Yes</option><option>No</option></select></div>
           <div class="ea-field bv-only" title="BV NR467 ve DNV — Tip A (yalnız sıvı yük) / Tip B (diğer, genelde dökme yük/genel kargo)"><label class="ea-label">Freeboard type</label><select class="ea-select" id="bvFreeboardType" onchange="recalcAll()"><option value="A">A</option><option value="B" selected>B</option><option value="B-60">B-60</option><option value="B-100">B-100</option></select></div>
-          <div class="ea-field" title="Nauticus 'General ship data' alanı — DNV Ch 6 Sec 3 Table 1 Not 2/3: 5'ten az güverteli gemilerde en üst güverte minimum kalınlığı biraz artıyor. Bu sayı kaydediliyor ama tek güverteli/az güverteli tipik gemilerde motor şu an bu notu ayrıca uygulamıyor (etkisiz, bilgi amaçlı)."><label class="ea-label">Decks above 0,7D from baseline</label><input type="number" step="1" min="1" class="ea-input" id="numDecksAbove07D" value="1" onchange="recalcAll()"></div>
+          <div class="ea-field" title="Nauticus 'General ship data' alanı — DNV Ch 6 Sec 3 Table 1 Not 2/3: 5'ten az güverteli gemilerde en üst güverte minimum kalınlığı biraz artıyor. Bu sayı kaydediliyor ama tek güverteli/az güverteli tipik gemilerde motor şu an bu notu ayrıca uygulamıyor (etkisiz, bilgi amaçlı)."><label class="ea-label">Decks above 0.7D from baseline</label><input type="number" step="1" min="1" class="ea-input" id="numDecksAbove07D" value="1" onchange="recalcAll()"></div>
           <div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Depth to freeboard deck</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDepthFreeboard" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">Depth to bulkhead deck</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvDepthBulkhead" disabled placeholder="—"><span class="ea-unit">m</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">A<sub>dk</sub> uppermost deck area [0,8L fore]</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAdk" disabled placeholder="—"><span class="ea-unit">m²</span></div></div><div class="ea-field bv-only" title="BV NR467 input — not used by the LR rules"><label class="ea-label">A<sub>wl</sub> waterplane area [0,8L fore]</label><div class="ea-input-unit"><input type="number" class="ea-input" id="bvAwl" disabled placeholder="—"><span class="ea-unit">m²</span></div></div>
         </div>
         <div class="ea-form-row-4">
@@ -1907,7 +1906,6 @@
               <option value="Lloyd&#39;s Register" selected>Lloyd&#39;s Register</option>
               <option value="Bureau Veritas">Bureau Veritas</option>
               <option value="DNV">DNV</option>
-              <option value="ABS">ABS</option>
             </select>
           </div>
         </div>

@@ -569,6 +569,7 @@
         L: document.getElementById('L').value, sectionXL: document.getElementById('sectionXL').value };
       const pre = document.createElement('pre'); pre.id = 'dnvMswTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
     }, 3000);
+    if (q.get('dnvstepshot')) setTimeout(() => { if (window.goToStep) window.goToStep(parseInt(q.get('dnvstepshot'))); document.title = 'step-ready'; }, 1500);
     if (q.get('dnvviewshot')) setTimeout(() => {   // ?dnvviewshot=main gibi — istenen sekmeye gider, ekran görüntüsü için
       const cs = document.getElementById('classificationSociety');
       Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, 'DNV');

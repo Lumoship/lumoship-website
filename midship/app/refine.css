@@ -1377,7 +1377,7 @@ body.cad-mode .cad-msgs.closed{background:none;border:none;backdrop-filter:none;
 
 
 /* ── Left rail: the main flow (Main particulars · Sections · Check) ─────────── */
-:root{--rail-w:172px}
+:root{--rail-w:262px}
 body.with-rail{padding-left:var(--rail-w)}
 body.with-rail .lumoship-nav{margin-left:calc(-1 * var(--rail-w))}
 body.with-rail #formStatusBar{left:var(--rail-w)}
