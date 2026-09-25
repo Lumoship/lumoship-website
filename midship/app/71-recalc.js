@@ -29,6 +29,11 @@ window.resumeRecalc = function () {
 
 function recalcAll() {
   if (window.__recalcSuspended) { window.__recalcPending = true; return; }
+  // f1 girdisi yalnız 'restricted' seçiliyken okunuyor (Pt 3 Ch 4 Sec 5.1.1: diğer 3 durumda K2/svScale zaten sabit tablo değeriyle çarpıyor, f1 kutusu görmezden geliniyor) — arayüz bunu yansıtsın
+  (function () {
+    const sr = document.getElementById('serviceRestriction'), f1El = document.getElementById('f1');
+    if (sr && f1El) { const restricted = sr.value === 'restricted'; f1El.disabled = !restricted; f1El.closest('.ea-field') && f1El.closest('.ea-field').classList.toggle('ref-only', !restricted); }
+  })();
   const p = getParams();
   const Cw = calcCw(p.L);
 

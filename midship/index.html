@@ -259,7 +259,26 @@
           </div>
           <div class="ea-field" data-rules="lr"><label class="ea-label" title="LR Pt 3 Ch 4 Sec 5.2: f1=1,0 unrestricted / 0,8 short voyage / 0,5 sheltered / by agreement restricted. DNV ve BV'nin kendi (farklı yapıda, henüz uygulanmamış) servis kısıtı sistemleri var — DNV Pt 1 Ch 2 Sec 6 R0-R4/RE, BV Part B Ch 5 Sec 3 navigation notation — bu yüzden LR dışında gizli. Not: DNV/BV seçiliyken de LR'nin ana motoru arka planda çalışmaya devam ediyor (Rule set seçimi onu devre dışı bırakmıyor), bu alan LR'ye dönülünce son değerinde kalır.">Service restriction</label>
             <select class="ea-select" id="serviceRestriction" onchange="recalcAll()"><option value="unrestricted" selected>Unrestricted sea-going · f1 = 1,0</option><option value="short_voyage">Short voyages · M_w × 0,8 · K2 = 0,8</option><option value="sheltered">Sheltered water · M_w × 0,5 · K2 = 0,5</option><option value="restricted">Restricted service · f1 by agreement</option></select></div>
-          <div class="ea-field" data-rules="lr"><label class="ea-label" title="Ship service factor f1 (Pt 3 Ch 4 Sec 5.2.1). Editable for a restricted service; never less than 0,5. DNV/BV'de kendi servis kısıtı sistemleri farklı olduğu için gizli — bkz Service restriction tooltip.">f<sub>1</sub> service factor</label><input type="number" step="0.01" min="0.5" max="1" class="ea-input" id="f1" value="1.00" onchange="recalcAll()"></div>
+          <div class="ea-field" data-rules="lr"><label class="ea-label" title="Pt 3 Ch 4 Sec 5.1.1/5.2.3: f1 yalnız 'Restricted service' seçiliyken okunuyor — diğer üç seçenekte (Unrestricted/Short voyage/Sheltered) M_w formülü zaten sabit bir kural değeriyle (1,0/0,8/0,5) çarpılıyor, bu kutu görmezden geliniyor; bu yüzden yalnız 'Restricted service' seçiliyken aktif oluyor. Restricted service, ≥0,5, LR ile mutabakatla belirlenir (kural metninde sabit sayı yok).">f<sub>1</sub> service factor</label><input type="number" step="0.01" min="0.5" max="1" class="ea-input" id="f1" value="1.00" onchange="recalcAll()"></div>
+          <div class="ea-field ref-only" data-rules="dnv" title="DNV Pt 1 Ch 2 Sec 6 Table 1 — service area notation, dalga katsayısı Cw'yi çarpar. Kaynak: ClauseFinder dnv-ruship-2026. Henüz motora bağlı değil (bilgi amaçlı, formül eklenince buradan okunacak)."><label class="ea-label">Service area notation</label>
+            <select class="ea-select" id="dnvServiceArea" disabled>
+              <option value="R0" selected>R0 — unrestricted · Cw × 1,0</option>
+              <option value="R1">R1 — 100/200/300 nm · Cw × 0,9</option>
+              <option value="R2">R2 — 50/100/200 nm · Cw × 0,8</option>
+              <option value="R3">R3 — 20/50/100 nm · Cw × 0,6</option>
+              <option value="R4">R4 — 5/10/20 nm · Cw × 0,5</option>
+              <option value="RE">RE — enclosed waters · Cw × 0,4</option>
+            </select>
+          </div>
+          <div class="ea-field ref-only" data-rules="bv" title="BV Part B Ch 5 Sec 3 Table 1/2 — navigation notation, dalga parametresi H'yi A0 katsayısıyla belirler (basit çarpan değil, tam formül farklı). Kaynak: ClauseFinder bv-nr467-2026. Henüz motora bağlı değil (bilgi amaçlı, formül eklenince buradan okunacak)."><label class="ea-label">Navigation notation</label>
+            <select class="ea-select" id="bvNavNotation" disabled>
+              <option value="unrestricted" selected>Unrestricted navigation · A0 = 0,90</option>
+              <option value="summer">Summer zone · A0 = 0,78</option>
+              <option value="tropical">Tropical zone · A0 = 0,61</option>
+              <option value="coastal">Coastal area · A0 = 0,61</option>
+              <option value="sheltered">Sheltered area · A0 = 0,47</option>
+            </select>
+          </div>
         </div>
         <div class="ea-form-row-4" id="dnvRulesHost"></div>
         <div class="ea-section-title" style="margin-top:var(--spacing-md)">Ship Type Notation</div>
