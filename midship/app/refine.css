@@ -1270,7 +1270,7 @@ body.chrome-form .step-strip-host{display:none}
 #formBar .bridge-files{display:inline-flex;gap:4px}
 #formBar .bridge-files .ea-header-btn{font-size:0;padding:4px 7px;gap:0}
 #formBar .bridge-files .ea-header-btn svg{width:13px;height:13px}
-#formBar .sb-badge{display:inline-block !important}
+#formBar .sb-badge{display:inline-block !important;margin-left:0}   /* global .step-strip-badge{margin-left:auto} çakışıyor — burada form-bar-right'ın kendi flex-end'i yeterli, aradaki boşluğu auto-margin genişletmesin */
 body.chrome-form .ea-page > .ea-main{padding-top:10px}
 body.chrome-form .ea-page.active{padding:0 12px}
 #formStatusBar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-secondary);border-top:1px solid var(--border)}
