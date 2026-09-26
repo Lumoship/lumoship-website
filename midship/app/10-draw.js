@@ -368,15 +368,11 @@ function refreshIceReqPower() {
     { T: g('ice_T_uiwl'), alpha: g('ice_alpha_u'), phi2: g('ice_phi2_u'), awf: g('ice_awf_u'), out: outU },
     { T: g('ice_T_liwl'), alpha: g('ice_alpha_l'), phi2: g('ice_phi2_l'), awf: g('ice_awf_l'), out: outL },
   ];
-  // 26 Eyl 2026: kök neden bulundu ve düzeltildi — [5,20] sınırı KÜPÜ ALINMIŞ terime uygulanmalıydı, tabana değil
-  // (önceki hâli L·T/B²'yi önce [5,20]'ye sıkıştırıp sonra küpünü alıyordu → [125,8000], oysa doğrusu küpü aldıktan
-  // sonra [5,20]'ye sıkıştırmak). Gerçek bir referans geminin buz-sınıfı girdileriyle (L=121,91 B=17,2 T=7,258/4,675,
-  // α/φ2/Awf gerçek bir Nauticus ekran görüntüsüyle birebir) yeniden test edildi: Lpar≈55-60 m varsayımıyla
-  // Pmin_UIWL≈1773-1886 kW (gerçek 1798) ve Pmin_LIWL≈1387-1491 kW (gerçek 1355) — %1-10 içinde, kabul edilebilir.
-  // L_PAR kullanıcı girdisi olarak kalıyor (gerçek geminin paralel orta gövde uzunluğu bilinmeden varsayılmıyor).
+  // Not a verified output. L_PAR is never assumed. The ship L field is not a separate rule length.
   cases.forEach(c => {
+    if (!(Lpar > 0)) { c.out.value = ''; return; }
     const r = window.FSICR.reqEnginePower(iceClass, L, B, c.T, Lpar, { alpha: c.alpha, phi2: c.phi2, awf: c.awf }, propType, nProps, Dp);
-    c.out.value = r ? Math.round(r.Pmin).toLocaleString('en-US') : '—';
+    c.out.value = r ? ('unverified ' + Math.round(r.Pmin).toLocaleString('en-US')) : '';
   });
 }
 window.refreshIceReqPower = refreshIceReqPower;

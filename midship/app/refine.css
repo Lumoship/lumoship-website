@@ -1506,9 +1506,13 @@ body.chrome-form .ea-page-actions{display:none}
 .ea-sub-step{white-space:nowrap}
 .ea-subwizard{flex-wrap:nowrap}
 
-/* BV-only inputs: present, disabled */
-.ea-field.bv-only .ea-input,.ea-field.bv-only .ea-select{opacity:0.45;cursor:not-allowed;border-style:dashed}
+/* bv-only: stored with the ship. Dashed = not read by the check. in-calc = the DNV model reads it. */
+.ea-field.bv-only .ea-input,.ea-field.bv-only .ea-select{opacity:0.72;border-style:dashed}
+.ea-field.bv-only .ea-input:not(:disabled){cursor:text}
+.ea-field.bv-only .ea-select:not(:disabled){cursor:pointer}
 .ea-field.bv-only .ea-label{color:var(--text-muted)}
+.ea-field.bv-only.in-calc .ea-input,.ea-field.bv-only.in-calc .ea-select{opacity:1;border-style:solid}
+.ea-field.bv-only.in-calc .ea-label{color:var(--text-primary)}
 /* ref-only: notasyon var, hiçbir kural setine bağlı değil (referans amaçlı, hesaba girmiyor) */
 .ea-field.ref-only .ea-input,.ea-field.ref-only .ea-select{opacity:0.45;cursor:not-allowed;border-style:dashed}
 .ea-field.ref-only .ea-label{color:var(--text-muted)}

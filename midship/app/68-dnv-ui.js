@@ -128,7 +128,7 @@
         const psi = c.psiDeg > 0 ? c.psiDeg : 30;   // Pt 5 Ch 1 [3.4]: 30° genel, 35° demir cevheri, 25° çimento (kural metni) — kompartıman başına
         const grabQ = c.grabQualifier || (c.type === 'dryBulk' ? shipGrabQ : '');   // kompartıman kendi notasyonunu istiyorsa öncelikli, yoksa Applicable Rules'daki gemi geneli
         holds[c.id] = { name: c.name, rhoC: Math.max(0.7, c.rho || num('dnv_holdRho', 0.7)), zC, xG: (x0 + x1) / 2, yG: 0, zG: zG, psi, compType: c.type === 'dryBulk' ? 'holdGrab' : 'hold', grab: grabQ ? { qualifier: grabQ, MGR: c.grabMGR > 0 ? c.grabMGR : num('dnv_shipGrabMGR', 0) || DNV.GRAB_DEFAULT_MGR(grabQ, L), z0: c.z0 / 1000 } : null };   // Pt 6 Ch 1 Sec 1: kepçe darbesi
-        if (c.type === 'dryBulk' && c.heavyLoaded) holds[c.id].heavy = { rhoC: c.heavyRho || holds[c.id].rhoC, zC, xG: holds[c.id].xG, yG: 0, zG, psi };   // Pt 5 Ch 1 [BC-3/4]: dolu ambar HD alternatif durumu
+        if (c.type === 'dryBulk' && c.heavyLoaded) holds[c.id].heavy = { rhoC: c.heavyRho || holds[c.id].rhoC, zC, xG: holds[c.id].xG, yG: 0, zG, psi };   // Table 5 BC-3/4: homogeneous heavy cargo, partially filled. Alternate loading is BC-5…BC-8 and is not this flag.
       }
     });
     const boxAt = (y, z) => comps.find(c => y >= c.y0 && y <= c.y1 && z >= c.z0 && z <= c.z1) || null;
@@ -385,8 +385,11 @@
       const cand = [['Yield-Z', r.ZReqNet / (Zact || 1)], ['Yield-shear', R5(r.twLocNet) / twGr], ['Min web', R5(r.twMinNet) / twGr], ['Slend web', R5(r.twSlendNet) / twGr]];
       if (r.buckling) cand.push(['Buckling', r.buckling.eta]); if (r.ice) cand.push(['Ice Z', r.ice.Z / (zActGross(st, pl ? pl.t : st.tw) || 1)], ['Ice t_w', r.ice.tw / twGr]);
       cand.sort((a, b) => b[1] - a[1]);
-      const sfTitle = r.sideFrame ? `Yan posta (Pt5Ch1Sec2, DOĞRULANMADI — governing'e girmiyor): Z_mid ${f1(r.sideFrame.required.Zmid_net_cm3)} / Z_alt ${f1(r.sideFrame.required.Zlower_net_cm3)} / Z_üst ${f1(r.sideFrame.required.Zupper_net_cm3)} cm³, A_shr ${f1(r.sideFrame.required.Ashr_net_cm2)} cm² — ${r.sideFrame.set} ${r.sideFrame.lc} P=${f1(r.sideFrame.P)} kPa AC=${r.sideFrame.AC}, braket varsayımı l_SF min (${f2(r.sideFrame.bracketLengths.lowerMin_m)}/${f2(r.sideFrame.bracketLengths.upperMin_m)} m), mayBeEmpty=${model.ship.holdsMayBeEmpty}` : '';
-      return `<tr class="${ok ? '' : 'fail'}"><td title="${sfTitle}">${r.id}${r.sideFrame ? ' †' : ''}</td><td>${r.panel}</td><td>${st.name || st.type + ' ' + st.hw + 'x' + st.tw}</td><td>${Math.round(st.s)} / ${f2(st.lBdg)}</td><td title="${r.yieldZ ? r.yieldZ.set + ' ' + r.yieldZ.lc + ' P=' + f1(r.yieldZ.P) + ' C_s=' + f2(r.yieldZ.Cs) : ''}">${f1(r.ZReqNet)}</td><td>${f1(Zact)}</td><td>${f1(R5(Math.max(r.twLocNet, r.twMinNet, r.twSlendNet)))}</td><td>${r.buckling ? (r.buckling.eta >= 99 ? '∞' : f2(r.buckling.eta)) : '–'}</td><td>${r.ice ? f1(r.ice.Z) + ' / ' + f1(r.ice.A) + ' / ' + f1(r.ice.tw) : '–'}</td><td>${cand[0][0]} (${cand[0][1] >= 99 ? '∞' : f2(cand[0][1])})</td><td>${ok ? '✓' : '<b>No!</b>'}</td></tr>`; }).join('');
+      const sf = r.sideFrame;
+      const sfTitle = !sf ? '' : (sf.status === 'notApplicable'
+        ? 'Yan posta: CSR-BC işaretli, Pt 5 Ch 1 Sec 2 §5.2 uygulanmaz.'
+        : `Yan posta (Pt 5 Ch 1 Sec 2): hesaplanmadı. ℓSF Şekil 1, braket Şekil 1/13; modelde yok, profil açıklığı ℓSF yerine konmadı. BC-5…BC-8 için ayrı yük durumu yok. Hazır basınç setleri: ${(sf.pressuresReady || []).join(', ') || '—'}. Hükmeden değil.`);
+      return `<tr class="${ok ? '' : 'fail'}"><td title="${sfTitle}">${r.id}${sf ? ' †' : ''}</td><td>${r.panel}</td><td>${st.name || st.type + ' ' + st.hw + 'x' + st.tw}</td><td>${Math.round(st.s)} / ${f2(st.lBdg)}</td><td title="${r.yieldZ ? r.yieldZ.set + ' ' + r.yieldZ.lc + ' P=' + f1(r.yieldZ.P) + ' C_s=' + f2(r.yieldZ.Cs) : ''}">${f1(r.ZReqNet)}</td><td>${f1(Zact)}</td><td>${f1(R5(Math.max(r.twLocNet, r.twMinNet, r.twSlendNet)))}</td><td>${r.buckling ? (r.buckling.eta >= 99 ? '∞' : f2(r.buckling.eta)) : '–'}</td><td>${r.ice ? f1(r.ice.Z) + ' / ' + f1(r.ice.A) + ' / ' + f1(r.ice.tw) : '–'}</td><td>${cand[0][0]} (${cand[0][1] >= 99 ? '∞' : f2(cand[0][1])})</td><td>${ok ? '✓' : '<b>No!</b>'}</td></tr>`; }).join('');
     const pr = model.props;
     $('dnvSummary').textContent = `x = ${model.x.toFixed(2)} m · ${out.epps.length} EPP, ${out.stiffeners.length} profil · net50: A ${(pr.A / 100).toFixed(0)} cm², z_n ${(pr.zn / 1000).toFixed(3)} m, I_y ${(pr.Iy / 1e12).toFixed(3)} m⁴, I_z ${(pr.Iz / 1e12).toFixed(3)} m⁴ · M_sw ${f1(model.loads.Msw.hog)}/${f1(model.loads.Msw.sag)} kNm · T_BAL ${model.ship.TBAL.toFixed(2)} m · tanks ${Object.keys(model.tanks).length}, holds ${Object.keys(model.holds).length}`;
     $('dnvStatus').textContent = bad ? bad + ' No!' : 'all OK';
@@ -404,7 +407,12 @@
     // Applicable Rules: hangi notasyon hangi kural setinde gerçekten var (ClauseFinder LR Ships / BV NR467 / DNV RU-SHIP taraması) — data-rules yoksa üçünde de geçerli, her zaman görünür
     const socRaw = ($('classificationSociety') || {}).value || '';
     const socKey = socRaw === 'DNV' ? 'dnv' : socRaw === 'Bureau Veritas' ? 'bv' : socRaw === "Lloyd's Register" ? 'lr' : null;
-    document.querySelectorAll('[data-rules]').forEach(el => { const list = (el.dataset.rules || '').split(/\s+/); el.style.display = (!socKey || list.indexOf(socKey) >= 0) ? '' : 'none'; });
+    document.querySelectorAll('[data-rules]').forEach(el => {
+      const list = (el.dataset.rules || '').split(/\s+/);
+      // LR still sets plate thickness, colours and the optimiser, so its inputs stay on screen.
+      const show = !socKey || list.indexOf(socKey) >= 0 || list.indexOf('lr') >= 0;
+      el.style.display = show ? '' : 'none';
+    });
     if (on) updateMswGuidance();
     const p = $('dnvPanel'); if (!on) { if (p) p.style.display = 'none'; return null; }
     if (!window.DNVCheck) return null;

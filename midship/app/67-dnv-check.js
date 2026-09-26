@@ -256,25 +256,31 @@
       const plLa = trans ? st.ice.s1 : 1.7 * st.ice.s1, plReq = ICE.plate(ICE.pressure(ship.ice, st.ice.region, plLa).P, st.ice.s1, h, st.ReH, 2, !trans).t;
       res.ice = { P: pr.P, Z: fr.Z, A: fr.A, tw: ICE.twMin(plReq, 2, st.hw, st.ReH, st.type === 'FB') };
     }
-    // yan posta (Pt 5 Ch 1 Sec 2 §§5.2.2-5.2.4): tek bordalı, kuru dökme yük ambarı sınırındaki enine posta.
-    // Kapsam (dryCargo/singleSide/transverse) modelden gerçek yüzler/yön bilgisinden çıkarılıyor; CSR-BC kapsamı
-    // (§1.3.1 — bu basit formülün geçerli olmadığı durum) modelden çıkarılamıyor, kullanıcının Additional
-    // Notations'ta işaretlediği bayrağa (ship.sideFrameCSR) bağlı. Braket uzunlukları girilmediği için kural
-    // minimumu (0,12/0,07·l_SF) varsayılıyor — bu, geçerli her tasarım için en kötü (en yüksek A_shr) durumdur.
-    // HENÜZ gerçek bir Nauticus referansıyla doğrulanmadı (PLAN-DNV.md §27/28) — sonuç bilgi amaçlı, "governing"e girmiyor.
+    // Yan posta (Pt 5 Ch 1 Sec 2 §§5.2.2–5.2.4). ℓSF Şekil 1, braket Şekil 1/13.
+    // Model ikisini de vermiyor. Profil açıklığı ℓSF yerine konmaz, kural minimumu braket boyu gibi kullanılmaz.
+    // BC-5…BC-8 ayrı bir alternatif yük durumudur; BC-1…BC-4 basıncı onların yerine yazılmaz.
+    // SEA-1/SEA-2 ve BC-1…BC-4 basınçları sette varsa kaydedilir. Sonuç hükmeden değildir, OK basmaz.
     const Side = SF || root.DNVSideFrame;
     if (Side && ship.sideFrameCSR != null && st.faces && st.faces.some(f => f.kind === 'hold') && st.faces.some(f => f.kind === 'sea') && st.dir === 'trans') {
-      const depth_m = ship.D, lSF = Math.max(st.lBdg, 0.25 * depth_m);
-      const scope = { dryCargo: true, singleSide: true, transverse: true, csr: !!ship.sideFrameCSR };
-      let gSF = null;
-      for (const ls of sets) {
-        if (!/^BC-[1-4]$/.test(ls.set)) continue;
-        const P = Math.abs(ls.P); if (!(P > 0)) continue;
-        const r = Side.requirements({ scope, spacing_mm: st.s, span_m: st.lBdg, depth_m, ReH_MPa: st.ReH, pressure_kPa: P, AC: ls.AC,
-          lowerBracket_m: 0.12 * lSF, upperBracket_m: 0.07 * lSF, mayBeEmpty: !!ship.holdsMayBeEmpty });
-        if (r.status === 'calculated' && (!gSF || r.required.Zmid_net_cm3 > gSF.required.Zmid_net_cm3)) gSF = Object.assign({ set: ls.set, lc: ls.lc, P, AC: ls.AC }, r);
+      if (ship.sideFrameCSR) {
+        res.sideFrame = { status: 'notApplicable', reference: 'Pt 5 Ch 1 Sec 2 §§1.3.1, 5.2.1', reason: 'CSR-BC' };
+      } else {
+        const ready = [];
+        for (const ls of sets) {
+          if (!(/^BC-[1-4]$/.test(ls.set) || ls.set === 'SEA-1' || ls.set === 'SEA-2')) continue;
+          if (!(Math.abs(ls.P) > 0) || ready.indexOf(ls.set) >= 0) continue;
+          ready.push(ls.set);
+        }
+        res.sideFrame = {
+          status: 'incomplete',
+          assessment: 'requirementsOnly',
+          reference: 'Pt 5 Ch 1 Sec 2 §§5.2.1–5.2.4',
+          reason: 'Figure 1 span and Figure 1/13 bracket lengths are not in the model.',
+          pressuresReady: ready,
+          pressuresMissing: ['BC-5', 'BC-6', 'BC-7', 'BC-8'],
+          mayBeEmpty: !!ship.holdsMayBeEmpty,
+        };
       }
-      if (gSF) res.sideFrame = gSF;
     }
     return res;
   }

@@ -1,7 +1,7 @@
 // DNV RU-SHIP Pt 5 Ch 1 Sec 2: single-side, transverse cargo hold frames.
 // Source: ClauseFinder dnv-ruship-2026/sections/pt5-ch1-sec2.html
 // §§1.3.1, 2.2.4, 5.2.1–5.2.4 and Symbols; units from Pt 3 Ch 1 Sec 4.
-// Pure requirements calculator. NOT yet connected to the UI or general stiffeners.
+// Pure requirements calculator. The check does not call it: Figure 1 span and Figure 1/13 brackets are not in the model.
 // It does not generate pressures, infer hold geometry, or certify the whole frame.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
