@@ -581,6 +581,17 @@
       const pre = document.createElement('pre'); pre.id = 'dnvMswTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
     }, 3000);
     if (q.get('dnvstepshot')) setTimeout(() => { if (window.goToStep) window.goToStep(parseInt(q.get('dnvstepshot'))); document.title = 'step-ready'; }, 1500);
+    if (q.get('dnvicereqtest')) setTimeout(() => {
+      const setVal = (id, v) => { const el = document.getElementById(id); if (!el) return; const proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
+      const onEl = document.getElementById('iceEnabledOn'); if (onEl) { onEl.checked = true; onEl.dispatchEvent(new Event('change', { bubbles: true })); }
+      const body = document.getElementById('iceClassBody'); if (body) body.style.display = '';
+      setVal('ice_alpha_u', 22.01); setVal('ice_alpha_l', 20.76); setVal('ice_phi1_u', 100); setVal('ice_phi1_l', 86);
+      setVal('ice_phi2_u', 72.7); setVal('ice_phi2_l', 81.23); setVal('ice_awf_u', 467.73); setVal('ice_awf_l', 478.39);
+      setVal('ice_lpar', 80); setVal('ice_propType', 'CP'); setVal('ice_nprops', '1'); setVal('ice_Dp', 4.3);
+      if (window.onIceInputChange) window.onIceInputChange();
+      window.ProjectTree.goTo(1, 'ice');
+      document.title = 'icereq-ready';
+    }, 3000);
     if (q.get('dnvviewshot')) setTimeout(() => {   // ?dnvviewshot=main gibi — istenen sekmeye gider, ekran görüntüsü için
       const cs = document.getElementById('classificationSociety');
       Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(cs, 'DNV');

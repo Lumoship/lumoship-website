@@ -294,6 +294,29 @@ const FSICR = (function () {
   // compute() rebuilds from scratch.
   function invalidate() { _cache = null; _cacheKey = null; }
 
+  // FSICR Sec 3.2.2 Eq 3.1/3.2 — required engine output (new ships, keel laid on/after 1 Sep 2003), IA/IB/IC (C1=C2=0; IA Super needs the extra hull-form terms, not implemented).
+  // Geometry g = { alpha, phi1, phi2, awf (deg,deg,deg,m²) } for ONE waterline; L,B in m (rule length/breadth), T the draught at that waterline (m), Lpar (m), iceClass, propType ('CP'|'FP'), nProps, Dp (m).
+  const HM_BY_CLASS = { '1AS': 1.0, '1A': 1.0, '1B': 0.8, '1C': 0.6 };
+  const KE_TABLE = { 1: { CP: 2.03, FP: 2.26 }, 2: { CP: 1.44, FP: 1.60 }, 3: { CP: 1.18, FP: 1.31 } };
+  function reqEnginePower(iceClass, L, B, T, Lpar, g, propType, nProps, Dp) {
+    if (!(L > 0 && B > 0 && T > 0 && Lpar >= 0 && Dp > 0)) return null;
+    if (!(g && g.alpha > 0 && g.phi2 != null && g.awf >= 0)) return null;
+    const HM = HM_BY_CLASS[iceClass] || 0.8;
+    const d2r = Math.PI / 180;
+    const alpha = g.alpha * d2r, phi2 = g.phi2 * d2r;
+    const psi = Math.atan(Math.tan(phi2) / Math.sin(alpha));           // flare angle (rad), Sec 3.2.1
+    const psiDeg = psi / d2r;
+    const Cmu = Math.max(0.45, 0.15 * Math.cos(phi2) + Math.sin(psi) * Math.sin(alpha));
+    const Cpsi = psiDeg <= 45 ? 0 : 0.047 * psiDeg - 2.115;
+    const HF = 0.26 + Math.sqrt(HM * B);
+    let ratio = (L * T) / (B * B); ratio = Math.max(5, Math.min(20, ratio));   // Sec 3.2.2: term clamped to [5,20]
+    const C3 = 845, C4 = 42, C5 = 825;                                        // Eq 3.2 constants (IA/IB/IC, C1=C2=0)
+    const RCH = C3 * Cmu * Math.pow(HF + HM, 2) * (B + Cpsi * HF) + C4 * Lpar * HF * HF + C5 * Math.pow(ratio, 3) * (g.awf / L);
+    const ke = (KE_TABLE[nProps] || KE_TABLE[1])[propType === 'FP' ? 'FP' : 'CP'];
+    const Pmin = ke * Math.pow(RCH / 1000, 1.5) / Dp;
+    return { Pmin, RCH, HF, Cmu, Cpsi, psiDeg, ratio, ke };
+  }
+
   // Is z-coord (mm above baseline) inside the FSICR Plate Ice Belt zone?
   function inPlateIceBelt(z_mm, ctx) {
     if (!ctx) return false;
@@ -312,6 +335,7 @@ const FSICR = (function () {
     inFrameStrengthening,
     ICE_BELT_EXTENT_MIDBODY,
     FRAME_EXTENT_MIDBODY,
+    reqEnginePower,
   };
 })();
 window.FSICR = FSICR;
@@ -327,11 +351,32 @@ window.toggleIcePanelBody = toggleIcePanelBody;
 // Refresh ice display + redraw geometry (waterline overlay) whenever any
 // ice-related input changes. recalcAll already covers tables; Draw.render
 // repaints the section drawing with the new UIWL/LIWL band positions.
+// FSICR Sec 3.2.2 Eq 3.1/3.2 — pruva geometrisi doluysa gerçek gerekli makine gücünü hesaplar (UIWL ve LIWL ayrı ayrı)
+function refreshIceReqPower() {
+  const g = id => parseFloat((document.getElementById(id) || {}).value);
+  const outU = document.getElementById('ice_reqPower_u'), outL = document.getElementById('ice_reqPower_l');
+  if (!outU || !outL || !window.FSICR || typeof window.FSICR.reqEnginePower !== 'function') return;
+  const iceClass = (document.getElementById('iceClass') || {}).value || '1A';
+  const L = g('L'), B = g('B'), Lpar = g('ice_lpar'), Dp = g('ice_Dp');
+  const propType = (document.getElementById('ice_propType') || {}).value || 'CP';
+  const nProps = parseInt((document.getElementById('ice_nprops') || {}).value, 10) || 1;
+  const cases = [
+    { T: g('ice_T_uiwl'), alpha: g('ice_alpha_u'), phi2: g('ice_phi2_u'), awf: g('ice_awf_u'), out: outU },
+    { T: g('ice_T_liwl'), alpha: g('ice_alpha_l'), phi2: g('ice_phi2_l'), awf: g('ice_awf_l'), out: outL },
+  ];
+  cases.forEach(c => {
+    const r = window.FSICR.reqEnginePower(iceClass, L, B, c.T, Lpar, { alpha: c.alpha, phi2: c.phi2, awf: c.awf }, propType, nProps, Dp);
+    c.out.value = r ? Math.round(r.Pmin).toLocaleString('en-US') : '—';
+  });
+}
+window.refreshIceReqPower = refreshIceReqPower;
+
 function onIceInputChange() {
   // Clear the FSICR memo cache so the next compute() rebuilds from new inputs
   if (window.FSICR && typeof window.FSICR.invalidate === 'function') {
     window.FSICR.invalidate();
   }
+  refreshIceReqPower();
   if (typeof recalcAll === 'function') recalcAll();
   if (window.Draw && typeof window.Draw.render === 'function') {
     try { window.Draw.render(); } catch (_) {}

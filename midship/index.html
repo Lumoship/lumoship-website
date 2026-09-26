@@ -594,6 +594,7 @@
           <div class="ea-field"><label class="ea-label" title="Upper Ice Waterline — FW summer load line (m, above baseline).">T_UIWL (m)</label><input type="number" step="0.0001" class="ea-input" id="ice_T_uiwl" value="10.7425" onchange="onIceInputChange()"></div>
           <div class="ea-field"><label class="ea-label" title="Lower Ice Waterline — chosen ballast condition (m, above baseline).">T_LIWL (m)</label><input type="number" step="0.01" class="ea-input" id="ice_T_liwl" value="5.50" onchange="onIceInputChange()"></div>
           <div class="ea-field"><label class="ea-label" title="Displacement at UIWL in fresh water, ρ=1.0 t/m³.">Δ at UIWL (t)</label><input type="number" step="1" class="ea-input" id="ice_Disp" value="44513" onchange="onIceInputChange()"></div>
+          <div class="ea-field ref-only" title="Nauticus 'Ice class' ekranı — Δ at LIWL, bilgi amaçlı (bu tool ağırlık/k_v hesabında yalnız UIWL değerini kullanıyor, LR/DNV/BV pratiğiyle tutarlı)."><label class="ea-label">Δ at LIWL (t)</label><input type="number" step="1" class="ea-input" id="ice_Disp_liwl" placeholder="—" onchange="onIceInputChange()"></div>
           <div class="ea-field"><label class="ea-label" title="Plate minimum thickness floor — used as lower bound on FSICR plate thickness.">t floor (mm)</label><input type="number" step="0.5" class="ea-input" id="ice_t_floor" value="9.0" onchange="onIceInputChange()"></div>
         </div>
 
@@ -614,7 +615,41 @@
               <option value="5">5 — frames between two decks only</option>
             </select>
           </div>
-          <div class="ea-field"><label class="ea-label" title="FSICR 2021 Sec 3 minimum required engine power for the chosen ice class. Status auto-validates.">FSICR P_min req (kW)</label><input type="number" step="1" class="ea-input" id="ice_P0_required" value="4910" onchange="onIceInputChange()"></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR 2021 Sec 3 minimum required engine power for the chosen ice class. Status auto-validates. Boş bırakılırsa ve aşağıdaki pruva geometrisi doluysa, motor bunun yerine Sec 3.2.2 formülünü (Eq 3.1/3.2) gerçekten hesaplar.">FSICR P_min req (kW) — manual</label><input type="number" step="1" class="ea-input" id="ice_P0_required" value="4910" onchange="onIceInputChange()"></div>
+        </div>
+
+        <div class="ea-section-title" style="margin-top:var(--spacing-md)">Bow Geometry &amp; Propeller (FSICR Sec 3.2.2 — required engine output, gerçekten hesaplanıyor)</div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="FSICR Sec 3.2.1: waterline angle at B/4, α. Flare açısı ψ=atan(tanφ2/sinα) için gerekli.">α — waterline angle at B/4 (UIWL/LIWL, °)</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" step="0.01" class="ea-input" id="ice_alpha_u" onchange="onIceInputChange()" placeholder="UIWL"><input type="number" step="0.01" class="ea-input" id="ice_alpha_l" onchange="onIceInputChange()" placeholder="LIWL"></div></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Sec 3.2.1: rake of stem at CL, φ1. IA/IB/IC formülünde (Eq 3.1/3.2) doğrudan kullanılmıyor (yalnız IA Super ve eski gemi Annex II'de) — referans amaçlı kaydediliyor.">φ1 — rake of stem at CL (UIWL/LIWL, °)</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" step="0.01" class="ea-input" id="ice_phi1_u" onchange="onIceInputChange()" placeholder="UIWL"><input type="number" step="0.01" class="ea-input" id="ice_phi1_l" onchange="onIceInputChange()" placeholder="LIWL"></div></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Sec 3.2.1: rake of stem at B/4, φ2. Flare açısı ψ ve C_μ için gerekli.">φ2 — rake of stem at B/4 (UIWL/LIWL, °)</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" step="0.01" class="ea-input" id="ice_phi2_u" onchange="onIceInputChange()" placeholder="UIWL"><input type="number" step="0.01" class="ea-input" id="ice_phi2_l" onchange="onIceInputChange()" placeholder="LIWL"></div></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Sec 3.2.1: area of the waterline of the bow, Awf. Kanal direnci R_CH'nin son teriminde kullanılıyor.">A<sub>wf</sub> — area of bow waterline (UIWL/LIWL, m²)</label><div class="ea-form-row" style="grid-template-columns:1fr 1fr"><input type="number" step="0.1" class="ea-input" id="ice_awf_u" onchange="onIceInputChange()" placeholder="UIWL"><input type="number" step="0.1" class="ea-input" id="ice_awf_l" onchange="onIceInputChange()" placeholder="LIWL"></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field"><label class="ea-label" title="FSICR Sec 3.2.1: length of the parallel midship body, L_PAR.">L<sub>PAR</sub> — parallel midship body</label><div class="ea-input-unit"><input type="number" step="0.1" class="ea-input" id="ice_lpar" onchange="onIceInputChange()"><span class="ea-unit">m</span></div></div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Table 3-1: K_e sabiti pervane tipine göre değişir (CP=controllable pitch, FP=fixed pitch).">Propeller type</label>
+            <select class="ea-select" id="ice_propType" onchange="onIceInputChange()">
+              <option value="CP" selected>Controllable pitch (CP)</option>
+              <option value="FP">Fixed pitch (FP)</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Table 3-1: K_e pervane sayısına göre de değişir (1/2/3).">Number of propellers</label>
+            <select class="ea-select" id="ice_nprops" onchange="onIceInputChange()">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <div class="ea-field"><label class="ea-label" title="FSICR Eq 3.1: P_min = K_e·(R_CH/1000)^1.5 / D_P.">D<sub>P</sub> — propeller diameter</label><div class="ea-input-unit"><input type="number" step="0.01" class="ea-input" id="ice_Dp" onchange="onIceInputChange()"><span class="ea-unit">m</span></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field" title="FSICR Sec 3.2.2 Eq 3.1/3.2 — formül resmi denklem görüntülerinin alt-metninden birebir alındı (R_CH = C1+C2+C3·Cμ·(HF+HM)²·(B+Cψ·HF)+C4·LPAR·HF²+C5·(L·T/B²)³·(Awf/L); Pmin=Ke·(RCH/1000)^1,5/DP), yalnız IA/IB/IC (C1=C2=0). DÜRÜST UYARI: formül kural metniyle karşılaştırıldı ama Nauticus'un kendi örnek gemisinin gerçek L/B/L_PAR değerleri elimde olmadığı için ekrandaki 1798/1355 kW ile birebir sayısal doğrulama YAPILAMADI — kendi gemi verinizle hesaplayıp makul geldiğini kontrol edin."><label class="ea-label">Req. machinery power — computed (UIWL / LIWL)</label><div class="ea-input-unit"><input type="text" class="ea-input" id="ice_reqPower_u" readonly placeholder="—"><span class="ea-unit">kW</span></div><div class="ea-input-unit" style="margin-top:4px"><input type="text" class="ea-input" id="ice_reqPower_l" readonly placeholder="—"><span class="ea-unit">kW</span></div></div>
+        </div>
+        <div class="ea-form-row-4">
+          <div class="ea-field ref-only" title="Nauticus 'Ice class' ekranı — özel operasyon/notasyon bayrakları, bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Ice breaker notation</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="ice_notIceBreaker" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="Nauticus 'Ice class' ekranı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Polar class — astern operation</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="ice_notPolarAstern" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="Nauticus 'Ice class' ekranı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Azimuting/podded propeller(s)</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="ice_notAzimuting" disabled> yes</label></div></div>
+          <div class="ea-field ref-only" title="Nauticus 'Ice class' ekranı — bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Bow designed for ice, reduced power</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="ice_notBowReducedPower" disabled> yes</label></div></div>
         </div>
 
         <div class="ea-section-title dnv-only" style="margin-top:var(--spacing-md)">DNV Ice Strengthening (Pt 6 Ch 6 Sec 3)</div>

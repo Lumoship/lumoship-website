@@ -873,6 +873,8 @@ function recalcAll() {
   // FSICR ice class display refresh (no-op when disabled)
   try { if (typeof refreshIceDisplay === 'function') refreshIceDisplay(); }
   catch(e) { console.warn('[recalcAll] FSICR refresh error:', e); }
+  try { if (typeof refreshIceReqPower === 'function') refreshIceReqPower(); }
+  catch(e) { console.warn('[recalcAll] FSICR req-power refresh error:', e); }
 
   // CRITICAL: trigger Draw re-render so renderSectionProps() runs and the
   // Z_B / Z_D / I_NA panel reflects the latest PLATE_THICKNESS / STRAKES
