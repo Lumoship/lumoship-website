@@ -262,14 +262,15 @@
     // Notations'ta işaretlediği bayrağa (ship.sideFrameCSR) bağlı. Braket uzunlukları girilmediği için kural
     // minimumu (0,12/0,07·l_SF) varsayılıyor — bu, geçerli her tasarım için en kötü (en yüksek A_shr) durumdur.
     // HENÜZ gerçek bir Nauticus referansıyla doğrulanmadı (PLAN-DNV.md §27/28) — sonuç bilgi amaçlı, "governing"e girmiyor.
-    if (SF && ship.sideFrameCSR != null && st.faces && st.faces.some(f => f.kind === 'hold') && st.faces.some(f => f.kind === 'sea') && st.dir === 'trans') {
+    const Side = SF || root.DNVSideFrame;
+    if (Side && ship.sideFrameCSR != null && st.faces && st.faces.some(f => f.kind === 'hold') && st.faces.some(f => f.kind === 'sea') && st.dir === 'trans') {
       const depth_m = ship.D, lSF = Math.max(st.lBdg, 0.25 * depth_m);
       const scope = { dryCargo: true, singleSide: true, transverse: true, csr: !!ship.sideFrameCSR };
       let gSF = null;
       for (const ls of sets) {
         if (!/^BC-[1-4]$/.test(ls.set)) continue;
         const P = Math.abs(ls.P); if (!(P > 0)) continue;
-        const r = SF.requirements({ scope, spacing_mm: st.s, span_m: st.lBdg, depth_m, ReH_MPa: st.ReH, pressure_kPa: P, AC: ls.AC,
+        const r = Side.requirements({ scope, spacing_mm: st.s, span_m: st.lBdg, depth_m, ReH_MPa: st.ReH, pressure_kPa: P, AC: ls.AC,
           lowerBracket_m: 0.12 * lSF, upperBracket_m: 0.07 * lSF, mayBeEmpty: !!ship.holdsMayBeEmpty });
         if (r.status === 'calculated' && (!gSF || r.required.Zmid_net_cm3 > gSF.required.Zmid_net_cm3)) gSF = Object.assign({ set: ls.set, lc: ls.lc, P, AC: ls.AC }, r);
       }
