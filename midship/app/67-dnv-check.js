@@ -15,9 +15,9 @@
 // =============================================================================
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./61-dnv-core.js'), require('./62-dnv-loads.js'), require('./63-dnv-local.js'), require('./64-dnv-buckling.js'), require('./65-dnv-ice.js'), require('./66-dnv-section.js'));
-  } else root.DNVCheck = factory(root.DNV, root.DNVLoads, root.DNVLocal, root.DNVBuckling, root.DNVIce, root.DNVSection);
-})(typeof self !== 'undefined' ? self : this, function (DNV, DL, DLoc, BK, ICE, SEC) {
+    module.exports = factory(require('./61-dnv-core.js'), require('./62-dnv-loads.js'), require('./63-dnv-local.js'), require('./64-dnv-buckling.js'), require('./65-dnv-ice.js'), require('./66-dnv-section.js'), require('./69-dnv-sideframe.js'));
+  } else root.DNVCheck = factory(root.DNV, root.DNVLoads, root.DNVLocal, root.DNVBuckling, root.DNVIce, root.DNVSection, root.DNVSideFrame);
+})(typeof self !== 'undefined' ? self : this, function (DNV, DL, DLoc, BK, ICE, SEC, SF) {
   'use strict';
   const AC_OF = { 'SEA-1': 'AC-II', 'SEA-2': 'AC-I', 'WB-1': 'AC-II', 'WB-3': 'AC-III', 'WB-4': 'AC-I', 'BC-1': 'AC-II', 'BC-2': 'AC-I', 'BC-3': 'AC-II', 'BC-4': 'AC-I', 'UDL-1': 'AC-II', 'UDL-2': 'AC-I', 'FD-1': 'AC-III', 'INT-1': 'AC-I' };
   const r05 = t => Math.ceil(t * 2 - 1e-9) / 2;
@@ -255,6 +255,25 @@
       const fr = trans ? ICE.transFrame(pr.P, h, st.ice.s1, st.ice.l, st.ReH, st.ice.m0) : ICE.longFrame(pr.P, h, st.ice.s1, st.ice.l, st.ice.l - st.ice.s1 / 2, st.ReH, { m1: st.ice.m1 });
       const plLa = trans ? st.ice.s1 : 1.7 * st.ice.s1, plReq = ICE.plate(ICE.pressure(ship.ice, st.ice.region, plLa).P, st.ice.s1, h, st.ReH, 2, !trans).t;
       res.ice = { P: pr.P, Z: fr.Z, A: fr.A, tw: ICE.twMin(plReq, 2, st.hw, st.ReH, st.type === 'FB') };
+    }
+    // yan posta (Pt 5 Ch 1 Sec 2 §§5.2.2-5.2.4): tek bordalı, kuru dökme yük ambarı sınırındaki enine posta.
+    // Kapsam (dryCargo/singleSide/transverse) modelden gerçek yüzler/yön bilgisinden çıkarılıyor; CSR-BC kapsamı
+    // (§1.3.1 — bu basit formülün geçerli olmadığı durum) modelden çıkarılamıyor, kullanıcının Additional
+    // Notations'ta işaretlediği bayrağa (ship.sideFrameCSR) bağlı. Braket uzunlukları girilmediği için kural
+    // minimumu (0,12/0,07·l_SF) varsayılıyor — bu, geçerli her tasarım için en kötü (en yüksek A_shr) durumdur.
+    // HENÜZ gerçek bir Nauticus referansıyla doğrulanmadı (PLAN-DNV.md §27/28) — sonuç bilgi amaçlı, "governing"e girmiyor.
+    if (SF && ship.sideFrameCSR != null && st.faces && st.faces.some(f => f.kind === 'hold') && st.faces.some(f => f.kind === 'sea') && st.dir === 'trans') {
+      const depth_m = ship.D, lSF = Math.max(st.lBdg, 0.25 * depth_m);
+      const scope = { dryCargo: true, singleSide: true, transverse: true, csr: !!ship.sideFrameCSR };
+      let gSF = null;
+      for (const ls of sets) {
+        if (!/^BC-[1-4]$/.test(ls.set)) continue;
+        const P = Math.abs(ls.P); if (!(P > 0)) continue;
+        const r = SF.requirements({ scope, spacing_mm: st.s, span_m: st.lBdg, depth_m, ReH_MPa: st.ReH, pressure_kPa: P, AC: ls.AC,
+          lowerBracket_m: 0.12 * lSF, upperBracket_m: 0.07 * lSF, mayBeEmpty: !!ship.holdsMayBeEmpty });
+        if (r.status === 'calculated' && (!gSF || r.required.Zmid_net_cm3 > gSF.required.Zmid_net_cm3)) gSF = Object.assign({ set: ls.set, lc: ls.lc, P, AC: ls.AC }, r);
+      }
+      if (gSF) res.sideFrame = gSF;
     }
     return res;
   }

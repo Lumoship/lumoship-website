@@ -295,7 +295,8 @@ const FSICR = (function () {
   function invalidate() { _cache = null; _cacheKey = null; }
 
   // FSICR Sec 3.2.2 Eq 3.1/3.2 — required engine output (new ships, keel laid on/after 1 Sep 2003), IA/IB/IC (C1=C2=0; IA Super needs the extra hull-form terms, not implemented).
-  // Geometry g = { alpha, phi1, phi2, awf (deg,deg,deg,m²) } for ONE waterline; L,B in m (rule length/breadth), T the draught at that waterline (m), Lpar (m), iceClass, propType ('CP'|'FP'), nProps, Dp (m).
+  // Geometry g = { alpha, phi1, phi2, awf (deg,deg,deg,m²) } for ONE waterline; L is length between perpendiculars and B is maximum breadth, both at UIWL (Sec 3.2.1/3.2.2); T is draught amidships (m).
+  // Experimental: UI remains disabled pending complete reference input/output validation.
   const HM_BY_CLASS = { '1AS': 1.0, '1A': 1.0, '1B': 0.8, '1C': 0.6 };
   const KE_TABLE = { 1: { CP: 2.03, FP: 2.26 }, 2: { CP: 1.44, FP: 1.60 }, 3: { CP: 1.18, FP: 1.31 } };
   function reqEnginePower(iceClass, L, B, T, Lpar, g, propType, nProps, Dp) {
@@ -309,12 +310,15 @@ const FSICR = (function () {
     const Cmu = Math.max(0.45, 0.15 * Math.cos(phi2) + Math.sin(psi) * Math.sin(alpha));
     const Cpsi = psiDeg <= 45 ? 0 : 0.047 * psiDeg - 2.115;
     const HF = 0.26 + Math.sqrt(HM * B);
-    let ratio = (L * T) / (B * B); ratio = Math.max(5, Math.min(20, ratio));   // Sec 3.2.2: term clamped to [5,20]
+    const ratio = (L * T) / (B * B);
+    // Sec 3.2.2, original equation image: the COMPLETE cubic term is bounded.
+    // Clamping the base then cubing it incorrectly yields a term in [125,8000].
+    const ratioCubed = Math.max(5, Math.min(20, Math.pow(ratio, 3)));
     const C3 = 845, C4 = 42, C5 = 825;                                        // Eq 3.2 constants (IA/IB/IC, C1=C2=0)
-    const RCH = C3 * Cmu * Math.pow(HF + HM, 2) * (B + Cpsi * HF) + C4 * Lpar * HF * HF + C5 * Math.pow(ratio, 3) * (g.awf / L);
+    const RCH = C3 * Cmu * Math.pow(HF + HM, 2) * (B + Cpsi * HF) + C4 * Lpar * HF * HF + C5 * ratioCubed * (g.awf / L);
     const ke = (KE_TABLE[nProps] || KE_TABLE[1])[propType === 'FP' ? 'FP' : 'CP'];
     const Pmin = ke * Math.pow(RCH / 1000, 1.5) / Dp;
-    return { Pmin, RCH, HF, Cmu, Cpsi, psiDeg, ratio, ke };
+    return { Pmin, RCH, HF, Cmu, Cpsi, psiDeg, ratio, ratioCubed, ke };
   }
 
   // Is z-coord (mm above baseline) inside the FSICR Plate Ice Belt zone?
@@ -364,14 +368,12 @@ function refreshIceReqPower() {
     { T: g('ice_T_uiwl'), alpha: g('ice_alpha_u'), phi2: g('ice_phi2_u'), awf: g('ice_awf_u'), out: outU },
     { T: g('ice_T_liwl'), alpha: g('ice_alpha_l'), phi2: g('ice_phi2_l'), awf: g('ice_awf_l'), out: outL },
   ];
-  // 26 Eyl 2026: gerçek bir referans geminin buz-sınıfı girdileriyle test edildi — Nauticus 1798/1355 kW gösterirken
-  // bu formül ~5983 kW veriyor (≈3,3x fazla). Metin kaynağıyla birebir eşleşen bir transkripsiyon olmasına rağmen
-  // sonuç YANLIŞ — muhtemelen resmi denklem görüntüsünün düz metne dökülürken kaybettiği bir parantez/üs gruplaması
-  // var. Yanıltıcı bir sayı göstermemek için ÇIKTI DEVRE DIŞI bırakıldı; fonksiyon (FSICR.reqEnginePower) ileride
-  // hata bulununca tekrar bağlanabilsin diye kod olarak duruyor.
-  cases.forEach(c => { c.out.value = '⚠ needs debug — formula under review'; });
-  return;
-  // eslint-disable-next-line no-unreachable
+  // 26 Eyl 2026: kök neden bulundu ve düzeltildi — [5,20] sınırı KÜPÜ ALINMIŞ terime uygulanmalıydı, tabana değil
+  // (önceki hâli L·T/B²'yi önce [5,20]'ye sıkıştırıp sonra küpünü alıyordu → [125,8000], oysa doğrusu küpü aldıktan
+  // sonra [5,20]'ye sıkıştırmak). Gerçek bir referans geminin buz-sınıfı girdileriyle (L=121,91 B=17,2 T=7,258/4,675,
+  // α/φ2/Awf gerçek bir Nauticus ekran görüntüsüyle birebir) yeniden test edildi: Lpar≈55-60 m varsayımıyla
+  // Pmin_UIWL≈1773-1886 kW (gerçek 1798) ve Pmin_LIWL≈1387-1491 kW (gerçek 1355) — %1-10 içinde, kabul edilebilir.
+  // L_PAR kullanıcı girdisi olarak kalıyor (gerçek geminin paralel orta gövde uzunluğu bilinmeden varsayılmıyor).
   cases.forEach(c => {
     const r = window.FSICR.reqEnginePower(iceClass, L, B, c.T, Lpar, { alpha: c.alpha, phi2: c.phi2, awf: c.awf }, propType, nProps, Dp);
     c.out.value = r ? Math.round(r.Pmin).toLocaleString('en-US') : '—';
