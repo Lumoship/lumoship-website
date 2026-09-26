@@ -1455,7 +1455,7 @@ body.chrome-form .ea-page#page-5 > .ea-main{padding-top:10px}
 .tree-node.leaf.current i{background:#3b82f6}
 /* Main particulars views */
 body[data-ship-view] #page-1 [data-views]{display:none}
-body[data-ship-view="identification"] #page-1 [data-views~="identification"],body[data-ship-view="rules"] #page-1 [data-views~="rules"],body[data-ship-view="main"] #page-1 [data-views~="main"],body[data-ship-view="frames"] #page-1 [data-views~="frames"],body[data-ship-view="draughts"] #page-1 [data-views~="draughts"],body[data-ship-view="ice"] #page-1 [data-views~="ice"],body[data-ship-view="stillwater"] #page-1 [data-views~="stillwater"],body[data-ship-view="materials"] #page-1 [data-views~="materials"]{display:block}
+body[data-ship-view="identification"] #page-1 [data-views~="identification"],body[data-ship-view="rules"] #page-1 [data-views~="rules"],body[data-ship-view="main"] #page-1 [data-views~="main"],body[data-ship-view="frames"] #page-1 [data-views~="frames"],body[data-ship-view="mainstruct"] #page-1 [data-views~="mainstruct"],body[data-ship-view="draughts"] #page-1 [data-views~="draughts"],body[data-ship-view="ice"] #page-1 [data-views~="ice"],body[data-ship-view="stillwater"] #page-1 [data-views~="stillwater"],body[data-ship-view="materials"] #page-1 [data-views~="materials"]{display:block}
 body[data-ship-view="identification"] #page-1 .ea-setup-grid[data-views]{display:grid}
 body[data-ship-view] #page-1 .sp-view{display:none}
 body[data-ship-view="main"] #page-1 .sp-view[data-view="main"],body[data-ship-view="stillwater"] #page-1 .sp-view[data-view="stillwater"],body[data-ship-view="materials"] #page-1 .sp-view[data-view="materials"]{display:block}
@@ -1465,7 +1465,6 @@ body[data-ship-view] #page-1 .sp-view > .ea-section-title:first-child{margin-top
 #page-1 .ea-panel[data-views] + .ea-panel[data-views]{margin-top:var(--spacing-md) !important}
 /* frame table (MARS arrangement) */
 #frameTableHost .mb{margin-bottom:10px}
-.ft-top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .ft-fields{display:flex;flex-wrap:wrap;gap:6px 18px;padding:6px 10px 8px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted)}
 .ft-f{display:inline-flex;align-items:center;gap:6px}
 .ft-f .ft-p{height:20px;padding:1px 6px;font-size:0.62rem;text-align:right}
@@ -1477,12 +1476,13 @@ body[data-ship-view] #page-1 .sp-view > .ea-section-title:first-child{margin-top
 .ft-table .ft-in{width:64px !important;height:20px;padding:1px 5px;font-size:0.62rem;text-align:right}
 .ft-table .ft-x{color:var(--text-secondary)}
 .ft-table .mb-tr{cursor:pointer}
-.mb-th.ft-fr,.mb-tr.ft-fr{grid-template-columns:52px 1fr 1fr 1fr 1.2fr}
-.ft-frames{max-height:280px;overflow:auto}
-.ft-frames .ft-used{color:var(--accent,#2563eb);font-weight:600}
 .ft-longi{padding:4px 8px 6px}
 .ft-svg{width:100%;height:auto;display:block}
 .ft-svg .ft-lbl{font-family:var(--font-mono);font-size:9px;fill:#64748b}
+.mb-th.ms-th,.mb-tr.ms-th{grid-template-columns:1fr 100px 100px}
+.ms-table{max-height:320px;overflow:auto}
+.ms-table .ms-wf,.ms-table .ms-bhd{cursor:pointer}
+.ms-table .mb-tr:hover{background:rgba(15,23,42,0.02)}
 .ft-svg .ft-lbl.sec{fill:#2563eb;font-weight:700}
 body.chrome-form .ea-page-actions{display:none}
 /* profiles page */

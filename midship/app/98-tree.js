@@ -28,6 +28,7 @@
       { key: 'rules',          label: 'Applicable Rules',                 short: 'Applicable rules',   step: 1, view: 'rules' },
       { key: 'main',           label: 'Main Particulars',                 short: 'Main particulars',   step: 1, view: 'main' },
       { key: 'frames',         label: 'Frame Table',                      short: 'Frame table',        step: 1, view: 'frames' },
+      { key: 'mainstruct',     label: 'Main Structural Arrangement',      short: 'Main structural arr.', step: 1, view: 'mainstruct' },
       { key: 'draughts',       label: 'Draughts And Loading Conditions',  short: 'Draughts & loading', step: 1, view: 'draughts' },
       { key: 'ice',            label: 'Ice Class',                        short: 'Ice class',          step: 1, view: 'ice' },
       { key: 'stillwater',     label: 'Still Water Loads',                short: 'Still water loads',  step: 1, view: 'stillwater' },
@@ -57,7 +58,7 @@
     if (view) currentView = view;
     if (step === 1) document.body.setAttribute('data-ship-view', currentView); else document.body.removeAttribute('data-ship-view');
     window.goToStep(step);
-    if (step === 1 && view) { if (view === 'frames') FrameTable.render(); if (view === 'draughts') {/* nothing extra */} }
+    if (step === 1 && view) { if (view === 'frames') FrameTable.render(); if (view === 'mainstruct') MainStruct.render(); if (view === 'draughts') {/* nothing extra */} }
     if (step === 9) Profiles.render();
     if (step === 10) Comps.render();
     paint();
@@ -292,15 +293,11 @@
       var L = parseFloat(($('L') || {}).value) || 0; var sf = FrameTable.sectionFrames(); var rg = FrameTable.range(t);
       var LL = parseFloat(($('bvLoadLineLength') || {}).value) || L;   // L_LL boş = L (Ch 1 tanımı)
       var num = function (id, v, step, w, unit) { return '<label class="ft-f"><span>' + id[1] + '</span><input class="ed-input ft-p" data-k="' + id[0] + '" type="number" step="' + step + '" value="' + v + '" style="width:' + w + 'px"><em>' + unit + '</em></label>'; };
-      var h = '<div class="ft-top">' +
-        '<div class="mb"><div class="mb-title">Frame positions</div><div class="ft-fields">' + num(['f0', 'First frame number'], t.f0, 1, 64, '') + num(['x0', 'First frame at x'], t.x0, 0.01, 72, 'm from AP') + '</div></div>' +
-        '<div class="mb"><div class="mb-title">Ship</div><div class="ft-fields"><span class="ft-ro"><span>Rule length L</span><b>' + (L ? L.toFixed(2) + ' m' : '—') + '</b></span><span class="ft-ro"><span>Frames defined</span><b>' + (rg ? rg.from + ' – ' + rg.to : 'none') + '</b></span><span class="ft-ro"><span>Sections</span><b>' + (Object.keys(sf).length ? Object.keys(sf).map(function (f) { return 'Fr. ' + f; }).join(', ') : 'none with a frame yet') + '</b></span></div></div>' +
-        '<div class="mb"><div class="mb-title">Frame converter</div><div class="ft-fields">' +
-        '<label class="ft-f"><span># frame</span><input class="ed-input" id="ftConvFrame" type="number" step="1" style="width:64px"></label>' +
-        '<span class="ft-ro"><span>x/L</span><b id="ftConvXL">—</b></span><span class="ft-ro"><span>x (rule L)</span><b id="ftConvXRules">—</b></span><span class="ft-ro" title="Aynı orijin, L_LL ile normalize — DNV\'nin ayrı freeboard AP/FP ofseti burada uygulanmıyor"><span>x<sub>LL</sub>/L<sub>LL</sub></span><b id="ftConvXLLoLL">—</b></span><span class="ft-ro"><span>x<sub>LL</sub></span><b id="ftConvXLL">—</b></span>' +
-        '</div></div></div>';
-      // zones (left) · frames (right)
-      h += '<div class="ft-split"><div class="mb"><div class="mb-title">Frame spacing zones <em class="mb-em">' + t.rows.length + '</em></div>' +
+      // Nauticus "Frame table" sayfasına yakın: sol sütun (Position of Frame 0 + Frame spacing variation table), sağ sütun (Frame converter)
+      var h = '<div class="ft-split">' +
+        '<div>' +
+        '<div class="mb"><div class="mb-title">Position of Frame 0<em class="mb-em">' + (L ? 'Rule length L ' + L.toFixed(2) + ' m' : '') + '</em></div><div class="ft-fields">' + num(['f0', 'First frame number'], t.f0, 1, 64, '') + num(['x0', 'First frame at x'], t.x0, 0.01, 72, 'm from AP') + '</div></div>' +
+        '<div class="mb"><div class="mb-title">Frame spacing variation table <em class="mb-em">' + t.rows.length + '</em></div>' +
         '<div class="mb-tools"><button class="mb-tool" data-ft="add" title="Add a zone after the last">＋</button><button class="mb-tool" data-ft="del" title="Remove the selected zone" ' + (FrameTable.sel == null ? 'disabled' : '') + '>✕</button></div>' +
         '<div class="mb-table ft-table"><div class="mb-th ft-th ft-th6"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span title="Web frame — primary support — every N ordinary frames; blank = none defined here">Web fr. /N</span><span>x [m]</span><span>x/L</span><span title="Aynı x, L_LL (Load-line length) ile normalize. Nauticus\'ta X_LL, freeboard AP/FP\'sine göre AYRI bir orijinden ölçülüyor olabilir (rule-length L\'nin AP\'sinden farklı) — bu tool aynı orijini kullanıyor, ayrı bir perpendicular offset uygulamıyor.">x<sub>LL</sub>/L<sub>LL</sub></span></div>';
       t.rows.forEach(function (r, i) {
@@ -311,12 +308,13 @@
       if (!t.rows.length) h += '<div class="mb-empty-row">no zones yet — ＋ adds one (e.g. frames 0 → 25 at 726 mm)</div>';
       h += '</div>';
       var iss = FrameTable.issues(t); iss.forEach(function (m) { h += '<div class="mb-sum warn" style="padding-top:0">' + m + '</div>'; });
+      h += '<div class="mb-sum" style="padding-top:0;color:var(--text-muted)">Sections: ' + (Object.keys(sf).length ? Object.keys(sf).map(function (f) { return 'Fr. ' + f; }).join(', ') : 'none with a frame yet') + '</div>';
+      h += '</div></div>';
+      h += '<div class="mb"><div class="mb-title">Frame converter</div><div class="ft-fields">' +
+        '<label class="ft-f"><span># frame</span><input class="ed-input" id="ftConvFrame" type="number" step="1" style="width:64px"></label>' +
+        '<span class="ft-ro"><span>x/L</span><b id="ftConvXL">—</b></span><span class="ft-ro"><span>x (rule L)</span><b id="ftConvXRules">—</b></span><span class="ft-ro" title="Aynı orijin, L_LL ile normalize — DNV\'nin ayrı freeboard AP/FP ofseti burada uygulanmıyor"><span>x<sub>LL</sub>/L<sub>LL</sub></span><b id="ftConvXLLoLL">—</b></span><span class="ft-ro"><span>x<sub>LL</sub></span><b id="ftConvXLL">—</b></span>' +
+        '</div></div>';
       h += '</div>';
-      h += '<div class="mb"><div class="mb-title">Frames <em class="mb-em">' + (rg ? (rg.to - rg.from + 1) : 0) + '</em></div><div class="mb-table ft-frames"><div class="mb-th ft-fr"><span>Frame</span><span>x / Fr.' + t.f0 + ' (m)</span><span>x / AP (m)</span><span>x / L</span><span></span></div>';
-      var xf0 = (parseFloat(t.x0) || 0) * 1000;
-      if (rg) for (var f = rg.from; f <= rg.to; f++) { var x = FrameTable.xOf(f, t); if (x == null) continue; var used = sf[f]; h += '<div class="mb-tr ft-fr ' + (used ? 'is-sel' : '') + '"><span>' + f + '</span><span>' + ((x - xf0) / 1000).toFixed(3) + '</span><span>' + (x / 1000).toFixed(3) + '</span><span>' + (L ? (x / 1000 / L).toFixed(3) : '—') + '</span><span class="ft-used">' + (used || '') + '</span></div>'; }
-      else h += '<div class="mb-empty-row">the frames appear here as the zones are entered</div>';
-      h += '</div></div></div>';
       // longitudinal view
       h += '<div class="mb"><div class="mb-title">Longitudinal view</div><div class="ft-longi">' + FrameTable.longiSvg(t, L, sf, rg) + '</div></div>';
       host.innerHTML = h;
@@ -367,6 +365,65 @@
         var S = D().getSection(); var L = parseFloat(($('L') || {}).value); var x = S && S.frame != null && String(S.frame).trim() !== '' ? FrameTable.xOf(S.frame) : null;
         var el = $('sectionXL'); if (el && x != null && L > 0) { var v = Math.max(0, Math.min(1, x / 1000 / L)); if (Math.abs(parseFloat(el.value) - v) > 0.0005) { el.value = v.toFixed(3); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       } catch (_) {}
+    }
+  };
+
+  // ------------------------------------------------------------------ Main Structural Arrangement (Nauticus "Main structural arrangement" sayfası)
+  //   Frame Table'ın "Web fr. /N" (bölge başına düzenli aralık) alanından FARKLI: burada HER çerçeve ayrı ayrı
+  //   web frame / bulkhead olarak işaretlenebiliyor (düzensiz/özel düzenler için). Kendi JSON deposu (#mainStructJson).
+  var MainStruct = {
+    read: function () {
+      var t = null; try { t = JSON.parse(($('mainStructJson') || {}).value || 'null'); } catch (_) {}
+      if (!t || typeof t !== 'object') t = { marks: {} };
+      if (!t.marks) t.marks = {};
+      return t;
+    },
+    write: function (t) { var el = $('mainStructJson'); if (el) { el.value = JSON.stringify(t); el.dispatchEvent(new Event('change', { bubbles: true })); } },
+    svg: function (ft, L, rg, t, sf) {
+      var W = 1000, H = 130, pad = 36;
+      var xEnd = rg ? FrameTable.xOf(rg.to, ft) : null, xStart = rg ? FrameTable.xOf(rg.from, ft) : null;
+      var xMax = Math.max(L * 1000 || 0, xEnd || 0, 1); var xMin = Math.min(0, xStart || 0);
+      var X = function (mm) { return pad + (mm - xMin) / (xMax - xMin) * (W - 2 * pad); };
+      var yBase = 84; var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ft-svg" preserveAspectRatio="xMidYMid meet">';
+      h += '<rect x="' + X(0) + '" y="' + (yBase - 34) + '" width="' + (X(L * 1000 || xMax) - X(0)) + '" height="34" fill="rgba(59,130,246,0.06)" stroke="#cbd5e1" stroke-width="1"/>';
+      h += '<text x="' + X(0) + '" y="' + (yBase + 26) + '" class="ft-lbl" text-anchor="middle">AP</text>';
+      if (L) h += '<text x="' + X(L * 1000) + '" y="' + (yBase + 26) + '" class="ft-lbl" text-anchor="middle">FP</text>';
+      if (rg) for (var f = rg.from; f <= rg.to; f++) { var xm = FrameTable.xOf(f, ft); if (xm == null) continue; var xg = X(xm); var big = f % 10 === 0; h += '<line x1="' + xg + '" y1="' + yBase + '" x2="' + xg + '" y2="' + (yBase - (big ? 10 : 5)) + '" stroke="' + (big ? '#64748b' : '#cbd5e1') + '" stroke-width="1"/>'; if (big) h += '<text x="' + xg + '" y="' + (yBase + 12) + '" class="ft-lbl" text-anchor="middle">' + f + '</text>'; }
+      // web frame / bulkhead işaretleri — yeşil, bulkhead düz+etiketli (#N), web frame kesikli
+      Object.keys(t.marks).forEach(function (fk) {
+        var m = t.marks[fk]; if (!m.wf && !m.bhd) return;
+        var xm = FrameTable.xOf(fk, ft); if (xm == null) return; var xg = X(xm);
+        h += '<line x1="' + xg + '" y1="' + (yBase - 34) + '" x2="' + xg + '" y2="' + yBase + '" stroke="#16a34a" stroke-width="' + (m.bhd ? 2 : 1) + '"' + (m.bhd ? '' : ' stroke-dasharray="2,2"') + '/>';
+        if (m.bhd) h += '<text x="' + xg + '" y="' + (yBase - 40) + '" class="ft-lbl" text-anchor="middle" fill="#16a34a">#' + fk + '</text>';
+      });
+      Object.keys(sf).forEach(function (f) { var xm = FrameTable.xOf(f, ft); if (xm == null) return; var x = X(xm); h += '<line x1="' + x + '" y1="' + (yBase - 34) + '" x2="' + x + '" y2="' + yBase + '" stroke="#3b82f6" stroke-width="2"/><text x="' + x + '" y="' + (yBase - 54) + '" class="ft-lbl sec" text-anchor="middle">' + sf[f] + '</text>'; });
+      h += '<line x1="' + X(xMin) + '" y1="' + yBase + '" x2="' + X(xMax) + '" y2="' + yBase + '" stroke="#64748b" stroke-width="1"/>';
+      return h + '</svg>';
+    },
+    render: function () {
+      var host = $('mainStructHost'); if (!host) return;
+      var t = MainStruct.read(); var ft = FrameTable.read(); var rg = FrameTable.range(ft);
+      var L = parseFloat(($('L') || {}).value) || 0; var sf = FrameTable.sectionFrames();
+      var nMarked = Object.keys(t.marks).filter(function (k) { return t.marks[k].wf || t.marks[k].bhd; }).length;
+      var h = '<div class="mb"><div class="mb-title">Longitudinal view</div><div class="ft-longi">' + MainStruct.svg(ft, L, rg, t, sf) + '</div></div>';
+      h += '<div class="mb"><div class="mb-title">Bulkheads and web frames <em class="mb-em">' + nMarked + ' marked</em></div>';
+      h += '<div class="mb-table ms-table"><div class="mb-th ms-th"><span>Pos [#]</span><span>Web frame</span><span>Bulkhead</span></div>';
+      if (!rg) h += '<div class="mb-empty-row">Frame Table\'da en az bir bölge tanımlanınca çerçeveler burada listelenir</div>';
+      else for (var f = rg.from; f <= rg.to; f++) {
+        var m = t.marks[f] || {};
+        h += '<div class="mb-tr ms-th" data-f="' + f + '"><span>#' + f + (sf[f] ? ' <em>' + sf[f] + '</em>' : '') + '</span><span><input type="checkbox" class="ms-wf" data-f="' + f + '" ' + (m.wf ? 'checked' : '') + '></span><span><input type="checkbox" class="ms-bhd" data-f="' + f + '" ' + (m.bhd ? 'checked' : '') + '></span></div>';
+      }
+      h += '</div></div>';
+      h += '<div class="mb-sum" style="padding:8px 10px;color:var(--text-muted)">Damage-stability tabloları (Nauticus\'un "Deepest equilibrium waterline in damaged condition" bölümü) burada yok — su geçirmez bölmelendirme/hasar stabilitesi bu toolun kapsamı dışında (ayrı bir stabilite hesabı gerektirir, scantling motoruyla ilgisi yok).</div>';
+      host.innerHTML = h;
+      host.querySelectorAll('.ms-wf, .ms-bhd').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          var f = cb.dataset.f, t2 = MainStruct.read(); if (!t2.marks[f]) t2.marks[f] = {};
+          if (cb.classList.contains('ms-wf')) t2.marks[f].wf = cb.checked; else t2.marks[f].bhd = cb.checked;
+          if (!t2.marks[f].wf && !t2.marks[f].bhd) delete t2.marks[f];
+          MainStruct.write(t2); MainStruct.render();
+        });
+      });
     }
   };
 
@@ -499,15 +556,15 @@
     Profiles.applyCustom();
     wireRail();
     var migrateComps = function () { try { if (window.ShipComps && window.Sections) { ShipComps.reload(); var st = Sections.exportState(); var n = ShipComps.migrate(st.items); var cur = D().getSection(); if (cur && cur.compartments) delete cur.compartments; if (n && window.SectionAdapter) SectionAdapter.apply(cur); } } catch (_) {} };
-    window.addEventListener('midship:restored', function () { Profiles.applyCustom(); migrateComps(); FrameTable.render(); FrameTable.syncSection(); paint(); });
+    window.addEventListener('midship:restored', function () { Profiles.applyCustom(); migrateComps(); FrameTable.render(); FrameTable.syncSection(); MainStruct.render(); paint(); });
     window.addEventListener('midship:comps-changed', function () { if (stepNow() === 10) Comps.render(); });
     window.addEventListener('midship:section-switched', function () { FrameTable.syncSection(); });
     window.addEventListener('midship:model-changed', function () { FrameTable.syncSection(); });
     // opening a project file re-reads the tables
-    if (window.importFullState && !window.importFullState.__treeHooked) { var orig = window.importFullState; var w = function () { var r = orig.apply(this, arguments); try { Profiles.applyCustom(); migrateComps(); FrameTable.render(); FrameTable.syncSection(); paint(); } catch (_) {} return r; }; w.__treeHooked = true; window.importFullState = w; }
+    if (window.importFullState && !window.importFullState.__treeHooked) { var orig = window.importFullState; var w = function () { var r = orig.apply(this, arguments); try { Profiles.applyCustom(); migrateComps(); FrameTable.render(); FrameTable.syncSection(); MainStruct.render(); paint(); } catch (_) {} return r; }; w.__treeHooked = true; window.importFullState = w; }
     if (stepNow() === 1) document.body.setAttribute('data-ship-view', currentView);
     paint();
   }
-  window.ProjectTree = { goTo: goTo, goNext: goNext, paint: paint, renderRail: renderRail, renderSubBar: renderSubBar, FrameTable: FrameTable, Profiles: Profiles, Comps: Comps, get view() { return currentView; } };
+  window.ProjectTree = { goTo: goTo, goNext: goNext, paint: paint, renderRail: renderRail, renderSubBar: renderSubBar, FrameTable: FrameTable, MainStruct: MainStruct, Profiles: Profiles, Comps: Comps, get view() { return currentView; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 0); }); else setTimeout(boot, 0);
 })();

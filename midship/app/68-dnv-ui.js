@@ -538,6 +538,17 @@
       });
       const pre = document.createElement('pre'); pre.id = 'dnvUiTest'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
     }, 1500);
+    if (q.get('dnvmsshot')) setTimeout(() => {
+      window.ProjectTree.goTo(1, 'frames');
+      const FT = window.ProjectTree.FrameTable;
+      const t = FT.read();
+      if (!t.rows.length) { t.rows = [{ from: t.f0 || 0, to: (t.f0 || 0) + 40, s: 749, wf: 4 }, { from: (t.f0 || 0) + 40, to: (t.f0 || 0) + 200, s: 726, wf: 3 }]; FT.write(t); }
+      const MS = window.ProjectTree.MainStruct;
+      const ms = MS.read();
+      if (!Object.keys(ms.marks).length) { [3, 17, 32, 40, 44, 48, 52].forEach((f, i) => { ms.marks[f] = { bhd: i < 3, wf: i >= 3 }; }); MS.write(ms); }
+      window.ProjectTree.goTo(1, 'mainstruct');
+      document.title = 'msshot-ready';
+    }, 3500);
     if (q.get('dnvftshot')) setTimeout(() => {
       window.ProjectTree.goTo(1, 'frames');
       const FT = window.ProjectTree.FrameTable;
