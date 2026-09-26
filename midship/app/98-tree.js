@@ -299,11 +299,11 @@
         '<div class="mb"><div class="mb-title">Position of Frame 0<em class="mb-em">' + (L ? 'Rule length L ' + L.toFixed(2) + ' m' : '') + '</em></div><div class="ft-fields">' + num(['f0', 'First frame number'], t.f0, 1, 64, '') + num(['x0', 'First frame at x'], t.x0, 0.01, 72, 'm from AP') + '</div></div>' +
         '<div class="mb"><div class="mb-title">Frame spacing variation table <em class="mb-em">' + t.rows.length + '</em></div>' +
         '<div class="mb-tools"><button class="mb-tool" data-ft="add" title="Add a zone after the last">＋</button><button class="mb-tool" data-ft="del" title="Remove the selected zone" ' + (FrameTable.sel == null ? 'disabled' : '') + '>✕</button></div>' +
-        '<div class="mb-table ft-table"><div class="mb-th ft-th ft-th6"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span title="Web frame — primary support — every N ordinary frames; blank = none defined here">Web fr. /N</span><span>x [m]</span><span>x/L</span><span title="Aynı x, L_LL (Load-line length) ile normalize. Nauticus\'ta X_LL, freeboard AP/FP\'sine göre AYRI bir orijinden ölçülüyor olabilir (rule-length L\'nin AP\'sinden farklı) — bu tool aynı orijini kullanıyor, ayrı bir perpendicular offset uygulamıyor.">x<sub>LL</sub>/L<sub>LL</sub></span></div>';
+        '<div class="mb-table ft-table"><div class="mb-th ft-th ft-th6"><span>#</span><span>From fr.</span><span>To fr.</span><span>Spacing</span><span title="Web frame — primary support — every N ordinary frames; blank = none defined here">Web fr. /N</span><span>x [m]</span><span>x/L</span><span title="Same x, divided by L_LL. This tool uses the same origin as rule length L. It does not apply a separate freeboard perpendicular offset.">x<sub>LL</sub>/L<sub>LL</sub></span></div>';
       t.rows.forEach(function (r, i) {
         var xe = FrameTable.xOf(r.to, t);
         var xM = xe != null ? xe / 1000 : null;
-        h += '<div class="mb-tr ft-th ft-th6 ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span><input class="ed-input ft-in" data-k="wf" type="number" step="1" min="0" value="' + (r.wf || '') + '" placeholder="—" title="Her N çerçevede bir birincil taşıyıcı (web frame) — boyuna posta/PSM açıklığı buradan türer"></span><span class="ft-x">' + (xM != null ? xM.toFixed(3) : '—') + '</span><span class="ft-x">' + (xM != null && L ? (xM / L).toFixed(4) : '—') + '</span><span class="ft-x">' + (xM != null && LL ? (xM / LL).toFixed(4) : '—') + '</span></div>';
+        h += '<div class="mb-tr ft-th ft-th6 ' + (FrameTable.sel === i ? 'is-sel' : '') + '" data-i="' + i + '"><span>' + (i + 1) + '</span><span><input class="ed-input ft-in" data-k="from" type="number" step="1" value="' + r.from + '"></span><span><input class="ed-input ft-in" data-k="to" type="number" step="1" value="' + r.to + '"></span><span><input class="ed-input ft-in" data-k="s" type="number" step="10" value="' + r.s + '"><em>mm</em></span><span><input class="ed-input ft-in" data-k="wf" type="number" step="1" min="0" value="' + (r.wf || '') + '" placeholder="—" title="Primary support (web frame) every N ordinary frames. Longitudinal stiffener and PSM spans come from this."></span><span class="ft-x">' + (xM != null ? xM.toFixed(3) : '—') + '</span><span class="ft-x">' + (xM != null && L ? (xM / L).toFixed(4) : '—') + '</span><span class="ft-x">' + (xM != null && LL ? (xM / LL).toFixed(4) : '—') + '</span></div>';
       });
       if (!t.rows.length) h += '<div class="mb-empty-row">no zones yet — ＋ adds one (e.g. frames 0 → 25 at 726 mm)</div>';
       h += '</div>';
@@ -312,7 +312,7 @@
       h += '</div></div>';
       h += '<div class="mb"><div class="mb-title">Frame converter</div><div class="ft-fields">' +
         '<label class="ft-f"><span># frame</span><input class="ed-input" id="ftConvFrame" type="number" step="1" style="width:64px"></label>' +
-        '<span class="ft-ro"><span>x/L</span><b id="ftConvXL">—</b></span><span class="ft-ro"><span>x (rule L)</span><b id="ftConvXRules">—</b></span><span class="ft-ro" title="Aynı orijin, L_LL ile normalize — DNV\'nin ayrı freeboard AP/FP ofseti burada uygulanmıyor"><span>x<sub>LL</sub>/L<sub>LL</sub></span><b id="ftConvXLLoLL">—</b></span><span class="ft-ro"><span>x<sub>LL</sub></span><b id="ftConvXLL">—</b></span>' +
+        '<span class="ft-ro"><span>x/L</span><b id="ftConvXL">—</b></span><span class="ft-ro"><span>x (rule L)</span><b id="ftConvXRules">—</b></span><span class="ft-ro" title="Same origin, divided by L_LL. A separate freeboard AP/FP offset is not applied."><span>x<sub>LL</sub>/L<sub>LL</sub></span><b id="ftConvXLLoLL">—</b></span><span class="ft-ro"><span>x<sub>LL</sub></span><b id="ftConvXLL">—</b></span>' +
         '</div></div>';
       h += '</div>';
       // longitudinal view
@@ -408,13 +408,13 @@
       var h = '<div class="mb"><div class="mb-title">Longitudinal view</div><div class="ft-longi">' + MainStruct.svg(ft, L, rg, t, sf) + '</div></div>';
       h += '<div class="mb"><div class="mb-title">Bulkheads and web frames <em class="mb-em">' + nMarked + ' marked</em></div>';
       h += '<div class="mb-table ms-table"><div class="mb-th ms-th"><span>Pos [#]</span><span>Web frame</span><span>Bulkhead</span></div>';
-      if (!rg) h += '<div class="mb-empty-row">Frame Table\'da en az bir bölge tanımlanınca çerçeveler burada listelenir</div>';
+      if (!rg) h += '<div class="mb-empty-row">Frames are listed here once the Frame Table has at least one region.</div>';
       else for (var f = rg.from; f <= rg.to; f++) {
         var m = t.marks[f] || {};
         h += '<div class="mb-tr ms-th" data-f="' + f + '"><span>#' + f + (sf[f] ? ' <em>' + sf[f] + '</em>' : '') + '</span><span><input type="checkbox" class="ms-wf" data-f="' + f + '" ' + (m.wf ? 'checked' : '') + '></span><span><input type="checkbox" class="ms-bhd" data-f="' + f + '" ' + (m.bhd ? 'checked' : '') + '></span></div>';
       }
       h += '</div></div>';
-      h += '<div class="mb-sum" style="padding:8px 10px;color:var(--text-muted)">Damage-stability tabloları (Nauticus\'un "Deepest equilibrium waterline in damaged condition" bölümü) burada yok — su geçirmez bölmelendirme/hasar stabilitesi bu toolun kapsamı dışında (ayrı bir stabilite hesabı gerektirir, scantling motoruyla ilgisi yok).</div>';
+      h += '<div class="mb-sum" style="padding:8px 10px;color:var(--text-muted)">Damage-stability tables (deepest equilibrium waterline in the damaged condition) are not on this page. Watertight subdivision and damage stability are outside this scantling check.</div>';
       host.innerHTML = h;
       host.querySelectorAll('.ms-wf, .ms-bhd').forEach(function (cb) {
         cb.addEventListener('change', function () {

@@ -3216,23 +3216,23 @@ function _computeElemInspect(elemType, opts) {
         title: `SG${sgIndex+1} L${idx+1} — ${profName}`,
         subtitle: (sgY != null ? `y = ${sgY} mm CL · ` : '') +
                   `z = ${z_mm} mm · LR Pt 4 Ch 1 Sec 8.3.5 + Pt 3 Ch 4 Sec 7`,
-        rule: 'LR boyuna intercostal stiff için spesifik Z_req yok — plate buckling desteği + stiff. kendi web buckling',
+        rule: 'LR has no specific Z_req for a longitudinal intercostal stiffener — plate-buckling support plus the stiffener web buckling check',
         required: '—',
         provided: profName,
         status: overallStatus,
         statusNote: note_lines.join(' · '),
         statusCriteria: criteria,
-        formula: 'Plate buckling: σ_E = 3.6·E·(t_p/s)², s = sub-panel kısa kenarı<br>' +
+        formula: 'Plate buckling: σ_E = 3.6·E·(t_p/s)², s = short side of the sub-panel<br>' +
                  'Web buckling: σ_E = 3.8·E·(t_w/d_w)²',
         inputs: [
           { label: 'Profile', value: profName },
           { label: 'd_w (web depth)', value: d_w + ' mm' },
           { label: 't_w (web thickness)', value: t_w + ' mm' },
-          { label: 'z (stiff. konum)', value: z_mm + ' mm' },
+          { label: 'z (stiffener position)', value: z_mm + ' mm' },
           { label: 'Side girder t', value: t_sg.toFixed(1) + ' mm' },
-          { label: 'Long. stiff sayısı (this SG)', value: N_long.toString() },
+          { label: 'Longitudinal stiffener count (this SG)', value: N_long.toString() },
           { label: 'Sub-panel (vert × horiz)', value: `${s_vert.toFixed(0)} × ${s_horiz.toFixed(0)} mm` },
-          { label: 's_panel (kısa kenar)', value: s_panel.toFixed(0) + ' mm' },
+          { label: 's_panel (short side)', value: s_panel.toFixed(0) + ' mm' },
           { label: 'σ_A (HG at z)', value: sigma_A.toFixed(1) + ' N/mm²' },
           { label: 'σ_perm = 175/kL', value: sigma_perm.toFixed(1) + ' N/mm²' },
           { label: 'σ_CRB plate', value: sigma_CRB_plate.toFixed(1) + ' N/mm²' },
@@ -3262,7 +3262,7 @@ function _computeElemInspect(elemType, opts) {
           `  σ_perm = ${sigma_perm.toFixed(1)} N/mm²`,
           `  Ratio = ${hg_ratio.toFixed(3)} ${hg_status==='OK'?'✓':'✗'}`
         ],
-        notes: 'Sniped-intercostal: uçları frame\'e bağlı değil (25 mm gap). Column buckling check uygulanmadı çünkü stiff axial yük taşımaz, sadece plate buckling desteği. Üretimde sniped uçlarda soft-toe detayı önerilir (yorulma).'
+        notes: 'Sniped intercostal: the ends are not connected to the frame (25 mm gap). Column buckling is not checked because the stiffener carries no axial load; it only supports the plate against buckling. A soft toe at sniped ends is recommended in production (fatigue).'
       };
     }
     

@@ -60,7 +60,7 @@
   };
   // yüz: 'bottomPlate' (kompartımanın tabanı / güverte üst yüzü), 'lower' (ambar alt bölge), 'innerBottom', 'other'
   function tc1(compType, face) {
-    const c = COMP[compType]; if (!c) throw new Error('DNV korozyon: bilinmeyen kompartıman tipi ' + compType);
+    const c = COMP[compType]; if (!c) throw new Error('DNV corrosion: unknown compartment type ' + compType);
     if ('all' in c) return c.all;
     return (face in c) ? c[face] : c.other;
   }
@@ -135,7 +135,7 @@
     return 'side_above';
   }
   function minPlateNet(loc, L, k, adj) {
-    const row = MIN_PLATE[loc]; if (!row) throw new Error('DNV min kalınlık: bilinmeyen konum ' + loc);
+    const row = MIN_PLATE[loc]; if (!row) throw new Error('DNV minimum thickness: unknown location ' + loc);
     let [a, b] = row;
     if (adj) { if (adj.a != null) a = adj.a; if (adj.b != null) b = adj.b; if (adj.db) b = Math.max(0, b + adj.db); }
     return a + b * L2(L) * Math.sqrt(k);
@@ -144,7 +144,7 @@
   //   ayrıca web ≥ 0.40 × bağlı plakanın gerekli net kalınlığı (Sec 4)
   const MIN_STIFF = { tankShellHold: L => 4.5 + 0.01 * L1(L), superstructure: () => 4.0, other: L => 4.5 + 0.005 * L1(L), tripping: L => 4.5 + 0.01 * L1(L) };
   function minStiffNet(loc, L, tPlateReqNet) {
-    const f = MIN_STIFF[loc]; if (!f) throw new Error('DNV min stiffener: bilinmeyen konum ' + loc);
+    const f = MIN_STIFF[loc]; if (!f) throw new Error('DNV minimum stiffener: unknown location ' + loc);
     const t = f(L);
     return { t_min_net: Math.max(t, tPlateReqNet ? 0.4 * tPlateReqNet : 0), table: t, fortyPct: tPlateReqNet ? 0.4 * tPlateReqNet : null };
   }
@@ -155,7 +155,7 @@
     stringerDoubleSideDry: [4.5, 0.015, 2.5],
   };
   function minPSMNet(loc, L, k) {
-    const r = MIN_PSM[loc]; if (!r) throw new Error('DNV min PSM: bilinmeyen konum ' + loc);
+    const r = MIN_PSM[loc]; if (!r) throw new Error('DNV minimum PSM: unknown location ' + loc);
     const [a, b, cap] = r;
     return a + Math.min(b * L2(L), cap) * Math.sqrt(k);
   }
@@ -176,7 +176,7 @@
   // [3.1.1] stiffener: t_w ≥ h_w/C_w·√(R_eH/235) ; t_f ≥ b_f-out/C_f·√(R_eH/235)  (Table 2)
   const STIFF_C = { angle: [75, 12], L2: [75, 12], L3: [75, 12], T: [75, 12], bulb: [45, null], flat: [22, null] };
   function slendernessStiffener(type, hw_mm, bfOut_mm, ReH) {
-    const c = STIFF_C[type]; if (!c) throw new Error('DNV narinlik: bilinmeyen profil ' + type);
+    const c = STIFF_C[type]; if (!c) throw new Error('DNV slenderness: unknown profile ' + type);
     const f = Math.sqrt(ReH / 235);
     return { tw_min: hw_mm / c[0] * f, tf_min: (c[1] && bfOut_mm) ? bfOut_mm / c[1] * f : null, Cw: c[0], Cf: c[1] };
   }

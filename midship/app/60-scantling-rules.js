@@ -1477,10 +1477,10 @@ function calcSideGroupsBase() {
   const longs = calcSideLong();
   const strakes = calcSidePlate();
   const groups = {
-    G1: { longs: [1,2,3], desc:'Alt (bilge üstü)' },
-    G2: { longs: [4,5,6,7], desc:'Alt-orta' },
-    G3: { longs: [8,9,10,11], desc:'Orta' },
-    G4: { longs: [12,13,14,15], desc:'Üst (Strake 5)' },
+    G1: { longs: [1,2,3], desc:'Lower (above bilge)' },
+    G2: { longs: [4,5,6,7], desc:'Lower-mid' },
+    G3: { longs: [8,9,10,11], desc:'Mid' },
+    G4: { longs: [12,13,14,15], desc:'Upper (strake 5)' },
     G5: { longs: [16,17,18], desc:'Void' }
   };
   Object.keys(groups).forEach(k => {
@@ -2460,7 +2460,7 @@ function calcSideGroups() {
   // size of DEFAULT_SIDE_LONGS); with a real layout of 43 longs, bands 19+ were
   // covered by nothing and every band that matched no long produced
   // Math.max() === -Infinity, poisoning Z_sec, kg and the reported weight.
-  const DESCS = ['Alt (bilge üstü)', 'Alt-orta', 'Orta', 'Üst (Strake 5)', 'Void'];
+  const DESCS = ['Lower (above bilge)', 'Lower-mid', 'Mid', 'Upper (strake 5)', 'Void'];
   const groups = {};
   _sideBands(longs.length).forEach((band, gi) => {
     groups['G' + (gi + 1)] = { longs: band, desc: DESCS[gi] };

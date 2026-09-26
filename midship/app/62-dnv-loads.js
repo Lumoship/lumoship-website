@@ -73,7 +73,7 @@
       'OSA-1S': [0.75 - 0.5 * ft, 0.6 - 0.4 * ft, -0.55 - 0.2 * ft, -0.45, 0.5, -0.8, 0.2 + 0.1 * ft, 0.2 * ft - 0.3, 0.2 - 0.1 * ft, -0.2 * ft, 0.2 * ft - 0.3, 1.0],
       'OSA-2S': [-0.75 + 0.5 * ft, -0.6 + 0.4 * ft, 0.55 + 0.2 * ft, 0.45, -0.5, 0.8, -0.2 - 0.1 * ft, 0.3 - 0.2 * ft, 0.1 * ft - 0.2, 0.2 * ft, 0.3 - 0.2 * ft, -1.0],
     }[lc];
-    if (!T) throw new Error('LCF: bilinmeyen yük durumu ' + lc);
+    if (!T) throw new Error('LCF: unknown load case ' + lc);
     return { CWV: T[0], CQW: T[1], CWH: T[2], CXS: T[3], CXP: T[4], CXG: T[5], CYS: T[6], CYR: T[7], CYG: T[8], CZH: T[9], CZR: T[10], CZP: T[11] };
   }
   const LOAD_CASES = ['HSM-1', 'HSM-2', 'HSA-1', 'HSA-2', 'FSM-1', 'FSM-2', 'BSR-1P', 'BSR-2P', 'BSR-1S', 'BSR-2S', 'BSP-1P', 'BSP-2P', 'BSP-1S', 'BSP-2S', 'OST-1P', 'OST-2P', 'OST-1S', 'OST-2S', 'OSA-1P', 'OSA-2P', 'OSA-1S', 'OSA-2S'];
@@ -161,7 +161,7 @@
       const kpOpp  = [[0, 0.75], [0.1, ft - 0.25 + (0.35 * ft - 0.47) * fyB], [0.35, 1 + (2.7 * ft - 3.2) * fyB], [0.4, 1.25 - 0.5 * ft + (2.7 * ft - 3.2) * fyB], [0.55, 1.5 - ft + (2.7 * ft - 3.2) * fyB], [0.85, 0.5 * ft - 1.25 + (0.2 - 0.1 * ft) * fyB], [1, 0.5 * ft - 1.25 + (0.2 - 0.1 * ft) * fyB]];
       const kp = clamp(lerp(fx, same ? kpSame : kpOpp), -1, 1);                                   // Table 18, not 1)
       Pdyn = 0.81 * fcorr * fp * fnl * ka * kp * fyz * Cw * Math.sqrt((l0 + lam - 125) / L) * (1 + 0.5 * ft);
-    } else throw new Error('Pw: bilinmeyen yük durumu ' + lc);
+    } else throw new Error('Pw: unknown load case ' + lc);
     // Tablo satırı: '-1' tipi (HSM-1, HSA-1, FSM-1, xx-2P/2S) negatif basınç → max(−P, ρg(z−T)); '2'/'1P'/'1S' pozitif → max(P, ρg(z−T))
     const negative = (sub === '1' || /^2[PS]$/.test(sub));
     const hydro = RHO_G * (z - T);                             // z ≤ T'de negatif

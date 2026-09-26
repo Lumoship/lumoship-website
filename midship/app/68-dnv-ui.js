@@ -24,9 +24,9 @@
     const anchor = $('bvBilgeKeel'); const host = anchor && anchor.closest('.ea-field') && anchor.closest('.ea-field').parentElement; if (!host) return;
     const div = document.createElement('div'); div.id = 'dnvInputs'; div.className = 'dnv-inputs'; div.style.cssText = 'display:contents';
     div.innerHTML =
-      F('dnv_TBAL', 'Ballast draught T_BAL', '', 0.01, 'DNV Pt 3 Ch 4 Sec 6 / Ch 6 Sec 2 Table 1: WB-1/WB-4 setleri T_BAL ile; boş = 0.58·T_SC', 'm') +
-      F('dnv_holdZc', 'Cargo surface z_C', '', 0.01, 'Pt 5 Ch 1 Sec 2 [3.3.1]: dolu ambarda eşdeğer yatay yüzey (ambar ağzı mezarnası üstü); boş = ambar kutusunun üstü', 'm') +
-      F('dnv_xLcpOffset', 'LCP x offset', '', 0.01, 'Ch 3 Sec 7 Table 2: LCP x = EPP orta boyu; kesitin EPP ortasından uzaklığı (m); boş = posta aralığının yarısı (komşu PSM ortası varsayımı)', 'm');
+      F('dnv_TBAL', 'Ballast draught T_BAL', '', 0.01, 'DNV Pt 3 Ch 4 Sec 6 / Ch 6 Sec 2 Table 1: WB-1 and WB-4 use T_BAL. Blank = 0.58·T_SC.', 'm') +
+      F('dnv_holdZc', 'Cargo surface z_C', '', 0.01, 'Pt 5 Ch 1 Sec 2 [3.3.1]: equivalent horizontal surface of a full hold (top of the hatch coaming). Blank = top of the hold box.', 'm') +
+      F('dnv_xLcpOffset', 'LCP x offset', '', 0.01, 'Ch 3 Sec 7 Table 2: LCP x is the EPP mid-length. Distance from the section to that mid-length, m. Blank = half the frame spacing.', 'm');
     host.appendChild(div);
   }
 
@@ -35,11 +35,11 @@
     if ($('dnv_ruleEdition')) return;
     const row = $('dnvRulesHost'); if (!row) return;
     row.innerHTML =
-      '<div class="ea-field dnv-only" title="Kural motoru ClauseFinder harvest\'inden DNV RU-SHIP Pt 3/4/5/6, 2026 Temmuz sürümü kullanıyor. Sürüm seçimi yok — tek metin kaynağı. Farklı bir baskıyla (ör. Nauticus Temmuz 2022) karşılaştırırken bazı sapmalar bu yüzden olabilir (bilinen fark: profil berthing gerekliliği 2023\'te kaldırıldı)."><label class="ea-label">Rule edition</label><input type="text" class="ea-input" id="dnv_ruleEdition" readonly value="RU-SHIP 2026-07"></div>' +
-      F('dnv_holdRho', 'Maximum cargo density ρ_C', 0.7, 0.05, 'Pt 5 Ch 1 Sec 2 [3.3.3]: M_H/V_Full, en az 0.7 t/m³ (homojen tam yük). Ambar bazında Compartments sayfasında override edilebilir; burası gemi geneli varsayılan.', 't/m³') +
+      '<div class="ea-field dnv-only" title="The rule engine uses DNV RU-SHIP Pt 3/4/5/6, July 2026. There is no edition selector. A comparison with an older edition can differ; the berthing requirement for profiles was removed in 2023."><label class="ea-label">Rule edition</label><input type="text" class="ea-input" id="dnv_ruleEdition" readonly value="RU-SHIP 2026-07"></div>' +
+      F('dnv_holdRho', 'Maximum cargo density ρ_C', 0.7, 0.05, 'Pt 5 Ch 1 Sec 2 [3.3.3]: M_H/V_Full, not less than 0.7 t/m³ for homogeneous full load. A hold can override this on the Compartments page. This box is the ship default.', 't/m³') +
       Sel('dnv_shipGrab', 'Grab', [['', '— none —'], ['1-X', 'Grab(1-X)'], ['2-X', 'Grab(2-X)'], ['3-X', 'Grab(3-X)']], '',
-        'Pt 6 Ch 1 Sec 1: gemi geneli Grab ek sınıf notasyonu. Tüm kuru dökme yük ambarları için varsayılan; bir ambarın kendi Grab notasyonu (Compartments sayfası) varsa o öncelikli. Zorunlu: L_LL≥150 m ve kargo yoğunluğu≥1,0 t/m³.') +
-      F('dnv_shipGrabMGR', 'Weight of grab M_GR', '', 1, '[1.5]: boş = notasyona göre varsayılan (Grab(1-X)/(2-X)=10 t; Grab(3-X) 20-35 t, L\'ye göre)', 't');
+        'Pt 6 Ch 1 Sec 1: ship Grab notation. Default for every dry bulk hold. A hold Grab notation on the Compartments page overrides it. Mandatory when L_LL is at least 150 m and cargo density is at least 1.0 t/m³.') +
+      F('dnv_shipGrabMGR', 'Weight of grab M_GR', '', 1, '[1.5]: blank uses the notation default. Grab(1-X) and Grab(2-X) = 10 t. Grab(3-X) = 20 to 35 t depending on L.', 't');
   }
 
   // DNV buz kuşağı bölgesi — Ice sayfasında (FSICR paneliyle aynı yerde) render edilir; Framing system/m_o alanları
@@ -48,7 +48,7 @@
     if ($('dnv_iceRegion')) return;
     const row = $('dnvIceRow'); if (!row) return;
     row.innerHTML = Sel('dnv_iceRegion', 'Ice region', [['bow', 'Bow'], ['midbody', 'Midbody'], ['stern', 'Stern']], 'midbody',
-      'Pt 6 Ch 6 Sec 3 Table 8/10/11: c_1 ve buz kuşağı düşey uzanımı bölgeye göre değişir (bu kesitin gemi boyundaki konumu). Framing system ve m_o (yukarıdaki FSICR bölümünde) DNV boyuna/enine posta hesabını da besler — aynı alan, iki ayrı kural setinde paylaşılıyor.');
+      'Pt 6 Ch 6 Sec 3 Tables 8, 10 and 11: c_1 and the vertical extent of the ice belt depend on the region (bow, midbody, stern) at this section. Framing system and m_o in the FSICR block also feed the DNV frame check. One pair of boxes, two rule sets.');
   }
   const TBAL = () => { const v = num('dnv_TBAL', NaN); return isNaN(v) || v <= 0 ? 0.58 * num('T', 7) : v; };
 
@@ -58,8 +58,8 @@
     const anchor = $('MsSag'); const host = anchor && anchor.closest('.ea-field') && anchor.closest('.ea-field').parentElement; if (!host) return;
     const div = document.createElement('div');
     div.className = 'ea-field dnv-only';
-    div.title = 'DNV Pt 3 Ch 4 Sec 4 [2.2.1]: ön tasarım M_sw kılavuz değerleri, kesitin x konumuna göre — girilen M_s hog/sag ile karşılaştırma içindir, kural motoru daima yukarıdaki girilen değeri kullanır';
-    div.innerHTML = '<label class="ea-label">DNV kılavuz M<sub>sw</sub> (hog / sag)</label><input type="text" class="ea-input" id="dnvMswGuide" readonly value="—">';
+    div.title = 'DNV Pt 3 Ch 4 Sec 4 [2.2.1]: preliminary guidance for M_sw at this x. Compare it with the Ms hog and Ms sag boxes. The check always uses those entered values.';
+    div.innerHTML = '<label class="ea-label">DNV guidance M<sub>sw</sub> (hog / sag)</label><input type="text" class="ea-input" id="dnvMswGuide" readonly value="—">';
     host.appendChild(div);
   }
   function updateMswGuidance() {
@@ -189,7 +189,15 @@
         const faces = [], sideTypes = [];
         const faceOf = (box, inside) => { if (!box) return; if (isTank(box.type)) faces.push({ kind: 'tank', tank: box.id, inside, cond: 'Ballast' }); else if (isHold(box.type)) faces.push({ kind: 'hold', hold: box.id, alpha: Math.abs(dz) > Math.abs(dy) ? 90 : 0, inside, coaming: pos === 'coaming' || pos === 'coamingTop' }); };
         if (shell) { faces.push({ kind: 'sea' }); faceOf(inBox, true); sideTypes.push('external', inBox ? (COMP_KEY[inBox.type] || 'void') : 'void'); }
-        else if (deckPos && (!inBox || !outBox)) { const ub = inBox || outBox; faces.push({ kind: 'sea', deck: { zdk: mz / 1000, LLL: ship.LLL, freeboardType: ship.freeboardType } }); faceOf(ub, true); sideTypes.push('external', ub ? (COMP_KEY[ub.type] || 'void') : 'void'); }   // açık güverte: kutusuz yüz deniz (yeşil deniz), öteki yüz tank/ambar
+        else if (deckPos && (!inBox || !outBox)) {
+          const ub = inBox || outBox;
+          const deck = { zdk: mz / 1000, LLL: ship.LLL, freeboardType: ship.freeboardType };
+          const zH = num('dnvHFreeboardDeck', NaN), zD = num('bvDepthFreeboard', NaN);
+          const zfdk = zH > 0 ? zH : (zD > 0 ? zD : NaN);
+          if (zfdk > 0) deck.zfdk = zfdk;
+          faces.push({ kind: 'sea', deck });
+          faceOf(ub, true); sideTypes.push('external', ub ? (COMP_KEY[ub.type] || 'void') : 'void');
+        }
         else if (inBox && outBox && inBox.id === outBox.id) { faces.push({ kind: 'internal' }); sideTypes.push(COMP_KEY[inBox.type] || 'void', COMP_KEY[inBox.type] || 'void'); }   // iki yüz de aynı kompartıman → net basınç 0, yalnız INT-1
         else { const aboveDeck = deckZ != null && mz >= deckZ - 5; faceOf(inBox, true); faceOf(outBox, false); sideTypes.push(inBox ? (COMP_KEY[inBox.type] || 'void') : (aboveDeck ? 'external' : 'void'), outBox ? (COMP_KEY[outBox.type] || 'void') : (aboveDeck ? 'external' : 'void')); }   // güverte üstü kutusuz yüz: dış ortam
         if (seg.deckLoad && seg.deckLoad.type && seg.deckLoad.type !== 'none' && seg.deckLoad.p > 0) faces.push({ kind: 'deck', Pdls: seg.deckLoad.p, Pdls2: seg.deckLoad.p2 != null ? seg.deckLoad.p2 : seg.deckLoad.p });
@@ -215,6 +223,8 @@
         else if (['tweenDeck', 'stringer', 'deck'].includes(pos)) { minLoc = 'otherDeck'; slLoc = 'deck'; }
         else if (['innerSide', 'longBhd', 'coaming'].includes(pos)) { minLoc = (faces.some(f => f.kind === 'tank') || tankSides || pos === 'coaming') ? 'bhdTank' : 'bhdWT'; slLoc = 'other'; }
         else if (['sideGirder', 'centreGirder', 'stringer'].includes(pos)) { minLoc = 'psm:bottomGirder'; slLoc = 'psm'; }
+        if ((minLoc === 'weatherDeck' || minLoc === 'otherDeck') && ship.D > 0 && (Math.max(A.z, Bp.z) / 1000) >= 0.7 * ship.D)
+          minAdj = DNV.deckAdj(num('numDecksAbove07D', 1)) || null;
         const plate = { id: gid + '/' + (si + 1), gid, pos, y0: A.y, z0: A.z, y1: Bp.y, z1: Bp.z, t: st.t, tc, ReH, k, arc, faces, sides: sideTypes.slice(), cFaces: [cA.face || '-', cB.face || '-'], minLoc, minAdj, slLoc, x0, x1, panelId: seg.id };
         plates.push(plate);
       });
@@ -292,8 +302,8 @@
     let p = $('dnvPanel'); if (p) return p;
     const rc = $('ruleCheckPanel'); if (!rc) return null;
     p = document.createElement('div'); p.id = 'dnvPanel'; p.className = 'ea-panel'; p.style.display = 'none';
-    p.innerHTML = `<div class="ea-panel-header" title="DNV RU-SHIP Pt 3 — yerel boyutlandırma (Ch 3 korozyon, Ch 6 min/akma, Ch 8 narinlik/burkulma, Pt 6 Ch 6 buz)">
-        <div class="ea-panel-icon warning"></div><span class="ea-panel-title">DNV Rule Check — RU-SHIP Pt 3 (Nauticus eşdeğeri)</span><span class="rulecheck-drawer-status" id="dnvStatus"></span><button type="button" id="dnvCsvBtn" class="ea-header-btn" title="EPP + profil tablolarını CSV olarak indir" style="margin-left:8px">CSV</button><button type="button" id="dnvReportBtn" class="ea-header-btn" title="Markdown rapor indir" style="margin-left:4px">Rapor</button></div>
+    p.innerHTML = `<div class="ea-panel-header" title="DNV RU-SHIP Pt 3 local scantling: Ch 3 corrosion, Ch 6 minimum and yield, Ch 8 slenderness and buckling, Pt 6 Ch 6 ice">
+        <div class="ea-panel-icon warning"></div><span class="ea-panel-title">DNV Rule Check — RU-SHIP Pt 3</span><span class="rulecheck-drawer-status" id="dnvStatus"></span><button type="button" id="dnvCsvBtn" class="ea-header-btn" title="Download the EPP and stiffener tables as CSV" style="margin-left:8px">CSV</button><button type="button" id="dnvReportBtn" class="ea-header-btn" title="Download a Markdown report" style="margin-left:4px">Report</button></div>
       <div class="ea-panel-body"><div id="dnvSummary" style="font-size:.7rem;color:var(--text-muted);margin-bottom:6px"></div>
         <div class="ea-table-wrap"><table class="ea-table"><thead><tr><th>EPP</th><th>Panel</th><th>b×a</th><th>t gr</th><th>t_c</th><th>min</th><th>yield</th><th>slend</th><th>buck</th><th>ice</th><th>t_req</th><th>Governing</th><th>OK</th></tr></thead><tbody id="dnvEppBody"></tbody></table></div>
         <div class="ea-table-wrap" style="margin-top:8px"><table class="ea-table"><thead><tr><th>Stiffener</th><th>Panel</th><th>Profile</th><th>s / ℓ</th><th>Z_req net</th><th>Z_act net</th><th>t_w req</th><th>η buck</th><th>Ice Z/A/t_w</th><th>Governing</th><th>OK</th></tr></thead><tbody id="dnvStiffBody"></tbody></table></div>
@@ -343,9 +353,9 @@
     const { model } = last, sh = model.ship, E = rowsEPP(), S = rowsStiff();
     const md = rows => { const k = Object.keys(rows[0]); return '| ' + k.join(' | ') + ' |\n|' + k.map(() => '---').join('|') + '|\n' + rows.map(r => '| ' + k.map(c => String(r[c] == null ? '' : r[c]).replace(/\|/g, '/')).join(' | ') + ' |').join('\n'); };
     const bad = E.filter(r => r.OK === 'No').length + S.filter(r => r.OK === 'No').length;
-    return '# DNV RU-SHIP Pt 3 — yerel boyutlandırma kontrolü\n\n' + new Date().toISOString().slice(0, 10) + ' · Midship Scantling (DNV motoru: Ch 3 korozyon, Ch 4 yükler, Ch 5 hull girder, Ch 6 min/akma, Ch 8 + CG-0128 burkulma, Pt 6 Ch 6 buz)\n\n' +
-      '## Gemi\n\n| L | B | D | T_SC | T_BAL | C_B | V | Tip |\n|---|---|---|---|---|---|---|---|\n| ' + [sh.L, sh.B, sh.D, sh.TSC, sh.TBAL, sh.CB, sh.V, sh.type || ''].join(' | ') + ' |\n\n' +
-      ($('dnvSummary') ? $('dnvSummary').textContent + '\n\n' : '') + '**Sonuç:** ' + (bad ? bad + ' eleman yetersiz (No!)' : 'tüm elemanlar OK') + '\n\n' +
+    return '# DNV RU-SHIP Pt 3 — local scantling check\n\n' + new Date().toISOString().slice(0, 10) + ' · Midship Scantling (DNV engine: Ch 3 corrosion, Ch 4 loads, Ch 5 hull girder, Ch 6 minimum and yield, Ch 8 + CG-0128 buckling, Pt 6 Ch 6 ice)\n\n' +
+      '## Ship\n\n| L | B | D | T_SC | T_BAL | C_B | V | Type |\n|---|---|---|---|---|---|---|---|\n| ' + [sh.L, sh.B, sh.D, sh.TSC, sh.TBAL, sh.CB, sh.V, sh.type || ''].join(' | ') + ' |\n\n' +
+      ($('dnvSummary') ? $('dnvSummary').textContent + '\n\n' : '') + '**Result:** ' + (bad ? bad + ' members short (No!)' : 'every member OK') + '\n\n' +
       '## Plakalar (EPP)\n\n' + (E.length ? md(E) : '-') + '\n\n## Profiller\n\n' + (S.length ? md(S) : '-') + '\n';
   }
   // profil net kesit modülü (bağlı plaka s genişliğinde, net kalınlıklar) — plaka dış yüzü ve flanş ucu; küçük olan
@@ -387,8 +397,8 @@
       cand.sort((a, b) => b[1] - a[1]);
       const sf = r.sideFrame;
       const sfTitle = !sf ? '' : (sf.status === 'notApplicable'
-        ? 'Yan posta: CSR-BC işaretli, Pt 5 Ch 1 Sec 2 §5.2 uygulanmaz.'
-        : `Yan posta (Pt 5 Ch 1 Sec 2): hesaplanmadı. ℓSF Şekil 1, braket Şekil 1/13; modelde yok, profil açıklığı ℓSF yerine konmadı. BC-5…BC-8 için ayrı yük durumu yok. Hazır basınç setleri: ${(sf.pressuresReady || []).join(', ') || '—'}. Hükmeden değil.`);
+        ? 'Side frame: CSR-BC is ticked, so Pt 5 Ch 1 Sec 2 §5.2 does not apply.'
+        : `Side frame (Pt 5 Ch 1 Sec 2): not calculated. Span is Figure 1 and brackets are Figure 1/13; neither is in the model, and the profile span was not used in their place. BC-5 to BC-8 need their own loading condition. Pressure sets on hand: ${(sf.pressuresReady || []).join(', ') || '—'}. Not governing.`);
       return `<tr class="${ok ? '' : 'fail'}"><td title="${sfTitle}">${r.id}${sf ? ' †' : ''}</td><td>${r.panel}</td><td>${st.name || st.type + ' ' + st.hw + 'x' + st.tw}</td><td>${Math.round(st.s)} / ${f2(st.lBdg)}</td><td title="${r.yieldZ ? r.yieldZ.set + ' ' + r.yieldZ.lc + ' P=' + f1(r.yieldZ.P) + ' C_s=' + f2(r.yieldZ.Cs) : ''}">${f1(r.ZReqNet)}</td><td>${f1(Zact)}</td><td>${f1(R5(Math.max(r.twLocNet, r.twMinNet, r.twSlendNet)))}</td><td>${r.buckling ? (r.buckling.eta >= 99 ? '∞' : f2(r.buckling.eta)) : '–'}</td><td>${r.ice ? f1(r.ice.Z) + ' / ' + f1(r.ice.A) + ' / ' + f1(r.ice.tw) : '–'}</td><td>${cand[0][0]} (${cand[0][1] >= 99 ? '∞' : f2(cand[0][1])})</td><td>${ok ? '✓' : '<b>No!</b>'}</td></tr>`; }).join('');
     const pr = model.props;
     $('dnvSummary').textContent = `x = ${model.x.toFixed(2)} m · ${out.epps.length} EPP, ${out.stiffeners.length} profil · net50: A ${(pr.A / 100).toFixed(0)} cm², z_n ${(pr.zn / 1000).toFixed(3)} m, I_y ${(pr.Iy / 1e12).toFixed(3)} m⁴, I_z ${(pr.Iz / 1e12).toFixed(3)} m⁴ · M_sw ${f1(model.loads.Msw.hog)}/${f1(model.loads.Msw.sag)} kNm · T_BAL ${model.ship.TBAL.toFixed(2)} m · tanks ${Object.keys(model.tanks).length}, holds ${Object.keys(model.holds).length}`;
