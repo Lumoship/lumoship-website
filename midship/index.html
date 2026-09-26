@@ -564,17 +564,17 @@
         <!-- TOGGLE -->
         <div class="ea-form-row-4">
           <div class="ea-field" style="grid-column:span 2">
-            <label class="ea-label" title="Enable FSICR (Finnish-Swedish Ice Class Rules) cross-checks. When enabled: side-shell plate thickness and longitudinal stiffener Z become max(LR, FSICR) within the FSICR ice belt; the 'Add Ice Intermediate Longs' button becomes active.">Enable Ice Class Rules</label>
+            <label class="ea-label" title="Bu tek anahtar hem LR+FSICR (max(LR,FSICR) plaka/profil) hem DNV seçiliyken DNV Pt 6 Ch 6 buz kuşağı kontrolünü birlikte açıp kapatıyor — ikisi de aynı 'Ice Class' ayarını paylaşıyor. Etiket, aşağıdaki Rule Set'e göre hangi motorun etkilendiğini gösterir.">Enable Ice Class Rules</label>
             <div style="display:flex;gap:12px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.72rem">
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex:1">
                 <input type="radio" name="iceEnabled" id="iceEnabledOff" value="off" checked onchange="onIceEnabledChange()" style="cursor:pointer">
                 <span style="font-weight:600;color:var(--text-primary)">Disabled</span>
-                <span style="color:var(--text-muted);font-size:0.65rem">(LR only)</span>
+                <span style="color:var(--text-muted);font-size:0.65rem" id="iceOffLabel">(baseline only)</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex:1">
                 <input type="radio" name="iceEnabled" id="iceEnabledOn" value="on" onchange="onIceEnabledChange()" style="cursor:pointer">
                 <span style="font-weight:600;color:var(--text-primary)">Enabled</span>
-                <span style="color:var(--text-muted);font-size:0.65rem">(LR + FSICR governance)</span>
+                <span style="color:var(--text-muted);font-size:0.65rem" id="iceOnLabel">(+ FSICR governance)</span>
               </label>
             </div>
           </div>
@@ -643,7 +643,7 @@
           <div class="ea-field"><label class="ea-label" title="FSICR Eq 3.1: P_min = K_e·(R_CH/1000)^1.5 / D_P.">D<sub>P</sub> — propeller diameter</label><div class="ea-input-unit"><input type="number" step="0.01" class="ea-input" id="ice_Dp" onchange="onIceInputChange()"><span class="ea-unit">m</span></div></div>
         </div>
         <div class="ea-form-row-4">
-          <div class="ea-field" title="FSICR Sec 3.2.2 Eq 3.1/3.2 — formül resmi denklem görüntülerinin alt-metninden birebir alındı (R_CH = C1+C2+C3·Cμ·(HF+HM)²·(B+Cψ·HF)+C4·LPAR·HF²+C5·(L·T/B²)³·(Awf/L); Pmin=Ke·(RCH/1000)^1,5/DP), yalnız IA/IB/IC (C1=C2=0). DÜRÜST UYARI: formül kural metniyle karşılaştırıldı ama Nauticus'un kendi örnek gemisinin gerçek L/B/L_PAR değerleri elimde olmadığı için ekrandaki 1798/1355 kW ile birebir sayısal doğrulama YAPILAMADI — kendi gemi verinizle hesaplayıp makul geldiğini kontrol edin."><label class="ea-label">Req. machinery power — computed (UIWL / LIWL)</label><div class="ea-input-unit"><input type="text" class="ea-input" id="ice_reqPower_u" readonly placeholder="—"><span class="ea-unit">kW</span></div><div class="ea-input-unit" style="margin-top:4px"><input type="text" class="ea-input" id="ice_reqPower_l" readonly placeholder="—"><span class="ea-unit">kW</span></div></div>
+          <div class="ea-field ref-only" title="FSICR Sec 3.2.2 Eq 3.1/3.2 — formül resmi denklem görüntülerinin alt-metninden birebir alındı, AMA gerçek bir referans geminin girdileriyle test edilince (L=121,91 B=17,2 T=7,258/4,675, α/φ2/Awf gerçek bir Nauticus ekran görüntüsüyle birebir) sonuç ~5983 kW çıktı, gerçek sonuç 1798 kW — yaklaşık 3,3x fazla. Formül metinle birebir eşleşiyor ama sonuç YANLIŞ (muhtemelen orijinal denklemin düz metne dökülürken kaybolan bir parantez/üs gruplaması var). Yanıltmamak için çıktı devre dışı bırakıldı — hata bulununca tekrar açılabilir.">Req. machinery power — DISABLED, formula found incorrect (see tooltip)</label><div class="ea-input-unit"><input type="text" class="ea-input" id="ice_reqPower_u" readonly placeholder="—"><span class="ea-unit">kW</span></div><div class="ea-input-unit" style="margin-top:4px"><input type="text" class="ea-input" id="ice_reqPower_l" readonly placeholder="—"><span class="ea-unit">kW</span></div></div>
         </div>
         <div class="ea-form-row-4">
           <div class="ea-field ref-only" title="Nauticus 'Ice class' ekranı — özel operasyon/notasyon bayrakları, bilgi amaçlı, motor şu an kullanmıyor."><label class="ea-label">Ice breaker notation</label><div class="ea-check-row"><label class="ea-check"><input type="checkbox" id="ice_notIceBreaker" disabled> yes</label></div></div>

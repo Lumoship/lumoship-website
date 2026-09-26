@@ -395,7 +395,8 @@
   function refresh() {
     ensureInputs(); ensureMswGuidance();
     const iceOnEl = $('iceEnabledOn'), rulesStatus = $('rulesIceStatus');   // Applicable Rules ayna metni — her recalc'ta taze (proje yüklendikten sonra da doğru)
-    if (rulesStatus) rulesStatus.textContent = (iceOnEl && iceOnEl.checked) ? 'Enabled (FSICR) — see Ice Class page' : 'Disabled — see Ice Class page';
+    if (rulesStatus) rulesStatus.textContent = (iceOnEl && iceOnEl.checked) ? ('Enabled (' + (isDNV() ? 'DNV Pt 6 Ch 6' : 'FSICR') + ') — see Ice Class page') : 'Disabled — see Ice Class page';
+    if (window.syncIceSocietyLabels) window.syncIceSocietyLabels();   // Ice Class sayfasındaki "(LR only)/(+FSICR)" etiketi seçili Rule Set'e göre (DNV'de Pt 6 Ch 6'ya işaret eder)
     const on = isDNV();
     document.querySelectorAll('.dnv-only').forEach(el => { el.style.display = on ? '' : 'none'; });
     // Applicable Rules: hangi notasyon hangi kural setinde gerçekten var (ClauseFinder LR Ships / BV NR467 / DNV RU-SHIP taraması) — data-rules yoksa üçünde de geçerli, her zaman görünür
@@ -583,6 +584,7 @@
     if (q.get('dnvstepshot')) setTimeout(() => { if (window.goToStep) window.goToStep(parseInt(q.get('dnvstepshot'))); document.title = 'step-ready'; }, 1500);
     if (q.get('dnvicereqtest')) setTimeout(() => {
       const setVal = (id, v) => { const el = document.getElementById(id); if (!el) return; const proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
+      if (q.get('dnvicereqtest') === 'dnv') setVal('classificationSociety', 'DNV');
       const onEl = document.getElementById('iceEnabledOn'); if (onEl) { onEl.checked = true; onEl.dispatchEvent(new Event('change', { bubbles: true })); }
       const body = document.getElementById('iceClassBody'); if (body) body.style.display = '';
       setVal('ice_alpha_u', 22.01); setVal('ice_alpha_l', 20.76); setVal('ice_phi1_u', 100); setVal('ice_phi1_l', 86);

@@ -364,6 +364,14 @@ function refreshIceReqPower() {
     { T: g('ice_T_uiwl'), alpha: g('ice_alpha_u'), phi2: g('ice_phi2_u'), awf: g('ice_awf_u'), out: outU },
     { T: g('ice_T_liwl'), alpha: g('ice_alpha_l'), phi2: g('ice_phi2_l'), awf: g('ice_awf_l'), out: outL },
   ];
+  // 26 Eyl 2026: gerçek bir referans geminin buz-sınıfı girdileriyle test edildi — Nauticus 1798/1355 kW gösterirken
+  // bu formül ~5983 kW veriyor (≈3,3x fazla). Metin kaynağıyla birebir eşleşen bir transkripsiyon olmasına rağmen
+  // sonuç YANLIŞ — muhtemelen resmi denklem görüntüsünün düz metne dökülürken kaybettiği bir parantez/üs gruplaması
+  // var. Yanıltıcı bir sayı göstermemek için ÇIKTI DEVRE DIŞI bırakıldı; fonksiyon (FSICR.reqEnginePower) ileride
+  // hata bulununca tekrar bağlanabilsin diye kod olarak duruyor.
+  cases.forEach(c => { c.out.value = '⚠ needs debug — formula under review'; });
+  return;
+  // eslint-disable-next-line no-unreachable
   cases.forEach(c => {
     const r = window.FSICR.reqEnginePower(iceClass, L, B, c.T, Lpar, { alpha: c.alpha, phi2: c.phi2, awf: c.awf }, propType, nProps, Dp);
     c.out.value = r ? Math.round(r.Pmin).toLocaleString('en-US') : '—';
@@ -385,6 +393,20 @@ function onIceInputChange() {
 window.onIceInputChange = onIceInputChange;
 
 // UI — react to enable/disable; refresh button state and trigger recalc
+// "Enable Ice Class Rules" TEK anahtarı hem LR+FSICR max(LR,FSICR) plaka/profil hem (DNV seçiliyken) DNV Pt 6 Ch 6 buz kuşağını birlikte açıyor
+// (bkz app/68-dnv-ui.js buildModel: iceOn aynı checkbox'tan okunuyor) — etiket, hangi Rule Set seçili olduğuna göre doğru motoru göstersin.
+function syncIceSocietyLabels() {
+  const soc = (document.getElementById('classificationSociety') || {}).value || '';
+  const isDNVsel = soc === 'DNV';
+  const offEl = document.getElementById('iceOffLabel'), onLbl = document.getElementById('iceOnLabel');
+  if (offEl) offEl.textContent = '(baseline only)';
+  if (onLbl) onLbl.textContent = isDNVsel ? '(+ DNV Pt 6 Ch 6 ice belt)' : '(+ FSICR governance)';
+  const status = document.getElementById('iceClassStatus');
+  const onEl = document.getElementById('iceEnabledOn'); const enabled = !!(onEl && onEl.checked);
+  if (status) status.textContent = enabled ? ('ENABLED · ' + (isDNVsel ? 'DNV Pt 6 Ch 6' : 'LR + FSICR') + ' governance') : 'DISABLED · click to expand';
+}
+window.syncIceSocietyLabels = syncIceSocietyLabels;
+
 function onIceEnabledChange() {
   // Clear the FSICR memo cache (toggle off → next compute returns null;
   // toggle on → first compute rebuilds fresh from inputs)
@@ -395,12 +417,12 @@ function onIceEnabledChange() {
   const enabled = !!(onEl && onEl.checked);
   const btn = document.getElementById('ice_insertBtn');
   if (btn) btn.disabled = !enabled;
-  const status = document.getElementById('iceClassStatus');
-  if (status) status.textContent = enabled ? 'ENABLED · LR + FSICR governance' : 'DISABLED · click to expand';
+  syncIceSocietyLabels();
   const icon = document.getElementById('iceClassIcon');
   if (icon) icon.style.background = enabled ? 'var(--success)' : 'var(--cyan)';
   const rulesStatus = document.getElementById('rulesIceStatus');   // Applicable Rules sayfasındaki salt-okunur ayna — tek kaynak burası (Ice Class sayfası), orada input yok
-  if (rulesStatus) rulesStatus.textContent = enabled ? 'Enabled (FSICR) — see Ice Class page' : 'Disabled — see Ice Class page';
+  const isDNVsel0 = (document.getElementById('classificationSociety') || {}).value === 'DNV';
+  if (rulesStatus) rulesStatus.textContent = enabled ? ('Enabled (' + (isDNVsel0 ? 'DNV Pt 6 Ch 6' : 'FSICR') + ') — see Ice Class page') : 'Disabled — see Ice Class page';
   if (typeof recalcAll === 'function') recalcAll();
   // Repaint section drawing so the ice waterline overlay appears/disappears
   if (window.Draw && typeof window.Draw.render === 'function') {
